@@ -27,12 +27,12 @@ const (
 	chainConstraintTemplate = ChainConstraintName + "(0x%s)"
 )
 
-func NewChainConstraint(id ChainID, prevOut, prevBlock, mode byte) *ChainConstraint {
+func NewChainConstraint(id ChainID, prevOut, predecessorConstraintIndex, mode byte) *ChainConstraint {
 	return &ChainConstraint{
 		ID:                         id,
 		TransitionMode:             mode,
 		PredecessorInputIndex:      prevOut,
-		PredecessorConstraintIndex: prevBlock,
+		PredecessorConstraintIndex: predecessorConstraintIndex,
 	}
 }
 
@@ -98,8 +98,8 @@ func ChainConstraintFromBytes(data []byte) (*ChainConstraint, error) {
 // 0 - successor output index
 // 1 - successor block index
 // 2 - transition mode must be equal to the transition mode in the successor constraint data
-func NewChainUnlockParams(successorOutputIdx, successorConstraintBlockIndex, transitionMode byte) []byte {
-	return []byte{successorOutputIdx, successorConstraintBlockIndex, transitionMode}
+func NewChainUnlockParams(successorOutputIdx, successorConstraintIndex, transitionMode byte) []byte {
+	return []byte{successorOutputIdx, successorConstraintIndex, transitionMode}
 }
 
 func addChainConstraint(lib *Library) {

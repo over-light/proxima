@@ -32,7 +32,8 @@ func TestDelegation(t *testing.T) {
 
 	t.Run("1", func(t *testing.T) {
 		initTest()
-		par, err := u.MakeTransferInputData(privKey[0], nil, ledger.TimeNow())
+		par, err := u.MakeTransferInputData(privKey[0], nil, ledger.NilLedgerTime)
+		require.NoError(t, err)
 
 		lock := ledger.NewDelegationLock(addr[0], addr[1], 2)
 		txBytes, err := txbuilder.MakeSimpleTransferTransaction(par.
@@ -63,5 +64,37 @@ func TestDelegation(t *testing.T) {
 		require.EqualValues(t, 1, len(outs))
 
 		t.Logf("delegated output to addr %s:\n%s", addr[1].Short(), outs[0].Lines("      ").String())
+
+		ts := outs[0].ID.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace))
+
+		cc, idx := outs[0].Output.ChainConstraint()
+		require.True(t, idx != 0xff)
+		require.True(t, cc.IsOrigin())
+		chainID, _, ok := outs[0].ExtractChainID()
+		require.True(t, ok)
+
+		chainConstraint := ledger.NewChainConstraint(chainID, 0, idx, 0)
+		succOut := ledger.NewOutput(func(o *ledger.Output) {
+			o.WithAmount(outs[0].Output.Amount()).
+				WithLock(outs[0].Output.DelegationLock())
+			idx, _ = o.PushConstraint(chainConstraint.Bytes())
+		})
+		require.NoError(t, err)
+
+		txb := txbuilder.NewTransactionBuilder()
+		_, err = txb.ConsumeOutput(outs[0].Output, outs[0].ID)
+		require.NoError(t, err)
+		txb.PutUnlockParams(0, idx, ledger.NewChainUnlockParams(0, idx, 0))
+		_, err = txb.ProduceOutput(succOut)
+		require.NoError(t, err)
+
+		txb.TransactionData.Timestamp = ts
+		txb.TransactionData.InputCommitment = txb.InputCommitment()
+		txb.SignED25519(privKey[1])
+		txBytes = txb.TransactionData.Bytes()
+		t.Logf("next delegated tx:\n%s", u.TxToString(txBytes))
+
+		err = u.AddTransaction(txBytes)
+		require.NoError(t, err)
 	})
 }
