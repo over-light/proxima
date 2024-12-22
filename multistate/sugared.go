@@ -179,14 +179,24 @@ func (s SugaredStateReader) BalanceOnChain(chainID *ledger.ChainID) uint64 {
 	return o.Output.Amount()
 }
 
-func (s SugaredStateReader) GetOutputsDelegatedToAccount(addr ledger.Accountable) ([]*ledger.OutputWithID, error) {
-	ret := make([]*ledger.OutputWithID, 0)
+func (s SugaredStateReader) GetOutputsDelegatedToAccount(addr ledger.Accountable) ([]*ledger.OutputWithChainID, error) {
+	ret := make([]*ledger.OutputWithChainID, 0)
 	err := s.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
 		lock := o.DelegationLock()
 		if lock != nil && ledger.EqualAccountables(lock.TargetLock, addr) {
-			ret = append(ret, &ledger.OutputWithID{
-				ID:     oid,
-				Output: o,
+			cc, idx := o.ChainConstraint()
+			chainID := cc.ID
+			if cc.IsOrigin() {
+				chainID = ledger.MakeOriginChainID(&oid)
+			}
+			util.Assertf(idx != 0xff, "inconsistency: chain constraint expected")
+			ret = append(ret, &ledger.OutputWithChainID{
+				OutputWithID: ledger.OutputWithID{
+					ID:     oid,
+					Output: o,
+				},
+				ChainID:                    chainID,
+				PredecessorConstraintIndex: cc.PredecessorConstraintIndex,
 			})
 		}
 		return true

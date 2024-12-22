@@ -26,7 +26,7 @@ const (
 const delegationLockSource = `
 
 // $0 sibling index
-func _selfSiblingUnlockParams : @Array8(unlockParamsByIndex(selfOutputIndex), $0)
+func selfSiblingUnlockParams : @Array8(unlockParamsByIndex(selfOutputIndex), $0)
 
 // Enfoces delegation target lock and additional constraints, such as immutable chain 
 // transition with non-decreasing amount
@@ -37,7 +37,7 @@ func _enforceDelegationTargetConstraintsOnSuccessor : and(
     $1,  // target lock must be unlocked
     require(lessOrEqualThan(selfAmountValue, amountValue($2)), !!!amount_should_not_decrease),
     require(equal(@Array8($2, lockConstraintIndex), selfSiblingConstraint(lockConstraintIndex)), !!!lock_must_be_immutable),
-    require(equal(byte(_selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
+    require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 
 // $0 chain constraint index
@@ -57,10 +57,10 @@ func delegationLock: and(
                   _enforceDelegationTargetConstraintsOnSuccessor(
                       $0,
                       $1, 
-                      producedOutputByIndex(byte(_selfSiblingUnlockParams($0), 0))
+                      producedOutputByIndex(byte(selfSiblingUnlockParams($0), 0))
                   ) // check successor
                ),
-               $2 // otherwise check owner's lock
+               require($2, !!!owner_address_is_not_unlocked ) // otherwise check owner's lock
             )
         )
     )

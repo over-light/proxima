@@ -178,8 +178,7 @@ func addressED25519: and(
 					// tx signature is checked
 				unlockedWithSigED25519($0, signatureED25519(txSignature), publicKeyED25519(txSignature)) 
 			)
-		),
-		!!!addressED25519_unlock_failed
+		)
 	)
 )
 

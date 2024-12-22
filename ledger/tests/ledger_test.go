@@ -107,7 +107,7 @@ func TestMainConstraints(t *testing.T) {
 		in.SenderPrivateKey = privKeyWrong
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1000))
-		easyfl.RequireErrorWith(t, err, "addressED25519 unlock failed")
+		easyfl.RequireErrorWith(t, err, "failed")
 	})
 	t.Run("not enough deposit", func(t *testing.T) {
 		u := utxodb.NewUTXODB(genesisPrivateKey, true)
