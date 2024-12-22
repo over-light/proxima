@@ -339,12 +339,12 @@ var upgrade0WithFunctions = []*easyfl.ExtendedFunctionData{
 	{"producedOutputPathByIndex", "concat(pathToProducedOutputs,$0)"},
 	// takes 1-byte $0 as output index
 	{"consumedOutputByIndex", "@Path(consumedOutputPathByIndex($0))"},
-	{"unlockParamsByIndex", "@Path(unlockParamsPathByIndex($0))"},
-	{"producedOutputByIndex", "@Path(producedOutputPathByIndex($0))"},
+	{"unlockParamsByIndex", "@Path(unlockParamsPathByIndex($0))"},     // TODO by output index
+	{"producedOutputByIndex", "@Path(producedOutputPathByIndex($0))"}, // TODO by output index
 	// takes $0 'constraint index' as 2 bytes: 0 for output index, 1 for block index
 	{"producedConstraintByIndex", "@Array8(producedOutputByIndex(byte($0,0)), byte($0,1))"},
 	{"consumedConstraintByIndex", "@Array8(consumedOutputByIndex(byte($0,0)), byte($0,1))"},
-	{"unlockParamsByConstraintIndex", "@Array8(unlockParamsByIndex(byte($0,0)), byte($0,1))"},
+	{"unlockParamsByConstraintIndex", "@Array8(unlockParamsByIndex(byte($0,0)), byte($0,1))"}, // 2-byte index (outIdx, constrIdx)
 
 	{"consumedLockByInputIndex", "consumedConstraintByIndex(concat($0, lockConstraintIndex))"},
 	{"inputIDByIndex", "@Path(concat(pathToInputIDs,$0))"},

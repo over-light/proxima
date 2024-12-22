@@ -66,6 +66,9 @@ func TestDelegation(t *testing.T) {
 		t.Logf("delegated output to addr %s:\n%s", addr[1].Short(), outs[0].Lines("      ").String())
 
 		ts := outs[0].ID.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace))
+		if ts.Slot()%2 != 0 {
+			ts = ts.AddSlots(1)
+		}
 
 		cc, idx := outs[0].Output.ChainConstraint()
 		require.True(t, idx != 0xff)
@@ -87,6 +90,8 @@ func TestDelegation(t *testing.T) {
 		txb.PutUnlockParams(0, idx, ledger.NewChainUnlockParams(0, idx, 0))
 		_, err = txb.ProduceOutput(succOut)
 		require.NoError(t, err)
+
+		txb.PutSignatureUnlock(0)
 
 		txb.TransactionData.Timestamp = ts
 		txb.TransactionData.InputCommitment = txb.InputCommitment()

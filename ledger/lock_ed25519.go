@@ -125,6 +125,14 @@ func initTestAddressED25519Constraint() {
 	util.AssertNoError(err)
 }
 
+// TODO put for better diagnostics -->> optimize overall
+// func unlockedByReference: and(
+//  require(equal(selfUnlockParameters,1), !!!wrong_unlock_parameters_in address25519),
+//	lessThan(selfUnlockParameters, selfOutputIndex),              // unlock parameter must point to another input with
+//							                                      // strictly smaller index. This prevents reference cycles
+//	equal(self, consumedLockByInputIndex(selfUnlockParameters))  // the referenced constraint bytes must be equal to the self constraint bytes
+//)
+
 const addressED25519ConstraintSource = `
 
 // ED25519 address constraint wraps 32 bytes address, the blake2b hash of the public key
