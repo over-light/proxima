@@ -160,7 +160,7 @@ if(
 )
 
 // inflation(<inflation amount>, <VRF proof>, <chain constraint index>, <delayed inflation index>)
-// $0 - chain inflation amount (8 bytes or isZero). On slot boundary interpreted as delayed inflation 
+// $0 - chain inflation amount (8 bytes or isZero). On slot boundary interpreted as delayed inflation. Inflation either 0 or precise amount 
 // $1 - vrf proof. Interpreted only on branch transactions
 // $2 - chain constraint index (sibling)
 // $3 - delayed inflation index. Inflation constraint index in the predecessor, 0xff means not specified
