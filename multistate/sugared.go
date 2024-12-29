@@ -79,7 +79,7 @@ func (s SugaredStateReader) MustGetOutputWithID(oid *ledger.OutputID) *ledger.Ou
 }
 
 func (s SugaredStateReader) GetOutputsForAccount(addr ledger.AccountID) ([]*ledger.OutputWithID, error) {
-	oDatas, err := s.GetUTXOsLockedInAccount(addr)
+	oDatas, err := s.GetUTXOsInAccount(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (s SugaredStateReader) GetOutputsForAccount(addr ledger.AccountID) ([]*ledg
 func (s SugaredStateReader) IterateOutputsForAccount(addr ledger.Accountable, fun func(oid ledger.OutputID, o *ledger.Output) bool) (err error) {
 	var o *ledger.Output
 	var err1 error
-	return s.IterateUTXOsLockedInAccount(addr.AccountID(), func(oid ledger.OutputID, odata []byte) bool {
+	return s.IterateUTXOsInAccount(addr.AccountID(), func(oid ledger.OutputID, odata []byte) bool {
 		o, err1 = ledger.OutputFromBytesReadOnly(odata)
 		if err1 != nil {
 			return true
@@ -99,7 +99,7 @@ func (s SugaredStateReader) IterateOutputsForAccount(addr ledger.Accountable, fu
 }
 
 func (s SugaredStateReader) GetStemOutput() *ledger.OutputWithID {
-	oData, err := s.IndexedStateReader.GetUTXOsLockedInAccount(ledger.StemAccountID)
+	oData, err := s.IndexedStateReader.GetUTXOsInAccount(ledger.StemAccountID)
 	util.AssertNoError(err)
 	if len(oData) != 1 {
 		fmt.Println()

@@ -162,7 +162,7 @@ func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 
 	resp := &api.OutputList{}
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) (errRet error) {
-		oData, errRet = rdr.GetUTXOsLockedInAccount(accountable.AccountID())
+		oData, errRet = rdr.GetUTXOsInAccount(accountable.AccountID())
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
 		return

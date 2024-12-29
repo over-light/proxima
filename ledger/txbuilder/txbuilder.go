@@ -798,7 +798,7 @@ func GetChainAccount(chainID ledger.ChainID, srdr global.IndexedStateReader, des
 	if len(chainData) != 1 {
 		return nil, nil, fmt.Errorf("error while parsing chain output")
 	}
-	retData, err := srdr.GetUTXOsLockedInAccount(chainID.AsAccountID())
+	retData, err := srdr.GetUTXOsInAccount(chainID.AsAccountID())
 	if err != nil {
 		return nil, nil, err
 	}

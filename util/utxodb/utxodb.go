@@ -144,7 +144,7 @@ func (u *UTXODB) MakeTransactionFromFaucet(addr ledger.AddressED25519, amountPar
 	if len(amountPar) > 0 && amountPar[0] > 0 {
 		amount = amountPar[0]
 	}
-	faucetOutputs, err := u.StateReader().GetUTXOsLockedInAccount(u.faucetAddress.AccountID())
+	faucetOutputs, err := u.StateReader().GetUTXOsInAccount(u.faucetAddress.AccountID())
 	if err != nil {
 		return nil, fmt.Errorf("UTXODB faucet: %v", err)
 	}
@@ -177,7 +177,7 @@ func (u *UTXODB) makeTransactionTokensFromFaucetMulti(addrs []ledger.AddressED25
 		return nil, fmt.Errorf("UTXODB faucet: wrong amount")
 	}
 	totalAmount := amount * uint64(len(addrs))
-	faucetOutputs, err := u.StateReader().GetUTXOsLockedInAccount(u.faucetAddress.AccountID())
+	faucetOutputs, err := u.StateReader().GetUTXOsInAccount(u.faucetAddress.AccountID())
 	faucetInputs, inpAmount, ts, err := txutils.ParseAndSortOutputDataUpToAmount(faucetOutputs, totalAmount, nil)
 	if err != nil {
 		return nil, err
@@ -309,7 +309,7 @@ func (u *UTXODB) MakeTransferInputData(privKey ed25519.PrivateKey, sourceAccount
 }
 
 func (u *UTXODB) makeTransferInputsED25519(par *txbuilder.TransferData, desc ...bool) error {
-	outsData, err := u.StateReader().GetUTXOsLockedInAccount(par.SourceAccount.AccountID())
+	outsData, err := u.StateReader().GetUTXOsInAccount(par.SourceAccount.AccountID())
 	if err != nil {
 		return err
 	}
@@ -364,7 +364,7 @@ func (u *UTXODB) TransferTokens(privKey ed25519.PrivateKey, targetLock ledger.Lo
 }
 
 func (u *UTXODB) account(addr ledger.Accountable) (uint64, int) {
-	outs, err := u.StateReader().GetUTXOsLockedInAccount(addr.AccountID())
+	outs, err := u.StateReader().GetUTXOsInAccount(addr.AccountID())
 	util.AssertNoError(err)
 	balance := uint64(0)
 	outs1, err := txutils.ParseAndSortOutputData(outs, nil)

@@ -276,7 +276,7 @@ func TestSenderAddressED25519(t *testing.T) {
 	require.EqualValues(t, 1, u.NumUTXOs(addr1))
 	require.EqualValues(t, 2000, u.Balance(addr1))
 
-	outDatas, err := u.StateReader().GetUTXOsLockedInAccount(addr1.AccountID())
+	outDatas, err := u.StateReader().GetUTXOsInAccount(addr1.AccountID())
 	require.NoError(t, err)
 	outs, err := txutils.ParseAndSortOutputData(outDatas, nil)
 	require.NoError(t, err)
@@ -779,7 +779,7 @@ func TestChainLock(t *testing.T) {
 		require.EqualValues(t, 3000, onLocked)
 		require.EqualValues(t, 2000, onChainOut)
 
-		outs, err := u.StateReader().GetUTXOsLockedInAccount(chainAddr.AccountID())
+		outs, err := u.StateReader().GetUTXOsInAccount(chainAddr.AccountID())
 		require.NoError(t, err)
 		require.EqualValues(t, 2, len(outs))
 

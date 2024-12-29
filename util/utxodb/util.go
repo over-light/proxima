@@ -13,7 +13,7 @@ func (u *UTXODB) MakeParallelTransferSequences(nSeq, howLong int, amount uint64)
 	firstOuts := make([]*ledger.OutputWithID, nSeq)
 
 	for i := range firstOuts {
-		odatas, err := u.StateReader().GetUTXOsLockedInAccount(addrs[i].AccountID())
+		odatas, err := u.StateReader().GetUTXOsInAccount(addrs[i].AccountID())
 		if err != nil {
 			return nil, err
 		}

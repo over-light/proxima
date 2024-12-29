@@ -256,7 +256,7 @@ func (b *InputBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 		vidBranch.IDShortString(), chainOut.Lines("         ").String())
 
 	// load pending tag-along outputs
-	oids, err := rdr.GetIDsLockedInAccount(seqID.AsChainLock().AccountID())
+	oids, err := rdr.GetUTXOIDsInAccount(seqID.AsChainLock().AccountID())
 	util.AssertNoError(err)
 	for _, oid := range oids {
 		o := rdr.MustGetOutputWithID(&oid)

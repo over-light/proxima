@@ -167,7 +167,7 @@ func (r *Readable) KnowsCommittedTransaction(txid *ledger.TransactionID) bool {
 	return part.Has(txid[:])
 }
 
-func (r *Readable) GetIDsLockedInAccount(addr ledger.AccountID) ([]ledger.OutputID, error) {
+func (r *Readable) GetUTXOIDsInAccount(addr ledger.AccountID) ([]ledger.OutputID, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -194,12 +194,12 @@ func (r *Readable) GetIDsLockedInAccount(addr ledger.AccountID) ([]ledger.Output
 	return ret, nil
 }
 
-func (r *Readable) GetUTXOsLockedInAccount(addr ledger.AccountID) ([]*ledger.OutputDataWithID, error) {
+func (r *Readable) GetUTXOsInAccount(addr ledger.AccountID) ([]*ledger.OutputDataWithID, error) {
 	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
 	defer partition.Dispose()
 
 	ret := make([]*ledger.OutputDataWithID, 0)
-	err := r.IterateUTXOsLockedInAccount(addr, func(oid ledger.OutputID, odata []byte) bool {
+	err := r.IterateUTXOsInAccount(addr, func(oid ledger.OutputID, odata []byte) bool {
 		ret = append(ret, &ledger.OutputDataWithID{
 			ID:         oid,
 			OutputData: odata,
@@ -212,11 +212,11 @@ func (r *Readable) GetUTXOsLockedInAccount(addr ledger.AccountID) ([]*ledger.Out
 	return ret, nil
 }
 
-func (r *Readable) IterateUTXOsLockedInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID, odata []byte) bool) (err error) {
+func (r *Readable) IterateUTXOsInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID, odata []byte) bool) (err error) {
 	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
 	defer partition.Dispose()
 
-	return r.IterateUTXOIDsLockedInAccount(addr, func(oid ledger.OutputID) bool {
+	return r.IterateUTXOIDsInAccount(addr, func(oid ledger.OutputID) bool {
 		if odata, found := r._getUTXO(&oid, partition); found {
 			return fun(oid, odata)
 		}
@@ -224,7 +224,7 @@ func (r *Readable) IterateUTXOsLockedInAccount(addr ledger.AccountID, fun func(o
 	})
 }
 
-func (r *Readable) IterateUTXOIDsLockedInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID) bool) (err error) {
+func (r *Readable) IterateUTXOIDsInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID) bool) (err error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 

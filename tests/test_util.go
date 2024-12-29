@@ -232,7 +232,7 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 		return
 	}
 	rdr := td.wrk.HeaviestStateForLatestTimeSlot()
-	oDatas, err := rdr.GetUTXOsLockedInAccount(td.addrAux.AccountID())
+	oDatas, err := rdr.GetUTXOsInAccount(td.addrAux.AccountID())
 	require.NoError(td.t, err)
 	require.EqualValues(td.t, 1, len(oDatas))
 
@@ -306,7 +306,7 @@ func initWorkflowTestWithConflicts(t *testing.T, nConflicts int, nChains int, ta
 	bal, _ := multistate.BalanceOnLock(rdr, ret.addr)
 	require.EqualValues(t, initBalance, int(bal))
 
-	oDatas, err := rdr.GetUTXOsLockedInAccount(ret.addr.AccountID())
+	oDatas, err := rdr.GetUTXOsInAccount(ret.addr.AccountID())
 	require.NoError(t, err)
 	require.EqualValues(t, 1, len(oDatas))
 
@@ -315,7 +315,7 @@ func initWorkflowTestWithConflicts(t *testing.T, nConflicts int, nChains int, ta
 	require.EqualValues(t, initBalance, int(ret.forkOutput.Output.Amount()))
 	t.Logf("forked output ID: %s", ret.forkOutput.IDShort())
 
-	oDatas, err = rdr.GetUTXOsLockedInAccount(ret.addrAux.AccountID())
+	oDatas, err = rdr.GetUTXOsInAccount(ret.addrAux.AccountID())
 	require.NoError(t, err)
 	require.EqualValues(t, 1, len(oDatas))
 
