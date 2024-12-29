@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/tests"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,8 +72,20 @@ func TestDecompileBytecode(t *testing.T) {
 func TestParseOutputData(t *testing.T) {
 	srv := &server{}
 
+	const amount = uint64(31415926535)
+	addr := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(100))
+	chanID := ledger.RandomChainID()
+	cc := ledger.NewChainConstraint(chanID, 1, 2, 0)
+	o := ledger.NewOutput(func(o *ledger.Output) {
+		o.WithAmount(amount).
+			WithLock(addr)
+		o.PushConstraint(cc.Bytes())
+	})
+	oDataStr := hex.EncodeToString(o.Bytes())
+	reqStr := fmt.Sprintf("/txapi/v1/parse_output_data?output_data=%s", oDataStr)
+
 	// Prepare request
-	req := httptest.NewRequest(http.MethodGet, "/txapi/v1/parse_output_data?output_data=40060b45ab8800038d7ff693a50e2345b3a0033d48aa6f02b3f37811ae82d9c383855d3d23373cbd28ab94639fdd94a4f02d2645c2a36393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc0002000d49d181028800038d7ff693a50e1d504287626f6f742e623084000006ad840000035c8800000000000000006151d7880000000000386580d1022cee903827166af9c0257be156222ae34c9279831a294fb5213647a3bcbe7a3e203d100f3ec2095fb076c65ed1d29a680c05c7993d43e7fdd0a779e8f783943a50b0a1ba3b373830cc2f447a030edb35810281ff", nil)
+	req := httptest.NewRequest(http.MethodGet, reqStr, nil)
 	w := httptest.NewRecorder()
 
 	// Call handler
@@ -90,11 +104,13 @@ func TestParseOutputData(t *testing.T) {
 	err = json.Unmarshal(data, &ret)
 	assert.NoError(t, err)
 
-	assert.Equal(t, ret.Data, "40060b45ab8800038d7ff693a50e2345b3a0033d48aa6f02b3f37811ae82d9c383855d3d23373cbd28ab94639fdd94a4f02d2645c2a36393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc0002000d49d181028800038d7ff693a50e1d504287626f6f742e623084000006ad840000035c8800000000000000006151d7880000000000386580d1022cee903827166af9c0257be156222ae34c9279831a294fb5213647a3bcbe7a3e203d100f3ec2095fb076c65ed1d29a680c05c7993d43e7fdd0a779e8f783943a50b0a1ba3b373830cc2f447a030edb35810281ff")
-	assert.Equal(t, ret.Amount, uint64(0x38d7ff693a50e))
-	assert.Equal(t, ret.ChainID, "6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc")
-	assert.Equal(t, len(ret.Constraints), 6)
-	assert.Equal(t, ret.Constraints[0], "amount(u64/1000005667366158)")
+	assert.Equal(t, oDataStr, ret.Data)
+	assert.Equal(t, amount, ret.Amount)
+	assert.Equal(t, chanID.StringHex(), ret.ChainID)
+	assert.Equal(t, 3, len(ret.Constraints))
+	assert.Equal(t, "amount(u64/31415926535)", ret.Constraints[0])
+	assert.Equal(t, addr.Source(), ret.Constraints[1])
+	assert.Equal(t, cc.Source(), ret.Constraints[2])
 }
 
 func TestParseOutput(t *testing.T) {
@@ -106,6 +122,7 @@ func TestParseOutput(t *testing.T) {
 	}
 
 	genesisOut := ledger.GenesisStemOutput()
+	oDataStr := hex.EncodeToString(genesisOut.Output.Bytes())
 
 	// Prepare request
 	request := fmt.Sprintf("/txapi/v1/parse_output?output_id=%s", genesisOut.ID.StringHex())
@@ -128,7 +145,7 @@ func TestParseOutput(t *testing.T) {
 	err = json.Unmarshal(data, &ret)
 	assert.NoError(t, err)
 
-	assert.Equal(t, ret.Data, "40020b45ab8800000000000000002445c6a1000000000000000000000000000000000000000000000000000000000000000000")
+	assert.Equal(t, oDataStr, ret.Data)
 	assert.Equal(t, len(ret.Constraints), 2)
 }
 
