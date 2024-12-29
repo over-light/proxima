@@ -7,6 +7,7 @@ import (
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/set"
 	"github.com/lunfardo314/proxima/util/txutils"
 	"github.com/lunfardo314/unitrie/common"
 )
@@ -205,4 +206,33 @@ func (s SugaredStateReader) GetOutputsDelegatedToAccount(addr ledger.Accountable
 		return nil, err
 	}
 	return ret, nil
+}
+
+func (s SugaredStateReader) IterateDelegatedOutputs(delegationTarget ledger.Accountable, fun func(oid ledger.OutputID, o *ledger.Output, chainID ledger.ChainID, dLock *ledger.DelegationLock) bool) {
+	var dLock *ledger.DelegationLock
+	var cc *ledger.ChainConstraint
+	var idx byte
+
+	err := s.IterateOutputsForAccount(delegationTarget, func(oid ledger.OutputID, o *ledger.Output) bool {
+		if dLock = o.DelegationLock(); dLock != nil {
+			if ledger.EqualAccountables(delegationTarget, dLock.TargetLock) {
+				cc, idx = o.ChainConstraint()
+				util.Assertf(idx != 0xff, "can't find chain constraint")
+				if cc.IsOrigin() {
+					return fun(oid, o, ledger.MakeOriginChainID(&oid), dLock)
+				}
+				return fun(oid, o, cc.ID, dLock)
+			}
+		}
+		return true
+	})
+	util.AssertNoError(err)
+}
+
+func (s SugaredStateReader) GetDelegatedOutputs(delegationTarget ledger.Accountable, ts ledger.Time, except ...set.Set[ledger.OutputID]) []*ledger.OutputWithChainID {
+	if ts.IsSlotBoundary() {
+		return nil
+	}
+	//ret := make([]*ledger.OutputWithChainID, 0)
+	panic("not implemented")
 }
