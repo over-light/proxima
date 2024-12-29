@@ -28,7 +28,10 @@ type (
 
 	Lock interface {
 		Constraint
+		// Accounts all accounts of the lock
 		Accounts() []Accountable
+		// Master is account which is always unlockable. For conditional locks it is usually nil (no master)
+		Master() Accountable
 	}
 
 	Parser func([]byte) (Constraint, error)

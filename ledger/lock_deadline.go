@@ -50,6 +50,10 @@ func (dl *DeadlineLock) Name() string {
 	return DeadlineLockName
 }
 
+func (dl *DeadlineLock) Master() Accountable {
+	return nil
+}
+
 func addDeadlineLockConstraint(lib *Library) {
 	lib.extendWithConstraint(DeadlineLockName, deadlineLockSource, 3, func(data []byte) (Constraint, error) {
 		return DeadlineLockFromBytes(data)

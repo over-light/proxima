@@ -137,6 +137,10 @@ func (d *DelegationLock) String() string {
 	return d.Source()
 }
 
+func (d *DelegationLock) Master() Accountable {
+	return d.OwnerLock
+}
+
 func addDelegationLock(lib *Library) {
 	lib.extendWithConstraint(DelegationLockName, delegationLockSource, 3, func(data []byte) (Constraint, error) {
 		return DelegationLockFromBytes(data)

@@ -50,6 +50,10 @@ func (st *StemLock) Accounts() []Accountable {
 	return []Accountable{st}
 }
 
+func (st *StemLock) Master() Accountable {
+	return nil
+}
+
 func addStemLockConstraint(lib *Library) {
 	lib.extendWithConstraint(StemLockName, stemLockSource, 1, func(data []byte) (Constraint, error) {
 		return StemLockFromBytes(data)

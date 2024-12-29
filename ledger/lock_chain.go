@@ -74,6 +74,10 @@ func (cl ChainLock) ChainID() ChainID {
 	return ret
 }
 
+func (cl ChainLock) Master() Accountable {
+	return cl
+}
+
 func NewChainLockUnlockParams(chainOutputIndex, chainConstraintIndex byte) []byte {
 	return []byte{chainOutputIndex, chainConstraintIndex}
 }

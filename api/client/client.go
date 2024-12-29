@@ -411,6 +411,9 @@ func (c *APIClient) GetTransferableOutputs(account ledger.Accountable, maxOutput
 	if len(ret) == 0 {
 		return nil, nil, 0, nil
 	}
+	ret = util.PurgeSlice(ret, func(o *ledger.OutputWithID) bool {
+		return ledger.EqualAccountables(account, o.Output.Lock().Master())
+	})
 	ret = util.TrimSlice(ret, maxO)
 	sum := uint64(0)
 	for _, o := range ret {

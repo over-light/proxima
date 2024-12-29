@@ -109,6 +109,10 @@ func (a AddressED25519) AsLock() Lock {
 	return a
 }
 
+func (a AddressED25519) Master() Accountable {
+	return a
+}
+
 func addAddressED25519Constraint(lib *Library) {
 	lib.extendWithConstraint(AddressED25519Name, addressED25519ConstraintSource, 1, func(data []byte) (Constraint, error) {
 		return AddressED25519FromBytes(data)
