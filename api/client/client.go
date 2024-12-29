@@ -394,7 +394,7 @@ func (c *APIClient) GetPeersInfo() (*api.PeersInfo, error) {
 	return &res, nil
 }
 
-// GetTransferableOutputs returns reasonable maximum number of outputs with only 2 constraints and returns total
+// GetTransferableOutputs returns reasonable maximum number of outputs owned by accountable with only 2 constraints and returns total
 func (c *APIClient) GetTransferableOutputs(account ledger.Accountable, maxOutputs ...int) ([]*ledger.OutputWithID, *ledger.TransactionID, uint64, error) {
 	maxO := 256
 	if len(maxOutputs) > 0 && maxOutputs[0] < 256 && maxOutputs[0] > 0 {

@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
@@ -41,6 +42,18 @@ func _enforceDelegationTargetConstraintsOnSuccessor : and(
     require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 
+// $0 at least 4-byte prefix of the chainID
+// $1 4 bytes of the slot
+// return true if sum of $0 and $1 is even
+func isOpenDelegationSlot: isZero(bitwiseAND(add($0, $1), u64/1))
+
+// $0 chain constraint index
+func _selfIsOpenDelegationSlot:
+	isOpenDelegationSlot(
+		slice(evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0), 0, 3),
+        txTimeSlot
+	)
+
 // $0 chain constraint index
 // $1 target lock
 // $2 owner lock
@@ -56,7 +69,7 @@ func delegationLock: and(
             selfIsConsumedOutput,
             or(
                and(  // check delegation case on even slots
-                   isZero(bitwiseAND(txTimeSlot,u32/1)),   // check if even
+                   _selfIsOpenDelegationSlot($0),  
                   _enforceDelegationTargetConstraintsOnSuccessor(
                       $0,
                       $1, 
@@ -145,4 +158,12 @@ func initTestDelegationConstraint() {
 	util.AssertNoError(err)
 	util.Assertf(bytes.Equal(pref1, pref2), "bytes.Equal(pref1, pref2)")
 	util.Assertf(example.Source() == exampleBack.Source(), "example.Source()==exampleBack.Source()")
+}
+
+func IsOpenDelegationSlot(chainID ChainID, slot Slot) bool {
+	src := fmt.Sprintf("isOpenDelegationSlot(0x%s, 0x%s)",
+		hex.EncodeToString(chainID[0:4]), hex.EncodeToString(slot.Bytes()))
+	res, err := L().EvalFromSource(nil, src)
+	util.AssertNoError(err)
+	return len(res) > 0
 }
