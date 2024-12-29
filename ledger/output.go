@@ -527,3 +527,14 @@ func (o *Output) MustValidOutput() {
 	_, err := LockFromBytes(o.ConstraintAt(1))
 	util.AssertNoError(err)
 }
+
+func (o *Output) EnoughAmountForStorageDeposit() bool {
+	return o.Amount() >= o.MinimumStorageDeposit(0)
+}
+
+func (o *Output) MinimumStorageDeposit(extraWeight uint32) uint64 {
+	if _, isStem := o.StemLock(); isStem {
+		return 0
+	}
+	return StorageDeposit(len(o.Bytes()))
+}

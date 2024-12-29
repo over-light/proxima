@@ -34,12 +34,15 @@ func selfAmountValue: amountValue(selfOutputBytes)
 // utility function
 func selfMustAmountAtLeast : if(
 	lessThan(selfAmountValue, $0),
-	!!!amount_is_smaller_than_expected,
+	!!!amount_on_output_is_smaller_than_allowed_minimum,
 	true
 )
 
+// $0 number of output bytes
+func storageDeposit : mul(constVBCost16,$0)
+
 func selfMustStandardAmount: selfMustAmountAtLeast(
-	mul(constVBCost16,len(selfOutputBytes))
+    storageDeposit(len(selfOutputBytes))
 )
 
 `

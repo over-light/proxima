@@ -140,6 +140,9 @@ func (txb *TransactionBuilder) PushEndorsements(txid ...*ledger.TransactionID) {
 }
 
 func (txb *TransactionBuilder) ProduceOutput(o *ledger.Output) (byte, error) {
+	if !o.EnoughAmountForStorageDeposit() {
+		return 0, fmt.Errorf("not enough tokens for storage deposit: %d", o.Amount())
+	}
 	o.MustValidOutput()
 	if txb.NumOutputs() >= 256 {
 		return 0, fmt.Errorf("too many produced outputs")
@@ -379,7 +382,7 @@ func (t *TransferData) TotalAdjustedAmount() uint64 {
 		}
 	})
 
-	minimumDeposit := ledger.MinimumStorageDeposit(outTentative, 0)
+	minimumDeposit := outTentative.MinimumStorageDeposit(0)
 	if t.Amount < minimumDeposit {
 		return minimumDeposit
 	}

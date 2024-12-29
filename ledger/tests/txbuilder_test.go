@@ -316,7 +316,7 @@ func TestChainSuccessorTransaction(t *testing.T) {
 		_, _, _, err = txbuilder.MakeChainSuccessorTransaction(&par)
 		util.RequireErrorWith(t, err, "not enough tokens")
 
-		par.WithdrawAmount = inflationAmount + initAmount - 1
+		par.WithdrawAmount = inflationAmount + initAmount - 200
 		_, inflationAmount1, _, err = txbuilder.MakeChainSuccessorTransaction(&par)
 		require.NoError(t, err)
 		require.EqualValues(t, inflationAmount, inflationAmount1)

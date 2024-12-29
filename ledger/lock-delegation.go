@@ -24,6 +24,7 @@ const (
 )
 
 const delegationLockSource = `
+func minimumDelegatedAmount : u64/50000000
 
 // $0 sibling index
 func selfSiblingUnlockParams : @Array8(unlockParamsByIndex(selfOutputIndex), $0)
@@ -45,6 +46,8 @@ func _enforceDelegationTargetConstraintsOnSuccessor : and(
 // $2 owner lock
 func delegationLock: and(
 	mustSize($0,1),
+    require(not(isBranchTransaction), !!!delegation_should_not_be_branch),
+    require(greaterOrEqualThan(selfAmountValue, minimumDelegatedAmount), !!!delegation_amount_is_below_minimum),
 	require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
     require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
     or(

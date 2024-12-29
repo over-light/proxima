@@ -172,7 +172,7 @@ func (ctx *TxContext) _validateOutputs(consumedBranch bool, failFast bool) (uint
 			lastErr = fmt.Errorf("%w :\n%s", err, o.ToString("   "))
 			return !failFast
 		}
-		minDeposit := ledger.MinimumStorageDeposit(o, extraDepositWeight)
+		minDeposit := o.MinimumStorageDeposit(extraDepositWeight)
 		amount := o.Amount()
 		if amount < minDeposit {
 			lastErr = fmt.Errorf("not enough storage deposit in output %s. Minimum %d, got %d",

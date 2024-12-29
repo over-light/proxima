@@ -113,7 +113,7 @@ max(
 // $0 - ledger time (timestamp) of the predecessor
 // $1 - delta in ticks (diff)
 // $2 - amount on predecessor
-// $3 - delayed amount
+// $3 - delayed amount not nil
 func calcChainInflationAmount :
 add(
   if(

@@ -123,7 +123,7 @@ func TestMainConstraints(t *testing.T) {
 		in, err := u.MakeTransferInputData(privKey1, nil, ledger.NilLedgerTime)
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1))
-		easyfl.RequireErrorWith(t, err, "amount is smaller than expected")
+		easyfl.RequireErrorWith(t, err, "not enough tokens for storage deposit")
 	})
 }
 

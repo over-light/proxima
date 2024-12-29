@@ -21,7 +21,7 @@ func TestDelegation(t *testing.T) {
 	const (
 		tokensFromFaucet0 = 200_000_000_000
 		tokensFromFaucet1 = 200_000_000_001
-		delegatedTokens   = 150_000_000_000
+		delegatedTokens   = 100_000_000 // 150_000_000_000
 	)
 	var delegationLock *ledger.DelegationLock
 	var txBytes []byte
@@ -85,6 +85,7 @@ func TestDelegation(t *testing.T) {
 		if inflate {
 			inflation = ledger.L().CalcChainInflationAmount(delegatedOutput.ID.Timestamp(), ts, delegatedOutput.Output.Amount(), 0)
 		}
+		t.Logf("inflation amount: %d", inflation)
 		totalProducedAmount := delegatedOutput.Output.Amount() + inflation
 		require.True(t, totalProducedAmount >= nextDelegationAmount)
 		remainder := totalProducedAmount - nextDelegationAmount
@@ -248,7 +249,7 @@ func TestDelegation(t *testing.T) {
 
 		tsPrev := delegatedOutput.ID.Timestamp()
 		ts := tsPrev.AddTicks(int(ledger.L().ID.TransactionPace))
-		ts = ts.AddSlots(10)
+		ts = ts.AddSlots(12)
 		if ts.Slot()%2 != 0 {
 			ts = ts.AddSlots(1)
 		}
@@ -259,7 +260,7 @@ func TestDelegation(t *testing.T) {
 		err := transitDelegation(ts, true, delegatedOutput.Output.Amount(), false, true)
 		require.NoError(t, err)
 	})
-	t.Run("-> delegate inflate3 (not ok)", func(t *testing.T) {
+	t.Run("-> delegate inflate steal (not ok)", func(t *testing.T) {
 		initTest()
 		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
 
@@ -273,7 +274,7 @@ func TestDelegation(t *testing.T) {
 		t.Logf("tsIn: %s, tsOut: %s, amountiIn: %s -> expected inflation: %d",
 			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
 
-		err := transitDelegation(ts, true, delegatedOutput.Output.Amount()-1, false, true)
+		err := transitDelegation(ts, true, delegatedOutput.Output.Amount()-5, false, true)
 		t.Logf("failed with error: '%v'", err)
 		require.True(t, err != nil && strings.Contains(err.Error(), "amount should not decrease"))
 	})
