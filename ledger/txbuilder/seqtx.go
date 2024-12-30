@@ -71,7 +71,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		return nil, nil, errP("not a chain output: %s", par.ChainInput.ID.StringShort())
 	}
 
-	txb := NewTransactionBuilder()
+	txb := New()
 	// count sums
 	additionalIn, additionalOut := uint64(0), uint64(0)
 	for _, o := range par.AdditionalInputs {

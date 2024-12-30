@@ -108,7 +108,7 @@ func TestDelegation(t *testing.T) {
 		dl := delegatedOutput.Output.DelegationLock()
 		require.True(t, dl != nil)
 
-		txb := txbuilder.NewTransactionBuilder()
+		txb := txbuilder.New()
 		_, err := txb.ConsumeOutput(delegatedOutput.Output, delegatedOutput.ID)
 		require.NoError(t, err)
 

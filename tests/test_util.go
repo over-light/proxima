@@ -240,7 +240,7 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 	require.NoError(td.t, err)
 	td.t.Logf("auxiliary output ID: %s", td.auxOutput.IDShort())
 
-	txb := txbuilder.NewTransactionBuilder()
+	txb := txbuilder.New()
 	_, _ = txb.ConsumeOutputWithID(td.auxOutput)
 	txb.PutSignatureUnlock(0)
 
@@ -808,7 +808,7 @@ func (td *workflowTestData) spamWithdrawCommands(par spammerWithdrawCmdParams, c
 			return
 		case <-time.After(time.Duration(par.pace) * ledger.TickDuration()):
 		}
-		txb := txbuilder.NewTransactionBuilder()
+		txb := txbuilder.New()
 		_, err := txb.ConsumeOutput(par.remainder.Output, par.remainder.ID)
 		require.NoError(td.t, err)
 		reminder := ledger.NewOutput(func(o *ledger.Output) {

@@ -413,7 +413,7 @@ func TestChain1(t *testing.T) {
 		ts := chainIN.Timestamp().AddTicks(ledger.TransactionPace())
 
 		// create transaction builder
-		txb := txbuilder.NewTransactionBuilder()
+		txb := txbuilder.New()
 		// consume predecessor chain output. It will be the only input to the transaction
 		consumedIndex, err := txb.ConsumeOutput(chainIN.Output, chainIN.ID)
 		require.NoError(t, err)
@@ -512,7 +512,7 @@ func TestChain2(t *testing.T) {
 		require.True(t, constraintIdx != 0xff)
 
 		ts := chainIN.Timestamp().AddTicks(ledger.TransactionPace())
-		txb := txbuilder.NewTransactionBuilder()
+		txb := txbuilder.New()
 		predIdx, err := txb.ConsumeOutput(chainIN.Output, chainIN.ID)
 		require.NoError(t, err)
 
@@ -669,7 +669,7 @@ func TestChain3(t *testing.T) {
 	require.True(t, constraintIdx != 0xff)
 
 	ts := chainIN.Timestamp().AddTicks(ledger.TransactionPace())
-	txb := txbuilder.NewTransactionBuilder()
+	txb := txbuilder.New()
 	predIdx, err := txb.ConsumeOutput(chainIN.Output, chainIN.ID)
 	require.NoError(t, err)
 
@@ -946,7 +946,7 @@ func TestImmutable(t *testing.T) {
 	require.True(t, chainConstraintIdx != 0xff)
 
 	ts := chainIN.Timestamp().AddTicks(ledger.TransactionPace())
-	txb := txbuilder.NewTransactionBuilder()
+	txb := txbuilder.New()
 	predIdx, err := txb.ConsumeOutput(chainIN.Output, chainIN.ID)
 	require.NoError(t, err)
 
@@ -994,7 +994,7 @@ func TestImmutable(t *testing.T) {
 	require.True(t, chainConstraintIdx != 0xff)
 
 	ts = chainIN.Timestamp().AddTicks(ledger.TransactionPace())
-	txb = txbuilder.NewTransactionBuilder()
+	txb = txbuilder.New()
 	predIdx, err = txb.ConsumeOutput(chainIN.Output, chainIN.ID)
 	require.NoError(t, err)
 
@@ -1032,7 +1032,7 @@ func TestImmutable(t *testing.T) {
 	require.True(t, chainConstraintIdx != 0xff)
 
 	ts = chainIN.Timestamp().AddTicks(ledger.TransactionPace())
-	txb = txbuilder.NewTransactionBuilder()
+	txb = txbuilder.New()
 	predIdx, err = txb.ConsumeOutput(chainIN.Output, chs.ID)
 	require.NoError(t, err)
 
@@ -1077,7 +1077,7 @@ func TestImmutable(t *testing.T) {
 	require.True(t, chainConstraintIdx != 0xff)
 
 	ts = chainIN.Timestamp().AddTicks(ledger.TransactionPace())
-	txb = txbuilder.NewTransactionBuilder()
+	txb = txbuilder.New()
 	predIdx, err = txb.ConsumeOutput(chainIN.Output, chs.ID)
 	require.NoError(t, err)
 

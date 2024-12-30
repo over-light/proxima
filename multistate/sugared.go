@@ -7,7 +7,6 @@ import (
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/set"
 	"github.com/lunfardo314/proxima/util/txutils"
 	"github.com/lunfardo314/unitrie/common"
 )
@@ -229,10 +228,18 @@ func (s SugaredStateReader) IterateDelegatedOutputs(delegationTarget ledger.Acco
 	util.AssertNoError(err)
 }
 
-func (s SugaredStateReader) GetDelegatedOutputs(delegationTarget ledger.Accountable, ts ledger.Time, except ...set.Set[ledger.OutputID]) []*ledger.OutputWithChainID {
-	if ts.IsSlotBoundary() {
-		return nil
-	}
-	//ret := make([]*ledger.OutputWithChainID, 0)
-	panic("not implemented")
+// GetOutputsLockedInAddressED25519 returns outputs locked in simple address. Skip delegated and other
+func (s SugaredStateReader) GetOutputsLockedInAddressED25519(addr ledger.AddressED25519) []*ledger.OutputWithID {
+	ret := make([]*ledger.OutputWithID, 0)
+	err := s.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
+		if ledger.EqualConstraints(addr, o.Lock()) {
+			ret = append(ret, &ledger.OutputWithID{
+				ID:     oid,
+				Output: o,
+			})
+		}
+		return true
+	})
+	util.AssertNoError(err)
+	return ret
 }

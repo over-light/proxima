@@ -45,7 +45,7 @@ type (
 	}
 )
 
-func NewTransactionBuilder() *TransactionBuilder {
+func New() *TransactionBuilder {
 	return &TransactionBuilder{
 		ConsumedOutputs: make([]*ledger.Output, 0),
 		TransactionData: &transactionData{
@@ -458,7 +458,7 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 		}
 	}
 
-	txb := NewTransactionBuilder()
+	txb := New()
 	checkTotal, inputTs, err := txb.ConsumeOutputs(consumedOuts...)
 	if err != nil {
 		return nil, nil, err
@@ -612,7 +612,7 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 		}
 	}
 
-	txb := NewTransactionBuilder()
+	txb := New()
 
 	// consume predecessor
 	chainPredIdx, err := txb.ConsumeOutput(par.ChainInput.Output, par.ChainInput.ID)
@@ -694,7 +694,7 @@ func MakeChainTransferTransaction(par *TransferData, disableEndorsementChecking 
 			par.SourceAccount.String(), par.Amount, availableTokens)
 	}
 
-	txb := NewTransactionBuilder()
+	txb := New()
 
 	chainInputIndex, err := txb.ConsumeOutput(par.ChainOutput.Output, par.ChainOutput.ID)
 	util.Assertf(chainInputIndex == 0, "chainInputIndex == 0")

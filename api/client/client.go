@@ -543,7 +543,7 @@ func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*trans
 		return false
 	})
 
-	txb := txbuilder.NewTransactionBuilder()
+	txb := txbuilder.New()
 	_, ts1, err := txb.ConsumeOutputs(inps...)
 	if err != nil {
 		return nil, [32]byte{}, err
@@ -624,7 +624,7 @@ func (c *APIClient) DeleteChainOrigin(par DeleteChainOriginParams) (*transaction
 
 	_, predecessorConstraintIndex := chainIN.Output.ChainConstraint()
 
-	txb := txbuilder.NewTransactionBuilder()
+	txb := txbuilder.New()
 
 	ts1 := chainIN.Timestamp()
 	consumedIndex, err := txb.ConsumeOutput(chainIN.Output, chainIN.ID)
@@ -762,7 +762,7 @@ func MakeTransferTransaction(par MakeTransferTransactionParams) ([]byte, error) 
 	if par.Amount < minimumTransferAmount {
 		return nil, fmt.Errorf("minimum transfer amount is %d", minimumTransferAmount)
 	}
-	txb := txbuilder.NewTransactionBuilder()
+	txb := txbuilder.New()
 	inTotal, inTs, err := txb.ConsumeOutputs(par.Inputs...)
 	if err != nil {
 		return nil, err

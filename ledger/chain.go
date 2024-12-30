@@ -169,7 +169,7 @@ func chainPredecessorInputID : inputIDByIndex(byte($0,32))
 
 // unlock parameters for the chain constraint. 3 bytes: 
 // 0 - successor output index 
-// 1 - successor block index
+// 1 - successor constraint block index
 // 2 - transition mode must be equal to the transition mode in the successor constraint data 
 
 // only called for produced output
