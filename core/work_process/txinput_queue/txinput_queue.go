@@ -55,7 +55,7 @@ type (
 
 const (
 	CmdFromPeer = byte(iota)
-	CmdFromAPI
+	CmdFromAPIOrInflator
 )
 
 const (
@@ -97,8 +97,8 @@ func (q *TxInputQueue) consume(inp Input) {
 	switch inp.Cmd {
 	case CmdFromPeer:
 		q.fromPeer(&inp)
-	case CmdFromAPI:
-		q.fromAPI(&inp)
+	case CmdFromAPIOrInflator:
+		q.fromAPIOrInflator(&inp)
 	default:
 		q.Log().Fatalf("TxInputQueue: wrong cmd")
 	}
@@ -143,11 +143,15 @@ func (q *TxInputQueue) fromPeer(inp *Input) {
 	}
 }
 
-func (q *TxInputQueue) fromAPI(inp *Input) {
+func (q *TxInputQueue) fromAPIOrInflator(inp *Input) {
+	from := txmetadata.SourceTypeAPI
+	if inp.TxMetaData != nil {
+		from = inp.TxMetaData.SourceTypeNonPersistent
+	}
 	tx, err := transaction.FromBytes(inp.TxBytes)
 	if err != nil {
 		q.badTxCounter.Inc()
-		q.Log().Warn("TxInputQueue from API: %v", err)
+		q.Log().Warn("TxInputQueue from '%s': %v", from.String(), err)
 		return
 	}
 	pass, _ := q.inGate.checkPass(tx.ID())
@@ -158,7 +162,7 @@ func (q *TxInputQueue) fromAPI(inp *Input) {
 	}
 	if err = q.TxInFromAPI(tx); err != nil {
 		q.badTxCounter.Inc()
-		q.Log().Warn("TxInputQueue from API: %v", err)
+		q.Log().Warn("TxInputQueue from '%s': %v", from.String(), err)
 		return
 	}
 	// gossiping all pre-validated transactions from API

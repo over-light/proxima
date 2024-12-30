@@ -99,6 +99,10 @@ func (p *ProximaNode) SubmitTxBytesFromAPI(txBytes []byte) {
 	p.workflow.TxBytesInFromAPIQueued(txBytes)
 }
 
+func (p *ProximaNode) SubmitTxBytesFromInflator(txBytes []byte) {
+	p.workflow.TxBytesInFromInflatorQueued(txBytes)
+}
+
 func (p *ProximaNode) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble {
 	return p.workflow.QueryTxIDStatusJSONAble(txid)
 }

@@ -20,6 +20,7 @@ type (
 	environment interface {
 		global.NodeGlobal
 		LatestReliableState() (multistate.SugaredStateReader, error)
+		SubmitTxBytesFromInflator(txBytes []byte)
 	}
 
 	Inflator struct {
@@ -49,6 +50,7 @@ const (
 	marginPromille            = 10
 	tagAlongAmount            = 50
 	maxDelegationsPerTx       = 100
+	keepInConsumedListSlots   = 3
 )
 
 func New(env environment, par Params) *Inflator {
@@ -57,6 +59,13 @@ func New(env environment, par Params) *Inflator {
 		par:         par,
 		consumed:    make(map[ledger.OutputID]time.Time),
 	}
+}
+
+func (fl *Inflator) Run() {
+	fl.environment.RepeatInBackground("inflator_loop", time.Second, func() bool {
+		fl.doStep()
+		return true
+	})
 }
 
 func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]*InflatableOutput, uint64) {
@@ -135,10 +144,10 @@ func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.Suga
 	return ret, totalMargin
 }
 
-func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]byte, error) {
+func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, error) {
 	outs, totalMarginOut := fl.collectTransitions(targetTs, rdr)
 	if len(outs) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	txb := txbuilder.New()
@@ -159,14 +168,14 @@ func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 		// not enough collected margin for tag along. Use own funds
 		ownOuts, actualAmount := rdr.GetOutputsLockedInAddressED25519ForAmount(fl.par.Target, tagAlongAmount)
 		if actualAmount < tagAlongAmount {
-			return nil, fmt.Errorf("not enough funds for the tag-along of the transaction")
+			return nil, nil, fmt.Errorf("not enough funds for the tag-along of the transaction")
 		}
 		first := true
 		var firstIdx byte
 		for _, o := range ownOuts {
 			idx, err := txb.ConsumeOutput(o.Output, o.ID)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if first {
 				txb.PutSignatureUnlock(idx)
@@ -175,7 +184,7 @@ func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 			} else {
 				err = txb.PutUnlockReference(idx, ledger.ConstraintIndexLock, firstIdx)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 		}
@@ -190,7 +199,7 @@ func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 				o.WithLock(fl.par.Target)
 			}))
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
@@ -203,15 +212,49 @@ func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ctx, err := transaction.TxContextFromTransaction(tx, txb.LoadInput)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = ctx.Validate()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return txBytes, nil
+	return tx, txb.TransactionData.InputIDs, nil
+}
+
+func (fl *Inflator) doStep() {
+	fl.cleanConsumedList()
+	lrb, err := fl.LatestReliableState()
+	if err != nil {
+		fl.Log().Warnf("[%s] %v", Name, err)
+		return
+	}
+	targetTs := ledger.TimeNow()
+	if targetTs.IsSlotBoundary() {
+		targetTs = targetTs.AddTicks(10)
+	}
+	tx, outIDs, err := fl.makeTransaction(targetTs, lrb)
+	if err != nil {
+		fl.Log().Errorf("[%s] %v", Name, err)
+		return
+	}
+	nowis := time.Now()
+	for _, oid := range outIDs {
+		fl.consumed[*oid] = nowis
+	}
+	fl.SubmitTxBytesFromInflator(tx.Bytes())
+	fl.Log().Infof("[%s] submitted transaction %s: inputs = %d, total = %s",
+		Name, tx.IDShortString(), tx.NumInputs(), util.Th(tx.TotalAmount()))
+}
+
+func (fl *Inflator) cleanConsumedList() {
+	keep := ledger.L().ID.SlotDuration() * time.Duration(keepInConsumedListSlots)
+	for oid, when := range fl.consumed {
+		if time.Since(when) > keep {
+			delete(fl.consumed, oid)
+		}
+	}
 }
