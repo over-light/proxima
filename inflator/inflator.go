@@ -2,11 +2,13 @@ package inflator
 
 import (
 	"crypto/ed25519"
+	"fmt"
 	"sort"
 	"time"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/util"
@@ -27,15 +29,18 @@ type (
 	}
 
 	Params struct {
-		Target     ledger.AddressED25519
-		PrivateKey ed25519.PrivateKey
+		Target            ledger.AddressED25519
+		PrivateKey        ed25519.PrivateKey
+		TagAlongSequencer ledger.ChainID
 	}
 
 	InflatableOutput struct {
 		ledger.OutputWithChainID
-		Inflation uint64
-		Margin    uint64
-		Successor *ledger.Output
+		Inflation              uint64
+		Margin                 uint64
+		Successor              *ledger.Output
+		SuccChainConstraintIdx byte
+		UnlockParams           []byte
 	}
 )
 
@@ -43,6 +48,7 @@ const (
 	minimumInflationPerOutput = 50
 	marginPromille            = 10
 	tagAlongAmount            = 50
+	maxDelegationsPerTx       = 100
 )
 
 func New(env environment, par Params) *Inflator {
@@ -53,11 +59,13 @@ func New(env environment, par Params) *Inflator {
 	}
 }
 
-func (fl *Inflator) collectInflatableOutputs(targetTs ledger.Time, rdr multistate.SugaredStateReader) []*InflatableOutput {
+func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]*InflatableOutput, uint64) {
 	if targetTs.IsSlotBoundary() {
-		return nil
+		return nil, 0
 	}
 	ret := make([]*InflatableOutput, 0)
+	var totalMargin uint64
+
 	rdr.IterateDelegatedOutputs(fl.par.Target, func(oid ledger.OutputID, o *ledger.Output, chainID ledger.ChainID, dLock *ledger.DelegationLock) bool {
 		if _, already := fl.consumed[oid]; already {
 			return true
@@ -88,58 +96,122 @@ func (fl *Inflator) collectInflatableOutputs(targetTs ledger.Time, rdr multistat
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i].Timestamp().Before(ret[j].Timestamp())
 	})
-	return ret
+	ret = util.TrimSlice(ret, maxDelegationsPerTx)
+
+	for i, pred := range ret {
+		util.Assertf(pred.Inflation-pred.Margin >= 0, "pred.Inflation-pred.Margin")
+		ccPred, ccIdx := pred.Output.ChainConstraint()
+		util.Assertf(ccIdx != 0xff, "inconsistency: can't find chain constraint")
+		chainID := ccPred.ID
+		if ccPred.IsOrigin() {
+			chainID = ledger.MakeOriginChainID(&pred.ID)
+		}
+		var err error
+		pred.Successor = ledger.NewOutput(func(o *ledger.Output) {
+			o.WithAmount(o.Amount() + pred.Inflation - pred.Margin)
+			o.WithLock(pred.Output.Lock())
+			ccSucc := ledger.ChainConstraint{
+				ID:                         chainID,
+				TransitionMode:             0,
+				PredecessorInputIndex:      byte(i),
+				PredecessorConstraintIndex: ccIdx,
+			}
+			ccIdx, err = o.PushConstraint(ccSucc.Bytes())
+			util.AssertNoError(err)
+			if pred.Inflation > 0 {
+				ccInfl := ledger.InflationConstraint{
+					ChainInflation:       pred.Inflation,
+					ChainConstraintIndex: ccIdx,
+				}
+				_, err = o.PushConstraint(ccInfl.Bytes())
+				util.AssertNoError(err)
+			}
+		})
+		pred.SuccChainConstraintIdx = ccIdx
+		pred.UnlockParams = []byte{byte(i), ccIdx, 0}
+		totalMargin += pred.Margin
+
+	}
+	return ret, totalMargin
 }
 
 func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]byte, error) {
-	outs := fl.collectInflatableOutputs(targetTs, rdr)
+	outs, totalMarginOut := fl.collectTransitions(targetTs, rdr)
 	if len(outs) == 0 {
 		return nil, nil
 	}
-	totalMargin := uint64(0)
-	for _, o := range outs {
-		totalMargin += o.Margin
-	}
-	ownOuts := rdr.GetOutputsLockedInAddressED25519(fl.par.Target)
-	sort.Slice(ownOuts, func(i, j int) bool {
-		return ownOuts[i].Output.Amount() > ownOuts[j].Output.Amount()
-	})
-	ownOuts = util.TrimSlice(ownOuts, 10)
-	totalInOwnAccount := uint64(0)
-	for _, o := range ownOuts {
-		totalInOwnAccount += o.Output.Amount()
-	}
 
 	txb := txbuilder.New()
-
-}
-
-func makeDelegationSuccessor(pred *ledger.OutputWithID, predInputIdx byte, inflation, margin uint64) (*ledger.Output, byte) {
-	ccPred, ccIdx := pred.Output.ChainConstraint()
-	util.Assertf(ccIdx != 0xff, "inconsistency: can't find chain constraint")
-	chainID := ccPred.ID
-	if ccPred.IsOrigin() {
-		chainID = ledger.MakeOriginChainID(&pred.ID)
+	for _, o := range outs {
+		inIdx, _ := txb.ConsumeOutput(o.Output, o.ID)
+		_, _ = txb.ProduceOutput(o.Successor)
+		txb.PutUnlockParams(inIdx, o.PredecessorConstraintIndex, o.UnlockParams)
 	}
 
-	succOut := ledger.NewOutput(func(o *ledger.Output) {
-		o.WithAmount(pred.Output.Amount() + inflation - margin)
-		o.WithLock(pred.Output.Lock())
-		ccSucc := ledger.ChainConstraint{
-			ID:                         chainID,
-			TransitionMode:             0,
-			PredecessorInputIndex:      predInputIdx,
-			PredecessorConstraintIndex: ccIdx,
+	if totalMarginOut >= tagAlongAmount {
+		// enough collected margin for tag along
+		tagAlongOut := ledger.NewOutput(func(o *ledger.Output) {
+			o.WithAmount(totalMarginOut)
+			o.WithLock(fl.par.TagAlongSequencer.AsChainLock())
+		})
+		_, _ = txb.ProduceOutput(tagAlongOut)
+	} else {
+		// not enough collected margin for tag along. Use own funds
+		ownOuts, actualAmount := rdr.GetOutputsLockedInAddressED25519ForAmount(fl.par.Target, tagAlongAmount)
+		if actualAmount < tagAlongAmount {
+			return nil, fmt.Errorf("not enough funds for the tag-along of the transaction")
 		}
-		ccIdx, _ = o.PushConstraint(ccSucc.Bytes())
-		if inflation > 0 {
-			ccInfl := ledger.InflationConstraint{
-				ChainInflation:       inflation,
-				ChainConstraintIndex: ccIdx,
+		first := true
+		var firstIdx byte
+		for _, o := range ownOuts {
+			idx, err := txb.ConsumeOutput(o.Output, o.ID)
+			if err != nil {
+				return nil, err
 			}
-			_, _ = o.PushConstraint(ccInfl.Bytes())
+			if first {
+				txb.PutSignatureUnlock(idx)
+				first = false
+				firstIdx = idx
+			} else {
+				err = txb.PutUnlockReference(idx, ledger.ConstraintIndexLock, firstIdx)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
-	})
+		tagAlongOut := ledger.NewOutput(func(o *ledger.Output) {
+			o.WithAmount(tagAlongAmount)
+			o.WithLock(fl.par.TagAlongSequencer.AsChainLock())
+		})
+		_, _ = txb.ProduceOutput(tagAlongOut)
+		if tagAlongAmount < actualAmount {
+			_, err := txb.ProduceOutput(ledger.NewOutput(func(o *ledger.Output) {
+				o.WithAmount(actualAmount - tagAlongAmount) // TODO not completely correct wrt storage deposit constraint
+				o.WithLock(fl.par.Target)
+			}))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
-	return succOut, ccIdx
+	txb.TransactionData.Timestamp = targetTs
+	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.SignED25519(fl.par.PrivateKey)
+
+	txBytes := txb.TransactionData.Bytes()
+
+	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	if err != nil {
+		return nil, err
+	}
+	ctx, err := transaction.TxContextFromTransaction(tx, txb.LoadInput)
+	if err != nil {
+		return nil, err
+	}
+	err = ctx.Validate()
+	if err != nil {
+		return nil, err
+	}
+	return txBytes, nil
 }
