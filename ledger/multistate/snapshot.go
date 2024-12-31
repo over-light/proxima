@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -45,7 +44,7 @@ const (
 
 // writeState writes state with the root as a sequence of key/value pairs.
 // Does not write ledger identity record
-func writeState(state global.StateStoreReader, target common.KVStreamWriter, root common.VCommitment, ctx context.Context, out io.Writer) (*SnapshotStats, error) {
+func writeState(state StateStoreReader, target common.KVStreamWriter, root common.VCommitment, ctx context.Context, out io.Writer) (*SnapshotStats, error) {
 	rdr, err := NewReadable(state, root)
 	if err != nil {
 		return nil, fmt.Errorf("writeState: %w", err)
@@ -91,7 +90,7 @@ func snapshotFileName(branchID ledger.TransactionID) string {
 }
 
 // SaveSnapshot writes latest reliable state into snapshot. Returns snapshot file name
-func SaveSnapshot(state global.StateStoreReader, branch *BranchData, ctx context.Context, dir string, out ...io.Writer) (string, *SnapshotStats, error) {
+func SaveSnapshot(state StateStoreReader, branch *BranchData, ctx context.Context, dir string, out ...io.Writer) (string, *SnapshotStats, error) {
 	makeErr := func(errStr string) (string, *SnapshotStats, error) {
 		return "", nil, fmt.Errorf("SaveSnapshot: %s", errStr)
 	}

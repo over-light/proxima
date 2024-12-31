@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
@@ -785,7 +784,7 @@ func (tx *Transaction) InputLoaderByIndex(fetchOutput func(oid *ledger.OutputID)
 	}
 }
 
-func (tx *Transaction) InputLoaderFromState(rdr global.StateReader) func(idx byte) (*ledger.Output, error) {
+func (tx *Transaction) InputLoaderFromState(rdr multistate.StateReader) func(idx byte) (*ledger.Output, error) {
 	return tx.InputLoaderByIndex(func(oid *ledger.OutputID) ([]byte, bool) {
 		return rdr.GetUTXO(oid)
 	})

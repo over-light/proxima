@@ -16,7 +16,7 @@ import (
 type (
 	environment interface {
 		global.NodeGlobal
-		StateStore() global.StateStore
+		StateStore() multistate2.StateStore
 		GetOwnSequencerID() *ledger.ChainID
 	}
 

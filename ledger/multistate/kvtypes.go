@@ -1,4 +1,4 @@
-package global
+package multistate
 
 import (
 	"github.com/lunfardo314/proxima/ledger"

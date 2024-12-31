@@ -63,7 +63,7 @@ func (i *TxInclusion) JSONAble() *TxInclusionJSONAble {
 }
 
 // GetTxInclusion return information about transaction's inclusion into all branches some slots back from the latest.
-func GetTxInclusion(store global.StateStoreReader, txid *ledger.TransactionID, slotsBack ...int) *TxInclusion {
+func GetTxInclusion(store StateStoreReader, txid *ledger.TransactionID, slotsBack ...int) *TxInclusion {
 	latestSlot := FetchLatestCommittedSlot(store)
 	lrb := FindLatestReliableBranch(store, global.FractionHealthyBranch)
 

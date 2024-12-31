@@ -28,7 +28,7 @@ import (
 type (
 	environment interface {
 		global.NodeGlobal
-		StateStore() global.StateStore
+		StateStore() multistate.StateStore
 		TxBytesStore() global.TxBytesStore
 		PullFromNPeers(nPeers int, txid *ledger.TransactionID) int
 		GetOwnSequencerID() *ledger.ChainID

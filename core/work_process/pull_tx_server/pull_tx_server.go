@@ -6,6 +6,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/prometheus/client_golang/prometheus"
@@ -15,7 +16,7 @@ type (
 	environment interface {
 		global.NodeGlobal
 		TxBytesStore() global.TxBytesStore
-		StateStore() global.StateStore
+		StateStore() multistate.StateStore
 		SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata) bool
 	}
 

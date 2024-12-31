@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
@@ -786,7 +786,7 @@ func NewUnlockBlock() *UnlockParams {
 	}
 }
 
-func GetChainAccount(chainID ledger.ChainID, srdr global.IndexedStateReader, desc ...bool) (*ledger.OutputWithChainID, []*ledger.OutputWithID, error) {
+func GetChainAccount(chainID ledger.ChainID, srdr multistate.IndexedStateReader, desc ...bool) (*ledger.OutputWithChainID, []*ledger.OutputWithID, error) {
 	chainOutData, err := srdr.GetUTXOForChainID(&chainID)
 	if err != nil {
 		return nil, nil, err

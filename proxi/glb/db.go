@@ -10,7 +10,7 @@ import (
 
 var (
 	stateDB      *badger.DB
-	stateStore   global.StateStore
+	stateStore   multistate.StateStore
 	txBytesDB    *badger.DB
 	txBytesStore global.TxBytesStore
 )
@@ -24,7 +24,7 @@ func InitLedgerFromDB(verbose ...bool) {
 	multistate.InitLedgerFromStore(stateStore, verbose...)
 }
 
-func StateStore() global.StateStore {
+func StateStore() multistate.StateStore {
 	return stateStore
 }
 

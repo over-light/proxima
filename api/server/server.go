@@ -34,7 +34,7 @@ type (
 		QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble
 		GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate2.TxInclusion
 		GetLatestReliableBranch() *multistate2.BranchData
-		StateStore() global.StateStore
+		StateStore() multistate2.StateStore
 		TxBytesStore() global.TxBytesStore
 		GetKnownLatestMilestonesJSONAble() map[string]tippool.LatestSequencerTipDataJSONAble
 	}

@@ -233,14 +233,14 @@ func FetchRootRecord(store common.KVReader, branchTxID ledger.TransactionID) (re
 }
 
 // FetchAnyLatestRootRecord return first root record for the latest slot
-func FetchAnyLatestRootRecord(store global.StateStoreReader) RootRecord {
+func FetchAnyLatestRootRecord(store StateStoreReader) RootRecord {
 	recs := FetchRootRecords(store, FetchLatestCommittedSlot(store))
 	util.Assertf(len(recs) > 0, "len(recs)>0")
 	return recs[0]
 }
 
 // FetchRootRecordsNSlotsBack load root records from N lates slots, present in the store
-func FetchRootRecordsNSlotsBack(store global.StateStoreReader, nBack int) []RootRecord {
+func FetchRootRecordsNSlotsBack(store StateStoreReader, nBack int) []RootRecord {
 	if nBack <= 0 {
 		return nil
 	}
@@ -316,12 +316,12 @@ func FetchBranchDataMulti(store common.KVReader, rootData ...RootRecord) []*Bran
 }
 
 // FetchLatestBranches branches of the latest slot sorted by coverage descending
-func FetchLatestBranches(store global.StateStoreReader) []*BranchData {
+func FetchLatestBranches(store StateStoreReader) []*BranchData {
 	return FetchBranchDataMulti(store, FetchLatestRootRecords(store)...)
 }
 
 // FetchLatestRootRecords sorted descending by coverage
-func FetchLatestRootRecords(store global.StateStoreReader) []RootRecord {
+func FetchLatestRootRecords(store StateStoreReader) []RootRecord {
 	ret := FetchRootRecords(store, FetchLatestCommittedSlot(store))
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i].LedgerCoverage > ret[j].LedgerCoverage
@@ -330,7 +330,7 @@ func FetchLatestRootRecords(store global.StateStoreReader) []RootRecord {
 }
 
 // FetchLatestBranchTransactionIDs sorted descending by coverage
-func FetchLatestBranchTransactionIDs(store global.StateStoreReader) []ledger.TransactionID {
+func FetchLatestBranchTransactionIDs(store StateStoreReader) []ledger.TransactionID {
 	bd := FetchLatestBranches(store)
 	ret := make([]ledger.TransactionID, len(bd))
 
@@ -341,7 +341,7 @@ func FetchLatestBranchTransactionIDs(store global.StateStoreReader) []ledger.Tra
 }
 
 // FetchHeaviestBranchChainNSlotsBack descending by epoch
-func FetchHeaviestBranchChainNSlotsBack(store global.StateStoreReader, nBack int) []*BranchData {
+func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*BranchData {
 	rootData := make(map[ledger.TransactionID]RootRecord)
 	latestSlot := FetchLatestCommittedSlot(store)
 
@@ -417,7 +417,7 @@ func BranchKnowsTransaction(branchID, txid *ledger.TransactionID, getStore func(
 	return rdr.KnowsCommittedTransaction(txid)
 }
 
-func FindFirstBranch(store global.StateStoreReader, filter func(branch *BranchData) bool) *BranchData {
+func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) bool) *BranchData {
 	var ret BranchData
 	found := false
 	IterateSlotsBack(store, func(slot ledger.Slot, roots []RootRecord) bool {
@@ -438,7 +438,7 @@ func FindFirstBranch(store global.StateStoreReader, filter func(branch *BranchDa
 // FindLatestHealthySlot finds latest slot, which has at least one branch
 // with coverage > numerator/denominator * 2 * totalSupply
 // Returns false flag if not found
-func FindLatestHealthySlot(store global.StateStoreReader, fraction global.Fraction) (ledger.Slot, bool) {
+func FindLatestHealthySlot(store StateStoreReader, fraction global.Fraction) (ledger.Slot, bool) {
 	ret := FindFirstBranch(store, func(branch *BranchData) bool {
 		return branch.IsHealthy(fraction)
 	})
@@ -455,7 +455,7 @@ func (br *BranchData) IsHealthy(fraction global.Fraction) bool {
 // FirstHealthySlotIsNotBefore determines if first healthy slot is nor before tha refSlot.
 // Usually refSlot is just few slots back, so the operation does not require
 // each time traversing unbounded number of slots
-func FirstHealthySlotIsNotBefore(store global.StateStoreReader, refSlot ledger.Slot, fraction global.Fraction) (ret bool) {
+func FirstHealthySlotIsNotBefore(store StateStoreReader, refSlot ledger.Slot, fraction global.Fraction) (ret bool) {
 	IterateSlotsBack(store, func(slot ledger.Slot, roots []RootRecord) bool {
 		for _, rr := range roots {
 			br := FetchBranchDataByRoot(store, rr)
@@ -469,7 +469,7 @@ func FirstHealthySlotIsNotBefore(store global.StateStoreReader, refSlot ledger.S
 }
 
 // IterateSlotsBack iterates  descending slots from latest committed slot down to the earliest available
-func IterateSlotsBack(store global.StateStoreReader, fun func(slot ledger.Slot, roots []RootRecord) bool) {
+func IterateSlotsBack(store StateStoreReader, fun func(slot ledger.Slot, roots []RootRecord) bool) {
 	earliest := FetchEarliestSlot(store)
 	slot := FetchLatestCommittedSlot(store)
 	for {
@@ -484,7 +484,7 @@ func IterateSlotsBack(store global.StateStoreReader, fun func(slot ledger.Slot, 
 // Note that in theory it may not exist at all. Normally it will exist tho, because:
 // - either database contain branches down to genesis
 // - or it was started from snapshot which (normally) represents healthy state
-func FindRootsFromLatestHealthySlot(store global.StateStoreReader, fraction global.Fraction) ([]RootRecord, bool) {
+func FindRootsFromLatestHealthySlot(store StateStoreReader, fraction global.Fraction) ([]RootRecord, bool) {
 	var rootsFound []RootRecord
 
 	IterateSlotsBack(store, func(slot ledger.Slot, roots []RootRecord) bool {
@@ -505,7 +505,7 @@ func FindRootsFromLatestHealthySlot(store global.StateStoreReader, fraction glob
 
 // IterateBranchChainBack iterates past chain of the tip branch (including the tip)
 // Stops when current branch have no predecessor
-func IterateBranchChainBack(store global.StateStoreReader, branch *BranchData, fun func(branchID *ledger.TransactionID, branch *BranchData) bool) {
+func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func(branchID *ledger.TransactionID, branch *BranchData) bool) {
 	branchID := branch.Stem.ID.TransactionID()
 	for {
 		if !fun(&branchID, branch) {
@@ -527,7 +527,7 @@ func IterateBranchChainBack(store global.StateStoreReader, branch *BranchData, f
 // tip from the latest healthy branch with ledger coverage bigger than total supply
 // Reliable branch is the latest global consensus state with big probability
 // Returns nil if not found
-func FindLatestReliableBranch(store global.StateStoreReader, fraction global.Fraction) *BranchData {
+func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) *BranchData {
 	tipRoots, ok := FindRootsFromLatestHealthySlot(store, fraction)
 	if !ok {
 		// if healthy slot does not exist, reliable branch does not exist too
@@ -588,7 +588,7 @@ func FindLatestReliableBranch(store global.StateStoreReader, fraction global.Fra
 
 // FindLatestReliableBranchAndNSlotsBack finds LRB and iterates n slots back along the main chain from LRB.
 // It is a precaution if LRB will be orphaned later
-func FindLatestReliableBranchAndNSlotsBack(store global.StateStoreReader, n int, fraction global.Fraction) (ret *BranchData) {
+func FindLatestReliableBranchAndNSlotsBack(store StateStoreReader, n int, fraction global.Fraction) (ret *BranchData) {
 	lrb := FindLatestReliableBranch(store, fraction)
 	if lrb == nil {
 		return
@@ -602,7 +602,7 @@ func FindLatestReliableBranchAndNSlotsBack(store global.StateStoreReader, n int,
 }
 
 // FindLatestReliableBranchWithSequencerID finds first branch with the given sequencerID in the main LRBID chain
-func FindLatestReliableBranchWithSequencerID(store global.StateStoreReader, seqID ledger.ChainID, fraction global.Fraction) (ret *BranchData) {
+func FindLatestReliableBranchWithSequencerID(store StateStoreReader, seqID ledger.ChainID, fraction global.Fraction) (ret *BranchData) {
 	lrb := FindLatestReliableBranch(store, fraction)
 	if lrb == nil {
 		return nil
@@ -617,7 +617,7 @@ func FindLatestReliableBranchWithSequencerID(store global.StateStoreReader, seqI
 	return
 }
 
-func GetMainChain(store global.StateStoreReader, fraction global.Fraction, max ...int) ([]*BranchData, error) {
+func GetMainChain(store StateStoreReader, fraction global.Fraction, max ...int) ([]*BranchData, error) {
 	lrb := FindLatestReliableBranch(store, fraction)
 	if lrb == nil {
 		return nil, fmt.Errorf("can't find latest reliable brancg")

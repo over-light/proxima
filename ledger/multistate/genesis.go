@@ -3,7 +3,6 @@ package multistate
 import (
 	"fmt"
 
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
@@ -12,7 +11,7 @@ import (
 
 // CommitEmptyRootWithLedgerIdentity writes ledger identity data as value of the empty key nil.
 // Return root of the empty trie
-func CommitEmptyRootWithLedgerIdentity(par ledger.IdentityData, store global.StateStore) (common.VCommitment, error) {
+func CommitEmptyRootWithLedgerIdentity(par ledger.IdentityData, store StateStore) (common.VCommitment, error) {
 	batch := store.BatchedWriter()
 	emptyRoot := immutable.MustInitRoot(batch, ledger.CommitmentModel, par.Bytes())
 	if err := batch.Commit(); err != nil {
@@ -24,7 +23,7 @@ func CommitEmptyRootWithLedgerIdentity(par ledger.IdentityData, store global.Sta
 // InitStateStore initializes origin ledger state in the empty store
 // Writes initial supply and origin stem outputs. Plus writes root record into the DB
 // Returns root commitment to the genesis ledger state and genesis chainID
-func InitStateStore(par ledger.IdentityData, store global.StateStore) (ledger.ChainID, common.VCommitment) {
+func InitStateStore(par ledger.IdentityData, store StateStore) (ledger.ChainID, common.VCommitment) {
 	emptyRoot, err := CommitEmptyRootWithLedgerIdentity(par, store)
 	util.AssertNoError(err)
 
@@ -53,7 +52,7 @@ func genesisUpdateMutations(genesisOut, genesisStemOut *ledger.OutputWithID) *Mu
 }
 
 // ScanGenesisState TODO more checks
-func ScanGenesisState(stateStore global.StateStore) (*ledger.IdentityData, common.VCommitment, error) {
+func ScanGenesisState(stateStore StateStore) (*ledger.IdentityData, common.VCommitment, error) {
 	var genesisRootRecord RootRecord
 
 	// expecting a single branch in the genesis state
@@ -86,6 +85,6 @@ func ScanGenesisState(stateStore global.StateStore) (*ledger.IdentityData, commo
 	return stateID, branchData.Root, nil
 }
 
-func InitLedgerFromStore(stateStore global.StateStore, verbose ...bool) {
+func InitLedgerFromStore(stateStore StateStore, verbose ...bool) {
 	ledger.Init(ledger.MustIdentityDataFromBytes(LedgerIdentityBytesFromStore(stateStore)), verbose...)
 }

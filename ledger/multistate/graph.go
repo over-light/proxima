@@ -6,7 +6,6 @@ import (
 
 	"github.com/dominikbraun/graph"
 	"github.com/dominikbraun/graph/draw"
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -23,7 +22,7 @@ var (
 	}
 )
 
-func MakeTree(stateStore global.StateStore, slots ...int) graph.Graph[string, string] {
+func MakeTree(stateStore StateStore, slots ...int) graph.Graph[string, string] {
 	ret := graph.New(graph.StringHash, graph.Directed(), graph.Acyclic())
 
 	var branches []*BranchData
@@ -59,7 +58,7 @@ func MakeTree(stateStore global.StateStore, slots ...int) graph.Graph[string, st
 	return ret
 }
 
-func SaveBranchTree(stateStore global.StateStore, fname string, slotsBack ...int) {
+func SaveBranchTree(stateStore StateStore, fname string, slotsBack ...int) {
 	gr := MakeTree(stateStore, slotsBack...)
 	dotFile, _ := os.Create(fname + ".gv")
 	err := draw.DOT(gr, dotFile)

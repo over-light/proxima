@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
@@ -38,7 +37,7 @@ func (a *attacher) baselineSugaredStateReader() multistate2.SugaredStateReader {
 	return multistate2.MakeSugared(a.baselineStateReader())
 }
 
-func (a *attacher) baselineStateReader() global.IndexedStateReader {
+func (a *attacher) baselineStateReader() multistate2.IndexedStateReader {
 	return a.GetStateReaderForTheBranch(a.baseline.ID)
 }
 

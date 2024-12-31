@@ -11,6 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/unitrie/common"
 )
 
@@ -19,8 +20,8 @@ type (
 		WithGlobalWriteLock(fun func())
 		GetVertexNoLock(txid *ledger.TransactionID) *vertex.WrappedTx
 		AddVertexNoLock(vid *vertex.WrappedTx)
-		StateStore() global.StateStore
-		GetStateReaderForTheBranch(branchID ledger.TransactionID) global.IndexedStateReader
+		StateStore() multistate.StateStore
+		GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate.IndexedStateReader
 		GetStemWrappedOutput(branch *ledger.TransactionID) vertex.WrappedOutput
 		SendToTippool(vid *vertex.WrappedTx)
 		EvidenceBranchSlot(s ledger.Slot, healthy bool)

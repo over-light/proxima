@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -47,7 +46,7 @@ type (
 	}
 )
 
-func MustCollectAccountInfo(store global.StateStore, root common.VCommitment) *AccountInfo {
+func MustCollectAccountInfo(store StateStore, root common.VCommitment) *AccountInfo {
 	rdr := MustNewReadable(store, root)
 	return &AccountInfo{
 		LockedAccounts: rdr.AccountsByLocks(),
@@ -92,7 +91,7 @@ func (a *AccountInfo) Lines(prefix ...string) *lines.Lines {
 	return ret
 }
 
-func FetchSummarySupply(stateStore global.StateStore, nBack int) *SummarySupplyAndInflation {
+func FetchSummarySupply(stateStore StateStore, nBack int) *SummarySupplyAndInflation {
 	branchData := FetchHeaviestBranchChainNSlotsBack(stateStore, nBack) // descending
 	util.Assertf(len(branchData) > 0, "len(branchData) > 0")
 

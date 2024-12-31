@@ -149,7 +149,7 @@ func (pb *PastConeBase) addVirtuallyConsumedOutput(wOut WrappedOutput) {
 	}
 }
 
-func (pc *PastCone) AddVirtuallyConsumedOutput(wOut WrappedOutput, stateReader global.IndexedStateReader) *WrappedOutput {
+func (pc *PastCone) AddVirtuallyConsumedOutput(wOut WrappedOutput, stateReader multistate.IndexedStateReader) *WrappedOutput {
 	if pc.delta == nil {
 		pc.addVirtuallyConsumedOutput(wOut)
 		return pc.Check(stateReader)
@@ -656,7 +656,7 @@ func (pc *PastCone) getBaseline() *WrappedTx {
 }
 
 // AppendPastCone appends deterministic past cone to the current one. Does not check for conflicts
-func (pc *PastCone) AppendPastCone(pcb *PastConeBase, getStateReader func() global.IndexedStateReader) {
+func (pc *PastCone) AppendPastCone(pcb *PastConeBase, getStateReader func() multistate.IndexedStateReader) {
 	baseline := pc.getBaseline()
 	pc.Assertf(baseline != nil, "pc.hasBaseline()")
 	pc.Assertf(pcb.baseline != nil, "pcb.baseline != nil")
@@ -684,7 +684,7 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, getStateReader func() glob
 
 // CheckFinalPastCone check determinism consistency of the past cone
 // If rootVid == nil, past cone must be fully deterministic
-func (pc *PastCone) CheckFinalPastCone(getStateReader func() global.IndexedStateReader) (err error) {
+func (pc *PastCone) CheckFinalPastCone(getStateReader func() multistate.IndexedStateReader) (err error) {
 	if pc.delta != nil {
 		return fmt.Errorf("CheckFinalPastCone: past cone has uncommitted delta")
 	}
@@ -783,7 +783,7 @@ func (pb *PastConeBase) Len() int {
 // The complexity is O(NxM) where N is number of vertices and M is average number of conflicts in the UTXO tangle
 // Practically, it is linear wrt number of vertices because M is 1 or close to 1.
 // for optimization, latest time value can be specified
-func (pc *PastCone) Check(stateReader global.IndexedStateReader) (conflict *WrappedOutput) {
+func (pc *PastCone) Check(stateReader multistate.IndexedStateReader) (conflict *WrappedOutput) {
 	var coverageDelta uint64
 	pc.coverageDelta = 0
 	pc.forAllVertices(func(vid *WrappedTx) bool {
@@ -799,7 +799,7 @@ func (pc *PastCone) Check(stateReader global.IndexedStateReader) (conflict *Wrap
 
 // CheckAndClean iterates past cone, checks for conflicts and removes those vertices
 // which has consumers and all consumers are already in the state
-func (pc *PastCone) CheckAndClean(stateReader global.IndexedStateReader) (conflict *WrappedOutput) {
+func (pc *PastCone) CheckAndClean(stateReader multistate.IndexedStateReader) (conflict *WrappedOutput) {
 	pc.Assertf(pc.baseline != nil, "pc.baseline!=nil")
 	pc.Assertf(len(pc.virtuallyConsumed) == 0, "len(pb.virtuallyConsumed)==0")
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
@@ -828,7 +828,7 @@ func (pc *PastCone) CheckAndClean(stateReader global.IndexedStateReader) (confli
 	return
 }
 
-func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader global.IndexedStateReader) (doubleSpend *WrappedOutput, canBeRemoved bool, coverageDelta uint64) {
+func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedStateReader) (doubleSpend *WrappedOutput, canBeRemoved bool, coverageDelta uint64) {
 	allConsumersAreInTheState := true
 	inTheState := pc.IsInTheState(vid)
 	byIdx := pc.consumersByOutputIndex(vid)

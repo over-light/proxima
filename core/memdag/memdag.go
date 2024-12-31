@@ -17,7 +17,7 @@ import (
 
 type (
 	environment interface {
-		StateStore() global.StateStore
+		StateStore() multistate2.StateStore
 		MetricsRegistry() *prometheus.Registry
 	}
 
@@ -48,7 +48,7 @@ type (
 	}
 
 	cachedStateReader struct {
-		global.IndexedStateReader
+		multistate2.IndexedStateReader
 		rootRecord   *multistate2.RootRecord
 		lastActivity time.Time
 	}
@@ -133,7 +133,7 @@ func (d *MemDAG) PurgeCachedStateReaders() (int, int) {
 	return count, len(d.stateReaders)
 }
 
-func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) global.IndexedStateReader {
+func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate2.IndexedStateReader {
 	util.Assertf(branchID.IsBranchTransaction(), "GetStateReaderForTheBranchExt: branch tx expected. Got: %s", branchID.StringShort())
 
 	d.stateReadersMutex.Lock()

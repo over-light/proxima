@@ -15,9 +15,9 @@ import (
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	transaction2 "github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
+	"github.com/lunfardo314/proxima/ledger/utxodb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/txutils"
-	"github.com/lunfardo314/proxima/util/utxodb"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/blake2b"
 )

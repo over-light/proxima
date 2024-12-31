@@ -10,6 +10,7 @@ import (
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/sequencer"
 	"github.com/lunfardo314/proxima/util"
@@ -84,7 +85,7 @@ func (p *ProximaNode) WaitAllDBClosed() {
 	p.dbClosedWG.Wait()
 }
 
-func (p *ProximaNode) StateStore() global.StateStore {
+func (p *ProximaNode) StateStore() multistate.StateStore {
 	return p.multiStateDB
 }
 

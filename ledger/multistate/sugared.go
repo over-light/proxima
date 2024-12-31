@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/txutils"
@@ -14,10 +13,10 @@ import (
 var ErrNotFound = errors.New("object not found")
 
 type SugaredStateReader struct {
-	global.IndexedStateReader
+	IndexedStateReader
 }
 
-func MakeSugared(s global.IndexedStateReader) SugaredStateReader {
+func MakeSugared(s IndexedStateReader) SugaredStateReader {
 	return SugaredStateReader{s}
 }
 

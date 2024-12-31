@@ -35,12 +35,12 @@ import (
 
 type workflowDummyEnvironment struct {
 	*global.Global
-	stateStore   global.StateStore
+	stateStore   multistate2.StateStore
 	txBytesStore global.TxBytesStore
 	root         common.VCommitment
 }
 
-func (w *workflowDummyEnvironment) StateStore() global.StateStore {
+func (w *workflowDummyEnvironment) StateStore() multistate2.StateStore {
 	return w.stateStore
 }
 
@@ -108,7 +108,7 @@ func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(txid *ledger.Transact
 func (p *workflowDummyEnvironment) SubmitTxBytesFromAPI(txBytes []byte) {
 }
 
-func newWorkflowDummyEnvironment(stateStore global.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {
+func newWorkflowDummyEnvironment(stateStore multistate2.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {
 	return &workflowDummyEnvironment{
 		Global:       global.NewDefault(false),
 		stateStore:   stateStore,
