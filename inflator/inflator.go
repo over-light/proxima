@@ -2,6 +2,7 @@ package inflator
 
 import (
 	"crypto/ed25519"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -144,10 +145,12 @@ func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.Suga
 	return ret, totalMargin
 }
 
+var ErrNoInputs = errors.New("no delegated output has been found")
+
 func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, error) {
 	outs, totalMarginOut := fl.collectTransitions(targetTs, rdr)
 	if len(outs) == 0 {
-		return nil, nil, nil
+		return nil, nil, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
 	}
 
 	txb := txbuilder.New()
