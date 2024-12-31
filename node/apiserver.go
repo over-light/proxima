@@ -11,7 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/spf13/viper"
@@ -91,7 +91,7 @@ func (p *ProximaNode) GetPeersInfo() *api.PeersInfo {
 	return p.peers.GetPeersInfo()
 }
 
-func (p *ProximaNode) LatestReliableState() (multistate2.SugaredStateReader, error) {
+func (p *ProximaNode) LatestReliableState() (multistate.SugaredStateReader, error) {
 	return p.workflow.LatestReliableState()
 }
 
@@ -107,13 +107,13 @@ func (p *ProximaNode) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex
 	return p.workflow.QueryTxIDStatusJSONAble(txid)
 }
 
-func (p *ProximaNode) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate2.TxInclusion {
+func (p *ProximaNode) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion {
 	return p.workflow.GetTxInclusion(txid, slotsBack)
 }
 
-func (p *ProximaNode) GetLatestReliableBranch() (ret *multistate2.BranchData) {
+func (p *ProximaNode) GetLatestReliableBranch() (ret *multistate.BranchData) {
 	err := util.CatchPanicOrError(func() error {
-		ret = multistate2.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
+		ret = multistate.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
 		return nil
 	})
 	if err != nil {

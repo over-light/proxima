@@ -7,7 +7,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazyargs"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -33,11 +33,11 @@ func (a *attacher) Name() string {
 	return a.name
 }
 
-func (a *attacher) baselineSugaredStateReader() multistate2.SugaredStateReader {
-	return multistate2.MakeSugared(a.baselineStateReader())
+func (a *attacher) baselineSugaredStateReader() multistate.SugaredStateReader {
+	return multistate.MakeSugared(a.baselineStateReader())
 }
 
-func (a *attacher) baselineStateReader() multistate2.IndexedStateReader {
+func (a *attacher) baselineStateReader() multistate.IndexedStateReader {
 	return a.GetStateReaderForTheBranch(a.baseline.ID)
 }
 
@@ -484,7 +484,7 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID *ledger.OutputID) bool {
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
 	o, err := a.baselineSugaredStateReader().GetOutputWithID(inputID)
-	if errors.Is(err, multistate2.ErrNotFound) {
+	if errors.Is(err, multistate.ErrNotFound) {
 		a.setError(fmt.Errorf("output %s is already consumed", inputID.StringShort()))
 		return false
 	}
@@ -525,9 +525,9 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 		// two different branches on the same slot conflicts
 		return false
 	case vidBranch1.Slot() < vidBranch2.Slot():
-		return multistate2.BranchKnowsTransaction(&vidBranch2.ID, &vidBranch1.ID, func() common.KVReader { return a.StateStore() })
+		return multistate.BranchKnowsTransaction(&vidBranch2.ID, &vidBranch1.ID, func() common.KVReader { return a.StateStore() })
 	default:
-		return multistate2.BranchKnowsTransaction(&vidBranch1.ID, &vidBranch2.ID, func() common.KVReader { return a.StateStore() })
+		return multistate.BranchKnowsTransaction(&vidBranch1.ID, &vidBranch2.ID, func() common.KVReader { return a.StateStore() })
 	}
 }
 
@@ -543,7 +543,7 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, currentTS ledger.T
 
 	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
 
-	rr, found := multistate2.FetchRootRecord(a.StateStore(), baselineVID.ID)
+	rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID)
 	a.Assertf(found, "setBaseline: can't fetch root record for %s", baselineVID.IDShortString)
 
 	a.baseline = baselineVID

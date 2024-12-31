@@ -8,7 +8,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/sequencer"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/testutil"
@@ -80,7 +80,7 @@ func Test1SequencerPruner(t *testing.T) {
 		})
 		seq.Start()
 
-		rdr := multistate2.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
+		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
 		require.EqualValues(t, initBalance+tagAlongFee, int(rdr.BalanceOf(testData.addrAux.AccountID())))
 
 		//initialBalanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
@@ -162,7 +162,7 @@ func TestNSequencersIdlePruner(t *testing.T) {
 
 		t.Logf("%s", testData.wrk.Info(false))
 		testData.saveFullDAG("utangle_full")
-		multistate2.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
+		multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 	})
 }
 
@@ -183,7 +183,7 @@ func Test5SequencersIdlePruner(t *testing.T) {
 
 	//t.Logf("--------\n%s", testData.wrk.Info(true))
 	testData.saveFullDAG("utangle_full")
-	multistate2.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
+	multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 }
 
 func TestNSequencersTransferPruner(t *testing.T) {
@@ -203,7 +203,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 		//testData.wrk.StartTracingTags(factory.TraceTagChooseExtendEndorsePair)
 		//testData.wrk.StartTracingTags(factory.TraceTag)
 
-		rdr := multistate2.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
+		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
 		require.EqualValues(t, initBalance*nSequencers, int(rdr.BalanceOf(testData.addrAux.AccountID())))
 
 		//initialBalanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
@@ -271,7 +271,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 
 		//testData.env.StartTracingTags(attacher.TraceTagCoverageAdjustment)
 
-		rdr := multistate2.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
+		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
 		require.EqualValues(t, initBalance*nSequencers, int(rdr.BalanceOf(testData.addrAux.AccountID())))
 
 		targetPrivKey := testutil.GetTestingPrivateKey(10000)
@@ -322,7 +322,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 		}
 
 		//testData.saveFullDAG(fmt.Sprintf("utangle_full_%d_2", nSequencers+1))
-		multistate2.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d_2", nSequencers+1))
+		multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d_2", nSequencers+1))
 
 		targetBalance := rdr.BalanceOf(targetAddr.AccountID())
 		require.EqualValues(t, len(par.spammedTxIDs)*sendAmount, int(targetBalance))

@@ -1,7 +1,7 @@
 package db_cmd
 
 import (
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -24,16 +24,16 @@ func runAccountsCmd(_ *cobra.Command, _ []string) {
 
 	glb.Infof("---------------- account totals at the heaviest branch ------------------")
 
-	branchData := multistate2.FetchLatestBranches(glb.StateStore())
+	branchData := multistate.FetchLatestBranches(glb.StateStore())
 	if len(branchData) == 0 {
 		glb.Infof("no branches found")
 		return
 	}
 
-	brHeaviest := util.Maximum(branchData, func(br1, br2 *multistate2.BranchData) bool {
+	brHeaviest := util.Maximum(branchData, func(br1, br2 *multistate.BranchData) bool {
 		return br1.LedgerCoverage < br2.LedgerCoverage
 	})
 
-	accountInfo := multistate2.MustCollectAccountInfo(glb.StateStore(), brHeaviest.Root)
+	accountInfo := multistate.MustCollectAccountInfo(glb.StateStore(), brHeaviest.Root)
 	glb.Infof("%s\n", accountInfo.Lines("   ").String())
 }

@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 )
 
 // MakeDistributionTransaction creates initial distribution transaction according to distribution list.
 // It is a branch transaction. Remainder goes to the genesis chain
-func MakeDistributionTransaction(stateStore multistate2.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, error) {
-	stateID, genesisRoot, err := multistate2.ScanGenesisState(stateStore)
+func MakeDistributionTransaction(stateStore multistate.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, error) {
+	stateID, genesisRoot, err := multistate.ScanGenesisState(stateStore)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func MakeDistributionTransaction(stateStore multistate2.StateStore, originPrivat
 		})
 	}
 
-	rdr, err := multistate2.NewSugaredReadableState(stateStore, genesisRoot)
+	rdr, err := multistate.NewSugaredReadableState(stateStore, genesisRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +87,12 @@ func MakeDistributionTransaction(stateStore multistate2.StateStore, originPrivat
 // adding initial distribution transaction.
 // Distribution transaction is a branch transaction in the slot next after the genesis.
 // Distribution parameter is added to the transaction store
-func DistributeInitialSupply(stateStore multistate2.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, error) {
+func DistributeInitialSupply(stateStore multistate.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, error) {
 	txBytes, _, err := DistributeInitialSupplyExt(stateStore, originPrivateKey, genesisDistribution)
 	return txBytes, err
 }
 
-func DistributeInitialSupplyExt(stateStore multistate2.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, ledger.TransactionID, error) {
+func DistributeInitialSupplyExt(stateStore multistate.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, ledger.TransactionID, error) {
 	var ret []byte
 	var txid ledger.TransactionID
 	err := util.CatchPanicOrError(func() error {
@@ -106,20 +106,20 @@ func DistributeInitialSupplyExt(stateStore multistate2.StateStore, originPrivate
 }
 
 // MustDistributeInitialSupply makes distribution transaction and commits it into the multi-ledger state with branch record
-func MustDistributeInitialSupply(stateStore multistate2.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) []byte {
+func MustDistributeInitialSupply(stateStore multistate.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) []byte {
 	ret, _ := MustDistributeInitialSupplyExt(stateStore, originPrivateKey, genesisDistribution)
 	return ret
 }
 
 // MustDistributeInitialSupplyExt makes distribution transaction and commits it into the multi-ledger state with branch record
-func MustDistributeInitialSupplyExt(stateStore multistate2.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, ledger.TransactionID) {
+func MustDistributeInitialSupplyExt(stateStore multistate.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, ledger.TransactionID) {
 	txBytes, err := MakeDistributionTransaction(stateStore, originPrivateKey, genesisDistribution)
 	util.AssertNoError(err)
 
-	stateID, genesisRoot, err := multistate2.ScanGenesisState(stateStore)
+	stateID, genesisRoot, err := multistate.ScanGenesisState(stateStore)
 	util.AssertNoError(err)
 
-	rdr := multistate2.MustNewSugaredReadableState(stateStore, genesisRoot)
+	rdr := multistate.MustNewSugaredReadableState(stateStore, genesisRoot)
 	bootstrapChainID := stateID.OriginChainID()
 
 	tx, err := transaction.FromBytesMainChecksWithOpt(txBytes)
@@ -132,8 +132,8 @@ func MustDistributeInitialSupplyExt(stateStore multistate2.StateStore, originPri
 	util.Assertf(nextStem != nil, "nextStem != nil")
 	muts := tx.StateMutations()
 
-	updatableOrigin := multistate2.MustNewUpdatable(stateStore, genesisRoot)
-	updatableOrigin.MustUpdate(muts, &multistate2.RootRecordParams{
+	updatableOrigin := multistate.MustNewUpdatable(stateStore, genesisRoot)
+	updatableOrigin.MustUpdate(muts, &multistate.RootRecordParams{
 		StemOutputID:    nextStem.ID,
 		SeqID:           bootstrapChainID,
 		Coverage:        (stateID.InitialSupply >> 1) + stateID.InitialSupply,

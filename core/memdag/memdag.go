@@ -9,7 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/maps"
@@ -17,7 +17,7 @@ import (
 
 type (
 	environment interface {
-		StateStore() multistate2.StateStore
+		StateStore() multistate.StateStore
 		MetricsRegistry() *prometheus.Registry
 	}
 
@@ -48,8 +48,8 @@ type (
 	}
 
 	cachedStateReader struct {
-		multistate2.IndexedStateReader
-		rootRecord   *multistate2.RootRecord
+		multistate.IndexedStateReader
+		rootRecord   *multistate.RootRecord
 		lastActivity time.Time
 	}
 )
@@ -133,7 +133,7 @@ func (d *MemDAG) PurgeCachedStateReaders() (int, int) {
 	return count, len(d.stateReaders)
 }
 
-func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate2.IndexedStateReader {
+func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate.IndexedStateReader {
 	util.Assertf(branchID.IsBranchTransaction(), "GetStateReaderForTheBranchExt: branch tx expected. Got: %s", branchID.StringShort())
 
 	d.stateReadersMutex.Lock()
@@ -144,12 +144,12 @@ func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) multi
 		ret.lastActivity = time.Now()
 		return ret.IndexedStateReader
 	}
-	rootRecord, found := multistate2.FetchRootRecord(d.StateStore(), branchID)
+	rootRecord, found := multistate.FetchRootRecord(d.StateStore(), branchID)
 	if !found {
 		return nil
 	}
 	d.stateReaders[branchID] = &cachedStateReader{
-		IndexedStateReader: multistate2.MustNewReadable(d.StateStore(), rootRecord.Root, sharedStateReaderCacheSize),
+		IndexedStateReader: multistate.MustNewReadable(d.StateStore(), rootRecord.Root, sharedStateReaderCacheSize),
 		rootRecord:         &rootRecord,
 		lastActivity:       time.Now(),
 	}
@@ -163,33 +163,33 @@ func (d *MemDAG) GetStemWrappedOutput(branch *ledger.TransactionID) (ret vertex.
 	return
 }
 
-func (d *MemDAG) HeaviestStateForLatestTimeSlotWithBaseline() (multistate2.SugaredStateReader, *vertex.WrappedTx) {
-	branchRecords := multistate2.FetchLatestBranches(d.StateStore())
+func (d *MemDAG) HeaviestStateForLatestTimeSlotWithBaseline() (multistate.SugaredStateReader, *vertex.WrappedTx) {
+	branchRecords := multistate.FetchLatestBranches(d.StateStore())
 	util.Assertf(len(branchRecords) > 0, "len(branchRecords)>0")
 
-	return multistate2.MakeSugared(multistate2.MustNewReadable(d.StateStore(), branchRecords[0].Root, 0)),
+	return multistate.MakeSugared(multistate.MustNewReadable(d.StateStore(), branchRecords[0].Root, 0)),
 		d.GetVertex(branchRecords[0].TxID())
 }
 
-func (d *MemDAG) LatestReliableState() (multistate2.SugaredStateReader, error) {
-	branchRecord := multistate2.FindLatestReliableBranch(d.StateStore(), global.FractionHealthyBranch)
+func (d *MemDAG) LatestReliableState() (multistate.SugaredStateReader, error) {
+	branchRecord := multistate.FindLatestReliableBranch(d.StateStore(), global.FractionHealthyBranch)
 	if branchRecord == nil {
-		return multistate2.SugaredStateReader{}, fmt.Errorf("LatestReliableState: can't find latest reliable branch")
+		return multistate.SugaredStateReader{}, fmt.Errorf("LatestReliableState: can't find latest reliable branch")
 	}
-	return multistate2.MakeSugared(multistate2.MustNewReadable(d.StateStore(), branchRecord.Root, 0)), nil
+	return multistate.MakeSugared(multistate.MustNewReadable(d.StateStore(), branchRecord.Root, 0)), nil
 }
 
-func (d *MemDAG) MustLatestReliableState() multistate2.SugaredStateReader {
+func (d *MemDAG) MustLatestReliableState() multistate.SugaredStateReader {
 	ret, err := d.LatestReliableState()
 	util.AssertNoError(err)
 	return ret
 }
 
-func (d *MemDAG) HeaviestStateForLatestTimeSlot() multistate2.SugaredStateReader {
-	rootRecords := multistate2.FetchLatestRootRecords(d.StateStore())
+func (d *MemDAG) HeaviestStateForLatestTimeSlot() multistate.SugaredStateReader {
+	rootRecords := multistate.FetchLatestRootRecords(d.StateStore())
 	util.Assertf(len(rootRecords) > 0, "len(rootRecords)>0")
 
-	return multistate2.MakeSugared(multistate2.MustNewReadable(d.StateStore(), rootRecords[0].Root, 0))
+	return multistate.MakeSugared(multistate.MustNewReadable(d.StateStore(), rootRecords[0].Root, 0))
 }
 
 // WaitUntilTransactionInHeaviestState for testing mostly
@@ -235,14 +235,14 @@ func (d *MemDAG) LatestBranchSlots() (slot, healthySlot ledger.Slot, synced bool
 	defer d.mutex.RUnlock()
 
 	if d.latestBranchSlot == 0 {
-		d.latestBranchSlot = multistate2.FetchLatestCommittedSlot(d.StateStore())
+		d.latestBranchSlot = multistate.FetchLatestCommittedSlot(d.StateStore())
 		if d.latestBranchSlot == 0 {
 			synced = true
 		}
 	}
 	if d.latestHealthyBranchSlot == 0 {
 		healthyExists := false
-		d.latestHealthyBranchSlot, healthyExists = multistate2.FindLatestHealthySlot(d.StateStore(), global.FractionHealthyBranch)
+		d.latestHealthyBranchSlot, healthyExists = multistate.FindLatestHealthySlot(d.StateStore(), global.FractionHealthyBranch)
 		util.Assertf(healthyExists, "assume healthy slot exists: FIX IT")
 	}
 	nowSlot := ledger.TimeNow().Slot()

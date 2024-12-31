@@ -12,7 +12,7 @@ import (
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/peering"
@@ -33,7 +33,7 @@ func TestAttachTime(t *testing.T) {
 func TestAttachBasic(t *testing.T) {
 	t.Run("base", func(t *testing.T) {
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, root := multistate2.InitStateStore(*ledger.L().ID, stateStore)
+		bootstrapChainID, root := multistate.InitStateStore(*ledger.L().ID, stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 
@@ -41,13 +41,13 @@ func TestAttachBasic(t *testing.T) {
 
 		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDoNotStartPruner)
 
-		_, _, err := multistate2.ScanGenesisState(stateStore)
+		_, _, err := multistate.ScanGenesisState(stateStore)
 		require.NoError(t, err)
 		genesisOut := ledger.GenesisStemOutput()
 		vidGenesis, err := wrk.EnsureBranch(genesisOut.ID.TransactionID())
 		require.NoError(t, err)
 
-		rdr := multistate2.MakeSugared(wrk.GetStateReaderForTheBranch(vidGenesis.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidGenesis.ID))
 		genesisOut1 := rdr.GetStemOutput()
 		require.EqualValues(t, genesisOut.ID, genesisOut1.ID)
 		require.EqualValues(t, genesisOut.Output.Bytes(), genesisOut1.Output.Bytes())
@@ -72,7 +72,7 @@ func TestAttachBasic(t *testing.T) {
 		}
 
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, _ := multistate2.InitStateStore(*par, stateStore)
+		bootstrapChainID, _ := multistate.InitStateStore(*par, stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
@@ -98,29 +98,29 @@ func TestAttachBasic(t *testing.T) {
 		distribVID := wrk.GetVertex(&vidDistrib.ID)
 		require.True(t, distribVID != nil)
 
-		rdr := multistate2.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID))
 		stemOut := rdr.GetStemOutput()
 		require.EqualValues(t, distribTxID, stemOut.ID.TransactionID())
 		require.EqualValues(t, 0, stemOut.Output.Amount())
 
-		rr, ok := multistate2.FetchRootRecord(wrk.StateStore(), distribVID.ID)
+		rr, ok := multistate.FetchRootRecord(wrk.StateStore(), distribVID.ID)
 		require.True(t, ok)
 		require.EqualValues(t, ledger.DefaultInitialSupply, int(rr.Supply))
 		require.EqualValues(t, 0, int(rr.SlotInflation))
 
-		bal1, n1 := multistate2.BalanceOnLock(rdr, addr1)
+		bal1, n1 := multistate.BalanceOnLock(rdr, addr1)
 		require.EqualValues(t, 1_000_000, int(bal1))
 		require.EqualValues(t, 1, n1)
 
-		bal2, n2 := multistate2.BalanceOnLock(rdr, addr2)
+		bal2, n2 := multistate.BalanceOnLock(rdr, addr2)
 		require.EqualValues(t, 2_000_000, int(bal2))
 		require.EqualValues(t, 2, n2)
 
-		balChain, nChain := multistate2.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
+		balChain, nChain := multistate.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
-		balChain = multistate2.BalanceOnChainOutput(rdr, &bootstrapChainID)
+		balChain = multistate.BalanceOnChainOutput(rdr, &bootstrapChainID)
 		require.EqualValues(t, ledger.DefaultInitialSupply-1_000_000-2_000_000, int(balChain))
 	})
 	t.Run("sync scenario", func(t *testing.T) {
@@ -135,7 +135,7 @@ func TestAttachBasic(t *testing.T) {
 		}
 
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, _ := multistate2.InitStateStore(*par, stateStore)
+		bootstrapChainID, _ := multistate.InitStateStore(*par, stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
@@ -169,30 +169,30 @@ func TestAttachBasic(t *testing.T) {
 		env.Stop()
 		env.WaitAllWorkProcessesStop()
 
-		rdr := multistate2.MakeSugared(wrk.GetStateReaderForTheBranch(vidDistrib.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidDistrib.ID))
 		stemOut := rdr.GetStemOutput()
 
 		require.EqualValues(t, distribTxID, stemOut.ID.TransactionID())
 		require.EqualValues(t, 0, stemOut.Output.Amount())
 
-		rr, ok := multistate2.FetchRootRecord(wrk.StateStore(), distribTxID)
+		rr, ok := multistate.FetchRootRecord(wrk.StateStore(), distribTxID)
 		require.True(t, ok)
 		require.EqualValues(t, ledger.DefaultInitialSupply, int(rr.Supply))
 		require.EqualValues(t, 0, int(rr.SlotInflation))
 
-		bal1, n1 := multistate2.BalanceOnLock(rdr, addr1)
+		bal1, n1 := multistate.BalanceOnLock(rdr, addr1)
 		require.EqualValues(t, 1_000_000, int(bal1))
 		require.EqualValues(t, 1, n1)
 
-		bal2, n2 := multistate2.BalanceOnLock(rdr, addr2)
+		bal2, n2 := multistate.BalanceOnLock(rdr, addr2)
 		require.EqualValues(t, 2_000_000, int(bal2))
 		require.EqualValues(t, 1, n2)
 
-		balChain, nChain := multistate2.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
+		balChain, nChain := multistate.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
-		balChain = multistate2.BalanceOnChainOutput(rdr, &bootstrapChainID)
+		balChain = multistate.BalanceOnChainOutput(rdr, &bootstrapChainID)
 		require.EqualValues(t, ledger.DefaultInitialSupply-1_000_000-2_000_000, int(balChain))
 
 	})
@@ -208,7 +208,7 @@ func TestAttachBasic(t *testing.T) {
 		}
 
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, _ := multistate2.InitStateStore(*par, stateStore)
+		bootstrapChainID, _ := multistate.InitStateStore(*par, stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
@@ -238,7 +238,7 @@ func TestAttachBasic(t *testing.T) {
 
 		distribVID := wrk.GetVertex(&vidDistrib.ID)
 		require.True(t, distribVID != nil)
-		rdr := multistate2.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID))
 		stemOut := rdr.GetStemOutput()
 
 		distribTxID, _, err := transaction.IDAndTimestampFromTransactionBytes(txBytes)
@@ -247,24 +247,24 @@ func TestAttachBasic(t *testing.T) {
 		require.EqualValues(t, int(stemOut.ID.Slot()), int(distribTxID.Slot()))
 		require.EqualValues(t, 0, stemOut.Output.Amount())
 
-		rr, ok := multistate2.FetchRootRecord(wrk.StateStore(), stemOut.ID.TransactionID())
+		rr, ok := multistate.FetchRootRecord(wrk.StateStore(), stemOut.ID.TransactionID())
 		require.True(t, ok)
 		require.EqualValues(t, ledger.DefaultInitialSupply, int(rr.Supply))
 		require.EqualValues(t, 0, int(rr.SlotInflation))
 
-		bal1, n1 := multistate2.BalanceOnLock(rdr, addr1)
+		bal1, n1 := multistate.BalanceOnLock(rdr, addr1)
 		require.EqualValues(t, 1_000_000, int(bal1))
 		require.EqualValues(t, 1, n1)
 
-		bal2, n2 := multistate2.BalanceOnLock(rdr, addr2)
+		bal2, n2 := multistate.BalanceOnLock(rdr, addr2)
 		require.EqualValues(t, 2_000_000, int(bal2))
 		require.EqualValues(t, 1, n2)
 
-		balChain, nChain := multistate2.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
+		balChain, nChain := multistate.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
-		balChain = multistate2.BalanceOnChainOutput(rdr, &bootstrapChainID)
+		balChain = multistate.BalanceOnChainOutput(rdr, &bootstrapChainID)
 		require.EqualValues(t, ledger.DefaultInitialSupply-1_000_000-2_000_000, int(balChain))
 	})
 }
@@ -295,7 +295,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			amount += o.Output.Amount()
 		}
 
-		branches := multistate2.FetchLatestBranches(testData.wrk.StateStore())
+		branches := multistate.FetchLatestBranches(testData.wrk.StateStore())
 		require.EqualValues(t, 1, len(branches))
 		bd := branches[0]
 
@@ -365,7 +365,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		require.NoError(t, err)
 		testData.logDAGInfo()
 
-		branches := multistate2.FetchLatestBranches(testData.wrk.StateStore())
+		branches := multistate.FetchLatestBranches(testData.wrk.StateStore())
 		require.EqualValues(t, 1, len(branches))
 
 		outToConsume := vidConflicting.MustOutputWithIDAt(0)
@@ -413,7 +413,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			}
 		}
 
-		branches := multistate2.FetchLatestBranches(testData.wrk.StateStore())
+		branches := multistate.FetchLatestBranches(testData.wrk.StateStore())
 		require.EqualValues(t, 1, len(branches))
 		bd := branches[0]
 
@@ -466,7 +466,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			}
 		}
 
-		branches := multistate2.FetchLatestBranches(testData.wrk.StateStore())
+		branches := multistate.FetchLatestBranches(testData.wrk.StateStore())
 		require.EqualValues(t, 1, len(branches))
 		bd := branches[0]
 
@@ -723,7 +723,7 @@ func TestAttachConflictsNAttachersOneForkBranches(t *testing.T) {
 	var wg sync.WaitGroup
 	branches := make([]*vertex.WrappedTx, len(chainIn))
 	var txBytes []byte
-	stem := multistate2.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot()).GetStemOutput()
+	stem := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot()).GetStemOutput()
 	for i := range chainIn {
 		txBytes, err = txbuilder.MakeSequencerTransaction(txbuilder.MakeSequencerTransactionParams{
 			SeqName:    "seq",
@@ -788,7 +788,7 @@ func TestAttachConflictsNAttachersOneForkBranchesConflict(t *testing.T) {
 	txBytesBranch := make([][]byte, nChains)
 	require.True(t, len(txBytesBranch) >= 2)
 
-	stem := multistate2.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot()).GetStemOutput()
+	stem := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot()).GetStemOutput()
 	for i := range chainIn {
 		txBytesBranch[i], err = txbuilder.MakeSequencerTransaction(txbuilder.MakeSequencerTransactionParams{
 			SeqName:    "seq",
@@ -1016,7 +1016,7 @@ func TestAttachSeqChains(t *testing.T) {
 			}
 		}
 
-		distribBD, ok := multistate2.FetchBranchData(testData.wrk.StateStore(), testData.distributionBranchTxID)
+		distribBD, ok := multistate.FetchBranchData(testData.wrk.StateStore(), testData.distributionBranchTxID)
 		require.True(t, ok)
 
 		chainIn := testData.seqChain[0][len(testData.seqChain[0])-1].SequencerOutput().MustAsChainOutput()

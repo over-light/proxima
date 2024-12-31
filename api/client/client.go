@@ -18,7 +18,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
@@ -304,7 +304,7 @@ func (c *APIClient) GetAccountOutputsExt(account ledger.Accountable, maxOutputs 
 	return outs, lrbid, nil
 }
 
-func (c *APIClient) QueryTxIDStatus(txid ledger.TransactionID, slotSpan int) (*vertex.TxIDStatus, *multistate2.TxInclusion, error) {
+func (c *APIClient) QueryTxIDStatus(txid ledger.TransactionID, slotSpan int) (*vertex.TxIDStatus, *multistate.TxInclusion, error) {
 	path := fmt.Sprintf(api.PathQueryTxStatus+"?txid=%s&slots=%d", txid.StringHex(), slotSpan)
 	body, err := c.getBody(path)
 	if err != nil {
@@ -675,7 +675,7 @@ func (c *APIClient) DeleteChainOrigin(par DeleteChainOriginParams) (*transaction
 }
 
 // GetLatestReliableBranch retrieves lates reliable branch info from the node
-func (c *APIClient) GetLatestReliableBranch() (*multistate2.RootRecord, *ledger.TransactionID, error) {
+func (c *APIClient) GetLatestReliableBranch() (*multistate.RootRecord, *ledger.TransactionID, error) {
 	body, err := c.getBody(api.PathGetLatestReliableBranch)
 	if err != nil {
 		return nil, nil, err

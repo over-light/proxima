@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )
@@ -41,15 +41,15 @@ func runReconcileCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("now is slot %d", ledger.TimeNow().Slot())
 
-	slot := multistate2.FetchLatestCommittedSlot(glb.StateStore())
+	slot := multistate.FetchLatestCommittedSlot(glb.StateStore())
 	glb.Infof("latest committed slot is %d", slot)
 	var downToSlot ledger.Slot
 	if int(slot) > slotsBack {
 		downToSlot = slot - ledger.Slot(slotsBack)
 	}
 
-	branches := multistate2.FetchLatestBranches(glb.StateStore())
-	rdr := multistate2.MustNewReadable(glb.StateStore(), branches[0].Root)
+	branches := multistate.FetchLatestBranches(glb.StateStore())
+	rdr := multistate.MustNewReadable(glb.StateStore(), branches[0].Root)
 
 	nTx := 0
 	nSlots := 0

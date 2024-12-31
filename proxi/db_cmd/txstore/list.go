@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +24,7 @@ func runListCmd(_ *cobra.Command, args []string) {
 	glb.InitTxStoreDB()
 	defer glb.CloseDatabases()
 
-	latestSlot := multistate2.FetchLatestCommittedSlot(glb.StateStore())
+	latestSlot := multistate.FetchLatestCommittedSlot(glb.StateStore())
 	glb.Infof("latest committed slot: %d", latestSlot)
 
 	slot := latestSlot
@@ -37,8 +37,8 @@ func runListCmd(_ *cobra.Command, args []string) {
 	glb.Infof("list transactions in the heaviest state for slot %d", slot)
 	glb.Infof("now is slot %d", ledger.TimeNow().Slot())
 
-	branches := multistate2.FetchLatestBranches(glb.StateStore())
-	rdr := multistate2.MustNewReadable(glb.StateStore(), branches[0].Root)
+	branches := multistate.FetchLatestBranches(glb.StateStore())
+	rdr := multistate.MustNewReadable(glb.StateStore(), branches[0].Root)
 
 	nTx := 0
 	rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, slot ledger.Slot) bool {

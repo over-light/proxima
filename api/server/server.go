@@ -16,7 +16,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slices"
@@ -29,12 +29,12 @@ type (
 		GetNodeInfo() *global.NodeInfo
 		GetSyncInfo() *api.SyncInfo
 		GetPeersInfo() *api.PeersInfo
-		LatestReliableState() (multistate2.SugaredStateReader, error)
+		LatestReliableState() (multistate.SugaredStateReader, error)
 		SubmitTxBytesFromAPI(txBytes []byte)
 		QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble
-		GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate2.TxInclusion
-		GetLatestReliableBranch() *multistate2.BranchData
-		StateStore() multistate2.StateStore
+		GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion
+		GetLatestReliableBranch() *multistate.BranchData
+		StateStore() multistate.StateStore
 		TxBytesStore() global.TxBytesStore
 		GetKnownLatestMilestonesJSONAble() map[string]tippool.LatestSequencerTipDataJSONAble
 	}
@@ -47,7 +47,7 @@ type (
 
 	TxStatus struct {
 		vertex.TxIDStatus
-		*multistate2.TxInclusion
+		*multistate.TxInclusion
 	}
 
 	metrics struct {
@@ -161,7 +161,7 @@ func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 	var oData []*ledger.OutputDataWithID
 
 	resp := &api.OutputList{}
-	err = srv.withLRB(func(rdr multistate2.SugaredStateReader) (errRet error) {
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) (errRet error) {
 		oData, errRet = rdr.GetUTXOsInAccount(accountable.AccountID())
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
@@ -229,7 +229,7 @@ func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := &api.ChainOutput{}
-	err = srv.withLRB(func(rdr multistate2.SugaredStateReader) error {
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		o, err1 := rdr.GetChainOutput(&chainID)
 		if err1 != nil {
 			return err1
@@ -269,7 +269,7 @@ func (srv *server) getOutput(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := &api.OutputData{}
-	err = srv.withLRB(func(rdr multistate2.SugaredStateReader) error {
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		oData, found := rdr.GetUTXO(&oid)
 		if !found {
 			return errors.New(api.ErrGetOutputNotFound)
@@ -415,7 +415,7 @@ func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
 	if maxDepth <= 0 {
 		maxDepth = 1
 	}
-	main, err := multistate2.GetMainChain(srv.StateStore(), global.FractionHealthyBranch, maxDepth)
+	main, err := multistate.GetMainChain(srv.StateStore(), global.FractionHealthyBranch, maxDepth)
 	if err != nil {
 		writeErr(w, err.Error())
 		return
@@ -507,7 +507,7 @@ func decodeThreshold(par string) (int, int, error) {
 	if err != nil {
 		return 0, 0, fmt.Errorf("wrong parameter 'threshold': %v", err)
 	}
-	if !multistate2.ValidInclusionThresholdFraction(num, denom) {
+	if !multistate.ValidInclusionThresholdFraction(num, denom) {
 		return 0, 0, fmt.Errorf("wrong parameter 'threshold': %s", par)
 	}
 	return num, denom, nil
@@ -556,7 +556,7 @@ func (srv *server) queryTxInclusionScore(w http.ResponseWriter, r *http.Request)
 		writeErr(w, fmt.Sprintf("wrong or missing parameter 'threshold': %+v", lst))
 		return
 	}
-	var inclusion *multistate2.TxInclusion
+	var inclusion *multistate.TxInclusion
 	err = util.CatchPanicOrError(func() error {
 		inclusion = srv.GetTxInclusion(&txid, slotSpan)
 		return nil
@@ -618,7 +618,7 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 	}
 
 	var resp api.CheckRxIDInLRB
-	err = srv.withLRB(func(rdr multistate2.SugaredStateReader) error {
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
 		resp.TxID = txid.StringHex()
@@ -639,7 +639,7 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 }
 
 // calcTxInclusionScore calculates inclusion score response from inclusion data
-func (srv *server) calcTxInclusionScore(inclusion *multistate2.TxInclusion, thresholdNumerator, thresholdDenominator int) api.TxInclusionScore {
+func (srv *server) calcTxInclusionScore(inclusion *multistate.TxInclusion, thresholdNumerator, thresholdDenominator int) api.TxInclusionScore {
 	srv.Tracef(TraceTagQueryInclusion, "calcTxInclusionScore: %s, threshold: %d/%d", inclusion.String(), thresholdNumerator, thresholdDenominator)
 
 	ret := api.CalcTxInclusionScore(inclusion, thresholdNumerator, thresholdDenominator)
@@ -677,7 +677,7 @@ func setHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 }
 
-func (srv *server) withLRB(fun func(rdr multistate2.SugaredStateReader) error) error {
+func (srv *server) withLRB(fun func(rdr multistate.SugaredStateReader) error) error {
 	return util.CatchPanicOrError(func() error {
 		rdr, err1 := srv.LatestReliableState()
 		if err1 != nil {

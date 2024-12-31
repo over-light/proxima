@@ -18,7 +18,7 @@ import (
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/peering"
@@ -35,12 +35,12 @@ import (
 
 type workflowDummyEnvironment struct {
 	*global.Global
-	stateStore   multistate2.StateStore
+	stateStore   multistate.StateStore
 	txBytesStore global.TxBytesStore
 	root         common.VCommitment
 }
 
-func (w *workflowDummyEnvironment) StateStore() multistate2.StateStore {
+func (w *workflowDummyEnvironment) StateStore() multistate.StateStore {
 	return w.stateStore
 }
 
@@ -77,7 +77,7 @@ func (wrk *workflowDummyEnvironment) GetKnownLatestMilestonesJSONAble() map[stri
 	return nil
 }
 
-func (p *workflowDummyEnvironment) GetLatestReliableBranch() (ret *multistate2.BranchData) {
+func (p *workflowDummyEnvironment) GetLatestReliableBranch() (ret *multistate.BranchData) {
 	return nil
 }
 
@@ -93,12 +93,12 @@ func (p *workflowDummyEnvironment) GetSyncInfo() *api.SyncInfo {
 	return nil
 }
 
-func (p *workflowDummyEnvironment) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate2.TxInclusion {
+func (p *workflowDummyEnvironment) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion {
 	return nil
 }
 
-func (p *workflowDummyEnvironment) LatestReliableState() (multistate2.SugaredStateReader, error) {
-	return multistate2.MakeSugared(multistate2.MustNewReadable(p.stateStore, p.root, 0)), nil
+func (p *workflowDummyEnvironment) LatestReliableState() (multistate.SugaredStateReader, error) {
+	return multistate.MakeSugared(multistate.MustNewReadable(p.stateStore, p.root, 0)), nil
 }
 
 func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble {
@@ -108,7 +108,7 @@ func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(txid *ledger.Transact
 func (p *workflowDummyEnvironment) SubmitTxBytesFromAPI(txBytes []byte) {
 }
 
-func newWorkflowDummyEnvironment(stateStore multistate2.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {
+func newWorkflowDummyEnvironment(stateStore multistate.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {
 	return &workflowDummyEnvironment{
 		Global:       global.NewDefault(false),
 		stateStore:   stateStore,
@@ -183,7 +183,7 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 	ret.txStore = txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 	var genesisRoot common.VCommitment
-	ret.bootstrapChainID, genesisRoot = multistate2.InitStateStore(ret.stateIdentity, stateStore)
+	ret.bootstrapChainID, genesisRoot = multistate.InitStateStore(ret.stateIdentity, stateStore)
 	txBytes, err := txbuilder.DistributeInitialSupply(stateStore, genesisPrivKey, distrib)
 	require.NoError(t, err)
 	_, err = ret.txStore.PersistTxBytesWithMetadata(txBytes, nil)
@@ -199,7 +199,7 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 	if printDistributionTx {
 		tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 		require.NoError(t, err)
-		genesisState := multistate2.MustNewReadable(stateStore, genesisRoot)
+		genesisState := multistate.MustNewReadable(stateStore, genesisRoot)
 		t.Logf("--------------- distribution tx:\n%s\n--------------", tx.ToString(genesisState.GetUTXO))
 		t.Logf("--------------- faucet output\n%s\n--------------", ret.faucetOutput)
 	}
@@ -221,7 +221,7 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 }
 
 func (td *workflowTestData) saveFullDAG(fname string) {
-	branchTxIDS := multistate2.FetchLatestBranchTransactionIDs(td.wrk.StateStore())
+	branchTxIDS := multistate.FetchLatestBranchTransactionIDs(td.wrk.StateStore())
 	tmpDag := memdag.MakeDAGFromTxStore(td.txStore, 0, branchTxIDS...)
 	tmpDag.SaveGraph(fname)
 }
@@ -303,7 +303,7 @@ func initWorkflowTestWithConflicts(t *testing.T, nConflicts int, nChains int, ta
 	t.Logf("%s", ret.wrk.Info())
 
 	rdr := ret.wrk.HeaviestStateForLatestTimeSlot()
-	bal, _ := multistate2.BalanceOnLock(rdr, ret.addr)
+	bal, _ := multistate.BalanceOnLock(rdr, ret.addr)
 	require.EqualValues(t, initBalance, int(bal))
 
 	oDatas, err := rdr.GetUTXOsInAccount(ret.addr.AccountID())
@@ -888,7 +888,7 @@ func StartTestEnv() (*workflowDummyEnvironment, *ledger.TransactionID, error) {
 	}
 
 	stateStore := common.NewInMemoryKVStore()
-	_, root := multistate2.InitStateStore(*ledger.L().ID, stateStore)
+	_, root := multistate.InitStateStore(*ledger.L().ID, stateStore)
 	txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 	env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 	env.root = root

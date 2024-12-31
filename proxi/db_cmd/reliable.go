@@ -6,7 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/cobra"
@@ -28,7 +28,7 @@ func initReliableBranchCmd() *cobra.Command {
 func runReliableBranchCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromDB()
 
-	lrb := multistate2.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
+	lrb := multistate.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
 	if lrb == nil {
 		glb.Infof("reliable branch has not been found")
 		os.Exit(1)
@@ -44,7 +44,7 @@ func runReliableBranchCmd(_ *cobra.Command, _ []string) {
 	counter := 0
 
 	start := time.Now()
-	multistate2.IterateBranchChainBack(glb.StateStore(), lrb, func(branchID *ledger.TransactionID, branch *multistate2.BranchData) bool {
+	multistate.IterateBranchChainBack(glb.StateStore(), lrb, func(branchID *ledger.TransactionID, branch *multistate.BranchData) bool {
 		counter++
 		if byChainID.Contains(branch.SequencerID) {
 			return true

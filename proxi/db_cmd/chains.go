@@ -5,7 +5,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -28,13 +28,13 @@ func runChainsCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
-	branchData := multistate2.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
+	branchData := multistate.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
 	if branchData == nil {
 		glb.Infof("no branches found")
 		return
 	}
 
-	accountInfo := multistate2.MustCollectAccountInfo(glb.StateStore(), branchData.Root)
+	accountInfo := multistate.MustCollectAccountInfo(glb.StateStore(), branchData.Root)
 
 	glb.Infof("---------------- global LRB state ------------------")
 	glb.Infof("supply:   %s     coverage: %s     slot inflation: %s", util.Th(branchData.Supply), util.Th(branchData.LedgerCoverage),
@@ -61,7 +61,7 @@ func runChainsCmd(_ *cobra.Command, args []string) {
 	glb.Infof("--------------------------------")
 	glb.Infof("   Total on chains: %s", util.Th(sum))
 	glb.Infof("--------Stem Output-------------")
-	rdr := multistate2.MustNewSugaredReadableState(glb.StateStore(), branchData.Root, 0)
+	rdr := multistate.MustNewSugaredReadableState(glb.StateStore(), branchData.Root, 0)
 	stem := rdr.GetStemOutput()
 	lines := stem.Lines("  ")
 	glb.Infof(lines.String())

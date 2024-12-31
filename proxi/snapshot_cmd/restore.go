@@ -10,7 +10,7 @@ import (
 	"github.com/dgraph-io/badger/v4"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/adaptors/badger_adaptor"
@@ -59,7 +59,7 @@ func runRestoreCmd(_ *cobra.Command, args []string) {
 	glb.Infof("snapshot file: %s", fname)
 	glb.Infof("batch size is %d", batchSize)
 
-	kvStream, err := multistate2.OpenSnapshotFileStream(fname)
+	kvStream, err := multistate.OpenSnapshotFileStream(fname)
 	glb.AssertNoError(err)
 	defer kvStream.Close()
 
@@ -76,7 +76,7 @@ func runRestoreCmd(_ *cobra.Command, args []string) {
 	stateStore := badger_adaptor.New(stateDb)
 	defer func() { _ = stateStore.Close() }()
 
-	emptyRoot, err := multistate2.CommitEmptyRootWithLedgerIdentity(*kvStream.LedgerID, stateStore)
+	emptyRoot, err := multistate.CommitEmptyRootWithLedgerIdentity(*kvStream.LedgerID, stateStore)
 	glb.AssertNoError(err)
 
 	trieUpdatable, err := immutable.NewTrieUpdatable(ledger.CommitmentModel, stateStore, emptyRoot, trieCacheSize)
@@ -130,9 +130,9 @@ func runRestoreCmd(_ *cobra.Command, args []string) {
 	}
 	// write meta-records
 	batch = stateStore.BatchedWriter()
-	multistate2.WriteLatestSlotRecord(batch, kvStream.BranchID.Slot())
-	multistate2.WriteEarliestSlotRecord(batch, kvStream.BranchID.Slot())
-	multistate2.WriteRootRecord(batch, kvStream.BranchID, kvStream.RootRecord)
+	multistate.WriteLatestSlotRecord(batch, kvStream.BranchID.Slot())
+	multistate.WriteEarliestSlotRecord(batch, kvStream.BranchID.Slot())
+	multistate.WriteRootRecord(batch, kvStream.BranchID, kvStream.RootRecord)
 
 	err = batch.Commit()
 	glb.AssertNoError(err)
@@ -143,7 +143,7 @@ func runRestoreCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("Success\nTotal %d records. By type:", total)
 	for _, k := range util.KeysSorted(counters, func(k1, k2 byte) bool { return k1 < k2 }) {
-		glb.Infof("    %s: %d", multistate2.PartitionToString(k), counters[k])
+		glb.Infof("    %s: %d", multistate.PartitionToString(k), counters[k])
 	}
 	glb.Infof("it took %v, %d records/sec", time.Since(start), time.Duration(total)*time.Second/time.Since(start))
 }

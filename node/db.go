@@ -6,7 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/txstore"
 	"github.com/lunfardo314/unitrie/adaptors/badger_adaptor"
 	"github.com/spf13/viper"
@@ -25,12 +25,12 @@ func (p *ProximaNode) initMultiStateLedger() {
 	p.Log().Infof("opened multi-state DB '%s'", dbname)
 
 	// initialize global ledger object with the ledger ID data from DB
-	multistate2.InitLedgerFromStore(p.multiStateDB)
+	multistate.InitLedgerFromStore(p.multiStateDB)
 	p.Log().Infof("ledger identity:\n%s", ledger.L().ID.Lines("       ").String())
 	h := ledger.L().LibraryHash()
 	p.Log().Infof("ledger constraint library hash: %s", hex.EncodeToString(h[:]))
 
-	p.snapshotBranchID = multistate2.FetchSnapshotBranchID(p.multiStateDB)
+	p.snapshotBranchID = multistate.FetchSnapshotBranchID(p.multiStateDB)
 	p.Log().Infof("current slot: %d", ledger.TimeNow().Slot())
 	p.Log().Infof("snapshot branch ID: %s", p.snapshotBranchID.String())
 

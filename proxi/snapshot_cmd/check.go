@@ -2,7 +2,7 @@ package snapshot_cmd
 
 import (
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -65,12 +65,12 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 type _snapshotFileData struct {
 	fmtVersion string
 	branchID   ledger.TransactionID
-	rootRecord multistate2.RootRecord
+	rootRecord multistate.RootRecord
 	ledgerID   *ledger.IdentityData
 }
 
 func readASnapshotFile(fname string) (*_snapshotFileData, error) {
-	kvStream, err := multistate2.OpenSnapshotFileStream(fname)
+	kvStream, err := multistate.OpenSnapshotFileStream(fname)
 	if err != nil {
 		return nil, err
 	}

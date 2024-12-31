@@ -10,7 +10,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
 )
@@ -221,11 +221,11 @@ func (b *InputBacklog) purgeBacklog(ttl time.Duration) int {
 
 // LoadSequencerStartTips loads tip transactions relevant to the sequencer startup from persistent state to the memDAG
 func (b *InputBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
-	var branchData *multistate2.BranchData
+	var branchData *multistate.BranchData
 	if b.IsBootstrapMode() {
-		branchData = multistate2.FindLatestReliableBranchWithSequencerID(b.StateStore(), b.SequencerID(), global.FractionHealthyBranch)
+		branchData = multistate.FindLatestReliableBranchWithSequencerID(b.StateStore(), b.SequencerID(), global.FractionHealthyBranch)
 	} else {
-		branchData = multistate2.FindLatestReliableBranch(b.StateStore(), global.FractionHealthyBranch)
+		branchData = multistate.FindLatestReliableBranch(b.StateStore(), global.FractionHealthyBranch)
 	}
 	if branchData == nil {
 		return fmt.Errorf("LoadSequencerStartTips: can't find latest reliable branch (LRB) with franction %s", global.FractionHealthyBranch.String())
@@ -235,7 +235,7 @@ func (b *InputBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 	b.Log().Infof("loading sequencer tips for %s from branch %s, %d slots back from (current slot is %d), bootstrap mode: %v",
 		seqID.StringShort(), branchData.TxID().StringShort(), nowSlot-branchData.TxID().Slot(), nowSlot, b.IsBootstrapMode())
 
-	rdr := multistate2.MustNewSugaredReadableState(b.StateStore(), branchData.Root, 0)
+	rdr := multistate.MustNewSugaredReadableState(b.StateStore(), branchData.Root, 0)
 	vidBranch := b.MustEnsureBranch(branchData.Stem.ID.TransactionID())
 	b.PostEventNewGood(vidBranch)
 	loadedTxs.Insert(vidBranch)

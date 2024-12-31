@@ -7,7 +7,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/spf13/viper"
@@ -16,7 +16,7 @@ import (
 type (
 	environment interface {
 		global.NodeGlobal
-		StateStore() multistate2.StateStore
+		StateStore() multistate.StateStore
 		GetOwnSequencerID() *ledger.ChainID
 	}
 
@@ -101,12 +101,12 @@ func directoryExists(dir string) bool {
 }
 
 func (s *Snapshot) doSnapshot() {
-	snapshotBranch := multistate2.FindLatestReliableBranchAndNSlotsBack(s.StateStore(), s.safeSlotsBack, global.FractionHealthyBranch)
+	snapshotBranch := multistate.FindLatestReliableBranchAndNSlotsBack(s.StateStore(), s.safeSlotsBack, global.FractionHealthyBranch)
 	if snapshotBranch == nil {
 		s.Log().Errorf("[snapshot] can't find latest reliable branch")
 		return
 	}
-	fname, stats, err := multistate2.SaveSnapshot(s.StateStore(), snapshotBranch, s.Ctx(), s.directory, io.Discard)
+	fname, stats, err := multistate.SaveSnapshot(s.StateStore(), snapshotBranch, s.Ctx(), s.directory, io.Discard)
 	if err != nil {
 		s.Log().Errorf("[snapshot] failed to save snapshot: %v", err)
 	} else {
