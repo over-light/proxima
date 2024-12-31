@@ -144,7 +144,7 @@ func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.Suga
 	return ret, totalMargin
 }
 
-func (fl *Inflator) makeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, error) {
+func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, error) {
 	outs, totalMarginOut := fl.collectTransitions(targetTs, rdr)
 	if len(outs) == 0 {
 		return nil, nil, nil
@@ -236,7 +236,7 @@ func (fl *Inflator) doStep() {
 	if targetTs.IsSlotBoundary() {
 		targetTs = targetTs.AddTicks(10)
 	}
-	tx, outIDs, err := fl.makeTransaction(targetTs, lrb)
+	tx, outIDs, err := fl.MakeTransaction(targetTs, lrb)
 	if err != nil {
 		fl.Log().Errorf("[%s] %v", Name, err)
 		return

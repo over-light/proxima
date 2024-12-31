@@ -432,4 +432,5 @@ func (lib *Library) upgrade0WithConstraints() {
 	addImmutableConstraint(lib)
 	addCommitToSiblingConstraint(lib)
 	//addTotalAmountConstraint(lib)
+	addDelegationLock(lib)
 }
