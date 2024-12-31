@@ -18,6 +18,7 @@ const (
 
 	PathGetLedgerID                     = PrefixAPIV1 + "/get_ledger_id"
 	PathGetAccountOutputs               = PrefixAPIV1 + "/get_account_outputs"
+	PathGetChainedOutputs               = PrefixAPIV1 + "/get_chain_outputs"
 	PathGetChainOutput                  = PrefixAPIV1 + "/get_chain_output"
 	PathGetOutput                       = PrefixAPIV1 + "/get_output"
 	PathQueryTxStatus                   = PrefixAPIV1 + "/query_tx_status"
@@ -66,13 +67,16 @@ type (
 		LRBID string `json:"lrb_id"`
 	}
 
-	// ChainOutput is returned by 'get_chain_output'
-	ChainOutput struct {
-		Error
+	OutputIDWithData struct {
 		// hex-encoded outputID
 		OutputID string `json:"output_id,omitempty"`
 		// hex-encoded output data
 		OutputData string `json:"output_data,omitempty"`
+	}
+	// ChainOutput is returned by 'get_chain_output'
+	ChainOutput struct {
+		Error
+		OutputIDWithData
 		// latest reliable branch used to extract chain ID
 		LRBID string `json:"lrb_id"`
 	}
@@ -84,6 +88,12 @@ type (
 		OutputData string `json:"output_data,omitempty"`
 		// latest reliable branch used to extract output
 		LRBID string `json:"lrb_id"`
+	}
+
+	ChainedOutputs struct {
+		Error
+		Outputs map[string]string `json:"outputs,omitempty"`
+		LRBID   string            `json:"lrb_id"`
 	}
 
 	QueryTxStatus struct {

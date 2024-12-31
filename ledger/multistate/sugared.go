@@ -244,3 +244,15 @@ func (s SugaredStateReader) GetOutputsLockedInAddressED25519ForAmount(addr ledge
 	util.AssertNoError(err)
 	return ret, retAmount
 }
+
+func (s SugaredStateReader) IterateChainsInAccount(addr ledger.Accountable, fun func(oid ledger.OutputID, o *ledger.Output, chainID ledger.ChainID) bool) error {
+	return s.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
+		if cc, idx := o.ChainConstraint(); idx != 0xff {
+			if cc.IsOrigin() {
+				return fun(oid, o, ledger.MakeOriginChainID(&oid))
+			}
+			return fun(oid, o, cc.ID)
+		}
+		return true
+	})
+}

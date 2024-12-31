@@ -174,6 +174,64 @@ func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs
 	return ret, &retLRBID, nil
 }
 
+// GetChainedOutputs fetches all outputs of the account. Optionally sorts them on the server
+func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger.OutputWithChainID, *ledger.TransactionID, error) {
+	path := fmt.Sprintf(api.PathGetChainedOutputs+"?accountable=%s", accountable.String())
+	body, err := c.getBody(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var res api.OutputList
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+	if res.Error.Error != "" {
+		return nil, nil, fmt.Errorf("from server: %s", res.Error.Error)
+	}
+
+	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+	}
+
+	ret := make([]*ledger.OutputWithChainID, 0, len(res.Outputs))
+
+	for idStr, dataStr := range res.Outputs {
+		oid, err := ledger.OutputIDFromHexString(idStr)
+		if err != nil {
+			return nil, nil, fmt.Errorf("wrong output ID data from server: %s: '%v'", idStr, err)
+		}
+		oData, err := hex.DecodeString(dataStr)
+		if err != nil {
+			return nil, nil, fmt.Errorf("wrong output data from server: %s: '%v'", dataStr, err)
+		}
+		o, err := ledger.OutputFromBytesReadOnly(oData)
+		if err != nil {
+			return nil, nil, fmt.Errorf("wrong output data from server: %s: '%v'", dataStr, err)
+		}
+		cc, idx := o.ChainConstraint()
+		if idx == 0xff {
+			return nil, nil, fmt.Errorf("chained output expected from server: %s: '%v'", dataStr, err)
+		}
+		chainID := cc.ID
+		if cc.IsOrigin() {
+			chainID = ledger.MakeOriginChainID(&oid)
+		}
+
+		ret = append(ret, &ledger.OutputWithChainID{
+			OutputWithID: ledger.OutputWithID{
+				ID:     oid,
+				Output: o,
+			},
+			ChainID:                    chainID,
+			PredecessorConstraintIndex: cc.PredecessorConstraintIndex,
+		})
+	}
+	return ret, &retLRBID, nil
+}
+
 func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDataWithID, error) {
 	path := fmt.Sprintf(api.PathGetChainOutput+"?chainid=%s", chainID.StringHex())
 	body, err := c.getBody(path)

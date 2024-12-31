@@ -62,6 +62,8 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetLedgerID, srv.getLedgerID)
 	// GET request format: '/api/v1/get_account_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetAccountOutputs, srv.getAccountOutputs)
+	// GET request format: '/api/v1/get_chained_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
+	srv.addHandler(api.PathGetChainedOutputs, srv.getChainedOutputs)
 	// GET request format: '/api/v1/get_chain_output?chainid=<hex-encoded chain ID>'
 	srv.addHandler(api.PathGetChainOutput, srv.getChainOutput)
 	// GET request format: '/api/v1/get_output?id=<hex-encoded output ID>'
@@ -238,6 +240,51 @@ func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 		resp.OutputData = hex.EncodeToString(o.Output.Bytes())
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
+		return nil
+	})
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+
+	respBin, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	_, err = w.Write(respBin)
+	util.AssertNoError(err)
+}
+
+func (srv *server) getChainedOutputs(w http.ResponseWriter, r *http.Request) {
+	setHeader(w)
+
+	lst, ok := r.URL.Query()["accountable"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'accountable' in request 'get_chained_outputs'")
+		return
+	}
+	accountable, err := ledger.AccountableFromSource(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+
+	resp := api.ChainedOutputs{
+		Outputs: make(map[string]string),
+	}
+	var err1 error
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
+		lrbid := rdr.GetStemOutput().ID.TransactionID()
+		resp.LRBID = lrbid.StringHex()
+
+		err1 = rdr.IterateChainsInAccount(accountable, func(oid ledger.OutputID, o *ledger.Output, _ ledger.ChainID) bool {
+			resp.Outputs[oid.StringHex()] = hex.EncodeToString(o.Bytes())
+			return true
+		})
+		if err1 != nil {
+			return err1
+		}
 		return nil
 	})
 	if err != nil {

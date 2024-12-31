@@ -255,9 +255,6 @@ func (r *Readable) GetUTXOForChainID(id *ledger.ChainID) (*ledger.OutputDataWith
 }
 
 func (r *Readable) _getUTXOForChainID(id *ledger.ChainID) (*ledger.OutputDataWithID, error) {
-	if len(id) != ledger.ChainIDLength {
-		return nil, fmt.Errorf("GetUTXOForChainID: chainID length must be %d-bytes long", ledger.ChainIDLength)
-	}
 	chainPartition := common.MakeReaderPartition(r.trie, TriePartitionChainID)
 	outID := chainPartition.Get(id[:])
 	defer chainPartition.Dispose()

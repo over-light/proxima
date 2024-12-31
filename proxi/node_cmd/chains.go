@@ -20,14 +20,11 @@ func initChainsCmd() *cobra.Command {
 	return chainsCmd
 }
 
-func runChainsCmd(_ *cobra.Command, args []string) {
+func runChainsCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromNode()
 	wallet := glb.GetWalletData()
 
-	outs, lrbid, err := glb.GetClient().GetAccountOutputs(wallet.Account, func(_ *ledger.OutputID, o *ledger.Output) bool {
-		_, idx := o.ChainConstraint()
-		return idx != 0xff
-	})
+	outs, lrbid, err := glb.GetClient().GetChainedOutputs(wallet.Account)
 	glb.AssertNoError(err)
 
 	glb.PrintLRB(lrbid)
@@ -36,10 +33,26 @@ func runChainsCmd(_ *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	glb.Infof("list of chains controlled by %s", wallet.Account.String())
-	for _, o := range outs {
-		chainID, _, ok := o.ExtractChainID()
-		glb.Assertf(ok, "can't extract chainID")
-		glb.Infof("   %s with balance %s on %s", chainID.String(), util.Th(o.Output.Amount()), o.IDShort())
+	listChainedOutputs(wallet.Account, outs)
+}
+
+func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
+	glb.Infof("list of chains in the account %s\n-------------------------", addr.String())
+	var status string
+	for i, o := range outs {
+		lock := o.Output.Lock()
+		switch lock.Name() {
+		case ledger.DelegationLockName:
+			if ledger.EqualAccountables(lock.Master(), addr) {
+				status = "master"
+			} else {
+				status = "delegated"
+			}
+		case ledger.AddressED25519Name:
+			status = "owned"
+		default:
+			status = "N/A"
+		}
+		glb.Infof("  #2%d  %10s  %10s %15s   %s", i, o.ChainID.StringShort(), status, util.Th(o.Output.Amount()), lock.String())
 	}
 }
