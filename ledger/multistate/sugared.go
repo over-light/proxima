@@ -206,20 +206,12 @@ func (s SugaredStateReader) GetOutputsDelegatedToAccount(addr ledger.Accountable
 	return ret, nil
 }
 
-func (s SugaredStateReader) IterateDelegatedOutputs(delegationTarget ledger.Accountable, fun func(oid ledger.OutputID, o *ledger.Output, chainID ledger.ChainID, dLock *ledger.DelegationLock) bool) {
+func (s SugaredStateReader) IterateDelegatedOutputs(delegationTarget ledger.Accountable, fun func(oid ledger.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool) {
 	var dLock *ledger.DelegationLock
-	var cc *ledger.ChainConstraint
-	var idx byte
-
 	err := s.IterateOutputsForAccount(delegationTarget, func(oid ledger.OutputID, o *ledger.Output) bool {
 		if dLock = o.DelegationLock(); dLock != nil {
 			if ledger.EqualAccountables(delegationTarget, dLock.TargetLock) {
-				cc, idx = o.ChainConstraint()
-				util.Assertf(idx != 0xff, "can't find chain constraint")
-				if cc.IsOrigin() {
-					return fun(oid, o, ledger.MakeOriginChainID(&oid), dLock)
-				}
-				return fun(oid, o, cc.ID, dLock)
+				return fun(oid, o, dLock)
 			}
 		}
 		return true

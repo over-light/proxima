@@ -48,7 +48,7 @@ type (
 
 const (
 	minimumInflationPerOutput = 50
-	marginPromille            = 10
+	marginPromille            = 100
 	tagAlongAmount            = 50
 	maxDelegationsPerTx       = 100
 	keepInConsumedListSlots   = 3
@@ -69,16 +69,23 @@ func (fl *Inflator) Run() {
 	})
 }
 
-func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]*InflatableOutput, uint64) {
+// CollectInflatableTransitions returns list of outputs which can be inflated for the target timestamp
+func (fl *Inflator) CollectInflatableTransitions(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]*InflatableOutput, uint64) {
 	if targetTs.IsSlotBoundary() {
 		return nil, 0
 	}
 	ret := make([]*InflatableOutput, 0)
 	var totalMargin uint64
 
-	rdr.IterateDelegatedOutputs(fl.par.Target, func(oid ledger.OutputID, o *ledger.Output, chainID ledger.ChainID, dLock *ledger.DelegationLock) bool {
+	rdr.IterateDelegatedOutputs(fl.par.Target, func(oid ledger.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool {
 		if _, already := fl.consumed[oid]; already {
 			return true
+		}
+		cc, idx := o.ChainConstraint()
+		util.Assertf(idx != 0xff, "idx != 0xff")
+		chainID := cc.ID
+		if cc.IsOrigin() {
+			chainID = ledger.MakeOriginChainID(&oid)
 		}
 		if !ledger.IsOpenDelegationSlot(chainID, targetTs.Slot()) {
 			// only considering delegated outputs which can be consumed in the target slo
@@ -86,7 +93,7 @@ func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.Suga
 		}
 		inflation := ledger.L().CalcChainInflationAmount(oid.Timestamp(), targetTs, o.Amount(), 0)
 		if inflation < minimumInflationPerOutput ||
-			ledger.DiffTicks(targetTs, oid.Timestamp())%int64(ledger.TicksPerSlot) < int64(ledger.L().ID.ChainInflationOpportunitySlots/2) {
+			ledger.DiffTicks(targetTs, oid.Timestamp())/int64(ledger.TicksPerSlot) < int64(ledger.L().ID.ChainInflationOpportunitySlots/2) {
 			// only consider outputs with enough inflation or older than half of the inflation opportunity window
 			return true
 		}
@@ -96,7 +103,8 @@ func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.Suga
 					ID:     oid,
 					Output: o,
 				},
-				ChainID: chainID,
+				ChainID:                    chainID,
+				PredecessorConstraintIndex: cc.PredecessorConstraintIndex,
 			},
 			Inflation: inflation,
 			Margin:    (inflation * marginPromille) / 1000,
@@ -118,7 +126,7 @@ func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.Suga
 		}
 		var err error
 		pred.Successor = ledger.NewOutput(func(o *ledger.Output) {
-			o.WithAmount(o.Amount() + pred.Inflation - pred.Margin)
+			o.WithAmount(pred.Output.Amount() + pred.Inflation - pred.Margin)
 			o.WithLock(pred.Output.Lock())
 			ccSucc := ledger.ChainConstraint{
 				ID:                         chainID,
@@ -147,8 +155,8 @@ func (fl *Inflator) collectTransitions(targetTs ledger.Time, rdr multistate.Suga
 
 var ErrNoInputs = errors.New("no delegated output has been found")
 
-func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, error) {
-	outs, totalMarginOut := fl.collectTransitions(targetTs, rdr)
+func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader, fullValidation ...bool) (*transaction.Transaction, []*ledger.OutputID, error) {
+	outs, totalMarginOut := fl.CollectInflatableTransitions(targetTs, rdr)
 	if len(outs) == 0 {
 		return nil, nil, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
 	}
@@ -217,13 +225,15 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 	if err != nil {
 		return nil, nil, err
 	}
-	ctx, err := transaction.TxContextFromTransaction(tx, txb.LoadInput)
-	if err != nil {
-		return nil, nil, err
-	}
-	err = ctx.Validate()
-	if err != nil {
-		return nil, nil, err
+	if len(fullValidation) > 0 && fullValidation[0] {
+		ctx, err := transaction.TxContextFromTransaction(tx, txb.LoadInput)
+		if err != nil {
+			return nil, nil, err
+		}
+		err = ctx.Validate()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 	return tx, txb.TransactionData.InputIDs, nil
 }

@@ -28,7 +28,7 @@ import (
 const (
 	InflationConstraintName = "inflation"
 	// (0) chain constraint index, (1) inflation amount or randomness proof
-	inflationConstraintTemplate = InflationConstraintName + "(%s, %s, %d, %s)"
+	inflationConstraintTemplate = InflationConstraintName + "(u64/%d, %s, %d, %s)"
 )
 
 type InflationConstraint struct {
@@ -66,16 +66,13 @@ func (i *InflationConstraint) String() string {
 }
 
 func (i *InflationConstraint) Source() string {
-	var chainInflationBin [8]byte
-	binary.BigEndian.PutUint64(chainInflationBin[:], i.ChainInflation)
-	chainInflationStr := "0x" + hex.EncodeToString(chainInflationBin[:])
-
 	vrfProofStr := "0x" + hex.EncodeToString(i.VRFProof)
 	delayedInflationIndexStr := "0xff"
 	if i.DelayedInflationIndex != 0xff {
 		delayedInflationIndexStr = fmt.Sprintf("%d", i.DelayedInflationIndex)
 	}
-	return fmt.Sprintf(inflationConstraintTemplate, chainInflationStr, vrfProofStr, i.ChainConstraintIndex, delayedInflationIndexStr)
+	return fmt.Sprintf(inflationConstraintTemplate,
+		i.ChainInflation, vrfProofStr, i.ChainConstraintIndex, delayedInflationIndexStr)
 }
 
 // InflationAmount calculates inflation amount either inside slot, or on the slot boundary

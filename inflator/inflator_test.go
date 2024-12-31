@@ -2,12 +2,16 @@ package inflator
 
 import (
 	"crypto/ed25519"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/utxodb"
+	"github.com/lunfardo314/proxima/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,11 +66,11 @@ const (
 
 func TestInflatorBase(t *testing.T) {
 	env := newEnvironment(t)
-	//fl := New(env, Params{
-	//	Target:            env.addrDelegator,
-	//	PrivateKey:        env.privateKeyDelegator,
-	//	TagAlongSequencer: ledger.ChainID{},
-	//})
+	fl := New(env, Params{
+		Target:            env.addrDelegator,
+		PrivateKey:        env.privateKeyDelegator,
+		TagAlongSequencer: ledger.ChainID{},
+	})
 	err := env.utxodb.TokensFromFaucet(env.addrOwner, initOwnerLoad)
 	require.NoError(t, err)
 	require.EqualValues(t, initOwnerLoad, env.utxodb.Balance(env.addrOwner))
@@ -90,6 +94,43 @@ func TestInflatorBase(t *testing.T) {
 	require.EqualValues(t, 1, len(outs))
 	t.Logf("%s", outs[0].String())
 
-	//_, _, err = fl.MakeTransaction(ledger.TimeNow().AddSlots(1), rdr)
-	//require.True(t, errors.Is(err, ErrNoInputs))
+	input := outs[0]
+	t.Run("collect inputs", func(t *testing.T) {
+		for s := 1; s <= 14; s++ {
+			ts := input.Timestamp().AddSlots(ledger.Slot(s))
+			lst, margin := fl.CollectInflatableTransitions(ts, rdr)
+			t.Logf("+%d slots -- ts = %s, len(lst) = %d, margin = %s", s, ts.String(), len(lst), util.Th(margin))
+			if len(lst) > 0 {
+				require.True(t, ledger.IsOpenDelegationSlot(lst[0].ChainID, ts.Slot()))
+				t.Logf("-------------------------\n%s", lst[0].Successor.Lines("   ").Join("\n"))
+			}
+			if uint64(s) > ledger.L().ID.ChainInflationOpportunitySlots {
+				require.EqualValues(t, 0, margin)
+			}
+		}
+	})
+	t.Run("make tx", func(t *testing.T) {
+		for s := 1; s <= 14; s++ {
+			ts := input.Timestamp().AddSlots(ledger.Slot(s))
+			tx, _, err := fl.MakeTransaction(ts, rdr, false)
+			if errors.Is(err, ErrNoInputs) {
+				continue
+			}
+			require.NoError(t, err)
+			ctx, err := transaction.TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
+				oid, err := tx.InputAt(i)
+				if err != nil {
+					return nil, err
+				}
+				ret := rdr.GetOutput(&oid)
+				if ret == nil {
+					return nil, fmt.Errorf("can't load consumed output")
+				}
+				return ret, nil
+			})
+			require.NoError(t, err)
+			t.Logf("+%d slots -- ts = %s --------------------\n%s", s, ts.String(),
+				ctx.String())
+		}
+	})
 }
