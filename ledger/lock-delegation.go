@@ -64,7 +64,11 @@ func delegationLock: and(
 	require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
     require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
     or(
-		and(selfIsProducedOutput, $1, $2),  // check general consistency on produced output
+		and(
+            selfIsProducedOutput,
+            evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0),
+            $1, $2
+        ),  // check general consistency on produced output
         and(
             selfIsConsumedOutput,
             or(

@@ -2,7 +2,6 @@ package inflator
 
 import (
 	"crypto/ed25519"
-	"errors"
 	"testing"
 
 	"github.com/lunfardo314/proxima/global"
@@ -21,6 +20,7 @@ func init() {
 }
 
 type inflatorTestEnvironment struct {
+	t *testing.T
 	global.NodeGlobal
 	privateKeyOwner     ed25519.PrivateKey
 	privateKeyDelegator ed25519.PrivateKey
@@ -39,8 +39,9 @@ func (i *inflatorTestEnvironment) SubmitTxBytesFromInflator(txBytes []byte) {
 	panic("implement me")
 }
 
-func newEnvironment() *inflatorTestEnvironment {
+func newEnvironment(t *testing.T) *inflatorTestEnvironment {
 	ret := &inflatorTestEnvironment{
+		t:          t,
 		NodeGlobal: global.NewDefault(),
 		utxodb:     utxodb.NewUTXODB(genesisPrivateKey, true),
 	}
@@ -49,17 +50,46 @@ func newEnvironment() *inflatorTestEnvironment {
 	ret.privateKeyDelegator = privKey[1]
 	ret.addrOwner = addr[0]
 	ret.addrDelegator = addr[1]
+	t.Logf("owner address: %s", ret.addrOwner.String())
+	t.Logf("delegator address: %s", ret.addrDelegator.String())
 	return ret
 }
 
-func TestBase(t *testing.T) {
-	env := newEnvironment()
-	fl := New(env, Params{
-		Target:            env.addrDelegator,
-		PrivateKey:        env.privateKeyDelegator,
-		TagAlongSequencer: ledger.ChainID{},
-	})
+const (
+	initOwnerLoad     = 1_000_000_000
+	initDelegatorLoad = 1_000_000
+)
+
+func TestInflatorBase(t *testing.T) {
+	env := newEnvironment(t)
+	//fl := New(env, Params{
+	//	Target:            env.addrDelegator,
+	//	PrivateKey:        env.privateKeyDelegator,
+	//	TagAlongSequencer: ledger.ChainID{},
+	//})
+	err := env.utxodb.TokensFromFaucet(env.addrOwner, initOwnerLoad)
+	require.NoError(t, err)
+	require.EqualValues(t, initOwnerLoad, env.utxodb.Balance(env.addrOwner))
+
+	err = env.utxodb.TokensFromFaucet(env.addrDelegator, initDelegatorLoad)
+	require.NoError(t, err)
+	require.EqualValues(t, initDelegatorLoad, env.utxodb.Balance(env.addrDelegator))
+
+	par, err := env.utxodb.MakeTransferInputData(env.privateKeyOwner, nil, ledger.TimeNow())
+	_, err = env.utxodb.DoTransferOutputs(par.
+		WithAmount(initOwnerLoad).
+		WithTargetLock(ledger.NewDelegationLock(env.addrOwner, env.addrDelegator, 2)).
+		WithConstraint(ledger.NewChainOrigin()),
+	)
+	require.NoError(t, err)
+
 	rdr := multistate.MakeSugared(env.utxodb.StateReader())
-	_, _, err := fl.MakeTransaction(ledger.TimeNow().AddSlots(1), rdr)
-	require.True(t, errors.Is(err, ErrNoInputs))
+
+	outs, err := rdr.GetOutputsDelegatedToAccount(env.addrDelegator)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, len(outs))
+	t.Logf("%s", outs[0].String())
+
+	//_, _, err = fl.MakeTransaction(ledger.TimeNow().AddSlots(1), rdr)
+	//require.True(t, errors.Is(err, ErrNoInputs))
 }
