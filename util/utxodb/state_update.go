@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
-	"github.com/lunfardo314/proxima/multistate"
 )
 
-func updateValidateNoDebug(u *multistate.Updatable, txBytes []byte) (*transaction.Transaction, error) {
+func updateValidateNoDebug(u *multistate2.Updatable, txBytes []byte) (*transaction.Transaction, error) {
 	return updateValidateOptions(u, txBytes, transaction.TraceOptionNone, nil)
 }
 
-func updateValidateDebug(u *multistate.Updatable, txBytes []byte, onValidation ...func(ctx *transaction.TxContext, err error) error) (*transaction.Transaction, error) {
+func updateValidateDebug(u *multistate2.Updatable, txBytes []byte, onValidation ...func(ctx *transaction.TxContext, err error) error) (*transaction.Transaction, error) {
 	var fun func(ctx *transaction.TxContext, err error) error
 	if len(onValidation) > 0 {
 		fun = onValidation[0]
@@ -22,7 +22,7 @@ func updateValidateDebug(u *multistate.Updatable, txBytes []byte, onValidation .
 }
 
 // updateValidateNoDebug updates/mutates the ledger state by transaction. For testing mostly
-func updateValidateOptions(u *multistate.Updatable, txBytes []byte, traceOption int, onValidation func(ctx *transaction.TxContext, err error) error) (*transaction.Transaction, error) {
+func updateValidateOptions(u *multistate2.Updatable, txBytes []byte, traceOption int, onValidation func(ctx *transaction.TxContext, err error) error) (*transaction.Transaction, error) {
 	tx, err := transaction.FromBytesMainChecksWithOpt(txBytes)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func updateValidateOptions(u *multistate.Updatable, txBytes []byte, traceOption 
 
 // TODO check account consistency
 
-func ConsistencyCheckBeforeAddTransaction(tx *transaction.Transaction, r *multistate.Readable) (err error) {
+func ConsistencyCheckBeforeAddTransaction(tx *transaction.Transaction, r *multistate2.Readable) (err error) {
 	if r.KnowsCommittedTransaction(tx.IDRef()) {
 		return fmt.Errorf("BeforeAddTransaction: transaction %s already in the state: cannot be added", tx.IDShortString())
 	}
@@ -85,7 +85,7 @@ func ConsistencyCheckBeforeAddTransaction(tx *transaction.Transaction, r *multis
 			// chain records should not exist
 			chainID := ledger.MakeOriginChainID(oid)
 			_, err = r.GetUTXOForChainID(&chainID)
-			if errors.Is(err, multistate.ErrNotFound) {
+			if errors.Is(err, multistate2.ErrNotFound) {
 				return true
 			}
 			err = fmt.Errorf("BeforeAddTransaction: chainID %s should not be present in the state", chainID.StringShort())
@@ -108,7 +108,7 @@ func ConsistencyCheckBeforeAddTransaction(tx *transaction.Transaction, r *multis
 	return nil
 }
 
-func ConsistencyCheckAfterAddTransaction(tx *transaction.Transaction, r *multistate.Readable) (err error) {
+func ConsistencyCheckAfterAddTransaction(tx *transaction.Transaction, r *multistate2.Readable) (err error) {
 	if !r.KnowsCommittedTransaction(tx.IDRef()) {
 		return fmt.Errorf("AfterAddTransaction: transaction %s is expected to be in the state", tx.IDShortString())
 	}

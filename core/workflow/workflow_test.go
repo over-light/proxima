@@ -7,7 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/txstore"
 	"github.com/lunfardo314/unitrie/common"

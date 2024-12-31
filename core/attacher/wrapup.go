@@ -6,7 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 

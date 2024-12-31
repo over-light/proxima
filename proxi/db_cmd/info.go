@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/multistate"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -31,7 +31,7 @@ func runDbInfoCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
-	branchData := multistate.FetchLatestBranches(glb.StateStore())
+	branchData := multistate2.FetchLatestBranches(glb.StateStore())
 	if len(branchData) == 0 {
 		glb.Infof("no branches found")
 		return
@@ -42,12 +42,12 @@ func runDbInfoCmd(_ *cobra.Command, _ []string) {
 		return bytes.Compare(branchData[i].SequencerID[:], branchData[j].SequencerID[:]) < 0
 	})
 
-	reader, err := multistate.NewSugaredReadableState(glb.StateStore(), branchData[0].Root)
+	reader, err := multistate2.NewSugaredReadableState(glb.StateStore(), branchData[0].Root)
 	glb.AssertNoError(err)
 
 	id := ledger.MustIdentityDataFromBytes(reader.MustLedgerIdentityBytes())
 
-	earliestSlot := multistate.FetchEarliestSlot(glb.StateStore())
+	earliestSlot := multistate2.FetchEarliestSlot(glb.StateStore())
 	glb.Infof("ledger time now is %s, earliest committed slot is %d", ledger.TimeNow().String(), earliestSlot)
 
 	glb.Verbosef("\n----------------- Ledger state identity ----------------")
@@ -55,11 +55,11 @@ func runDbInfoCmd(_ *cobra.Command, _ []string) {
 	glb.Infof("----------------- Global branch data ----------------------")
 	DisplayBranchData(branchData)
 	glb.Infof("\n------------- Supply and inflation summary -------------")
-	summary := multistate.FetchSummarySupply(glb.StateStore(), slotsBackDBInfo)
+	summary := multistate2.FetchSummarySupply(glb.StateStore(), slotsBackDBInfo)
 	glb.Infof("%s", summary.Lines("   ").String())
 }
 
-func DisplayBranchData(branches []*multistate.BranchData) {
+func DisplayBranchData(branches []*multistate2.BranchData) {
 	for i, br := range branches {
 		name := "(no name)"
 		if msData := ledger.ParseMilestoneData(br.SequencerOutput.Output); msData != nil {

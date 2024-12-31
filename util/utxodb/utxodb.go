@@ -7,9 +7,9 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/testutil"
@@ -23,7 +23,7 @@ import (
 // It is mainly used for testing of constraints
 type UTXODB struct {
 	store             global.StateStore
-	state             *multistate.Updatable
+	state             *multistate2.Updatable
 	genesisChainID    ledger.ChainID
 	supply            uint64
 	genesisPrivateKey ed25519.PrivateKey
@@ -55,8 +55,8 @@ func NewUTXODB(genesisPrivateKey ed25519.PrivateKey, trace ...bool) *UTXODB {
 	faucetAddress := ledger.AddressED25519FromPrivateKey(faucetPrivateKey)
 
 	initLedgerParams := ledger.L().ID
-	originChainID, genesisRoot := multistate.InitStateStore(*initLedgerParams, stateStore)
-	rdr := multistate.MustNewSugaredReadableState(stateStore, genesisRoot)
+	originChainID, genesisRoot := multistate2.InitStateStore(*initLedgerParams, stateStore)
+	rdr := multistate2.MustNewSugaredReadableState(stateStore, genesisRoot)
 
 	genesisOut, err := rdr.GetChainOutput(&originChainID)
 	util.AssertNoError(err)
@@ -67,7 +67,7 @@ func NewUTXODB(genesisPrivateKey ed25519.PrivateKey, trace ...bool) *UTXODB {
 		{Lock: faucetAddress, Balance: ledger.L().ID.InitialSupply / 2, ChainOrigin: false},
 	})
 
-	updatable := multistate.MustNewUpdatable(stateStore, genesisRoot)
+	updatable := multistate2.MustNewUpdatable(stateStore, genesisRoot)
 	_, err = updateValidateDebug(updatable, distributionTxBytes)
 	util.AssertNoError(err)
 
@@ -104,7 +104,7 @@ func (u *UTXODB) GenesisChainID() *ledger.ChainID {
 func (u *UTXODB) Root() common.VCommitment {
 	return u.state.Root()
 }
-func (u *UTXODB) StateReader() *multistate.Readable {
+func (u *UTXODB) StateReader() *multistate2.Readable {
 	return u.state.Readable()
 }
 
@@ -134,8 +134,8 @@ func (u *UTXODB) AddTransaction(txBytes []byte, onValidationError ...func(ctx *t
 	if err != nil {
 		return err
 	}
-	util.Assertf(!tx.IsBranchTransaction() || multistate.FetchLatestCommittedSlot(u.store) == tx.Slot(), "latestSlot == prevLatestSlot || latestSlot == tx.Slot()")
-	util.Assertf(multistate.FetchEarliestSlot(u.store) == 0, "earliest slot in the UTXODB is expected to be 0")
+	util.Assertf(!tx.IsBranchTransaction() || multistate2.FetchLatestCommittedSlot(u.store) == tx.Slot(), "latestSlot == prevLatestSlot || latestSlot == tx.Slot()")
+	util.Assertf(multistate2.FetchEarliestSlot(u.store) == 0, "earliest slot in the UTXODB is expected to be 0")
 	return nil
 }
 

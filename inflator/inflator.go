@@ -8,9 +8,9 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/lunfardo314/proxima/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )

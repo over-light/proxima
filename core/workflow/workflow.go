@@ -17,7 +17,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/txinput_queue"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/multistate"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/util/eventtype"
 	"github.com/lunfardo314/proxima/util/set"

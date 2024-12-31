@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lunfardo314/proxima/multistate"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -37,7 +37,7 @@ func runSnapshotInfoCmd(_ *cobra.Command, args []string) {
 		fname = args[0]
 	}
 
-	kvStream, err := multistate.OpenSnapshotFileStream(fname)
+	kvStream, err := multistate2.OpenSnapshotFileStream(fname)
 	glb.AssertNoError(err)
 	defer kvStream.Close()
 
@@ -58,7 +58,7 @@ func runSnapshotInfoCmd(_ *cobra.Command, args []string) {
 		}
 		glb.Infof("Total %d records. By type:", total)
 		for _, k := range util.KeysSorted(counters, func(k1, k2 byte) bool { return k1 < k2 }) {
-			glb.Infof("    %s: %d", multistate.PartitionToString(k), counters[k])
+			glb.Infof("    %s: %d", multistate2.PartitionToString(k), counters[k])
 		}
 
 	case 2:
@@ -83,7 +83,7 @@ func _outKVPair(k, v []byte, counter int, out io.Writer) {
 	glb.Assertf(len(k) > 0, "len(k)>0")
 
 	_, _ = fmt.Fprintf(out, "rec #%d: %s %s, value len: %d\n",
-		counter, multistate.PartitionToString(k[0]), hex.EncodeToString(k[1:]), len(v))
+		counter, multistate2.PartitionToString(k[0]), hex.EncodeToString(k[1:]), len(v))
 }
 
 // listSnapshotFiles returns sorted snapshot files in time-descending order
@@ -98,7 +98,7 @@ func listSnapshotFiles() ([]string, error) {
 
 	entries = util.PurgeSlice(entries, func(entry os.DirEntry) bool {
 		fi, err = entry.Info()
-		if err != nil || strings.HasPrefix(entry.Name(), multistate.TmpSnapshotFileNamePrefix) || fi.Mode()&os.ModeType != 0 {
+		if err != nil || strings.HasPrefix(entry.Name(), multistate2.TmpSnapshotFileNamePrefix) || fi.Mode()&os.ModeType != 0 {
 			return false
 		}
 		ok, err = filepath.Match("*.snapshot", entry.Name())

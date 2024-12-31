@@ -8,8 +8,8 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/sequencer/commands"
 	"github.com/lunfardo314/proxima/util"
 )

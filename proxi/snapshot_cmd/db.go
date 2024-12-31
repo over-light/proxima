@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/multistate"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )
@@ -31,9 +31,9 @@ func runSnapshotCmd(_ *cobra.Command, _ []string) {
 	if glb.IsVerbose() {
 		console = os.Stdout
 	}
-	snapshotBranch := multistate.FindLatestReliableBranchAndNSlotsBack(glb.StateStore(), 10, global.FractionHealthyBranch)
+	snapshotBranch := multistate2.FindLatestReliableBranchAndNSlotsBack(glb.StateStore(), 10, global.FractionHealthyBranch)
 	glb.Assertf(snapshotBranch != nil, "can't find latest reliable branch")
-	fname, stats, err := multistate.SaveSnapshot(glb.StateStore(), snapshotBranch, context.Background(), "", console)
+	fname, stats, err := multistate2.SaveSnapshot(glb.StateStore(), snapshotBranch, context.Background(), "", console)
 	glb.AssertNoError(err)
 
 	glb.Infof("latest reliable state has been saved to the snapshot file %s", fname)

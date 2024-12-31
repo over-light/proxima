@@ -5,7 +5,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/multistate"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/spf13/cobra"
@@ -51,12 +51,12 @@ func runFindTxCmd(_ *cobra.Command, args []string) {
 	if branchIDStr != "" {
 		b, err := ledger.TransactionIDFromHexString(branchIDStr)
 		glb.AssertNoError(err)
-		rr, found := multistate.FetchBranchData(glb.StateStore(), b)
+		rr, found := multistate2.FetchBranchData(glb.StateStore(), b)
 		glb.Assertf(found, "didn't find branch %s", b.String())
 		glb.Infof("branch id: %s", b.String())
 		root = rr.Root
 	} else {
-		lrb := multistate.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
+		lrb := multistate2.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
 		glb.Assertf(lrb != nil, "can't find latest reliable branch (LRB)")
 		root = lrb.Root
 		glb.Infof("latest reliable branch will be used")
@@ -73,7 +73,7 @@ func runFindTxCmd(_ *cobra.Command, args []string) {
 		glb.Infof("find with hex fragment: N/A")
 	}
 
-	rdr := multistate.MustNewReadable(glb.StateStore(), root)
+	rdr := multistate2.MustNewReadable(glb.StateStore(), root)
 	nTx := 0
 	nFound := 0
 	rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, _ ledger.Slot) bool {

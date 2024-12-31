@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/multistate"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/stretchr/testify/require"
@@ -36,19 +36,19 @@ func TestInitOrigin(t *testing.T) {
 	privateKey := testutil.GetTestingPrivateKey()
 	id := ledger.DefaultIdentityData(privateKey)
 	store := common.NewInMemoryKVStore()
-	bootstrapSeqID, genesisRoot := multistate.InitStateStore(*id, store)
+	bootstrapSeqID, genesisRoot := multistate2.InitStateStore(*id, store)
 
-	rootData := multistate.FetchAllRootRecords(store)
+	rootData := multistate2.FetchAllRootRecords(store)
 	require.EqualValues(t, 1, len(rootData))
 
-	branchData := multistate.FetchBranchDataByRoot(store, rootData[0])
+	branchData := multistate2.FetchBranchDataByRoot(store, rootData[0])
 	require.EqualValues(t, bootstrapSeqID, branchData.SequencerID)
 	require.True(t, ledger.CommitmentModel.EqualCommitments(genesisRoot, branchData.Root))
 
-	snapshotBranchID := multistate.FetchSnapshotBranchID(store)
+	snapshotBranchID := multistate2.FetchSnapshotBranchID(store)
 	require.EqualValues(t, *ledger.GenesisTransactionID(), snapshotBranchID)
 
-	rdr := multistate.MustNewSugaredReadableState(store, genesisRoot)
+	rdr := multistate2.MustNewSugaredReadableState(store, genesisRoot)
 
 	stemBack := rdr.GetStemOutput()
 	require.EqualValues(t, ledger.GenesisStemOutputID(), stemBack.ID)
@@ -59,8 +59,8 @@ func TestInitOrigin(t *testing.T) {
 
 	require.EqualValues(t, id.Bytes(), rdr.MustLedgerIdentityBytes())
 
-	require.EqualValues(t, 0, multistate.FetchLatestCommittedSlot(store))
-	require.EqualValues(t, 0, multistate.FetchEarliestSlot(store))
+	require.EqualValues(t, 0, multistate2.FetchLatestCommittedSlot(store))
+	require.EqualValues(t, 0, multistate2.FetchEarliestSlot(store))
 }
 
 func TestBoostrapSequencerID(t *testing.T) {

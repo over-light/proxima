@@ -12,9 +12,9 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	transaction2 "github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/txutils"
 	"github.com/lunfardo314/proxima/util/utxodb"

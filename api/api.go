@@ -7,8 +7,8 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/ledger"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -88,8 +88,8 @@ type (
 
 	QueryTxStatus struct {
 		Error
-		TxIDStatus vertex.TxIDStatusJSONAble       `json:"txid_status"`
-		Inclusion  *multistate.TxInclusionJSONAble `json:"inclusion,omitempty"`
+		TxIDStatus vertex.TxIDStatusJSONAble        `json:"txid_status"`
+		Inclusion  *multistate2.TxInclusionJSONAble `json:"inclusion,omitempty"`
 	}
 
 	TxInclusionScore struct {
@@ -151,8 +151,8 @@ type (
 	// LatestReliableBranch returned by get_latest_reliable_branch
 	LatestReliableBranch struct {
 		Error
-		RootData multistate.RootRecordJSONAble `json:"root_record,omitempty"`
-		BranchID ledger.TransactionID          `json:"branch_id,omitempty"`
+		RootData multistate2.RootRecordJSONAble `json:"root_record,omitempty"`
+		BranchID ledger.TransactionID           `json:"branch_id,omitempty"`
 	}
 
 	CheckRxIDInLRB struct {
@@ -249,8 +249,8 @@ type (
 	}
 
 	BranchData struct {
-		ID   string                        `json:"id"`
-		Data multistate.BranchDataJSONAble `json:"data"`
+		ID   string                         `json:"id"`
+		Data multistate2.BranchDataJSONAble `json:"data"`
 	}
 
 	MainChain struct {
@@ -261,7 +261,7 @@ type (
 
 const ErrGetOutputNotFound = "output not found"
 
-func CalcTxInclusionScore(inclusion *multistate.TxInclusion, thresholdNumerator, thresholdDenominator int) TxInclusionScore {
+func CalcTxInclusionScore(inclusion *multistate2.TxInclusion, thresholdNumerator, thresholdDenominator int) TxInclusionScore {
 	ret := TxInclusionScore{
 		ThresholdNumerator:   thresholdNumerator,
 		ThresholdDenominator: thresholdDenominator,

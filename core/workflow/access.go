@@ -11,8 +11,8 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -58,7 +58,7 @@ func (w *Workflow) SendToTippool(vid *vertex.WrappedTx) {
 
 func (w *Workflow) IsSynced() bool {
 	slotNow := ledger.TimeNow().Slot()
-	return slotNow == 0 || multistate.FirstHealthySlotIsNotBefore(w.StateStore(), slotNow-1, global.FractionHealthyBranch)
+	return slotNow == 0 || multistate2.FirstHealthySlotIsNotBefore(w.StateStore(), slotNow-1, global.FractionHealthyBranch)
 }
 
 // LatestMilestonesDescending returns optionally filtered sorted transactions from the sequencer tippool
@@ -94,8 +94,8 @@ func (w *Workflow) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.Tx
 	return ret.JSONAble()
 }
 
-func (w *Workflow) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion {
-	return multistate.GetTxInclusion(w.StateStore(), txid, slotsBack)
+func (w *Workflow) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate2.TxInclusion {
+	return multistate2.GetTxInclusion(w.StateStore(), txid, slotsBack)
 }
 
 func (w *Workflow) WaitTxIDDefined(txid *ledger.TransactionID, pollPeriod, timeout time.Duration) (vertex.Status, error) {
@@ -121,7 +121,7 @@ func (w *Workflow) EvidenceNonSequencerTx() {
 }
 
 func (w *Workflow) SaveFullDAG(fname string) {
-	branchTxIDS := multistate.FetchLatestBranchTransactionIDs(w.StateStore())
+	branchTxIDS := multistate2.FetchLatestBranchTransactionIDs(w.StateStore())
 	tmpDag := memdag.MakeDAGFromTxStore(w.TxBytesStore(), 0, branchTxIDS...)
 	tmpDag.SaveGraph(fname)
 }

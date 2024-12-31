@@ -8,8 +8,8 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/txstore"
 	"github.com/lunfardo314/proxima/util"
@@ -43,7 +43,7 @@ func runBootstrapAccount(_ *cobra.Command, args []string) {
 	stateStore := badger_adaptor.New(stateDb)
 	defer func() { _ = stateDb.Close() }()
 
-	multistate.InitLedgerFromStore(stateStore)
+	multistate2.InitLedgerFromStore(stateStore)
 	privKey := glb.MustGetPrivateKey()
 
 	// create transaction store database
@@ -80,7 +80,7 @@ func runBootstrapAccount(_ *cobra.Command, args []string) {
 
 	// store distribution transaction in the ts store so that other nodes
 	// could sync the state right from the genesis state at slot 0
-	rr, found := multistate.FetchRootRecord(stateStore, txid)
+	rr, found := multistate2.FetchRootRecord(stateStore, txid)
 	glb.Assertf(found, "inconsistency: can't find root record")
 
 	_, err = txStore.PersistTxBytesWithMetadata(txBytesBootstrapBalance, &txmetadata.TransactionMetadata{

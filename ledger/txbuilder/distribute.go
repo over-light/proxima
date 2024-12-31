@@ -6,15 +6,15 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	multistate2 "github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
-	"github.com/lunfardo314/proxima/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 
 // MakeDistributionTransaction creates initial distribution transaction according to distribution list.
 // It is a branch transaction. Remainder goes to the genesis chain
 func MakeDistributionTransaction(stateStore global.StateStore, originPrivateKey ed25519.PrivateKey, genesisDistribution []ledger.LockBalance) ([]byte, error) {
-	stateID, genesisRoot, err := multistate.ScanGenesisState(stateStore)
+	stateID, genesisRoot, err := multistate2.ScanGenesisState(stateStore)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func MakeDistributionTransaction(stateStore global.StateStore, originPrivateKey 
 		})
 	}
 
-	rdr, err := multistate.NewSugaredReadableState(stateStore, genesisRoot)
+	rdr, err := multistate2.NewSugaredReadableState(stateStore, genesisRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +117,10 @@ func MustDistributeInitialSupplyExt(stateStore global.StateStore, originPrivateK
 	txBytes, err := MakeDistributionTransaction(stateStore, originPrivateKey, genesisDistribution)
 	util.AssertNoError(err)
 
-	stateID, genesisRoot, err := multistate.ScanGenesisState(stateStore)
+	stateID, genesisRoot, err := multistate2.ScanGenesisState(stateStore)
 	util.AssertNoError(err)
 
-	rdr := multistate.MustNewSugaredReadableState(stateStore, genesisRoot)
+	rdr := multistate2.MustNewSugaredReadableState(stateStore, genesisRoot)
 	bootstrapChainID := stateID.OriginChainID()
 
 	tx, err := transaction.FromBytesMainChecksWithOpt(txBytes)
@@ -133,8 +133,8 @@ func MustDistributeInitialSupplyExt(stateStore global.StateStore, originPrivateK
 	util.Assertf(nextStem != nil, "nextStem != nil")
 	muts := tx.StateMutations()
 
-	updatableOrigin := multistate.MustNewUpdatable(stateStore, genesisRoot)
-	updatableOrigin.MustUpdate(muts, &multistate.RootRecordParams{
+	updatableOrigin := multistate2.MustNewUpdatable(stateStore, genesisRoot)
+	updatableOrigin.MustUpdate(muts, &multistate2.RootRecordParams{
 		StemOutputID:    nextStem.ID,
 		SeqID:           bootstrapChainID,
 		Coverage:        (stateID.InitialSupply >> 1) + stateID.InitialSupply,
