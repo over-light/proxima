@@ -42,17 +42,13 @@ func _enforceDelegationTargetConstraintsOnSuccessor : and(
     require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 
-// $0 at least 4-byte prefix of the chainID
+// $0 4-byte prefix of the chainID
 // $1 4 bytes of the slot
 // return true if sum of $0 and $1 is even
 func isOpenDelegationSlot: isZero(bitwiseAND(add($0, $1), u64/1))
 
-// $0 chain constraint index
-func _selfIsOpenDelegationSlot:
-	isOpenDelegationSlot(
-		slice(evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0), 0, 3),
-        txTimeSlot
-	)
+// $0 predecessor chain constraint index
+func _selfSuccessorChainData : evalArgumentBytecode(producedConstraintByIndex(slice(selfSiblingUnlockParams($0),0,1)), #chain, 0)	
 
 // $0 chain constraint index
 // $1 target lock
@@ -73,7 +69,7 @@ func delegationLock: and(
             selfIsConsumedOutput,
             or(
                and(  // check delegation case on even slots
-                   _selfIsOpenDelegationSlot($0),  
+                  isOpenDelegationSlot(slice(_selfSuccessorChainData($0),0,3), txTimeSlot),  
                   _enforceDelegationTargetConstraintsOnSuccessor(
                       $0,
                       $1, 

@@ -130,8 +130,8 @@ func chainLock : and(
 	or(
 		and(
 			selfIsProducedOutput, 
-			equal(len($0),u64/32),
-            not(isZero($0))   // to prevent common error
+			require(equal(len($0),u64/32), !!!32-byte_long_argument_expected),
+            require(not(isZero($0)), !!!non_zero_argument_expected)   // to prevent common error
 		),
 		and(
 			selfIsConsumedOutput,

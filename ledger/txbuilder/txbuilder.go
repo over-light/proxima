@@ -162,6 +162,24 @@ func (txb *TransactionBuilder) ProduceOutputs(outs ...*ledger.Output) (uint64, e
 	return total, nil
 }
 
+func (txb *TransactionBuilder) ConsumedAmount() uint64 {
+	ret := uint64(0)
+	for _, o := range txb.ConsumedOutputs {
+		ret += o.Amount()
+	}
+	return ret
+}
+
+func (txb *TransactionBuilder) ProducedAmount() (uint64, uint64) {
+	retTotal := uint64(0)
+	retInflation := uint64(0)
+	for _, o := range txb.TransactionData.Outputs {
+		retTotal += o.Amount()
+		retInflation += o.Inflation(false)
+	}
+	return retTotal, retInflation
+}
+
 func (txb *TransactionBuilder) InputCommitment() [32]byte {
 	arr := lazybytes.EmptyArray(256)
 	for _, o := range txb.ConsumedOutputs {

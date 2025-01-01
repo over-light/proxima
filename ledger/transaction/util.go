@@ -44,7 +44,7 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 	ret.Add("Sequencer output index: %d, sequencer milestone: %v", seqIdx, seqIdx != 0xff)
 	ret.Add("Stem output index: %d, stem output: %v", stemIdx, seqIdx != 0xff && stemIdx != 0xff)
 
-	ret.Add("Total amount stored: %s", util.Th(ctx.TotalAmountStored()))
+	ret.Add("Total amount produced: %s (including inflation: %s)", util.Th(ctx.TotalAmountStored()), util.Th(ctx.TotalInflation()))
 
 	inpCom := ctx.InputCommitment()
 	ret.Add("Input commitment: %s", easyfl.Fmt(inpCom))

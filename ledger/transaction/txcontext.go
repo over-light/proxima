@@ -6,6 +6,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/unitrie/common"
@@ -61,6 +62,20 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	ret.tree = lazybytes.TreeFromTreesReadOnly(tx.tree, e.AsTree())
 	ret.dataContext = ledger.NewDataContext(ret.tree)
 	return ret, nil
+}
+
+func TxContextFromState(tx *Transaction, rdr multistate.SugaredStateReader) (*TxContext, error) {
+	return TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
+		oid, err := tx.InputAt(i)
+		if err != nil {
+			return nil, err
+		}
+		ret := rdr.GetOutput(&oid)
+		if ret == nil {
+			return nil, fmt.Errorf("can't load consumed output")
+		}
+		return ret, nil
+	})
 }
 
 // TxContextFromTransferableBytes constructs lazybytes.Tree from transaction bytes and consumed outputs
@@ -212,6 +227,10 @@ func (ctx *TxContext) TotalAmountStored() uint64 {
 	ret := ctx.tree.BytesAtPath(ledger.PathToTotalProducedAmount)
 	util.Assertf(len(ret) == 8, "len(ret)==8")
 	return binary.BigEndian.Uint64(ret)
+}
+
+func (ctx *TxContext) TotalInflation() uint64 {
+	return ctx.inflationAmount
 }
 
 func (ctx *TxContext) OutputID(idx byte) ledger.OutputID {

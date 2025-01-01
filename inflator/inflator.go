@@ -38,11 +38,12 @@ type (
 
 	InflatableOutput struct {
 		ledger.OutputWithChainID
-		Inflation              uint64
-		Margin                 uint64
-		Successor              *ledger.Output
-		SuccChainConstraintIdx byte
-		UnlockParams           []byte
+		Inflation                  uint64
+		Margin                     uint64
+		Successor                  *ledger.Output
+		PredecessorConstraintIndex byte
+		SuccChainConstraintIdx     byte
+		UnlockParams               []byte
 	}
 )
 
@@ -103,11 +104,11 @@ func (fl *Inflator) CollectInflatableTransitions(targetTs ledger.Time, rdr multi
 					ID:     oid,
 					Output: o,
 				},
-				ChainID:                    chainID,
-				PredecessorConstraintIndex: cc.PredecessorConstraintIndex,
+				ChainID: chainID,
 			},
-			Inflation: inflation,
-			Margin:    (inflation * marginPromille) / 1000,
+			Inflation:                  inflation,
+			Margin:                     (inflation * marginPromille) / 1000,
+			PredecessorConstraintIndex: idx,
 		})
 		return true
 	})
@@ -155,7 +156,7 @@ func (fl *Inflator) CollectInflatableTransitions(targetTs ledger.Time, rdr multi
 
 var ErrNoInputs = errors.New("no delegated output has been found")
 
-func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader, fullValidation ...bool) (*transaction.Transaction, []*ledger.OutputID, error) {
+func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, error) {
 	outs, totalMarginOut := fl.CollectInflatableTransitions(targetTs, rdr)
 	if len(outs) == 0 {
 		return nil, nil, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
@@ -165,6 +166,7 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 	for _, o := range outs {
 		inIdx, _ := txb.ConsumeOutput(o.Output, o.ID)
 		_, _ = txb.ProduceOutput(o.Successor)
+		txb.PutSignatureUnlock(inIdx) // all of them will check signatures -> suboptimal
 		txb.PutUnlockParams(inIdx, o.PredecessorConstraintIndex, o.UnlockParams)
 	}
 
@@ -204,9 +206,14 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 			o.WithLock(fl.par.TagAlongSequencer.AsChainLock())
 		})
 		_, _ = txb.ProduceOutput(tagAlongOut)
-		if tagAlongAmount < actualAmount {
+		consumedTotal := txb.ConsumedAmount()
+		producedTotal, inflation := txb.ProducedAmount()
+		targetOutTotal := consumedTotal + inflation
+		util.Assertf(targetOutTotal >= producedTotal, "targetOutTotal >= producedTotal")
+
+		if remainder := targetOutTotal - producedTotal; remainder > 0 {
 			_, err := txb.ProduceOutput(ledger.NewOutput(func(o *ledger.Output) {
-				o.WithAmount(actualAmount - tagAlongAmount) // TODO not completely correct wrt storage deposit constraint
+				o.WithAmount(remainder) // TODO not completely correct wrt storage deposit constraint
 				o.WithLock(fl.par.Target)
 			}))
 			if err != nil {
@@ -224,16 +231,6 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	if err != nil {
 		return nil, nil, err
-	}
-	if len(fullValidation) > 0 && fullValidation[0] {
-		ctx, err := transaction.TxContextFromTransaction(tx, txb.LoadInput)
-		if err != nil {
-			return nil, nil, err
-		}
-		err = ctx.Validate()
-		if err != nil {
-			return nil, nil, err
-		}
 	}
 	return tx, txb.TransactionData.InputIDs, nil
 }

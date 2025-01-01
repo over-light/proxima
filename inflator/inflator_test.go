@@ -3,7 +3,6 @@ package inflator
 import (
 	"crypto/ed25519"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/lunfardo314/proxima/global"
@@ -69,7 +68,7 @@ func TestInflatorBase(t *testing.T) {
 	fl := New(env, Params{
 		Target:            env.addrDelegator,
 		PrivateKey:        env.privateKeyDelegator,
-		TagAlongSequencer: ledger.ChainID{},
+		TagAlongSequencer: ledger.RandomChainID(),
 	})
 	err := env.utxodb.TokensFromFaucet(env.addrOwner, initOwnerLoad)
 	require.NoError(t, err)
@@ -112,25 +111,17 @@ func TestInflatorBase(t *testing.T) {
 	t.Run("make tx", func(t *testing.T) {
 		for s := 1; s <= 14; s++ {
 			ts := input.Timestamp().AddSlots(ledger.Slot(s))
-			tx, _, err := fl.MakeTransaction(ts, rdr, false)
+			tx, _, err := fl.MakeTransaction(ts, rdr)
 			if errors.Is(err, ErrNoInputs) {
 				continue
 			}
 			require.NoError(t, err)
-			ctx, err := transaction.TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
-				oid, err := tx.InputAt(i)
-				if err != nil {
-					return nil, err
-				}
-				ret := rdr.GetOutput(&oid)
-				if ret == nil {
-					return nil, fmt.Errorf("can't load consumed output")
-				}
-				return ret, nil
-			})
+			ctx, err := transaction.TxContextFromState(tx, rdr)
 			require.NoError(t, err)
-			t.Logf("+%d slots -- ts = %s --------------------\n%s", s, ts.String(),
-				ctx.String())
+			t.Logf("+%d slots -- ts = %s --------------------\n%s", s, ts.String(), ctx.String())
+
+			err = ctx.Validate()
+			require.NoError(t, err)
 		}
 	})
 }
