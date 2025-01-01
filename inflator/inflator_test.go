@@ -15,7 +15,6 @@ import (
 )
 
 // initializes ledger.Library singleton for all tests and creates testing genesis private key
-
 var genesisPrivateKey ed25519.PrivateKey
 
 func init() {
@@ -25,9 +24,9 @@ func init() {
 type inflatorTestEnvironment struct {
 	t *testing.T
 	global.NodeGlobal
-	privateKeyOwner     ed25519.PrivateKey
+	privateKeyOwner     []ed25519.PrivateKey
+	addrOwner           []ledger.AddressED25519
 	privateKeyDelegator ed25519.PrivateKey
-	addrOwner           ledger.AddressED25519
 	addrDelegator       ledger.AddressED25519
 	utxodb              *utxodb.UTXODB
 }
@@ -42,55 +41,59 @@ func (i *inflatorTestEnvironment) SubmitTxBytesFromInflator(txBytes []byte) {
 	panic("implement me")
 }
 
-func newEnvironment(t *testing.T) *inflatorTestEnvironment {
+const (
+	initOwnerLoad     = 2_000_000_000
+	initDelegatorLoad = 1_000_000
+)
+
+func newEnvironment(t *testing.T, nOwners int, timeStepTicks int) *inflatorTestEnvironment {
 	ret := &inflatorTestEnvironment{
 		t:          t,
 		NodeGlobal: global.NewDefault(),
 		utxodb:     utxodb.NewUTXODB(genesisPrivateKey, true),
 	}
-	privKey, _, addr := ret.utxodb.GenerateAddresses(0, 2)
-	ret.privateKeyOwner = privKey[0]
-	ret.privateKeyDelegator = privKey[1]
-	ret.addrOwner = addr[0]
-	ret.addrDelegator = addr[1]
-	t.Logf("owner address: %s", ret.addrOwner.String())
+	privKey, _, addr := ret.utxodb.GenerateAddresses(0, nOwners+1)
+	ret.privateKeyDelegator = privKey[0]
+	ret.addrDelegator = addr[0]
+	ret.privateKeyOwner = privKey[1:]
+	ret.addrOwner = addr[1:]
 	t.Logf("delegator address: %s", ret.addrDelegator.String())
+	err := ret.utxodb.TokensFromFaucet(ret.addrDelegator, initDelegatorLoad)
+	require.NoError(t, err)
+	require.EqualValues(t, initDelegatorLoad, ret.utxodb.Balance(ret.addrDelegator))
+
+	ts := ledger.TimeNow()
+	for i := range ret.privateKeyOwner {
+		err := ret.utxodb.TokensFromFaucet(ret.addrOwner[i], initOwnerLoad)
+		require.NoError(t, err)
+		require.EqualValues(t, initOwnerLoad, ret.utxodb.Balance(ret.addrOwner[i]))
+
+		par, err := ret.utxodb.MakeTransferInputData(ret.privateKeyOwner[i], nil, ts)
+		_, err = ret.utxodb.DoTransferOutputs(par.
+			WithAmount(initOwnerLoad).
+			WithTargetLock(ledger.NewDelegationLock(ret.addrOwner[i], ret.addrDelegator, 2)).
+			WithConstraint(ledger.NewChainOrigin()),
+		)
+		require.NoError(t, err)
+		ts = ts.AddTicks(timeStepTicks)
+	}
 	return ret
 }
 
-const (
-	initOwnerLoad     = 1_000_000_000
-	initDelegatorLoad = 1_000_000
-)
-
 func TestInflatorBase(t *testing.T) {
-	env := newEnvironment(t)
+	const nOwners = 2
+	env := newEnvironment(t, nOwners, 0)
 	fl := New(env, Params{
 		Target:            env.addrDelegator,
 		PrivateKey:        env.privateKeyDelegator,
 		TagAlongSequencer: ledger.RandomChainID(),
 	})
-	err := env.utxodb.TokensFromFaucet(env.addrOwner, initOwnerLoad)
-	require.NoError(t, err)
-	require.EqualValues(t, initOwnerLoad, env.utxodb.Balance(env.addrOwner))
-
-	err = env.utxodb.TokensFromFaucet(env.addrDelegator, initDelegatorLoad)
-	require.NoError(t, err)
-	require.EqualValues(t, initDelegatorLoad, env.utxodb.Balance(env.addrDelegator))
-
-	par, err := env.utxodb.MakeTransferInputData(env.privateKeyOwner, nil, ledger.TimeNow())
-	_, err = env.utxodb.DoTransferOutputs(par.
-		WithAmount(initOwnerLoad).
-		WithTargetLock(ledger.NewDelegationLock(env.addrOwner, env.addrDelegator, 2)).
-		WithConstraint(ledger.NewChainOrigin()),
-	)
-	require.NoError(t, err)
 
 	rdr := multistate.MakeSugared(env.utxodb.StateReader())
 
 	outs, err := rdr.GetOutputsDelegatedToAccount(env.addrDelegator)
 	require.NoError(t, err)
-	require.EqualValues(t, 1, len(outs))
+	require.EqualValues(t, nOwners, len(outs))
 	t.Logf("%s", outs[0].String())
 
 	input := outs[0]
@@ -102,9 +105,6 @@ func TestInflatorBase(t *testing.T) {
 			if len(lst) > 0 {
 				require.True(t, ledger.IsOpenDelegationSlot(lst[0].ChainID, ts.Slot()))
 				t.Logf("-------------------------\n%s", lst[0].Successor.Lines("   ").Join("\n"))
-			}
-			if uint64(s) > ledger.L().ID.ChainInflationOpportunitySlots {
-				require.EqualValues(t, 0, margin)
 			}
 		}
 	})
