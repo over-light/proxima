@@ -37,7 +37,9 @@ func runChainsCmd(_ *cobra.Command, _ []string) {
 }
 
 func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
-	glb.Infof("list of chains in the account %s\n-------------------------", addr.String())
+	glb.Infof("list of chains in the account %s", addr.String())
+	glb.Infof("------------------------------------------------------------------------------------------------")
+	glb.Infof("    ID                                                                       status      balance               lock")
 	var status string
 	for i, o := range outs {
 		lock := o.Output.Lock()
@@ -53,6 +55,6 @@ func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithCha
 		default:
 			status = "N/A"
 		}
-		glb.Infof("  #2%d  %10s  %10s %15s   %s", i, o.ChainID.StringShort(), status, util.Th(o.Output.Amount()), lock.String())
+		glb.Infof("%2d  %66s  %10s %25s   %s", i, o.ChainID.String(), status, util.Th(o.Output.Amount()), lock.String())
 	}
 }

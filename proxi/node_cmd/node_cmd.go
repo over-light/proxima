@@ -3,6 +3,7 @@ package node_cmd
 import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
+	"github.com/lunfardo314/proxima/proxi/node_cmd/delegate"
 	"github.com/lunfardo314/proxima/proxi/node_cmd/seq_cmd"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -61,6 +62,7 @@ func Init() *cobra.Command {
 		initFaucetCmd(),
 		initGetFundsCmd(),
 		initLastSeqCmd(),
+		delegate.Init(),
 	)
 	return nodeCmd
 }

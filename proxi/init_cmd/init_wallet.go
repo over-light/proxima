@@ -94,7 +94,7 @@ spammer:
     output_amount: 1000
     pace: 25
     tag_along:
-        fee: 500
+        fee: 50
         # <sequencer ID hex encoded> is tag-along sequencer ID for the tip transaction in the bundle
         # For example the bootstrap sequencer {{.BootstrapSeqID}}
         sequencer_id: <sequencer ID hex encoded>

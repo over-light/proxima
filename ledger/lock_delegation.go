@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
@@ -30,7 +31,7 @@ func minimumDelegatedAmount : u64/50000000
 // $0 sibling index
 func selfSiblingUnlockParams : @Array8(unlockParamsByIndex(selfOutputIndex), $0)
 
-// Enfoces delegation target lock and additional constraints, such as immutable chain 
+// Enforces delegation target lock and additional constraints, such as immutable chain 
 // transition with non-decreasing amount
 // $0 chain constraint index
 // $1 target lock
@@ -170,4 +171,10 @@ func IsOpenDelegationSlot(chainID ChainID, slot Slot) bool {
 	res, err := L().EvalFromSource(nil, src)
 	util.AssertNoError(err)
 	return len(res) > 0
+}
+
+func MinimumDelegationAmount() uint64 {
+	res, err := L().EvalFromSource(nil, "minimumDelegatedAmount")
+	util.AssertNoError(err)
+	return binary.BigEndian.Uint64(res)
 }
