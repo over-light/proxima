@@ -79,7 +79,9 @@ func newEnvironment(t *testing.T, nOwners int, timeStepTicks int) (*inflatorTest
 		require.NoError(t, err)
 		ts = ts.AddTicks(timeStepTicks)
 	}
-	ret.fl = New(ret, Params{
+	ret.fl = New(ret, &Params{
+		Enable:            true,
+		Name:              "test_inflator",
 		Target:            ret.addrDelegator,
 		PrivateKey:        ret.privateKeyDelegator,
 		TagAlongSequencer: ledger.RandomChainID(),

@@ -23,27 +23,28 @@ type (
 		BacklogTTLSlots         int
 		MilestonesTTLSlots      int
 		SingleSequencerEnforced bool
+		ForceRunInflator        bool
 	}
 
 	ConfigOption func(options *ConfigOptions)
 )
 
 const (
-	DefaultMaxTagAlongInputs  = 20
-	MinimumBacklogTTLSlots    = 10
-	MinimumMilestonesTTLSlots = 24 // 10
+	defaultMaxTagAlongInputs  = 20
+	minimumBacklogTTLSlots    = 10
+	minimumMilestonesTTLSlots = 24 // 10
 )
 
 func defaultConfigOptions() *ConfigOptions {
 	return &ConfigOptions{
 		SequencerName:      "seq",
 		Pace:               ledger.TransactionPaceSequencer(),
-		MaxTagAlongInputs:  DefaultMaxTagAlongInputs,
+		MaxTagAlongInputs:  defaultMaxTagAlongInputs,
 		MaxTargetTs:        ledger.NilLedgerTime,
 		MaxBranches:        math.MaxInt,
 		DelayStart:         ledger.SlotDuration(),
-		BacklogTTLSlots:    MinimumBacklogTTLSlots,
-		MilestonesTTLSlots: MinimumMilestonesTTLSlots,
+		BacklogTTLSlots:    minimumBacklogTTLSlots,
+		MilestonesTTLSlots: minimumMilestonesTTLSlots,
 	}
 }
 
@@ -78,12 +79,12 @@ func paramsFromConfig() ([]ConfigOption, ledger.ChainID, ed25519.PrivateKey, err
 		return nil, ledger.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse private key: %v", err)
 	}
 	backlogTTLSlots := subViper.GetInt("backlog_ttl_slots")
-	if backlogTTLSlots < MinimumBacklogTTLSlots {
-		backlogTTLSlots = MinimumBacklogTTLSlots
+	if backlogTTLSlots < minimumBacklogTTLSlots {
+		backlogTTLSlots = minimumBacklogTTLSlots
 	}
 	milestonesTTLSlots := subViper.GetInt("milestones_ttl_slots")
-	if milestonesTTLSlots < MinimumMilestonesTTLSlots {
-		milestonesTTLSlots = MinimumMilestonesTTLSlots
+	if milestonesTTLSlots < minimumMilestonesTTLSlots {
+		milestonesTTLSlots = minimumMilestonesTTLSlots
 	}
 
 	cfg := []ConfigOption{
@@ -153,6 +154,12 @@ func WithMilestonesTTLSlots(slots int) ConfigOption {
 
 func WithSingleSequencerEnforced(o *ConfigOptions) {
 	o.SingleSequencerEnforced = true
+}
+
+func WithForceInflator() ConfigOption {
+	return func(o *ConfigOptions) {
+		o.ForceRunInflator = true
+	}
 }
 
 func (cfg *ConfigOptions) lines(seqID ledger.ChainID, controller ledger.AddressED25519, prefix ...string) *lines.Lines {

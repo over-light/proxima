@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
+	"github.com/lunfardo314/proxima/inflator"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
@@ -37,6 +38,8 @@ type (
 		ListenToAccount(account ledger.Accountable, fun func(wOut vertex.WrappedOutput))
 		MustEnsureBranch(txid ledger.TransactionID) *vertex.WrappedTx
 		OwnSequencerMilestoneIn(txBytes []byte, meta *txmetadata.TransactionMetadata)
+		LatestReliableState() (multistate.SugaredStateReader, error)
+		SubmitTxBytesFromInflator(txBytes []byte)
 	}
 
 	Sequencer struct {
@@ -46,6 +49,7 @@ type (
 		sequencerID        ledger.ChainID
 		controllerKey      ed25519.PrivateKey
 		backlog            *backlog.InputBacklog
+		inflator           *inflator.Inflator
 		config             *ConfigOptions
 		logName            string
 		log                *zap.SugaredLogger
@@ -113,6 +117,18 @@ func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey
 		return nil, err
 	}
 	ret.Log().Infof("sequencer is starting with config:\n%s", cfg.lines(seqID, ledger.AddressED25519FromPrivateKey(controllerKey), "     ").String())
+
+	inflatorParams := inflator.ParamsFromConfig(ret.sequencerID, ret.controllerKey)
+	inflatorParams.Name = ret.logName
+	if cfg.ForceRunInflator {
+		inflatorParams.Enable = true
+	}
+	if inflatorParams.Enable {
+		ret.inflator = inflator.New(ret, inflatorParams)
+		ret.Log().Infof("inflator is ENABLED")
+	} else {
+		ret.Log().Infof("inflator is DISABLED")
+	}
 	return ret, nil
 }
 
@@ -169,6 +185,9 @@ func (seq *Sequencer) Start() {
 			seq.log.Fatal(err)
 			return false
 		})
+	}
+	if seq.inflator != nil {
+		seq.inflator.Run()
 	}
 }
 

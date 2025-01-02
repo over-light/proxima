@@ -129,3 +129,7 @@ func (w *Workflow) SaveFullDAG(fname string) {
 func (w *Workflow) GetKnownLatestSequencerDataJSONAble() map[string]tippool.LatestSequencerTipDataJSONAble {
 	return w.tippool.GetKnownLatestSequencerDataJSONAble()
 }
+
+func (w *Workflow) SubmitTxBytesFromInflator(txBytes []byte) {
+	w.TxBytesInFromInflatorQueued(txBytes)
+}

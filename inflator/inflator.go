@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/spf13/viper"
 )
 
 const Name = "inflator"
@@ -26,11 +27,13 @@ type (
 
 	Inflator struct {
 		environment
-		cfg      Params
+		cfg      *Params
 		consumed map[ledger.OutputID]time.Time
 	}
 
 	Params struct {
+		Enable                    bool
+		Name                      string
 		Target                    ledger.AddressED25519
 		PrivateKey                ed25519.PrivateKey
 		TagAlongSequencer         ledger.ChainID
@@ -64,42 +67,18 @@ const (
 	defaultLoopPeriod         = 2 * time.Second
 )
 
-func New(env environment, par Params) *Inflator {
-	ret := &Inflator{
-		environment: env,
+func New(env environment, par *Params) *Inflator {
+	util.Assertf(par.Enable, "par.Enable")
+	return &Inflator{
 		cfg:         par,
+		environment: env,
 		consumed:    make(map[ledger.OutputID]time.Time),
-	}
-	ret.cfg.adjustDefaults()
-	return ret
-}
-
-func (par *Params) adjustDefaults() {
-	if par.MinimumInflationPerOutput < minimumInflationPerOutput {
-		par.MinimumInflationPerOutput = minimumInflationPerOutput
-	}
-	if par.MarginPromille > 100 || par.MarginPromille < 0 {
-		par.MarginPromille = marginPromille
-	}
-	if par.TagAlongAmount < tagAlongAmount {
-		par.TagAlongAmount = tagAlongAmount
-	}
-	if par.MaxDelegationsPerTx > 254 || par.MaxDelegationsPerTx < 1 {
-		par.MaxDelegationsPerTx = maxDelegationsPerTx
-	}
-	if par.KeepInConsumedListSlots < keepInConsumedListSlots {
-		par.KeepInConsumedListSlots = keepInConsumedListSlots
-	}
-	if par.NoInflationSlots < minimumNoInflationSlots || uint64(par.NoInflationSlots) > ledger.L().ID.ChainInflationOpportunitySlots {
-		par.KeepInConsumedListSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 2)
-	}
-	if par.LoopPeriod < 100*time.Millisecond {
-		par.LoopPeriod = defaultLoopPeriod
 	}
 }
 
 func (fl *Inflator) Run() {
-	fl.environment.RepeatInBackground(Name+"_loop", fl.cfg.LoopPeriod, func() bool {
+	fl.Log().Infof("running inflator..")
+	fl.environment.RepeatInBackground(fl.cfg.Name+"_"+Name+"_loop", fl.cfg.LoopPeriod, func() bool {
 		fl.doStep(ledger.TimeNow())
 		return true
 	})
@@ -310,5 +289,56 @@ func (fl *Inflator) cleanConsumedList() {
 		if time.Since(when) > keep {
 			delete(fl.consumed, oid)
 		}
+	}
+}
+
+func ParamsFromConfig(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *Params {
+	sub := viper.Sub("sequencer.inflator")
+	if sub == nil {
+		ret := &Params{
+			PrivateKey:        seqPrivateKey,
+			TagAlongSequencer: seqID,
+		}
+		ret.adjustDefaults()
+		return ret
+	}
+	ret := &Params{
+		Enable:                    viper.GetBool("sequencer.enable") && sub.GetBool("enable"),
+		Target:                    ledger.AddressED25519FromPrivateKey(seqPrivateKey),
+		PrivateKey:                seqPrivateKey,
+		TagAlongSequencer:         seqID,
+		MinimumInflationPerOutput: sub.GetUint64("minimum_inflation_per_output"),
+		MarginPromille:            sub.GetUint64("margin_promille"),
+		TagAlongAmount:            sub.GetUint64("tag_along_amount"),
+		MaxDelegationsPerTx:       sub.GetInt("max_delegations_per_tx"),
+		KeepInConsumedListSlots:   sub.GetInt("keep_in_consumed_list_slots"),
+		NoInflationSlots:          sub.GetInt("no_inflation_slots"),
+		LoopPeriod:                time.Duration(sub.GetInt("loop_period_seconds")) * time.Second,
+	}
+	ret.adjustDefaults()
+	return ret
+}
+
+func (par *Params) adjustDefaults() {
+	if par.MinimumInflationPerOutput < minimumInflationPerOutput {
+		par.MinimumInflationPerOutput = minimumInflationPerOutput
+	}
+	if par.MarginPromille > 100 || par.MarginPromille < 0 {
+		par.MarginPromille = marginPromille
+	}
+	if par.TagAlongAmount < tagAlongAmount {
+		par.TagAlongAmount = tagAlongAmount
+	}
+	if par.MaxDelegationsPerTx > 254 || par.MaxDelegationsPerTx < 1 {
+		par.MaxDelegationsPerTx = maxDelegationsPerTx
+	}
+	if par.KeepInConsumedListSlots < keepInConsumedListSlots {
+		par.KeepInConsumedListSlots = keepInConsumedListSlots
+	}
+	if par.NoInflationSlots < minimumNoInflationSlots || uint64(par.NoInflationSlots) > ledger.L().ID.ChainInflationOpportunitySlots {
+		par.KeepInConsumedListSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 2)
+	}
+	if par.LoopPeriod < 100*time.Millisecond {
+		par.LoopPeriod = defaultLoopPeriod
 	}
 }
