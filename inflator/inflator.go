@@ -70,8 +70,8 @@ func (fl *Inflator) Run() {
 	})
 }
 
-// CollectInflatableTransitions returns list of outputs which can be inflated for the target timestamp
-func (fl *Inflator) CollectInflatableTransitions(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]*InflatableOutput, uint64) {
+// collectInflatableTransitions returns list of outputs which can be inflated for the target timestamp
+func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]*InflatableOutput, uint64) {
 	if targetTs.IsSlotBoundary() {
 		return nil, 0
 	}
@@ -156,10 +156,10 @@ func (fl *Inflator) CollectInflatableTransitions(targetTs ledger.Time, rdr multi
 
 var ErrNoInputs = errors.New("no delegated output has been found")
 
-func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, error) {
-	outs, totalMarginOut := fl.CollectInflatableTransitions(targetTs, rdr)
+func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, uint64, error) {
+	outs, totalMarginOut := fl.collectInflatableTransitions(targetTs, rdr)
 	if len(outs) == 0 {
-		return nil, nil, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
+		return nil, nil, 0, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
 	}
 
 	txb := txbuilder.New()
@@ -181,14 +181,14 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 		// not enough collected margin for tag along. Use own funds
 		ownOuts, actualAmount := rdr.GetOutputsLockedInAddressED25519ForAmount(fl.par.Target, tagAlongAmount)
 		if actualAmount < tagAlongAmount {
-			return nil, nil, fmt.Errorf("not enough funds for the tag-along of the transaction")
+			return nil, nil, 0, fmt.Errorf("not enough funds for the tag-along of the transaction")
 		}
 		first := true
 		var firstIdx byte
 		for _, o := range ownOuts {
 			idx, err := txb.ConsumeOutput(o.Output, o.ID)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, 0, err
 			}
 			if first {
 				txb.PutSignatureUnlock(idx)
@@ -197,7 +197,7 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 			} else {
 				err = txb.PutUnlockReference(idx, ledger.ConstraintIndexLock, firstIdx)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, 0, err
 				}
 			}
 		}
@@ -217,7 +217,7 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 				o.WithLock(fl.par.Target)
 			}))
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, 0, err
 			}
 		}
 	}
@@ -230,9 +230,9 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
-	return tx, txb.TransactionData.InputIDs, nil
+	return tx, txb.TransactionData.InputIDs, totalMarginOut, nil
 }
 
 func (fl *Inflator) doStep() {
@@ -246,7 +246,7 @@ func (fl *Inflator) doStep() {
 	if targetTs.IsSlotBoundary() {
 		targetTs = targetTs.AddTicks(10)
 	}
-	tx, outIDs, err := fl.MakeTransaction(targetTs, lrb)
+	tx, outIDs, _, err := fl.MakeTransaction(targetTs, lrb)
 	if err != nil {
 		fl.Log().Errorf("[%s] %v", Name, err)
 		return

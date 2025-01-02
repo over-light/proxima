@@ -81,7 +81,7 @@ func newEnvironment(t *testing.T, nOwners int, timeStepTicks int) *inflatorTestE
 }
 
 func TestInflatorBase(t *testing.T) {
-	const nOwners = 2
+	const nOwners = 5
 	env := newEnvironment(t, nOwners, 0)
 	fl := New(env, Params{
 		Target:            env.addrDelegator,
@@ -100,7 +100,7 @@ func TestInflatorBase(t *testing.T) {
 	t.Run("collect inputs", func(t *testing.T) {
 		for s := 1; s <= 14; s++ {
 			ts := input.Timestamp().AddSlots(ledger.Slot(s))
-			lst, margin := fl.CollectInflatableTransitions(ts, rdr)
+			lst, margin := fl.collectInflatableTransitions(ts, rdr)
 			t.Logf("+%d slots -- ts = %s, len(lst) = %d, margin = %s", s, ts.String(), len(lst), util.Th(margin))
 			if len(lst) > 0 {
 				require.True(t, ledger.IsOpenDelegationSlot(lst[0].ChainID, ts.Slot()))
@@ -109,19 +109,39 @@ func TestInflatorBase(t *testing.T) {
 		}
 	})
 	t.Run("make tx", func(t *testing.T) {
+		const printtx = false
+		maxMargin := uint64(0)
+		var maxMarginTx *transaction.Transaction
+		var maxCtx *transaction.TxContext
 		for s := 1; s <= 14; s++ {
 			ts := input.Timestamp().AddSlots(ledger.Slot(s))
-			tx, _, err := fl.MakeTransaction(ts, rdr)
+			tx, _, margin, err := fl.MakeTransaction(ts, rdr)
 			if errors.Is(err, ErrNoInputs) {
 				continue
 			}
 			require.NoError(t, err)
 			ctx, err := transaction.TxContextFromState(tx, rdr)
 			require.NoError(t, err)
-			t.Logf("+%d slots -- ts = %s --------------------\n%s", s, ts.String(), ctx.String())
+			if margin > maxMargin {
+				maxMargin = margin
+				maxMarginTx = tx
+				maxCtx = ctx
+			}
+
+			if printtx {
+				t.Logf("+%d slots -- ts = %s, marging collected: %s -- %s\n--------------------- %s",
+					s, ts.String(), util.Th(margin), tx.IDShortString(), ctx.String())
+			} else {
+				t.Logf("+%d slots -- ts = %s, marging collected: %s -- %s", s, ts.String(), util.Th(margin), tx.IDShortString())
+			}
 
 			err = ctx.Validate()
 			require.NoError(t, err)
+		}
+		if maxMarginTx != nil {
+			err = env.utxodb.AddTransaction(maxMarginTx.Bytes())
+			require.NoError(t, err)
+			t.Logf("============================================\n%s", maxCtx.String())
 		}
 	})
 }
