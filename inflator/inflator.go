@@ -26,14 +26,21 @@ type (
 
 	Inflator struct {
 		environment
-		par      Params
+		cfg      Params
 		consumed map[ledger.OutputID]time.Time
 	}
 
 	Params struct {
-		Target            ledger.AddressED25519
-		PrivateKey        ed25519.PrivateKey
-		TagAlongSequencer ledger.ChainID
+		Target                    ledger.AddressED25519
+		PrivateKey                ed25519.PrivateKey
+		TagAlongSequencer         ledger.ChainID
+		MinimumInflationPerOutput uint64
+		MarginPromille            uint64
+		TagAlongAmount            uint64
+		MaxDelegationsPerTx       int
+		KeepInConsumedListSlots   int
+		NoInflationSlots          int
+		LoopPeriod                time.Duration
 	}
 
 	InflatableOutput struct {
@@ -53,18 +60,46 @@ const (
 	tagAlongAmount            = 50
 	maxDelegationsPerTx       = 100
 	keepInConsumedListSlots   = 3
+	minimumNoInflationSlots   = 3
+	defaultLoopPeriod         = 2 * time.Second
 )
 
 func New(env environment, par Params) *Inflator {
-	return &Inflator{
+	ret := &Inflator{
 		environment: env,
-		par:         par,
+		cfg:         par,
 		consumed:    make(map[ledger.OutputID]time.Time),
+	}
+	ret.cfg.adjustDefaults()
+	return ret
+}
+
+func (par *Params) adjustDefaults() {
+	if par.MinimumInflationPerOutput < minimumInflationPerOutput {
+		par.MinimumInflationPerOutput = minimumInflationPerOutput
+	}
+	if par.MarginPromille > 100 || par.MarginPromille < 0 {
+		par.MarginPromille = marginPromille
+	}
+	if par.TagAlongAmount < tagAlongAmount {
+		par.TagAlongAmount = tagAlongAmount
+	}
+	if par.MaxDelegationsPerTx > 254 || par.MaxDelegationsPerTx < 1 {
+		par.MaxDelegationsPerTx = maxDelegationsPerTx
+	}
+	if par.KeepInConsumedListSlots < keepInConsumedListSlots {
+		par.KeepInConsumedListSlots = keepInConsumedListSlots
+	}
+	if par.NoInflationSlots < minimumNoInflationSlots || uint64(par.NoInflationSlots) > ledger.L().ID.ChainInflationOpportunitySlots {
+		par.KeepInConsumedListSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 2)
+	}
+	if par.LoopPeriod < 100*time.Millisecond {
+		par.LoopPeriod = defaultLoopPeriod
 	}
 }
 
 func (fl *Inflator) Run() {
-	fl.environment.RepeatInBackground("inflator_loop", time.Second, func() bool {
+	fl.environment.RepeatInBackground(Name+"_loop", fl.cfg.LoopPeriod, func() bool {
 		fl.doStep(ledger.TimeNow())
 		return true
 	})
@@ -78,7 +113,7 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 	ret := make([]*InflatableOutput, 0)
 	var totalMargin uint64
 
-	rdr.IterateDelegatedOutputs(fl.par.Target, func(oid ledger.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool {
+	rdr.IterateDelegatedOutputs(fl.cfg.Target, func(oid ledger.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool {
 		if _, already := fl.consumed[oid]; already {
 			return true
 		}
@@ -93,9 +128,9 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 			return true
 		}
 		inflation := ledger.L().CalcChainInflationAmount(oid.Timestamp(), targetTs, o.Amount(), 0)
-		if inflation < minimumInflationPerOutput ||
-			ledger.DiffTicks(targetTs, oid.Timestamp())/int64(ledger.TicksPerSlot) < int64(ledger.L().ID.ChainInflationOpportunitySlots/2) {
-			// only consider outputs with enough inflation or older than half of the inflation opportunity window
+		if inflation < fl.cfg.MinimumInflationPerOutput ||
+			ledger.DiffTicks(targetTs, oid.Timestamp())/int64(ledger.TicksPerSlot) < int64(fl.cfg.NoInflationSlots) {
+			// only consider outputs with enough inflation or (usually) older than half of the inflation opportunity window
 			return true
 		}
 		ret = append(ret, &InflatableOutput{
@@ -107,7 +142,7 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 				ChainID: chainID,
 			},
 			Inflation:                  inflation,
-			Margin:                     (inflation * marginPromille) / 1000,
+			Margin:                     (inflation * fl.cfg.MarginPromille) / 1000,
 			PredecessorConstraintIndex: idx,
 		})
 		return true
@@ -115,7 +150,7 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i].Timestamp().Before(ret[j].Timestamp())
 	})
-	ret = util.TrimSlice(ret, maxDelegationsPerTx)
+	ret = util.TrimSlice(ret, fl.cfg.MaxDelegationsPerTx)
 
 	for i, pred := range ret {
 		util.Assertf(pred.Inflation-pred.Margin >= 0, "pred.Inflation-pred.Margin")
@@ -170,17 +205,17 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 		txb.PutUnlockParams(inIdx, o.PredecessorConstraintIndex, o.UnlockParams)
 	}
 
-	if totalMarginOut >= tagAlongAmount {
+	if totalMarginOut >= fl.cfg.TagAlongAmount {
 		// enough collected margin for tag along
 		tagAlongOut := ledger.NewOutput(func(o *ledger.Output) {
 			o.WithAmount(totalMarginOut)
-			o.WithLock(fl.par.TagAlongSequencer.AsChainLock())
+			o.WithLock(fl.cfg.TagAlongSequencer.AsChainLock())
 		})
 		_, _ = txb.ProduceOutput(tagAlongOut)
 	} else {
 		// not enough collected margin for tag along. Use own funds
-		ownOuts, actualAmount := rdr.GetOutputsLockedInAddressED25519ForAmount(fl.par.Target, tagAlongAmount)
-		if actualAmount < tagAlongAmount {
+		ownOuts, actualAmount := rdr.GetOutputsLockedInAddressED25519ForAmount(fl.cfg.Target, fl.cfg.TagAlongAmount)
+		if actualAmount < fl.cfg.TagAlongAmount {
 			return nil, nil, 0, fmt.Errorf("not enough funds for the tag-along of the transaction")
 		}
 		first := true
@@ -202,8 +237,8 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 			}
 		}
 		tagAlongOut := ledger.NewOutput(func(o *ledger.Output) {
-			o.WithAmount(tagAlongAmount)
-			o.WithLock(fl.par.TagAlongSequencer.AsChainLock())
+			o.WithAmount(fl.cfg.TagAlongAmount)
+			o.WithLock(fl.cfg.TagAlongSequencer.AsChainLock())
 		})
 		_, _ = txb.ProduceOutput(tagAlongOut)
 		consumedTotal := txb.ConsumedAmount()
@@ -214,7 +249,7 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 		if remainder := targetOutTotal - producedTotal; remainder > 0 {
 			_, err := txb.ProduceOutput(ledger.NewOutput(func(o *ledger.Output) {
 				o.WithAmount(remainder) // TODO not completely correct wrt storage deposit constraint
-				o.WithLock(fl.par.Target)
+				o.WithLock(fl.cfg.Target)
 			}))
 			if err != nil {
 				return nil, nil, 0, err
@@ -224,7 +259,7 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 
 	txb.TransactionData.Timestamp = targetTs
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
-	txb.SignED25519(fl.par.PrivateKey)
+	txb.SignED25519(fl.cfg.PrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()
 
@@ -270,7 +305,7 @@ func (fl *Inflator) doStep(targetTs ledger.Time) {
 }
 
 func (fl *Inflator) cleanConsumedList() {
-	keep := ledger.L().ID.SlotDuration() * time.Duration(keepInConsumedListSlots)
+	keep := ledger.L().ID.SlotDuration() * time.Duration(fl.cfg.KeepInConsumedListSlots)
 	for oid, when := range fl.consumed {
 		if time.Since(when) > keep {
 			delete(fl.consumed, oid)
