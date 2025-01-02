@@ -65,7 +65,7 @@ func New(env environment, par Params) *Inflator {
 
 func (fl *Inflator) Run() {
 	fl.environment.RepeatInBackground("inflator_loop", time.Second, func() bool {
-		fl.doStep()
+		fl.doStep(ledger.TimeNow())
 		return true
 	})
 }
@@ -154,7 +154,7 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 	return ret, totalMargin
 }
 
-var ErrNoInputs = errors.New("no delegated output has been found")
+var ErrNoInputs = errors.New("no delegated outputs has been found")
 
 func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, uint64, error) {
 	outs, totalMarginOut := fl.collectInflatableTransitions(targetTs, rdr)
@@ -235,20 +235,29 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 	return tx, txb.TransactionData.InputIDs, totalMarginOut, nil
 }
 
-func (fl *Inflator) doStep() {
+func (fl *Inflator) doStep(targetTs ledger.Time) {
 	fl.cleanConsumedList()
 	lrb, err := fl.LatestReliableState()
 	if err != nil {
 		fl.Log().Warnf("[%s] %v", Name, err)
 		return
 	}
-	targetTs := ledger.TimeNow()
 	if targetTs.IsSlotBoundary() {
-		targetTs = targetTs.AddTicks(10)
+		fl.Log().Infof("[%s] skip target %s: on slot boundary", Name, targetTs.String())
+		return
 	}
-	tx, outIDs, _, err := fl.MakeTransaction(targetTs, lrb)
+	tx, outIDs, margin, err := fl.MakeTransaction(targetTs, lrb)
+	if errors.Is(err, ErrNoInputs) {
+		fl.Log().Infof("[%s] skip target %s: '%v'", Name, targetTs.String(), err)
+		return
+	}
 	if err != nil {
-		fl.Log().Errorf("[%s] %v", Name, err)
+		fl.Log().Errorf("[%s] error while generating transaction: '%v'", Name, err)
+		return
+	}
+	// double check before submitting
+	if err = tx.Validate(transaction.ValidateOptionWithFullContext(tx.InputLoaderFromState(lrb))); err != nil {
+		fl.Log().Errorf("[%s] error while validating transaction: '%v'", Name, err)
 		return
 	}
 	nowis := time.Now()
@@ -256,8 +265,8 @@ func (fl *Inflator) doStep() {
 		fl.consumed[*oid] = nowis
 	}
 	fl.SubmitTxBytesFromInflator(tx.Bytes())
-	fl.Log().Infof("[%s] submitted transaction %s: inputs = %d, total = %s",
-		Name, tx.IDShortString(), tx.NumInputs(), util.Th(tx.TotalAmount()))
+	fl.Log().Infof("[%s] submitted transaction %s. Inputs: %d, total amount: %s, inflation: %s, margin collected: %s",
+		Name, tx.IDShortString(), tx.NumInputs(), util.Th(tx.TotalAmount()), util.Th(tx.InflationAmount()), util.Th(margin))
 }
 
 func (fl *Inflator) cleanConsumedList() {
