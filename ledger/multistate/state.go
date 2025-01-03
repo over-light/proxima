@@ -402,6 +402,7 @@ func (r *Readable) IterateChainTips(fun func(chainID ledger.ChainID, o *ledger.O
 		}
 		oData, err = r._getUTXOForChainID(&chainID)
 		if err != nil {
+			fmt.Printf("2 @@@@@@@@@@@@@@@ %v -- %s", err, chainID.String())
 			return false
 		}
 

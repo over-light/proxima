@@ -1,12 +1,15 @@
 package node_cmd
 
 import (
+	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/proxi/glb"
+	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
 )
 
 func initAllChainsCmd() *cobra.Command {
 	chainsCmd := &cobra.Command{
-		Use:   "mychains",
+		Use:   "allchains",
 		Short: `lists all chains in the latest reliable branch`,
 		Args:  cobra.NoArgs,
 		Run:   runAllChainsCmd,
@@ -16,43 +19,22 @@ func initAllChainsCmd() *cobra.Command {
 }
 
 func runAllChainsCmd(_ *cobra.Command, _ []string) {
-	//glb.InitLedgerFromNode()
-	//wallet := glb.GetWalletData()
-	//
-	//outs, lrbid, err := glb.GetClient().GetChainedOutputs(wallet.Account)
-	//glb.AssertNoError(err)
-	//
-	//glb.PrintLRB(lrbid)
-	//if len(outs) == 0 {
-	//	glb.Infof("no chains have been found controlled by %s", wallet.Account.String())
-	//	os.Exit(0)
-	//}
-	//
-	//listChainedOutputs(wallet.Account, outs)
+	glb.InitLedgerFromNode()
+	chains, lrbid, err := glb.GetClient().GetAllChains()
+	glb.AssertNoError(err)
+
+	listChains(chains, lrbid)
 }
 
-//func listChains(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
-//	glb.Infof("\nlist of %d chain(s) indexed in the account %s\n--------------------------------------------------------------------------",
-//		len(outs), addr.String())
-//	for i, o := range outs {
-//		lock := o.Output.Lock()
-//		glb.Infof("%2d: %s", i, o.ChainID.String())
-//		glb.Infof("      balance     : %s", util.Th(o.Output.Amount()))
-//		glb.Infof("      lock        : %s", lock.String())
-//		thisControls := ""
-//		if ledger.EqualAccountables(addr, lock.Master()) {
-//			thisControls = " <- wallet account controls"
-//		}
-//		switch l := lock.(type) {
-//		case ledger.AddressED25519:
-//			glb.Infof("      master      : %s"+thisControls, l.String())
-//		case *ledger.DelegationLock:
-//			delegatedToThis := ""
-//			if ledger.EqualAccountables(addr, l.TargetLock) {
-//				delegatedToThis = " <- is delegated to the wallet account"
-//			}
-//			glb.Infof("      master      : %s"+thisControls, l.OwnerLock.String())
-//			glb.Infof("      delegated to: %s"+delegatedToThis, l.TargetLock.String())
-//		}
-//	}
-//}
+func listChains(chains []*ledger.OutputWithChainID, lrbid *ledger.TransactionID) {
+	glb.Infof("\nlist of all chains (%d) in the LRB %s\n--------------------------------------------------------------------------",
+		len(chains), lrbid.String())
+
+	for i, o := range chains {
+		lock := o.Output.Lock()
+		glb.Infof("%2d: %s", i, o.ChainID.String())
+		glb.Infof("      balance         : %s", util.Th(o.Output.Amount()))
+		glb.Infof("      controller lock : %s", lock.String())
+		glb.Infof("      output          : %s", o.ID.StringShort())
+	}
+}
