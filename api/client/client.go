@@ -472,9 +472,9 @@ func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.Transac
 		return nil, nil, err
 	}
 
-	ret := make([]*ledger.OutputWithChainID, len(res.Chains))
+	ret := make([]*ledger.OutputWithChainID, 0, len(res.Chains))
 	for chainIDStr, ci := range res.Chains {
-		chaiID, err := ledger.ChainIDFromHexString(chainIDStr)
+		chainID, err := ledger.ChainIDFromHexString(chainIDStr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -495,7 +495,7 @@ func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.Transac
 				ID:     oid,
 				Output: o,
 			},
-			ChainID:                    chaiID,
+			ChainID:                    chainID,
 			PredecessorConstraintIndex: cc.PredecessorInputIndex,
 		})
 	}

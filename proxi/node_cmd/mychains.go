@@ -2,6 +2,7 @@ package node_cmd
 
 import (
 	"os"
+	"sort"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -33,15 +34,23 @@ func runChainsCmd(_ *cobra.Command, _ []string) {
 		os.Exit(0)
 	}
 
+	sort.Slice(outs, func(i, j int) bool {
+		return outs[i].ID.Timestamp().After(outs[j].ID.Timestamp())
+	})
+
 	listChainedOutputs(wallet.Account, outs)
 }
 
 func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
-	glb.Infof("\nlist of %d chain(s) indexed in the account %s\n--------------------------------------------------------------------------",
+	glb.Infof("\nlist of %d chain(s) indexed in the account %s",
 		len(outs), addr.String())
 	for i, o := range outs {
+		seq := "NO"
+		if o.ID.IsSequencerTransaction() {
+			seq = "YES"
+		}
 		lock := o.Output.Lock()
-		glb.Infof("%2d: %s", i, o.ChainID.String())
+		glb.Infof("\n%2d: %s -- %s, sequencer: "+seq, i, o.ChainID.String(), o.ID.StringShort())
 		glb.Infof("      balance     : %s", util.Th(o.Output.Amount()))
 		glb.Infof("      lock        : %s", lock.String())
 		thisControls := ""

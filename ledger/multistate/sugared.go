@@ -251,31 +251,29 @@ func (s SugaredStateReader) IterateChainsInAccount(addr ledger.Accountable, fun 
 
 func (s SugaredStateReader) GetAllChains() (map[ledger.ChainID]ChainRecordInfo, error) {
 	var err error
-	ret := make(map[ledger.ChainID]ChainRecordInfo)
 
+	ids := make(map[ledger.ChainID]ledger.OutputID)
 	err = s.IterateChainTips(func(chainID ledger.ChainID, oid ledger.OutputID) bool {
-		ret[chainID] = ChainRecordInfo{
-			Output: &ledger.OutputDataWithID{
-				ID: oid,
-			},
-		}
+		ids[chainID] = oid
 		return true
 	})
 	if err != nil {
 		return nil, err
 	}
-	for chainID := range ret {
-		fmt.Printf(">>>>>>>>>>> %s -- %s\n", chainID.String(), ret[chainID].Output.ID.String())
-	}
 
-	for chainID, ci := range ret {
-		o := s.GetOutput(&ci.Output.ID)
+	ret := make(map[ledger.ChainID]ChainRecordInfo)
+	for chainID, oid := range ids {
+		o := s.GetOutput(&oid)
 		if o == nil {
-			return nil, fmt.Errorf("inconsistency: cannot get chainID: %s, oid: %s", chainID.String(), ci.Output.ID.String())
+			return nil, fmt.Errorf("inconsistency: cannot get chainID: %s, oid: %s", chainID.String(), oid.String())
 		}
-		ci.Balance = o.Amount()
-		ci.Output.Data = o.Bytes()
-		ret[chainID] = ci
+		ret[chainID] = ChainRecordInfo{
+			Balance: o.Amount(),
+			Output: &ledger.OutputDataWithID{
+				ID:   oid,
+				Data: o.Bytes(),
+			},
+		}
 	}
 	return ret, nil
 }

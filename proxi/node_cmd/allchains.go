@@ -1,6 +1,8 @@
 package node_cmd
 
 import (
+	"sort"
+
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -23,16 +25,23 @@ func runAllChainsCmd(_ *cobra.Command, _ []string) {
 	chains, lrbid, err := glb.GetClient().GetAllChains()
 	glb.AssertNoError(err)
 
+	glb.PrintLRB(lrbid)
+	sort.Slice(chains, func(i, j int) bool {
+		return chains[i].ID.Timestamp().After(chains[j].ID.Timestamp())
+	})
 	listChains(chains, lrbid)
 }
 
 func listChains(chains []*ledger.OutputWithChainID, lrbid *ledger.TransactionID) {
-	glb.Infof("\nlist of all chains (%d) in the LRB %s\n--------------------------------------------------------------------------",
-		len(chains), lrbid.String())
+	glb.Infof("\nlist of all chains (%d)", len(chains))
 
 	for i, o := range chains {
 		lock := o.Output.Lock()
-		glb.Infof("%2d: %s", i, o.ChainID.String())
+		seq := "NO"
+		if o.ID.IsSequencerTransaction() {
+			seq = "YES"
+		}
+		glb.Infof("\n%2d: %s, sequencer: "+seq, i, o.ChainID.String())
 		glb.Infof("      balance         : %s", util.Th(o.Output.Amount()))
 		glb.Infof("      controller lock : %s", lock.String())
 		glb.Infof("      output          : %s", o.ID.StringShort())
