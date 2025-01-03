@@ -35,14 +35,14 @@ func runDelegateStartCmd(_ *cobra.Command, args []string) {
 	glb.AssertNoError(err)
 	amount := uint64(amountInt)
 	glb.Assertf(amount >= ledger.MinimumDelegationAmount(), "amount must be >= %d", ledger.MinimumDelegationAmount())
-
-	sum := uint64(0)
-	walletOutputs, lrbid, err := glb.GetClient().GetAccountOutputs(walletData.Account, func(oid *ledger.OutputID, o *ledger.Output) bool {
-		sum += o.Amount()
-		return
-		if sum >= amount {
-			return false
-		}
-	})
-	glb.AssertNoError(err)
+	//
+	//sum := uint64(0)
+	//walletOutputs, lrbid, err := glb.GetClient().GetAccountOutputs(walletData.Account, func(oid *ledger.OutputID, o *ledger.Output) bool {
+	//	sum += o.Amount()
+	//	return
+	//	if sum >= amount {
+	//		return false
+	//	}
+	//})
+	//glb.AssertNoError(err)
 }

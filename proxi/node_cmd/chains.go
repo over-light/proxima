@@ -37,24 +37,27 @@ func runChainsCmd(_ *cobra.Command, _ []string) {
 }
 
 func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
-	glb.Infof("list of chains in the account %s", addr.String())
-	glb.Infof("------------------------------------------------------------------------------------------------")
-	glb.Infof("    ID                                                                       status      balance               lock")
-	var status string
+	glb.Infof("\nlist of %d chain(s) indexed in the account %s\n--------------------------------------------------------------------------",
+		len(outs), addr.String())
 	for i, o := range outs {
 		lock := o.Output.Lock()
-		switch lock.Name() {
-		case ledger.DelegationLockName:
-			if ledger.EqualAccountables(lock.Master(), addr) {
-				status = "master"
-			} else {
-				status = "delegated"
-			}
-		case ledger.AddressED25519Name:
-			status = "owned"
-		default:
-			status = "N/A"
+		glb.Infof("%2d: %s", i, o.ChainID.String())
+		glb.Infof("      balance     : %s", util.Th(o.Output.Amount()))
+		glb.Infof("      lock        : %s", lock.String())
+		thisControls := ""
+		if ledger.EqualAccountables(addr, lock.Master()) {
+			thisControls = " <- wallet account controls"
 		}
-		glb.Infof("%2d  %66s  %10s %25s   %s", i, o.ChainID.String(), status, util.Th(o.Output.Amount()), lock.String())
+		switch l := lock.(type) {
+		case ledger.AddressED25519:
+			glb.Infof("      master      : %s"+thisControls, l.String())
+		case *ledger.DelegationLock:
+			delegatedToThis := ""
+			if ledger.EqualAccountables(addr, l.TargetLock) {
+				delegatedToThis = " <- is delegated to the wallet account"
+			}
+			glb.Infof("      master      : %s"+thisControls, l.OwnerLock.String())
+			glb.Infof("      delegated to: %s"+delegatedToThis, l.TargetLock.String())
+		}
 	}
 }
