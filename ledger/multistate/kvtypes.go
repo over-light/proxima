@@ -17,7 +17,7 @@ type (
 	StateIndexReader interface {
 		IterateUTXOIDsInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID) bool) (err error)
 		IterateUTXOsInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID, odata []byte) bool) (err error)
-		IterateChainTips(fun func(chainID ledger.ChainID, o *ledger.OutputDataWithID) bool) error
+		IterateChainTips(fun func(chainID ledger.ChainID, oid ledger.OutputID) bool) error
 
 		GetUTXOIDsInAccount(addr ledger.AccountID) ([]ledger.OutputID, error)
 		GetUTXOsInAccount(accountID ledger.AccountID) ([]*ledger.OutputDataWithID, error) // TODO leave Iterate.. only?

@@ -35,6 +35,10 @@ type (
 		LastOutputIndex byte
 	}
 
+	mutationDelChain struct {
+		ChainID ledger.ChainID
+	}
+
 	Mutations struct {
 		mut []mutationCmd
 	}
@@ -88,6 +92,22 @@ func (m *mutationAddTx) timestamp() ledger.Time {
 	return m.ID.Timestamp()
 }
 
+func (m *mutationDelChain) mutate(trie *immutable.TrieUpdatable) error {
+	return deleteChainFromTrie(trie, m.ChainID)
+}
+
+func (m *mutationDelChain) text() string {
+	return fmt.Sprintf("DELCH %s", m.ChainID.StringShort())
+}
+
+func (m *mutationDelChain) sortOrder() byte {
+	return 3
+}
+
+func (m *mutationDelChain) timestamp() ledger.Time {
+	return ledger.NewLedgerTime(0xffffffff, 0xff)
+}
+
 func NewMutations() *Mutations {
 	return &Mutations{
 		mut: make([]mutationCmd, 0),
@@ -122,6 +142,10 @@ func (mut *Mutations) InsertAddTxMutation(id ledger.TransactionID, slot ledger.S
 		TimeSlot:        slot,
 		LastOutputIndex: lastOutputIndex,
 	})
+}
+
+func (mut *Mutations) InsertDelChainMutation(id ledger.ChainID) {
+	mut.mut = append(mut.mut, &mutationDelChain{ChainID: id})
 }
 
 func (mut *Mutations) Lines(prefix ...string) *lines.Lines {
@@ -228,6 +252,18 @@ func addTxToTrie(trie *immutable.TrieUpdatable, txid *ledger.TransactionID, slot
 	if trie.Update(stateKey[:], slot.Bytes()) {
 		// key should not exist
 		return fmt.Errorf("addTxToTrie: transaction key should not exist: %s", txid.StringShort())
+	}
+	return nil
+}
+
+func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID ledger.ChainID) error {
+	var stateKey [1 + ledger.ChainIDLength]byte
+	stateKey[0] = TriePartitionChainID
+	copy(stateKey[1:], chainID[:])
+
+	if existed := trie.Delete(stateKey[:]); !existed {
+		// only deleting existing chainIDs
+		return fmt.Errorf("deleteChainFromTrie: chain ID does not exist: %s", chainID.String())
 	}
 	return nil
 }

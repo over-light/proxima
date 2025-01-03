@@ -167,8 +167,8 @@ func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs
 			return nil, nil, fmt.Errorf("wrong output data from server: %s: '%v'", dataStr, err)
 		}
 		ret = append(ret, &ledger.OutputDataWithID{
-			ID:         id,
-			OutputData: oData,
+			ID:   id,
+			Data: oData,
 		})
 	}
 	return ret, &retLRBID, nil
@@ -259,8 +259,8 @@ func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDa
 	}
 
 	return &ledger.OutputDataWithID{
-		ID:         oid,
-		OutputData: oData,
+		ID:   oid,
+		Data: oData,
 	}, nil
 }
 

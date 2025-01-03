@@ -22,8 +22,8 @@ type (
 	}
 
 	OutputDataWithID struct {
-		ID         OutputID
-		OutputData []byte
+		ID   OutputID
+		Data []byte
 	}
 
 	OutputDataWithChainID struct {
@@ -396,7 +396,7 @@ func (o *Output) LinesPlain() *lines.Lines {
 }
 
 func (o *OutputDataWithID) Parse(validOpt ...func(o *Output) error) (*OutputWithID, error) {
-	ret, err := OutputFromBytesReadOnly(o.OutputData, validOpt...)
+	ret, err := OutputFromBytesReadOnly(o.Data, validOpt...)
 	if err != nil {
 		return nil, err
 	}

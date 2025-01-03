@@ -114,7 +114,7 @@ func (s SugaredStateReader) GetChainOutput(chainID *ledger.ChainID) (*ledger.Out
 	if err != nil {
 		return nil, err
 	}
-	ret, err := ledger.OutputFromBytesReadOnly(oData.OutputData)
+	ret, err := ledger.OutputFromBytesReadOnly(oData.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (s SugaredStateReader) GetChainTips(chainID *ledger.ChainID) (*ledger.Outpu
 	if err != nil {
 		return nil, nil, err
 	}
-	outSeq, err := ledger.OutputFromBytesReadOnly(oData.OutputData)
+	outSeq, err := ledger.OutputFromBytesReadOnly(oData.Data)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -250,28 +250,32 @@ func (s SugaredStateReader) IterateChainsInAccount(addr ledger.Accountable, fun 
 }
 
 func (s SugaredStateReader) GetAllChains() (map[ledger.ChainID]ChainRecordInfo, error) {
-	ret := make(map[ledger.ChainID]ChainRecordInfo)
 	var err error
-	var amount ledger.Amount
+	ret := make(map[ledger.ChainID]ChainRecordInfo)
 
-	err = s.IterateChainTips(func(chainID ledger.ChainID, o *ledger.OutputDataWithID) bool {
-		if _, already := ret[chainID]; already {
-			err = fmt.Errorf("repeating chain record")
-			return false
-		}
-		_, amount, _, err = ledger.OutputFromBytesMain(o.OutputData)
-		if err != nil {
-			return false
-		}
-
+	err = s.IterateChainTips(func(chainID ledger.ChainID, oid ledger.OutputID) bool {
 		ret[chainID] = ChainRecordInfo{
-			Balance: uint64(amount),
-			Output:  o,
+			Output: &ledger.OutputDataWithID{
+				ID: oid,
+			},
 		}
 		return true
 	})
 	if err != nil {
 		return nil, err
+	}
+	for chainID := range ret {
+		fmt.Printf(">>>>>>>>>>> %s -- %s\n", chainID.String(), ret[chainID].Output.ID.String())
+	}
+
+	for chainID, ci := range ret {
+		o := s.GetOutput(&ci.Output.ID)
+		if o == nil {
+			return nil, fmt.Errorf("inconsistency: cannot get chainID: %s, oid: %s", chainID.String(), ci.Output.ID.String())
+		}
+		ci.Balance = o.Amount()
+		ci.Output.Data = o.Bytes()
+		ret[chainID] = ci
 	}
 	return ret, nil
 }

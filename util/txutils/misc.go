@@ -28,7 +28,7 @@ func ParseAndSortOutputData(outs []*ledger.OutputDataWithID, filter func(oid *le
 func ParseOutputDataAndFilter(outs []*ledger.OutputDataWithID, filter func(oid *ledger.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, error) {
 	ret := make([]*ledger.OutputWithID, 0, len(outs))
 	for _, od := range outs {
-		out, err := ledger.OutputFromBytesReadOnly(od.OutputData)
+		out, err := ledger.OutputFromBytesReadOnly(od.Data)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func FilterChainOutputs(outs []*ledger.OutputWithID) ([]*ledger.OutputWithChainI
 
 func forEachOutputReadOnly(outs []*ledger.OutputDataWithID, fun func(o *ledger.Output, odata *ledger.OutputDataWithID) bool) error {
 	for _, odata := range outs {
-		o, err := ledger.OutputFromBytesReadOnly(odata.OutputData)
+		o, err := ledger.OutputFromBytesReadOnly(odata.Data)
 		if err != nil {
 			return err
 		}

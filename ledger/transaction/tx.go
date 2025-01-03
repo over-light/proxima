@@ -625,8 +625,8 @@ func (tx *Transaction) ConsumedOutputAt(idx byte, fetchOutput func(id *ledger.Ou
 		return nil, fmt.Errorf("can't fetch output %s", oid.StringShort())
 	}
 	return &ledger.OutputDataWithID{
-		ID:         oid,
-		OutputData: ret,
+		ID:   oid,
+		Data: ret,
 	}, nil
 }
 
@@ -883,6 +883,9 @@ func (tx *Transaction) StateMutations() *multistate.Mutations {
 		return true
 	})
 	ret.InsertAddTxMutation(tx.ID(), tx.Slot(), byte(tx.NumProducedOutputs()-1))
+
+	// TODO not correct. ChainIDs of discontinued chains must be deleted. We leave it as is because tx.StateMutations is not used
+	//  in the UTXO tangle but mostly in tests or at the DB inception
 	return ret
 }
 

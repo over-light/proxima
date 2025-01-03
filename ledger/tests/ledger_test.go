@@ -382,7 +382,7 @@ func TestChain1(t *testing.T) {
 		require.EqualValues(t, 1, len(chains))
 		chs, err := u.StateReader().GetUTXOForChainID(&chains[0].ChainID)
 		require.NoError(t, err)
-		o, err := ledger.OutputFromBytesReadOnly(chs.OutputData)
+		o, err := ledger.OutputFromBytesReadOnly(chs.Data)
 		require.NoError(t, err)
 		ch, idx := o.ChainConstraint()
 		require.True(t, idx != 0xff)

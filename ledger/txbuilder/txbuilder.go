@@ -830,7 +830,7 @@ func GetChainAccount(chainID ledger.ChainID, srdr multistate.IndexedStateReader,
 // InsertSimpleChainTransition inserts a simple chain transition (surprise, surprise). Takes output with chain constraint from parameters,
 // Produces identical output, only modifies timestamp. Unlocks chain-input lock with signature reference
 func (txb *TransactionBuilder) InsertSimpleChainTransition(inChainData *ledger.OutputDataWithChainID, ts ledger.Time) error {
-	chainIN, err := ledger.OutputFromBytesReadOnly(inChainData.OutputData)
+	chainIN, err := ledger.OutputFromBytesReadOnly(inChainData.Data)
 	if err != nil {
 		return err
 	}

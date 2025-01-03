@@ -182,14 +182,14 @@ func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 				if maxOutputs > 0 && len(resp.Outputs) >= maxOutputs {
 					break
 				}
-				resp.Outputs[o.ID.StringHex()] = hex.EncodeToString(o.OutputData)
+				resp.Outputs[o.ID.StringHex()] = hex.EncodeToString(o.Data)
 			}
 		}
 	} else {
 		// return first max number of sorted outputs
 		sorted := make(map[string]*ledger.Output)
 		for _, o := range oData {
-			sorted[o.ID.StringHex()], err = ledger.OutputFromBytesReadOnly(o.OutputData)
+			sorted[o.ID.StringHex()], err = ledger.OutputFromBytesReadOnly(o.Data)
 			if err != nil {
 				writeErr(w, "server error while parsing UTXO: "+err.Error())
 				return
@@ -514,7 +514,7 @@ func (srv *server) getAllChains(w http.ResponseWriter, r *http.Request) {
 	for chainID, ri := range lst {
 		resp.Chains[chainID.StringHex()] = api.OutputDataWithID{
 			ID:   ri.Output.ID.StringHex(),
-			Data: hex.EncodeToString(ri.Output.OutputData),
+			Data: hex.EncodeToString(ri.Output.Data),
 		}
 	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")

@@ -200,8 +200,8 @@ func (r *Readable) GetUTXOsInAccount(addr ledger.AccountID) ([]*ledger.OutputDat
 	ret := make([]*ledger.OutputDataWithID, 0)
 	err := r.IterateUTXOsInAccount(addr, func(oid ledger.OutputID, odata []byte) bool {
 		ret = append(ret, &ledger.OutputDataWithID{
-			ID:         oid,
-			OutputData: odata,
+			ID:   oid,
+			Data: odata,
 		})
 		return true
 	})
@@ -272,8 +272,8 @@ func (r *Readable) _getUTXOForChainID(id *ledger.ChainID) (*ledger.OutputDataWit
 		return nil, ErrNotFound
 	}
 	return &ledger.OutputDataWithID{
-		ID:         oid,
-		OutputData: outData,
+		ID:   oid,
+		Data: outData,
 	}, nil
 }
 
@@ -388,25 +388,23 @@ func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
 	return ret
 }
 
-func (r *Readable) IterateChainTips(fun func(chainID ledger.ChainID, o *ledger.OutputDataWithID) bool) error {
+func (r *Readable) IterateChainTips(fun func(chainID ledger.ChainID, oid ledger.OutputID) bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	var chainID ledger.ChainID
+	var oid ledger.OutputID
 	var err error
-	var oData *ledger.OutputDataWithID
-	r.trie.Iterator([]byte{TriePartitionChainID}).Iterate(func(k, v []byte) bool {
+	r.trie.Iterator([]byte{TriePartitionChainID}).Iterate(func(k []byte, v []byte) bool {
 		chainID, err = ledger.ChainIDFromBytes(k[1:])
 		if err != nil {
 			return false
 		}
-		oData, err = r._getUTXOForChainID(&chainID)
+		oid, err = ledger.OutputIDFromBytes(v)
 		if err != nil {
-			fmt.Printf("2 @@@@@@@@@@@@@@@ %v -- %s", err, chainID.String())
 			return false
 		}
-
-		return fun(chainID, oData)
+		return fun(chainID, oid)
 	})
 	return err
 }

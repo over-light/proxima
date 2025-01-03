@@ -597,6 +597,10 @@ type MutationStats struct {
 func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, stats MutationStats) {
 	muts = multistate.NewMutations()
 
+	// need to handle discontinued chains
+	deletedChainIDs := set.New[ledger.ChainID]()
+	producedChainIDs := set.New[ledger.ChainID]()
+
 	// generate ADD TX and ADD OUTPUT mutations
 	for vid := range pc.vertices {
 		if pc.IsInTheState(vid) {
@@ -605,7 +609,17 @@ func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, sta
 				pc.Assertf(len(consumersOfRooted) == 1, "Mutations: len(consumersOfRooted)==1")
 
 				if pc.isNotInTheState(consumersOfRooted[0]) {
-					muts.InsertDelOutputMutation(vid.OutputID(idx))
+					oid := vid.OutputID(idx)
+					o := vid.MustOutputAt(idx)
+					if cc, ccIdx := o.ChainConstraint(); ccIdx != 0xff {
+						chainID := cc.ID
+						if cc.IsOrigin() {
+							chainID = ledger.MakeOriginChainID(&oid)
+						}
+						// chain output deleted
+						deletedChainIDs.Insert(chainID)
+					}
+					muts.InsertDelOutputMutation(oid)
 					stats.NumDeleted++
 				}
 			}
@@ -616,10 +630,27 @@ func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, sta
 
 			// ADD OUTPUT mutations only for not consumed outputs
 			for _, idx := range pc.producedIndices(vid) {
-				muts.InsertAddOutputMutation(vid.OutputID(idx), vid.MustOutputAt(idx))
+				o := vid.MustOutputAt(idx)
+				oid := vid.OutputID(idx)
+				muts.InsertAddOutputMutation(oid, o)
 				stats.NumCreated++
+
+				if cc, ccIdx := o.ChainConstraint(); ccIdx != 0xff {
+					chainID := cc.ID
+					if cc.IsOrigin() {
+						chainID = ledger.MakeOriginChainID(&oid)
+					}
+					producedChainIDs.Insert(chainID)
+				}
 			}
 		}
+	}
+	// add delchain mutations for those chain IDs which were deleted and wasn't produced
+	for chainID := range producedChainIDs {
+		deletedChainIDs.Remove(chainID)
+	}
+	for chainID := range deletedChainIDs {
+		muts.InsertDelChainMutation(chainID)
 	}
 	return
 }
