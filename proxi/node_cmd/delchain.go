@@ -30,10 +30,10 @@ func DeleteChain(chainId *ledger.ChainID) (*transaction.TxContext, error) {
 	target := glb.MustGetTarget()
 
 	var tagAlongSeqID *ledger.ChainID
-	feeAmount := getTagAlongFee()
+	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	if feeAmount > 0 {
-		tagAlongSeqID = GetTagAlongSequencerID()
+		tagAlongSeqID = glb.GetTagAlongSequencerID()
 		glb.Assertf(tagAlongSeqID != nil, "tag-along sequencer not specified")
 
 		md, err := glb.GetClient().GetMilestoneData(*tagAlongSeqID)

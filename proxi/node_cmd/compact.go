@@ -38,9 +38,9 @@ func runCompactCmd(_ *cobra.Command, args []string) {
 	}
 
 	var tagAlongSeqID *ledger.ChainID
-	feeAmount := getTagAlongFee()
+	feeAmount := glb.GetTagAlongFee()
 	if feeAmount > 0 {
-		tagAlongSeqID = GetTagAlongSequencerID()
+		tagAlongSeqID = glb.GetTagAlongSequencerID()
 		glb.Assertf(tagAlongSeqID != nil, "tag-along sequencer not specified")
 
 		md, err := glb.GetClient().GetMilestoneData(*tagAlongSeqID)

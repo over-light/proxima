@@ -24,7 +24,7 @@ func initInflateTokensCmd() *cobra.Command {
 func runInflateTokensCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromNode()
 
-	tagAlongFee := getTagAlongFee()
+	tagAlongFee := glb.GetTagAlongFee()
 	chainTransitionPeriod := uint64(2)
 	onChainAmount := uint64(0)
 	if len(args) > 0 {

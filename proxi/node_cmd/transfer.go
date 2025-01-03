@@ -39,18 +39,16 @@ func runTransferCmd(_ *cobra.Command, args []string) {
 	target := glb.MustGetTarget()
 
 	var tagAlongSeqID *ledger.ChainID
-	feeAmount := getTagAlongFee()
+	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
-	if feeAmount > 0 {
-		tagAlongSeqID = GetTagAlongSequencerID()
-		glb.Assertf(tagAlongSeqID != nil, "tag-along sequencer not specified")
+	tagAlongSeqID = glb.GetTagAlongSequencerID()
+	glb.Assertf(tagAlongSeqID != nil, "tag-along sequencer not specified")
 
-		md, err := glb.GetClient().GetMilestoneData(*tagAlongSeqID)
-		glb.AssertNoError(err)
+	md, err := glb.GetClient().GetMilestoneData(*tagAlongSeqID)
+	glb.AssertNoError(err)
 
-		if md != nil && md.MinimumFee > feeAmount {
-			feeAmount = md.MinimumFee
-		}
+	if md != nil && md.MinimumFee > feeAmount {
+		feeAmount = md.MinimumFee
 	}
 	prompt := fmt.Sprintf("transfer will cost %d of fees paid to the tag-along sequencer %s. Proceed?", feeAmount, tagAlongSeqID.StringShort())
 

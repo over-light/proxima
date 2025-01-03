@@ -15,7 +15,7 @@ func Init() *cobra.Command {
 	glb.AddFlagTarget(seqCmd)
 
 	seqCmd.AddCommand(
-		initDelegateStartCmd(),
+		initDelegateSendCmd(),
 	)
 
 	seqCmd.InitDefaultHelpCmd()

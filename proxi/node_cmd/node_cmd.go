@@ -89,23 +89,3 @@ func displayTotals(outs []*ledger.OutputWithID) {
 	}
 	glb.Infof("TOTAL controlled on %d outputs: %s", numChains+numNonChains, util.Th(sumOnChains+sumOutsideChains))
 }
-
-func getTagAlongFee() uint64 {
-	return viper.GetUint64("tag_along.fee")
-}
-
-func GetTagAlongSequencerID() *ledger.ChainID {
-	seqIDStr := viper.GetString("tag_along.sequencer_id")
-	if seqIDStr == "" {
-		return nil
-	}
-	ret, err := ledger.ChainIDFromHexString(seqIDStr)
-	glb.AssertNoError(err)
-
-	o, err := glb.GetClient().GetChainOutputData(ret)
-	glb.Assertf(err == nil, "can't get tag-along sequencer: %v", err)
-	glb.Assertf(o.ID.IsSequencerTransaction(), "can't get tag-along sequencer %s: chain output %s is not a sequencer output",
-		ret.StringShort(), o.ID.StringShort())
-
-	return &ret
-}

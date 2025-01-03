@@ -161,3 +161,23 @@ func GetInclusionThreshold() (int, int) {
 func GetIsWeakFinality() bool {
 	return viper.GetBool("finality.weak")
 }
+
+func GetTagAlongFee() uint64 {
+	return viper.GetUint64("tag_along.fee")
+}
+
+func GetTagAlongSequencerID() *ledger.ChainID {
+	seqIDStr := viper.GetString("tag_along.sequencer_id")
+	if seqIDStr == "" {
+		return nil
+	}
+	ret, err := ledger.ChainIDFromHexString(seqIDStr)
+	AssertNoError(err)
+
+	o, err := GetClient().GetChainOutputData(ret)
+	Assertf(err == nil, "can't get tag-along sequencer: %v", err)
+	Assertf(o.ID.IsSequencerTransaction(), "can't get tag-along sequencer %s: chain output %s is not a sequencer output",
+		ret.StringShort(), o.ID.StringShort())
+
+	return &ret
+}

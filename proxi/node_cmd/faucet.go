@@ -200,10 +200,10 @@ func (fct *faucet) redrawFromChain(targetLock ledger.Accountable) (string, *ledg
 	}
 
 	var tagAlongSeqID *ledger.ChainID
-	feeAmount := getTagAlongFee()
+	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	if feeAmount > 0 {
-		tagAlongSeqID = GetTagAlongSequencerID()
+		tagAlongSeqID = glb.GetTagAlongSequencerID()
 		glb.Assertf(tagAlongSeqID != nil, "tag-along sequencer not specified")
 
 		md, err := glb.GetClient().GetMilestoneData(*tagAlongSeqID)
@@ -255,10 +255,10 @@ func (fct *faucet) redrawFromAccount(targetLock ledger.Accountable) (string, *le
 	glb.Infof("source is the wallet account: %s", fct.cfg.account.String())
 
 	var tagAlongSeqID *ledger.ChainID
-	feeAmount := getTagAlongFee()
+	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	if feeAmount > 0 {
-		tagAlongSeqID = GetTagAlongSequencerID()
+		tagAlongSeqID = glb.GetTagAlongSequencerID()
 		glb.Assertf(tagAlongSeqID != nil, "tag-along sequencer not specified")
 
 		md, err := glb.GetClient().GetMilestoneData(*tagAlongSeqID)

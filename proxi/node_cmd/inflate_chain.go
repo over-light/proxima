@@ -43,8 +43,8 @@ func runInflateChainCmd(_ *cobra.Command, args []string) {
 
 func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID) {
 	walletData := glb.GetWalletData()
-	tagAlongSeq := GetTagAlongSequencerID()
-	tagAlongFee := getTagAlongFee()
+	tagAlongSeq := glb.GetTagAlongSequencerID()
+	tagAlongFee := glb.GetTagAlongFee()
 
 	glb.Assertf(chainTransitionPeriodSlots <= ledger.Slot(ledger.L().ID.ChainInflationOpportunitySlots),
 		"transition period in slots should not be bigger than inflation opportunity window")
