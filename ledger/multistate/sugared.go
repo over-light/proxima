@@ -248,3 +248,30 @@ func (s SugaredStateReader) IterateChainsInAccount(addr ledger.Accountable, fun 
 		return true
 	})
 }
+
+func (s SugaredStateReader) GetAllChains() (map[ledger.ChainID]ChainRecordInfo, error) {
+	ret := make(map[ledger.ChainID]ChainRecordInfo)
+	var err error
+	var amount ledger.Amount
+
+	err = s.IterateChainTips(func(chainID ledger.ChainID, o *ledger.OutputDataWithID) bool {
+		if _, already := ret[chainID]; already {
+			err = fmt.Errorf("repeating chain record")
+			return false
+		}
+		_, amount, _, err = ledger.OutputFromBytesMain(o.OutputData)
+		if err != nil {
+			return false
+		}
+
+		ret[chainID] = ChainRecordInfo{
+			Balance: uint64(amount),
+			Output:  o,
+		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}

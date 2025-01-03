@@ -17,10 +17,8 @@ type (
 	}
 
 	ChainRecordInfo struct {
-		Balance     uint64
-		Output      *ledger.OutputDataWithID
-		IsSequencer bool
-		IsBranch    bool
+		Balance uint64
+		Output  *ledger.OutputDataWithID
 	}
 
 	AccountInfo struct {
@@ -48,9 +46,11 @@ type (
 
 func MustCollectAccountInfo(store StateStore, root common.VCommitment) *AccountInfo {
 	rdr := MustNewReadable(store, root)
+	chainRecs, err := MakeSugared(rdr).GetAllChains() // TODO a bit ugly
+	util.AssertNoError(err)
 	return &AccountInfo{
 		LockedAccounts: rdr.AccountsByLocks(),
-		ChainRecords:   rdr.ChainInfo(),
+		ChainRecords:   chainRecs,
 	}
 }
 
@@ -83,7 +83,7 @@ func (a *AccountInfo) Lines(prefix ...string) *lines.Lines {
 	sum = 0
 	for _, chainID := range chainIDSSorted {
 		ci := a.ChainRecords[chainID]
-		ret.Add("   %s :: %s   seq=%v branch=%v", chainID.String(), util.Th(ci.Balance), ci.IsSequencer, ci.IsBranch)
+		ret.Add("   %s :: %s   seq=%v branch=%v", chainID.String(), util.Th(ci.Balance), ci.Output.ID.IsSequencerTransaction(), ci.Output.ID.IsBranchTransaction())
 		sum += ci.Balance
 	}
 	ret.Add("--------------------------------")

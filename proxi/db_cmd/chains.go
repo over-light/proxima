@@ -49,7 +49,8 @@ func runChainsCmd(_ *cobra.Command, args []string) {
 	sum := uint64(0)
 	for _, chainID := range chainIDSSorted {
 		ci := accountInfo.ChainRecords[chainID]
-		glb.Infof("   %s :: %s :: %s   seq=%v branch=%v", chainID.String(), ci.Output.ID.String(), util.Th(ci.Balance), ci.IsSequencer, ci.IsBranch)
+		glb.Infof("   %s :: %s :: %s   seq=%v branch=%v",
+			chainID.String(), ci.Output.ID.String(), util.Th(ci.Balance), ci.Output.ID.IsSequencerTransaction(), ci.Output.ID.IsBranchTransaction())
 		if glb.IsVerbose() {
 			o, _ := ledger.OutputFromBytesReadOnly(ci.Output.OutputData)
 			lines := o.Lines("            ::")

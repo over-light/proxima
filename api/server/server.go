@@ -88,6 +88,8 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetLastKnownSequencerMilestones, srv.getMilestoneList)
 	// GET main chain of branches /get_mainchain?[max=]
 	srv.addHandler(api.PathGetMainChain, srv.getMainChain)
+	// GET all chains in the LRB /get_all_chains
+	srv.addHandler(api.PathGetAllChains, srv.getAllChains)
 	// GET dashboard for node
 	srv.addHandler(api.PathGetDashboard, srv.getDashboard)
 
@@ -236,8 +238,8 @@ func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 		if err1 != nil {
 			return err1
 		}
-		resp.OutputID = o.ID.StringHex()
-		resp.OutputData = hex.EncodeToString(o.Output.Bytes())
+		resp.ID = o.ID.StringHex()
+		resp.Data = hex.EncodeToString(o.Output.Bytes())
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
 		return nil
@@ -480,6 +482,41 @@ func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	respBin, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	_, err = w.Write(respBin)
+	util.AssertNoError(err)
+}
+
+func (srv *server) getAllChains(w http.ResponseWriter, r *http.Request) {
+	setHeader(w)
+
+	var lst map[ledger.ChainID]multistate.ChainRecordInfo
+	resp := api.Chains{
+		Chains: make(map[string]api.OutputDataWithID),
+	}
+
+	err := srv.withLRB(func(rdr multistate.SugaredStateReader) error {
+		var err1 error
+		lst, err1 = rdr.GetAllChains()
+		lrbid := rdr.GetStemOutput().ID.TransactionID()
+		resp.LRBID = lrbid.StringHex()
+		return err1
+	})
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+
+	for chainID, ri := range lst {
+		resp.Chains[chainID.StringHex()] = api.OutputDataWithID{
+			ID:   ri.Output.ID.StringHex(),
+			Data: hex.EncodeToString(ri.Output.OutputData),
+		}
+	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		writeErr(w, err.Error())

@@ -388,36 +388,26 @@ func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
 	return ret
 }
 
-func (r *Readable) ChainInfo() map[ledger.ChainID]ChainRecordInfo {
+func (r *Readable) IterateChainTips(fun func(chainID ledger.ChainID, o *ledger.OutputDataWithID) bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	ret := make(map[ledger.ChainID]ChainRecordInfo)
 	var chainID ledger.ChainID
 	var err error
 	var oData *ledger.OutputDataWithID
-	var amount ledger.Amount
-
 	r.trie.Iterator([]byte{TriePartitionChainID}).Iterate(func(k, v []byte) bool {
 		chainID, err = ledger.ChainIDFromBytes(k[1:])
-		util.AssertNoError(err)
-		oData, err = r._getUTXOForChainID(&chainID)
-		util.AssertNoError(err)
-
-		_, already := ret[chainID]
-		util.Assertf(!already, "repeating chain record")
-		_, amount, _, err = ledger.OutputFromBytesMain(oData.OutputData)
-		util.AssertNoError(err)
-
-		ret[chainID] = ChainRecordInfo{
-			Balance:     uint64(amount),
-			IsSequencer: oData.ID.IsSequencerTransaction(),
-			IsBranch:    oData.ID.IsBranchTransaction(),
-			Output:      oData,
+		if err != nil {
+			return false
 		}
-		return true
+		oData, err = r._getUTXOForChainID(&chainID)
+		if err != nil {
+			return false
+		}
+
+		return fun(chainID, oData)
 	})
-	return ret
+	return err
 }
 
 func (r *Readable) Root() common.VCommitment {

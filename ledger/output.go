@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/proxima/util"
@@ -63,6 +64,23 @@ func OutputBasic(amount uint64, lock Lock) *Output {
 }
 
 func OutputFromBytesReadOnly(data []byte, validateOpt ...func(*Output) error) (*Output, error) {
+	ret, _, _, err := OutputFromBytesMain(data)
+	if err != nil {
+		return nil, err
+	}
+	for _, validate := range validateOpt {
+		if err := validate(ret); err != nil {
+			return nil, err
+		}
+	}
+	return ret, nil
+}
+
+func OutputFromHexString(hexStr string, validateOpt ...func(*Output) error) (*Output, error) {
+	data, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
 	ret, _, _, err := OutputFromBytesMain(data)
 	if err != nil {
 		return nil, err

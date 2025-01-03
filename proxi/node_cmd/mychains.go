@@ -11,8 +11,8 @@ import (
 
 func initChainsCmd() *cobra.Command {
 	chainsCmd := &cobra.Command{
-		Use:   "chains",
-		Short: `lists chains controlled by the account`,
+		Use:   "mychains",
+		Short: `lists chains controlled by the wallet account`,
 		Args:  cobra.NoArgs,
 		Run:   runChainsCmd,
 	}

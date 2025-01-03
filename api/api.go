@@ -31,6 +31,7 @@ const (
 	PathCheckTxIDInLRB                  = PrefixAPIV1 + "/check_txid_in_lrb"
 	PathGetLastKnownSequencerMilestones = PrefixAPIV1 + "/last_known_milestones"
 	PathGetMainChain                    = PrefixAPIV1 + "/get_mainchain"
+	PathGetAllChains                    = PrefixAPIV1 + "/get_all_chains"
 	// PathGetDashboard returns dashboard
 	PathGetDashboard = "/dashboard"
 
@@ -67,18 +68,24 @@ type (
 		LRBID string `json:"lrb_id"`
 	}
 
-	OutputIDWithData struct {
+	OutputDataWithID struct {
 		// hex-encoded outputID
-		OutputID string `json:"output_id,omitempty"`
+		ID string `json:"id"`
 		// hex-encoded output data
-		OutputData string `json:"output_data,omitempty"`
+		Data string `json:"data"`
 	}
 	// ChainOutput is returned by 'get_chain_output'
 	ChainOutput struct {
 		Error
-		OutputIDWithData
+		OutputDataWithID
 		// latest reliable branch used to extract chain ID
 		LRBID string `json:"lrb_id"`
+	}
+
+	Chains struct {
+		Error
+		Chains map[string]OutputDataWithID `json:"chains"`
+		LRBID  string                      `json:"lrb_id"`
 	}
 
 	// OutputData is returned by 'get_output'

@@ -248,14 +248,14 @@ func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDa
 		return nil, fmt.Errorf("GetChainOutputData for %s: from server: %s", chainID.StringShort(), res.Error.Error)
 	}
 
-	oid, err := ledger.OutputIDFromHexString(res.OutputID)
+	oid, err := ledger.OutputIDFromHexString(res.ID)
 	if err != nil {
 		return nil, fmt.Errorf("GetChainOutputData for %s: wrong output ID data received from server: %s: '%v",
-			chainID.StringShort(), res.OutputID, err)
+			chainID.StringShort(), res.ID, err)
 	}
-	oData, err := hex.DecodeString(res.OutputData)
+	oData, err := hex.DecodeString(res.Data)
 	if err != nil {
-		return nil, fmt.Errorf("wrong output data received from server: %s: '%v'", res.OutputData, err)
+		return nil, fmt.Errorf("wrong output data received from server: %s: '%v'", res.Data, err)
 	}
 
 	return &ledger.OutputDataWithID{
@@ -450,6 +450,56 @@ func (c *APIClient) GetPeersInfo() (*api.PeersInfo, error) {
 		return nil, fmt.Errorf("from server: %s", res.Error.Error)
 	}
 	return &res, nil
+}
+
+func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.TransactionID, error) {
+	body, err := c.getBody(api.PathGetAllChains)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var res api.Chains
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+	if res.Error.Error != "" {
+		return nil, nil, fmt.Errorf("%s", res.Error.Error)
+	}
+
+	lrbid, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ret := make([]*ledger.OutputWithChainID, len(res.Chains))
+	for chainIDStr, ci := range res.Chains {
+		chaiID, err := ledger.ChainIDFromHexString(chainIDStr)
+		if err != nil {
+			return nil, nil, err
+		}
+		o, err := ledger.OutputFromHexString(ci.Data)
+		if err != nil {
+			return nil, nil, err
+		}
+		oid, err := ledger.OutputIDFromHexString(ci.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		cc, idx := o.ChainConstraint()
+		if idx == 0xff {
+			return nil, nil, fmt.Errorf("invalid chain constraint")
+		}
+		ret = append(ret, &ledger.OutputWithChainID{
+			OutputWithID: ledger.OutputWithID{
+				ID:     oid,
+				Output: o,
+			},
+			ChainID:                    chaiID,
+			PredecessorConstraintIndex: cc.PredecessorInputIndex,
+		})
+	}
+	return ret, &lrbid, nil
 }
 
 // GetTransferableOutputs returns reasonable maximum number of outputs owned by accountable with only 2 constraints and returns total
