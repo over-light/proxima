@@ -69,15 +69,19 @@ func delegationLock: and(
         and(
             selfIsConsumedOutput,
             or(
-               and(  // check delegation case on even slots
-                  isOpenDelegationSlot(slice(_selfSuccessorChainData($0),0,3), txTimeSlot),  
-                  _enforceDelegationTargetConstraintsOnSuccessor(
-                      $0,
-                      $1, 
-                      producedOutputByIndex(byte(selfSiblingUnlockParams($0), 0))
-                  ) // check successor
-               ),
-               require($2, !!!owner_address_is_not_unlocked ) // otherwise check owner's lock
+               $2,   // unlocked owner's lock validates it all
+               require(
+                  and(  
+                     // otherwise, check delegation case on even slots
+                     isOpenDelegationSlot(slice(_selfSuccessorChainData($0),0,3), txTimeSlot),  
+                     _enforceDelegationTargetConstraintsOnSuccessor(
+                         $0,
+                         $1, 
+                         producedOutputByIndex(byte(selfSiblingUnlockParams($0), 0))
+                     ) // check successor
+                  ),
+                  !!!delegation_target_lock_failed
+               )
             )
         )
     )
