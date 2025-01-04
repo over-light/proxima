@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/spf13/viper"
 )
 
@@ -336,9 +337,21 @@ func (par *Params) adjustDefaults() {
 		par.KeepInConsumedListSlots = keepInConsumedListSlots
 	}
 	if par.NoInflationSlots < minimumNoInflationSlots || uint64(par.NoInflationSlots) > ledger.L().ID.ChainInflationOpportunitySlots {
-		par.KeepInConsumedListSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 2)
+		par.KeepInConsumedListSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 4)
 	}
 	if par.LoopPeriod < 100*time.Millisecond {
 		par.LoopPeriod = defaultLoopPeriod
 	}
+}
+
+func (p *Params) Lines(prefix ...string) *lines.Lines {
+	return lines.New(prefix...).
+		Add("enable: %v", p.Enable).
+		Add("delegation target: %s", p.Target.String()).
+		Add("tag_along_sequencer: %s", p.TagAlongSequencer.StringShort()).
+		Add("margin promille: %d", p.MarginPromille).
+		Add("tag_along_amount: %s", util.Th(p.TagAlongAmount)).
+		Add("max_delegations_per_tx: %d", p.MaxDelegationsPerTx).
+		Add("keep_in_consumed_list_slots: %d", p.KeepInConsumedListSlots).
+		Add("no_inflation_slots: %d", p.NoInflationSlots)
 }

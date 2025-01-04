@@ -125,7 +125,7 @@ func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey
 	}
 	if inflatorParams.Enable {
 		ret.inflator = inflator.New(ret, inflatorParams)
-		ret.Log().Infof("inflator is ENABLED")
+		ret.Log().Infof("inflator is ENABLED with params:\n%s", inflatorParams.Lines("        ").String())
 	} else {
 		ret.Log().Infof("inflator is DISABLED")
 	}
