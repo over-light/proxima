@@ -58,7 +58,7 @@ func TestDelegation(t *testing.T) {
 		par, err := u.MakeTransferInputData(privKey[0], nil, ledger.NilLedgerTime)
 		require.NoError(t, err)
 
-		delegationLock = ledger.NewDelegationLock(addr[0], addr[1], 2)
+		delegationLock = ledger.NewDelegationLock(addr[0], addr[1], 2, ledger.TimeNow(), delegatedTokens)
 		txBytes, err = txbuilder.MakeSimpleTransferTransaction(par.
 			WithAmount(delegatedTokens).
 			WithTargetLock(delegationLock).

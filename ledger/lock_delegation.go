@@ -18,11 +18,13 @@ type DelegationLock struct {
 	OwnerLock  Accountable
 	// must point to the sibling chain constraint
 	ChainConstraintIndex byte
+	StartTime            Time
+	StartAmount          uint64
 }
 
 const (
 	DelegationLockName     = "delegationLock"
-	delegationLockTemplate = DelegationLockName + "(%d, %s, %s)"
+	delegationLockTemplate = DelegationLockName + "(%d, %s, %s, 0x%s, u64/%d)"
 )
 
 const delegationLockSource = `
@@ -54,8 +56,12 @@ func _selfSuccessorChainData : evalArgumentBytecode(producedConstraintByIndex(sl
 // $0 chain constraint index
 // $1 target lock
 // $2 owner lock
+// $3 start time 
+// $4 start amount
 func delegationLock: and(
 	mustSize($0,1),
+           // only sizes are enforced, otherwise $3 and $4 are auxiliary, for information
+	require(and(equal(len($3),u64/5), equal(len($4),u64/8)), !!!args_$3_and_$4_must_be_5_and_8_bytes_length), 
     require(not(isBranchTransaction), !!!delegation_should_not_be_branch),
     require(greaterOrEqualThan(selfAmountValue, minimumDelegatedAmount), !!!delegation_amount_is_below_minimum),
 	require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
@@ -90,16 +96,18 @@ func delegationLock: and(
 )
 `
 
-func NewDelegationLock(owner, target Accountable, chainConstraintIndex byte) *DelegationLock {
+func NewDelegationLock(owner, target Accountable, chainConstraintIndex byte, startTime Time, startAmount uint64) *DelegationLock {
 	return &DelegationLock{
 		TargetLock:           target,
 		OwnerLock:            owner,
 		ChainConstraintIndex: chainConstraintIndex,
+		StartTime:            startTime,
+		StartAmount:          startAmount,
 	}
 }
 
 func DelegationLockFromBytes(data []byte) (*DelegationLock, error) {
-	sym, _, args, err := L().ParseBytecodeOneLevel(data, 3)
+	sym, _, args, err := L().ParseBytecodeOneLevel(data, 5)
 	if err != nil {
 		return nil, fmt.Errorf("DelegationLockFromBytes: %w", err)
 	}
@@ -121,11 +129,25 @@ func DelegationLockFromBytes(data []byte) (*DelegationLock, error) {
 	if err != nil {
 		return nil, fmt.Errorf("DelegationLockFromBytes: %w", err)
 	}
+
+	arg3 := easyfl.StripDataPrefix(args[3])
+	ret.StartTime, err = TimeFromBytes(arg3)
+	if err != nil {
+		return nil, fmt.Errorf("DelegationLockFromBytes: %w", err)
+	}
+
+	arg4 := easyfl.StripDataPrefix(args[4])
+	if len(arg4) != 8 {
+		return nil, fmt.Errorf("DelegationLockFromBytes: wrong start amount")
+	}
+	ret.StartAmount = binary.BigEndian.Uint64(arg4)
+
 	return ret, nil
 }
 
 func (d *DelegationLock) Source() string {
-	return fmt.Sprintf(delegationLockTemplate, d.ChainConstraintIndex, d.TargetLock.Source(), d.OwnerLock.Source())
+	return fmt.Sprintf(delegationLockTemplate,
+		d.ChainConstraintIndex, d.TargetLock.Source(), d.OwnerLock.Source(), hex.EncodeToString(d.StartTime.Bytes()), d.StartAmount)
 }
 
 func (d *DelegationLock) Bytes() []byte {
@@ -149,7 +171,7 @@ func (d *DelegationLock) Master() Accountable {
 }
 
 func addDelegationLock(lib *Library) {
-	lib.extendWithConstraint(DelegationLockName, delegationLockSource, 3, func(data []byte) (Constraint, error) {
+	lib.extendWithConstraint(DelegationLockName, delegationLockSource, 5, func(data []byte) (Constraint, error) {
 		return DelegationLockFromBytes(data)
 	}, initTestDelegationConstraint)
 }
@@ -157,7 +179,8 @@ func addDelegationLock(lib *Library) {
 func initTestDelegationConstraint() {
 	a1 := AddressED25519Random()
 	a2 := AddressED25519Random()
-	example := NewDelegationLock(a1, a2, 1)
+	ts := TimeNow()
+	example := NewDelegationLock(a1, a2, 1, ts, 1337)
 	exampleBack, err := DelegationLockFromBytes(example.Bytes())
 	util.AssertNoError(err)
 	util.Assertf(EqualConstraints(example, exampleBack), "inconsistency "+DelegationLockName)

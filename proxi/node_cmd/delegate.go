@@ -65,6 +65,8 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	totalAmountConsumed, inTs, err := txb.ConsumeOutputs(walletOutputs...)
 	glb.AssertNoError(err)
 
+	ts := ledger.MaximumTime(inTs, ledger.TimeNow())
+
 	for i := range walletOutputs {
 		if i == 0 {
 			txb.PutSignatureUnlock(0)
@@ -76,7 +78,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 
 	outDelegation := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(amount)
-		o.WithLock(ledger.NewDelegationLock(walletData.Account, delegationTarget, 2))
+		o.WithLock(ledger.NewDelegationLock(walletData.Account, delegationTarget, 2, ts, amount))
 		_, _ = o.PushConstraint(ledger.NewChainOrigin().Bytes())
 	})
 	_, _ = txb.ProduceOutput(outDelegation)
@@ -95,7 +97,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 		_, _ = txb.ProduceOutput(remainderOut)
 	}
 
-	txb.TransactionData.Timestamp = ledger.MaximumTime(inTs, ledger.TimeNow())
+	txb.TransactionData.Timestamp = ts
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
 	txb.SignED25519(walletData.PrivateKey)
 

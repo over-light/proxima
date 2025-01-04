@@ -73,7 +73,7 @@ func newEnvironment(t *testing.T, nOwners int, timeStepTicks int) (*inflatorTest
 		par, err := ret.utxodb.MakeTransferInputData(ret.privateKeyOwner[i], nil, ts)
 		_, err = ret.utxodb.DoTransferOutputs(par.
 			WithAmount(initOwnerLoad).
-			WithTargetLock(ledger.NewDelegationLock(ret.addrOwner[i], ret.addrDelegator, 2)).
+			WithTargetLock(ledger.NewDelegationLock(ret.addrOwner[i], ret.addrDelegator, 2, ts, initOwnerLoad)).
 			WithConstraint(ledger.NewChainOrigin()),
 		)
 		require.NoError(t, err)

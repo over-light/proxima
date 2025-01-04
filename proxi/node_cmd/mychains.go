@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -87,6 +88,9 @@ func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithCha
 		}
 	}
 }
+
+const yearDuration = time.Hour * 24 * 365
+
 func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
 	sort.Slice(outs, func(i, j int) bool {
 		return bytes.Compare(outs[i].ChainID[:], outs[j].ChainID[:]) < 0
@@ -103,7 +107,14 @@ func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainI
 			continue
 		}
 		chainID, _, _ := o.ExtractChainID()
-		glb.Infof("  %37s   %21s     -->     %s", chainID.String(), util.Th(o.Output.Amount()), dlock.OwnerLock.String())
+		earned := o.Output.Amount() - dlock.StartAmount
+		totalTicks := ledger.DiffTicks(ledger.TimeNow(), dlock.StartTime)
+		totalDuration := time.Duration(totalTicks) * ledger.L().ID.TickDuration
+		annualAmount := uint64((time.Duration(earned) * yearDuration) / totalDuration)
+		annualRate := 100 * earned / annualAmount
+
+		glb.Infof("  %37s   %21s     -->     %s   +%15s, ~%d%% annual",
+			chainID.String(), util.Th(o.Output.Amount()), dlock.OwnerLock.String(), util.Th(earned), annualRate)
 		total += o.Output.Amount()
 	}
 	glb.Infof("\nTotal delegated amount: %s", util.Th(total))
