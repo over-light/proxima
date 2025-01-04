@@ -743,7 +743,7 @@ func (c *APIClient) DeleteChain(par DeleteChainParams) (ledger.TransactionID, st
 
 	outNonChain := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(chainIN.Output.Amount() - feeAmount).
-			WithLock(chainIN.Output.Lock())
+			WithLock(ledger.AddressED25519FromPrivateKey(par.WalletPrivateKey))
 	})
 	_, err = txb.ProduceOutput(outNonChain)
 	util.AssertNoError(err)

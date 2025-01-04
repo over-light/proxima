@@ -42,7 +42,7 @@ func DeleteChain(chainId *ledger.ChainID) (ledger.TransactionID, string, error) 
 			feeAmount = md.MinimumFee
 		}
 	}
-	glb.Infof("Deleting chain origin:")
+	glb.Infof("Deleting chain:")
 	glb.Infof("   chain id: %s", chainId.String())
 	glb.Infof("   tag-along fee %s to the sequencer %s", util.Th(feeAmount), tagAlongSeqID)
 	glb.Infof("   source account: %s", walletData.Account.String())
