@@ -23,19 +23,20 @@ func initDeleteChainCmd() *cobra.Command {
 	return deleteChainCmd
 }
 
-func DeleteChain(chainId *ledger.ChainID) (ledger.TransactionID, string, error) {
+func deleteChain(chainID ledger.ChainID) (ledger.TransactionID, string, error) {
 	walletData := glb.GetWalletData()
 
 	target := glb.MustGetTarget()
 
-	var tagAlongSeqID *ledger.ChainID
+	var tagAlongSeqID ledger.ChainID
 	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	if feeAmount > 0 {
-		tagAlongSeqID = glb.GetTagAlongSequencerID()
-		glb.Assertf(tagAlongSeqID != nil, "tag-along sequencer not specified")
+		pTagAlongSeqID := glb.GetTagAlongSequencerID()
+		glb.Assertf(pTagAlongSeqID != nil, "tag-along sequencer not specified")
+		tagAlongSeqID = *pTagAlongSeqID
 
-		md, err := glb.GetClient().GetMilestoneData(*tagAlongSeqID)
+		md, err := glb.GetClient().GetMilestoneData(tagAlongSeqID)
 		glb.AssertNoError(err)
 
 		if md != nil && md.MinimumFee > feeAmount {
@@ -43,8 +44,8 @@ func DeleteChain(chainId *ledger.ChainID) (ledger.TransactionID, string, error) 
 		}
 	}
 	glb.Infof("Deleting chain:")
-	glb.Infof("   chain id: %s", chainId.String())
-	glb.Infof("   tag-along fee %s to the sequencer %s", util.Th(feeAmount), tagAlongSeqID)
+	glb.Infof("   chain id: %s", chainID.String())
+	glb.Infof("   tag-along fee %s to the sequencer %s", util.Th(feeAmount), tagAlongSeqID.String())
 	glb.Infof("   source account: %s", walletData.Account.String())
 	glb.Infof("   chain controller: %s", target)
 
@@ -57,7 +58,7 @@ func DeleteChain(chainId *ledger.ChainID) (ledger.TransactionID, string, error) 
 		WalletPrivateKey: walletData.PrivateKey,
 		TagAlongSeqID:    tagAlongSeqID,
 		TagAlongFee:      feeAmount,
-		ChainID:          chainId,
+		ChainID:          chainID,
 	})
 }
 
@@ -68,7 +69,7 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 	chainId, err := ledger.ChainIDFromHexString(args[0])
 	glb.AssertNoError(err)
 
-	txid, failedTx, err := DeleteChain(&chainId)
+	txid, failedTx, err := deleteChain(chainId)
 	glb.Assertf(err == nil, "failed to delete chain %s: %v\n----------------- failed tx:\n%s", chainId.String(), err, failedTx)
 
 	glb.ReportTxInclusion(txid, time.Second)

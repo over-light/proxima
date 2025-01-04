@@ -713,22 +713,23 @@ func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*trans
 
 type DeleteChainParams struct {
 	WalletPrivateKey ed25519.PrivateKey
-	TagAlongSeqID    *ledger.ChainID
+	TagAlongSeqID    ledger.ChainID
 	TagAlongFee      uint64 // 0 means no fee output will be produced
-	ChainID          *ledger.ChainID
+	ChainID          ledger.ChainID
 	TraceTx          bool
 }
 
 func (c *APIClient) DeleteChain(par DeleteChainParams) (ledger.TransactionID, string, error) {
-	if par.TagAlongFee > 0 && par.TagAlongSeqID == nil {
-		return ledger.TransactionID{}, "", fmt.Errorf("tag-along sequencer not specified")
-	}
-
-	chainId := *par.ChainID
-	chainIN, _, err := c.GetChainOutput(chainId)
+	chainIN, _, err := c.GetChainOutput(par.ChainID)
 	util.AssertNoError(err)
 
 	ts := ledger.TimeNow()
+	if chainIN.Output.Lock().Name() == ledger.DelegationLockName {
+		// we better ensure odd slot for deletion of the delegation output, because even slots may be occupied by inflator
+		if ledger.IsOpenDelegationSlot(par.ChainID, ts.Slot()) {
+			ts = ledger.NewLedgerTime(ts.Slot()+1, 1)
+		}
+	}
 
 	_, predecessorConstraintIndex := chainIN.Output.ChainConstraint()
 
@@ -751,7 +752,7 @@ func (c *APIClient) DeleteChain(par DeleteChainParams) (ledger.TransactionID, st
 	if feeAmount > 0 {
 		tagAlongFeeOut := ledger.NewOutput(func(o *ledger.Output) {
 			o.WithAmount(feeAmount).
-				WithLock(ledger.ChainLockFromChainID(*par.TagAlongSeqID))
+				WithLock(ledger.ChainLockFromChainID(par.TagAlongSeqID))
 		})
 		if _, err = txb.ProduceOutput(tagAlongFeeOut); err != nil {
 			return ledger.TransactionID{}, "", err
