@@ -39,6 +39,7 @@ type (
 		PrivateKey                ed25519.PrivateKey
 		TagAlongSequencer         ledger.ChainID
 		MinimumInflationPerOutput uint64
+		DontCollectMargin         bool
 		MarginPromille            uint64
 		TagAlongAmount            uint64
 		MaxDelegationsPerTx       int
@@ -60,8 +61,8 @@ type (
 
 const (
 	minimumInflationPerOutput = 50
-	marginPromille            = 100
-	tagAlongAmount            = 50
+	defaultMarginPromille     = 100
+	minimumTagAlongAmount     = 50
 	maxDelegationsPerTx       = 100
 	keepInConsumedListSlots   = 3
 	minimumNoInflationSlots   = 3
@@ -263,7 +264,7 @@ func (fl *Inflator) doStep(targetTs ledger.Time) {
 	}
 	tx, outIDs, margin, err := fl.MakeTransaction(targetTs, lrb)
 	if errors.Is(err, ErrNoInputs) {
-		fl.Log().Infof("[%s] skip target %s: '%v'", Name, targetTs.String(), err)
+		// fl.Log().Infof("[%s] skip target %s", Name, targetTs.String())
 		return
 	}
 	if err != nil {
@@ -294,53 +295,47 @@ func (fl *Inflator) cleanConsumedList() {
 }
 
 func ParamsFromConfig(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *Params {
-	sub := viper.Sub("sequencer.inflator")
-	if sub == nil {
-		ret := &Params{
-			PrivateKey:        seqPrivateKey,
-			TagAlongSequencer: seqID,
-		}
-		ret.adjustDefaults()
-		return ret
-	}
 	ret := &Params{
-		Enable:                    viper.GetBool("sequencer.enable") && sub.GetBool("enable"),
+		Enable:                    viper.GetBool("sequencer.enable") && viper.GetBool("sequencer.inflator.enable"),
 		Target:                    ledger.AddressED25519FromPrivateKey(seqPrivateKey),
 		PrivateKey:                seqPrivateKey,
 		TagAlongSequencer:         seqID,
-		MinimumInflationPerOutput: sub.GetUint64("minimum_inflation_per_output"),
-		MarginPromille:            sub.GetUint64("margin_promille"),
-		TagAlongAmount:            sub.GetUint64("tag_along_amount"),
-		MaxDelegationsPerTx:       sub.GetInt("max_delegations_per_tx"),
-		KeepInConsumedListSlots:   sub.GetInt("keep_in_consumed_list_slots"),
-		NoInflationSlots:          sub.GetInt("no_inflation_slots"),
-		LoopPeriod:                time.Duration(sub.GetInt("loop_period_seconds")) * time.Second,
+		MinimumInflationPerOutput: viper.GetUint64("sequencer.inflator.minimum_inflation_per_output"),
+		DontCollectMargin:         viper.GetBool("sequencer.dont_collect_margin"),
+		MarginPromille:            viper.GetUint64("sequencer.inflator.margin_promille"),
+		TagAlongAmount:            viper.GetUint64("sequencer.inflator.tag_along_amount"),
+		MaxDelegationsPerTx:       viper.GetInt("sequencer.inflator.max_delegations_per_tx"),
+		KeepInConsumedListSlots:   viper.GetInt("sequencer.inflator.keep_in_consumed_list_slots"),
+		NoInflationSlots:          viper.GetInt("sequencer.inflator.no_inflation_slots"),
+		LoopPeriod:                time.Duration(viper.GetInt("sequencer.inflator.loop_period_seconds")) * time.Second,
 	}
 	ret.adjustDefaults()
 	return ret
 }
 
-func (par *Params) adjustDefaults() {
-	if par.MinimumInflationPerOutput < minimumInflationPerOutput {
-		par.MinimumInflationPerOutput = minimumInflationPerOutput
+func (p *Params) adjustDefaults() {
+	if p.MinimumInflationPerOutput < minimumInflationPerOutput {
+		p.MinimumInflationPerOutput = minimumInflationPerOutput
 	}
-	if par.MarginPromille > 100 || par.MarginPromille < 0 {
-		par.MarginPromille = marginPromille
+	if !p.DontCollectMargin {
+		if p.MarginPromille <= 0 || p.MarginPromille > 1000 {
+			p.MarginPromille = defaultMarginPromille
+		}
 	}
-	if par.TagAlongAmount < tagAlongAmount {
-		par.TagAlongAmount = tagAlongAmount
+	if p.TagAlongAmount < minimumTagAlongAmount {
+		p.TagAlongAmount = minimumTagAlongAmount
 	}
-	if par.MaxDelegationsPerTx > 254 || par.MaxDelegationsPerTx < 1 {
-		par.MaxDelegationsPerTx = maxDelegationsPerTx
+	if p.MaxDelegationsPerTx > 254 || p.MaxDelegationsPerTx < 1 {
+		p.MaxDelegationsPerTx = maxDelegationsPerTx
 	}
-	if par.KeepInConsumedListSlots < keepInConsumedListSlots {
-		par.KeepInConsumedListSlots = keepInConsumedListSlots
+	if p.KeepInConsumedListSlots < keepInConsumedListSlots {
+		p.KeepInConsumedListSlots = keepInConsumedListSlots
 	}
-	if par.NoInflationSlots < minimumNoInflationSlots || uint64(par.NoInflationSlots) > ledger.L().ID.ChainInflationOpportunitySlots {
-		par.KeepInConsumedListSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 4)
+	if p.NoInflationSlots < minimumNoInflationSlots || uint64(p.NoInflationSlots) > ledger.L().ID.ChainInflationOpportunitySlots {
+		p.NoInflationSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 4)
 	}
-	if par.LoopPeriod < 100*time.Millisecond {
-		par.LoopPeriod = defaultLoopPeriod
+	if p.LoopPeriod < 100*time.Millisecond {
+		p.LoopPeriod = defaultLoopPeriod
 	}
 }
 
@@ -348,7 +343,8 @@ func (p *Params) Lines(prefix ...string) *lines.Lines {
 	return lines.New(prefix...).
 		Add("enable: %v", p.Enable).
 		Add("delegation target: %s", p.Target.String()).
-		Add("tag_along_sequencer: %s", p.TagAlongSequencer.StringShort()).
+		Add("tag_along_sequencer: %s", p.TagAlongSequencer.String()).
+		Add("collect margin: %v", !p.DontCollectMargin).
 		Add("margin promille: %d", p.MarginPromille).
 		Add("tag_along_amount: %s", util.Th(p.TagAlongAmount)).
 		Add("max_delegations_per_tx: %d", p.MaxDelegationsPerTx).

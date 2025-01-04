@@ -186,9 +186,6 @@ func (seq *Sequencer) Start() {
 			return false
 		})
 	}
-	if seq.inflator != nil {
-		seq.inflator.Run()
-	}
 }
 
 func (seq *Sequencer) Ctx() context.Context {
@@ -298,6 +295,10 @@ func (seq *Sequencer) sequencerLoop() {
 		seq.Log().Infof("sequencer loop STOPPING..")
 		_ = seq.Log().Sync()
 	}()
+
+	if seq.inflator != nil {
+		seq.inflator.Run()
+	}
 
 	for {
 		select {

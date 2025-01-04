@@ -1,4 +1,4 @@
-package delegate
+package node_cmd
 
 import (
 	"fmt"
@@ -13,13 +13,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func initDelegateSendCmd() *cobra.Command {
+func initDelegateCmd() *cobra.Command {
 	delegateStartCmd := &cobra.Command{
-		Use:     "send <amount>",
+		Use:     "delegate <amount> -t <ed25519 address>",
 		Aliases: util.List("send"),
-		Short:   `delegates amount to target ED25519 address by creating delegation output`,
+		Short:   `delegates amount to target ED25519 address by creating delegation chain output`,
 		Args:    cobra.ExactArgs(1),
-		Run:     runDelegateSendCmd,
+		Run:     runDelegateCmd,
 	}
 
 	glb.AddFlagTarget(delegateStartCmd)
@@ -28,7 +28,7 @@ func initDelegateSendCmd() *cobra.Command {
 	return delegateStartCmd
 }
 
-func runDelegateSendCmd(_ *cobra.Command, args []string) {
+func runDelegateCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromNode()
 	walletData := glb.GetWalletData()
 

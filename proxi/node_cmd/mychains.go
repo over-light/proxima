@@ -1,6 +1,7 @@
 package node_cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"sort"
@@ -9,7 +10,10 @@ import (
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+var delegationOnly bool
 
 func initChainsCmd() *cobra.Command {
 	chainsCmd := &cobra.Command{
@@ -19,6 +23,10 @@ func initChainsCmd() *cobra.Command {
 		Run:   runChainsCmd,
 	}
 	chainsCmd.InitDefaultHelpCmd()
+	chainsCmd.PersistentFlags().BoolVarP(&delegationOnly, "delegation", "d", false, "list delegations only")
+	err := viper.BindPFlag("delegation", chainsCmd.PersistentFlags().Lookup("delegation"))
+	glb.AssertNoError(err)
+
 	return chainsCmd
 }
 
@@ -39,7 +47,11 @@ func runChainsCmd(_ *cobra.Command, _ []string) {
 		return outs[i].ID.Timestamp().After(outs[j].ID.Timestamp())
 	})
 
-	listChainedOutputs(wallet.Account, outs)
+	if delegationOnly {
+		listDelegations(wallet.Account, outs)
+	} else {
+		listChainedOutputs(wallet.Account, outs)
+	}
 }
 
 func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
@@ -74,4 +86,25 @@ func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithCha
 			glb.Infof("      delegated to: %s"+delegatedToThis, l.TargetLock.String())
 		}
 	}
+}
+func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainID) {
+	sort.Slice(outs, func(i, j int) bool {
+		return bytes.Compare(outs[i].ChainID[:], outs[j].ChainID[:]) < 0
+	})
+
+	total := uint64(0)
+	glb.Infof("\nList of delegations in account %s\n", addr.String())
+	for _, o := range outs {
+		dlock := o.Output.DelegationLock()
+		if dlock == nil {
+			continue
+		}
+		if !ledger.EqualAccountables(addr, dlock.Master()) {
+			continue
+		}
+		chainID, _, _ := o.ExtractChainID()
+		glb.Infof("  %37s   %21s     -->     %s", chainID.String(), util.Th(o.Output.Amount()), dlock.OwnerLock.String())
+		total += o.Output.Amount()
+	}
+	glb.Infof("\nTotal delegated amount: %s", util.Th(total))
 }
