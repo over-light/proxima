@@ -15,7 +15,7 @@ type (
 		Name() string
 		Bytes() []byte
 		Source() string
-		String() string // human readable
+		String() string // human-readable
 	}
 
 	AccountID []byte

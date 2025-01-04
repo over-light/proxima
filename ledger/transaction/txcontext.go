@@ -87,6 +87,18 @@ func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid *ledger.
 	return TxContextFromTransaction(tx, tx.InputLoaderByIndex(fetchInput), traceOption...)
 }
 
+func StringFromTxBytes(txBytes []byte, inputLoaderByIndex func(byte) (*ledger.Output, error)) string {
+	tx, err := FromBytes(txBytes, ScanSequencerData())
+	if err != nil {
+		return err.Error()
+	}
+	ctx, err := TxContextFromTransaction(tx, inputLoaderByIndex)
+	if err != nil {
+		return err.Error()
+	}
+	return ctx.String()
+}
+
 // unlockScriptBinary finds script from unlock block
 func (ctx *TxContext) unlockScriptBinary(invocationFullPath lazybytes.TreePath) []byte {
 	unlockBlockPath := common.Concat(invocationFullPath)

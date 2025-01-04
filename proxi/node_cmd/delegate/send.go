@@ -1,10 +1,12 @@
 package delegate
 
 import (
+	"fmt"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -52,8 +54,11 @@ func runDelegateSendCmd(_ *cobra.Command, args []string) {
 
 	sum := uint64(0)
 	walletOutputs = util.PurgeSlice(walletOutputs, func(o *ledger.OutputWithID) bool {
+		if sum >= amount+feeAmount {
+			return false
+		}
 		sum += o.Output.Amount()
-		return sum < amount+feeAmount
+		return true
 	})
 
 	txb := txbuilder.New()
@@ -94,12 +99,17 @@ func runDelegateSendCmd(_ *cobra.Command, args []string) {
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
 	txb.SignED25519(walletData.PrivateKey)
 
-	txBytes := txb.TransactionData.Bytes()
-	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
-	glb.AssertNoError(err)
-	err = tx.Validate(transaction.ValidateOptionWithFullContext(txb.LoadInput))
-	glb.AssertNoError(err)
+	txBytes, txid, failedTx, err := txb.BytesWithValidation()
+	glb.Assertf(err == nil, "transaction invalid: %v\n------------------\n%s", err, failedTx)
+
+	prompt := fmt.Sprintf("delegate amount %s to controller %s (plus tag-along fee %s)?", util.Th(amount), delegationTarget, util.Th(feeAmount))
+	if !glb.YesNoPrompt(prompt, true) {
+		glb.Infof("exit")
+		os.Exit(0)
+	}
 
 	err = client.SubmitTransaction(txBytes)
 	glb.AssertNoError(err)
+
+	glb.ReportTxInclusion(txid, 10*time.Second)
 }

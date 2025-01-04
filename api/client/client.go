@@ -711,7 +711,7 @@ func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*trans
 	return txCtx, chainID, err
 }
 
-type DeleteChainOriginParams struct {
+type DeleteChainParams struct {
 	WalletPrivateKey ed25519.PrivateKey
 	TagAlongSeqID    *ledger.ChainID
 	TagAlongFee      uint64 // 0 means no fee output will be produced
@@ -719,9 +719,9 @@ type DeleteChainOriginParams struct {
 	TraceTx          bool
 }
 
-func (c *APIClient) DeleteChainOrigin(par DeleteChainOriginParams) (*transaction.TxContext, error) {
+func (c *APIClient) DeleteChain(par DeleteChainParams) (ledger.TransactionID, string, error) {
 	if par.TagAlongFee > 0 && par.TagAlongSeqID == nil {
-		return nil, fmt.Errorf("tag-along sequencer not specified")
+		return ledger.TransactionID{}, "", fmt.Errorf("tag-along sequencer not specified")
 	}
 
 	chainId := *par.ChainID
@@ -754,7 +754,7 @@ func (c *APIClient) DeleteChainOrigin(par DeleteChainOriginParams) (*transaction
 				WithLock(ledger.ChainLockFromChainID(*par.TagAlongSeqID))
 		})
 		if _, err = txb.ProduceOutput(tagAlongFeeOut); err != nil {
-			return nil, err
+			return ledger.TransactionID{}, "", err
 		}
 	}
 
@@ -767,19 +767,14 @@ func (c *APIClient) DeleteChainOrigin(par DeleteChainOriginParams) (*transaction
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
 	txb.SignED25519(par.WalletPrivateKey)
 
-	txBytes := txb.TransactionData.Bytes()
-
-	inps := make([]*ledger.OutputWithID, 1)
-	inps[0] = &chainIN.OutputWithID
-	txCtx, err := transaction.TxContextFromTransferableBytes(txBytes, transaction.PickOutputFromListFunc(inps))
+	txBytes, txid, failedTx, err := txb.BytesWithValidation()
 	if err != nil {
-		return nil, err
+		return ledger.TransactionID{}, failedTx, err
 	}
 	if err = c.SubmitTransaction(txBytes); err != nil {
-		return nil, err
+		return ledger.TransactionID{}, "", err
 	}
-
-	return txCtx, err
+	return txid, "", nil
 }
 
 // GetLatestReliableBranch retrieves lates reliable branch info from the node

@@ -170,6 +170,22 @@ func (txb *TransactionBuilder) ConsumedAmount() uint64 {
 	return ret
 }
 
+func (txb *TransactionBuilder) BytesWithValidation() ([]byte, ledger.TransactionID, string, error) {
+	txBytes := txb.TransactionData.Bytes()
+	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	if err != nil {
+		return nil, ledger.TransactionID{}, "", err
+	}
+	ctx, err := transaction.TxContextFromTransaction(tx, txb.LoadInput)
+	if err != nil {
+		return nil, ledger.TransactionID{}, "", err
+	}
+	if err = ctx.Validate(); err != nil {
+		return nil, ledger.TransactionID{}, ctx.String(), err
+	}
+	return txBytes, tx.ID(), "", nil
+}
+
 func (txb *TransactionBuilder) ProducedAmount() (uint64, uint64) {
 	retTotal := uint64(0)
 	retInflation := uint64(0)

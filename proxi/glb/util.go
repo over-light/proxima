@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/transaction"
+	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util/lines"
 )
 
@@ -61,4 +63,14 @@ func isDirEmpty(dir string) (bool, error) {
 		return true, nil
 	}
 	return false, err
+}
+
+func MustValidateConstructedTransaction(txBytes []byte, txb *txbuilder.TransactionBuilder) {
+	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	AssertNoError(err)
+	err = tx.Validate(transaction.ValidateOptionWithFullContext(txb.LoadInput))
+	if err != nil {
+		Infof("------- failed transaction:\n" + transaction.StringFromTxBytes(txBytes, txb.LoadInput))
+	}
+	AssertNoError(err)
 }

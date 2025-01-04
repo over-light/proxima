@@ -6,7 +6,6 @@ import (
 
 	"github.com/lunfardo314/proxima/api/client"
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -24,7 +23,7 @@ func initDeleteChainCmd() *cobra.Command {
 	return deleteChainCmd
 }
 
-func DeleteChain(chainId *ledger.ChainID) (*transaction.TxContext, error) {
+func DeleteChain(chainId *ledger.ChainID) (ledger.TransactionID, string, error) {
 	walletData := glb.GetWalletData()
 
 	target := glb.MustGetTarget()
@@ -54,7 +53,7 @@ func DeleteChain(chainId *ledger.ChainID) (*transaction.TxContext, error) {
 		os.Exit(0)
 	}
 
-	return glb.GetClient().DeleteChainOrigin(client.DeleteChainOriginParams{
+	return glb.GetClient().DeleteChain(client.DeleteChainParams{
 		WalletPrivateKey: walletData.PrivateKey,
 		TagAlongSeqID:    tagAlongSeqID,
 		TagAlongFee:      feeAmount,
@@ -69,10 +68,8 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 	chainId, err := ledger.ChainIDFromHexString(args[0])
 	glb.AssertNoError(err)
 
-	txCtx, err := DeleteChain(&chainId)
+	txid, failedTx, err := DeleteChain(&chainId)
+	glb.Assertf(err == nil, "failed to delete chain %s: %v\n----------------- failed tx:\n%s", chainId.String(), err, failedTx)
 
-	glb.AssertNoError(err)
-	if !glb.NoWait() {
-		glb.ReportTxInclusion(*txCtx.TransactionID(), time.Second)
-	}
+	glb.ReportTxInclusion(txid, time.Second)
 }
