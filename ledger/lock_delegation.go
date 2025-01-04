@@ -62,17 +62,19 @@ func delegationLock: and(
     require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
     or(
 		and(
+             // check general consistency of the lock on the produced output
             selfIsProducedOutput,
             evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0),
             $1, $2
-        ),  // check general consistency on produced output
+        ), 
         and(
+            // check unlock conditions of the consumed output
             selfIsConsumedOutput,
             or(
                $2,   // unlocked owner's lock validates it all
                require(
+				 // otherwise, check delegation case on even slots. Odd slots will fail
                   and(  
-                     // otherwise, check delegation case on even slots
                      isOpenDelegationSlot(slice(_selfSuccessorChainData($0),0,3), txTimeSlot),  
                      _enforceDelegationTargetConstraintsOnSuccessor(
                          $0,
