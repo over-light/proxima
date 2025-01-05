@@ -98,6 +98,7 @@ func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainI
 
 	total := uint64(0)
 	glb.Infof("\nList of delegations in account %s\n", addr.String())
+	nowis := ledger.TimeNow()
 	for _, o := range outs {
 		dlock := o.Output.DelegationLock()
 		if dlock == nil {
@@ -107,14 +108,21 @@ func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainI
 			continue
 		}
 		chainID, _, _ := o.ExtractChainID()
-		earned := o.Output.Amount() - dlock.StartAmount
-		totalTicks := ledger.DiffTicks(ledger.TimeNow(), dlock.StartTime)
-		totalDuration := time.Duration(totalTicks) * ledger.L().ID.TickDuration
-		annualAmount := uint64((time.Duration(earned) * yearDuration) / totalDuration)
-		annualRate := 100 * earned / annualAmount
+		glb.Infof("%s   %s  \t\t-> %s", chainID.String(), util.Th(o.Output.Amount()), dlock.OwnerLock.String())
 
-		glb.Infof("  %37s   %21s     -->     %s   +%15s, ~%d%% annual",
-			chainID.String(), util.Th(o.Output.Amount()), dlock.OwnerLock.String(), util.Th(earned), annualRate)
+		earned := o.Output.Amount() - dlock.StartAmount
+		//totalTicks := ledger.DiffTicks(ledger.TimeNow(), dlock.StartTime)
+		//totalDuration := time.Duration(totalTicks) * ledger.L().ID.TickDuration
+		//annualAmount := uint64((time.Duration(earned) * yearDuration) / totalDuration)
+		//annualRate := 100 * earned / annualAmount
+		slots := nowis.Slot() - dlock.StartTime.Slot()
+		perSlot := earned / uint64(slots)
+		annualExtrapolationEarnings := uint64(ledger.L().ID.SlotsPerYear()) * perSlot
+		annualRate := 100 * float64(annualExtrapolationEarnings) / float64(dlock.StartAmount)
+		glb.Verbosef("        +%s since %s (%d slots), %s per slot, start amount %s, annual rate: ~%.02f%%\n",
+			util.Th(earned), dlock.StartTime.String(), slots, util.Th(perSlot),
+			util.Th(dlock.StartAmount), annualRate)
+
 		total += o.Output.Amount()
 	}
 	glb.Infof("\nTotal delegated amount: %s", util.Th(total))

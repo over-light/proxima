@@ -48,7 +48,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	glb.Assertf(amount >= ledger.MinimumDelegationAmount(), "amount must be >= %d", ledger.MinimumDelegationAmount())
 
 	client := glb.GetClient()
-	walletOutputs, lrbid, err := client.GetAccountOutputsExt(walletData.Account, 100, "asc")
+	walletOutputs, lrbid, err := client.GetSimpleSigLockedOutputs(walletData.Account, 100, "asc")
 	glb.AssertNoError(err)
 	glb.PrintLRB(lrbid)
 

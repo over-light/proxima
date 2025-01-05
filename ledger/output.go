@@ -158,6 +158,10 @@ func (o *Output) Bytes() []byte {
 	return o.arr.Bytes()
 }
 
+func (o *Output) Hex() string {
+	return hex.EncodeToString(o.Bytes())
+}
+
 // Clone clones output and makes it read-only. Optional function overrideReadOnly gives a chance
 // to modify the output before it is locked for modification
 func (o *Output) Clone(overrideReadOnly ...func(o *Output)) *Output {

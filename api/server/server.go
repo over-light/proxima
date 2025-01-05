@@ -1,12 +1,14 @@
 package server
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -62,6 +64,8 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetLedgerID, srv.getLedgerID)
 	// GET request format: '/api/v1/get_account_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetAccountOutputs, srv.getAccountOutputs)
+	// GET request format: '/api/v1/get_account_simple_siglocked?addr=<a(0x....)>'
+	srv.addHandler(api.PathGetAccountSimpleSiglockedOutputs, srv.getAccountSimpleSigLockedOutputs)
 	// GET request format: '/api/v1/get_chained_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetChainedOutputs, srv.getChainedOutputs)
 	// GET request format: '/api/v1/get_chain_output?chainid=<hex-encoded chain ID>'
@@ -116,28 +120,13 @@ func (srv *server) getLedgerID(w http.ResponseWriter, _ *http.Request) {
 
 const absoluteMaximumOfReturnedOutputs = 2000
 
-// getAccountOutputs return in general non-deterministic set of outputs because of random ordering and limits
-func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
-
-	// parse parameters
-
-	lst, ok := r.URL.Query()["accountable"]
-	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter 'accountable' in request 'get_account_outputs'")
-		return
-	}
-	accountable, err := ledger.AccountableFromSource(lst[0])
-	if err != nil {
-		writeErr(w, err.Error())
-		return
-	}
-
+func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.Request, addr ledger.Accountable, filter func(oid ledger.OutputID, o *ledger.Output) bool) {
+	var err error
 	maxOutputs := 0
-	lst, ok = r.URL.Query()["max_outputs"]
+	lst, ok := r.URL.Query()["max_outputs"]
 	if ok {
 		if len(lst) != 1 {
-			writeErr(w, "wrong parameter 'max_outputs' in request 'get_account_outputs'")
+			writeErr(w, "wrong parameter 'max_outputs'")
 			return
 		}
 		maxOutputs, err = strconv.Atoi(lst[0])
@@ -155,58 +144,51 @@ func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 	lst, ok = r.URL.Query()["sort"]
 	if ok {
 		if len(lst) != 1 || (lst[0] != "asc" && lst[0] != "desc") {
-			writeErr(w, "wrong parameter 'sort' in request 'get_account_outputs'")
+			writeErr(w, "wrong parameter 'sort'")
 			return
 		}
 		doSorting = true
 		sortDesc = lst[0] == "desc"
 	}
 
-	var oData []*ledger.OutputDataWithID
+	outs := make([]*ledger.OutputWithID, 0)
+	resp := &api.OutputList{
+		Outputs: make(map[string]string),
+	}
 
-	resp := &api.OutputList{}
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) (errRet error) {
-		oData, errRet = rdr.GetUTXOsInAccount(accountable.AccountID())
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
+		err1 := rdr.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
+			if filter(oid, o) {
+				outs = append(outs, &ledger.OutputWithID{
+					ID:     oid,
+					Output: o,
+				})
+			}
+			return true
+		})
+		if err1 != nil {
+			return err1
+		}
 		return
 	})
 	if err != nil {
 		writeErr(w, err.Error())
 		return
 	}
-	resp.Outputs = make(map[string]string)
-	if !doSorting {
-		if len(oData) > 0 {
-			for _, o := range oData {
-				if maxOutputs > 0 && len(resp.Outputs) >= maxOutputs {
-					break
-				}
-				resp.Outputs[o.ID.StringHex()] = hex.EncodeToString(o.Data)
-			}
-		}
-	} else {
-		// return first max number of sorted outputs
-		sorted := make(map[string]*ledger.Output)
-		for _, o := range oData {
-			sorted[o.ID.StringHex()], err = ledger.OutputFromBytesReadOnly(o.Data)
-			if err != nil {
-				writeErr(w, "server error while parsing UTXO: "+err.Error())
-				return
-			}
-		}
-		idsSorted := util.KeysSorted(sorted, func(k1, k2 string) bool {
+	if doSorting {
+		sort.Slice(outs, func(i, j int) bool {
 			if sortDesc {
-				return sorted[k1].Amount() > sorted[k2].Amount()
+				return bytes.Compare(outs[i].ID[:], outs[j].ID[:]) > 0
 			}
-			return sorted[k1].Amount() < sorted[k2].Amount()
+			return bytes.Compare(outs[i].ID[:], outs[j].ID[:]) < 0
+
 		})
-		for _, id := range idsSorted {
-			if maxOutputs > 0 && len(resp.Outputs) >= maxOutputs {
-				break
-			}
-			resp.Outputs[id] = hex.EncodeToString(sorted[id].Bytes())
-		}
+	}
+	outs = util.TrimSlice(outs, maxOutputs)
+	for _, o := range outs {
+		resp.Outputs[o.ID.StringHex()] = o.Output.Hex()
 	}
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
@@ -216,6 +198,44 @@ func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = w.Write(respBin)
 	util.AssertNoError(err)
+}
+
+// getAccountOutputs returns in general non-deterministic set of outputs because of random ordering and limits
+// Lock can be of any type
+func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
+	setHeader(w)
+
+	lst, ok := r.URL.Query()["accountable"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'accountable' in request 'get_account_outputs'")
+		return
+	}
+	accountable, err := ledger.AccountableFromSource(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	srv._getAccountOutputsWithFilter(w, r, accountable, func(oid ledger.OutputID, o *ledger.Output) bool {
+		return true
+	})
+}
+
+// getAccountSimpleSigLockedOutputs returns outputs locked with simple AddressED25519 lock
+func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *http.Request) {
+	lst, ok := r.URL.Query()["addr"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'addr' in request 'get_account_simple_siglocked_outputs'")
+		return
+	}
+	addr, err := ledger.AddressED25519FromSource(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+
+	srv._getAccountOutputsWithFilter(w, r, addr, func(_ ledger.OutputID, o *ledger.Output) bool {
+		return o.Lock().Name() == ledger.AddressED25519Name
+	})
 }
 
 func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
