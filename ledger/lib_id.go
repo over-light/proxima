@@ -28,11 +28,7 @@ type (
 // default ledger constants
 
 const (
-	DefaultTickDuration           = 40 * time.Millisecond
-	DefaultSlotDuration           = DefaultTickDuration * TicksPerSlot // ~10.24 sec
-	DaysPerYear                   = 365
-	DefaultInflationEpochDuration = DaysPerYear * 24 * time.Hour // standard inflation epoch is 365 days
-	DefaultSlotsPerInflationEpoch = uint64(DefaultInflationEpochDuration / DefaultSlotDuration)
+	DefaultTickDuration = 40 * time.Millisecond
 
 	DustPerProxi = 1_000_000
 	//BaseTokenName        = "Proxi"
@@ -45,11 +41,9 @@ const (
 	// -------------- begin inflation-related
 	// default inflation constants adjusted to the annual inflation cap of approx 12-13% first year
 
-	DefaultBranchInflationBonusBase       = 5_000_000
-	DefaultChainInflationPerTickBase      = 160_000
-	DefaultChainInflationOpportunitySlots = 12
-	DefaultTicksPerInflationEpoch         = DefaultSlotsPerInflationEpoch * TicksPerSlot
-
+	DefaultSlotInflationBase        = 33_000_000
+	DefaultLinearInflationSlots     = 3
+	DefaultBranchInflationBonusBase = 5_000_000
 	// used to enforce approx validity of defaults
 
 	TargetAnnualChainInflationRateUpper = 13
@@ -67,36 +61,28 @@ const (
 )
 
 func init() {
-	// enforce validity of defaults
-	targetChainInflationFirstYearLower := int64(DefaultInitialSupply*TargetAnnualChainInflationRateLower/100 + DefaultSlotsPerInflationEpoch*DefaultBranchInflationBonusBase)
-	targetChainInflationFirstYearUpper := int64(DefaultInitialSupply*TargetAnnualChainInflationRateUpper/100 + DefaultSlotsPerInflationEpoch*DefaultBranchInflationBonusBase)
-	inflationCapFirstYear := int64(DefaultChainInflationPerTickBase*DefaultTicksPerInflationEpoch) + int64(DefaultSlotsPerInflationEpoch*DefaultBranchInflationBonusBase)
-	util.Assertf(targetChainInflationFirstYearLower <= inflationCapFirstYear && inflationCapFirstYear <= targetChainInflationFirstYearUpper,
-		"wrong constants: first year inflation cap %s does not satisfy lower (%s) and upper (%s) bound conditions for target inflation from %d%% to %d%%",
-		util.Th(inflationCapFirstYear), util.Th(targetChainInflationFirstYearLower), util.Th(targetChainInflationFirstYearUpper),
-		TargetAnnualChainInflationRateLower, TargetAnnualChainInflationRateUpper)
+	util.Assertf(DefaultInitialSupply/DefaultSlotInflationBase == 30_303_030, "wrong constants: DefaultInitialSupply/DefaultSlotInflationBase == 30_303_030")
 }
 
 func DefaultIdentityData(privateKey ed25519.PrivateKey) *IdentityData {
 	genesisTimeUnix := uint32(time.Now().Unix())
 
 	return &IdentityData{
-		GenesisTimeUnix:                genesisTimeUnix,
-		GenesisControllerPublicKey:     privateKey.Public().(ed25519.PublicKey),
-		InitialSupply:                  DefaultInitialSupply,
-		TickDuration:                   DefaultTickDuration,
-		VBCost:                         DefaultVBCost,
-		TransactionPace:                DefaultTransactionPace,
-		TransactionPaceSequencer:       DefaultTransactionPaceSequencer,
-		BranchInflationBonusBase:       DefaultBranchInflationBonusBase,
-		ChainInflationPerTickBase:      DefaultChainInflationPerTickBase,
-		ChainInflationOpportunitySlots: DefaultChainInflationOpportunitySlots,
-		TicksPerInflationEpoch:         DefaultTicksPerInflationEpoch,
-		MinimumAmountOnSequencer:       DefaultMinimumAmountOnSequencer,
-		MaxNumberOfEndorsements:        DefaultMaxNumberOfEndorsements,
-		PreBranchConsolidationTicks:    DefaultPreBranchConsolidationTicks,
-		PostBranchConsolidationTicks:   DefaultPostBranchConsolidationTicks,
-		Description:                    "Proxima test ledger",
+		GenesisTimeUnix:              genesisTimeUnix,
+		GenesisControllerPublicKey:   privateKey.Public().(ed25519.PublicKey),
+		InitialSupply:                DefaultInitialSupply,
+		TickDuration:                 DefaultTickDuration,
+		VBCost:                       DefaultVBCost,
+		TransactionPace:              DefaultTransactionPace,
+		TransactionPaceSequencer:     DefaultTransactionPaceSequencer,
+		BranchInflationBonusBase:     DefaultBranchInflationBonusBase,
+		SlotInflationBase:            DefaultSlotInflationBase,
+		LinearInflationSlots:         DefaultLinearInflationSlots,
+		MinimumAmountOnSequencer:     DefaultMinimumAmountOnSequencer,
+		MaxNumberOfEndorsements:      DefaultMaxNumberOfEndorsements,
+		PreBranchConsolidationTicks:  DefaultPreBranchConsolidationTicks,
+		PostBranchConsolidationTicks: DefaultPostBranchConsolidationTicks,
+		Description:                  "Proxima test ledger",
 	}
 }
 

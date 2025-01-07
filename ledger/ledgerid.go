@@ -30,15 +30,10 @@ type (
 		// time tick duration in nanoseconds
 		TickDuration time.Duration
 		// ----------- begin inflation-related
+		SlotInflationBase    uint64 // constant C
+		LinearInflationSlots uint64 // constant labda
 		// BranchInflationBonusBase inflation bonus
 		BranchInflationBonusBase uint64
-		// ChainInflationPerTickBase is maximum total inflation per one tick. It is fixed amount for the ledger
-		// It is equal to the inflation which generates the whole supply per one tick
-		ChainInflationPerTickBase uint64
-		// TicksPerInflationEpoch usually equal to 1 standard year with 365 days
-		TicksPerInflationEpoch uint64
-		// ChainInflationOpportunitySlots maximum gap between chain outputs for the non-zero inflation
-		ChainInflationOpportunitySlots uint64
 		// ----------- end inflation-related
 		// VBCost
 		VBCost uint64
@@ -60,22 +55,21 @@ type (
 
 	// IdentityDataYAMLAble structure for canonical YAMLAble marshaling
 	IdentityDataYAMLAble struct {
-		GenesisTimeUnix                uint32 `yaml:"genesis_time_unix"`
-		InitialSupply                  uint64 `yaml:"initial_supply"`
-		GenesisControllerPublicKey     string `yaml:"genesis_controller_public_key"`
-		TimeTickDurationNanosec        int64  `yaml:"time_tick_duration_nanosec"`
-		VBCost                         uint64 `yaml:"vb_cost"`
-		TransactionPace                byte   `yaml:"transaction_pace"`
-		TransactionPaceSequencer       byte   `yaml:"transaction_pace_sequencer"`
-		BranchInflationBonusBase       uint64 `yaml:"branch_inflation_bonus_base"`
-		ChainInflationPerTickBase      uint64 `yaml:"chain_inflation_per_tick_base"`
-		ChainInflationOpportunitySlots uint64 `yaml:"chain_inflation_opportunity_slots"`
-		TicksPerInflationEpoch         uint64 `yaml:"ticks_per_inflation_epoch"`
-		MinimumAmountOnSequencer       uint64 `yaml:"minimum_amount_on_sequencer"`
-		MaxNumberOfEndorsements        uint64 `yaml:"max_number_of_endorsements"`
-		PreBranchConsolidationTicks    uint8  `yaml:"pre_branch_consolidation_ticks"`
-		PostBranchConsolidationTicks   uint8  `yaml:"post_branch_consolidation_ticks"`
-		Description                    string `yaml:"description"`
+		GenesisTimeUnix              uint32 `yaml:"genesis_time_unix"`
+		InitialSupply                uint64 `yaml:"initial_supply"`
+		GenesisControllerPublicKey   string `yaml:"genesis_controller_public_key"`
+		TimeTickDurationNanosec      int64  `yaml:"time_tick_duration_nanosec"`
+		VBCost                       uint64 `yaml:"vb_cost"`
+		TransactionPace              byte   `yaml:"transaction_pace"`
+		TransactionPaceSequencer     byte   `yaml:"transaction_pace_sequencer"`
+		SlotInflationBase            uint64 `yaml:"slot_inflation_base"`
+		LinearInflationSlots         uint64 `yaml:"linear-inflation-slots"`
+		BranchInflationBonusBase     uint64 `yaml:"branch_inflation_bonus_base"`
+		MinimumAmountOnSequencer     uint64 `yaml:"minimum_amount_on_sequencer"`
+		MaxNumberOfEndorsements      uint64 `yaml:"max_number_of_endorsements"`
+		PreBranchConsolidationTicks  uint8  `yaml:"pre_branch_consolidation_ticks"`
+		PostBranchConsolidationTicks uint8  `yaml:"post_branch_consolidation_ticks"`
+		Description                  string `yaml:"description"`
 		// non-persistent, for control
 		GenesisControllerAddress string `yaml:"genesis_controller_address"`
 		BootstrapChainID         string `yaml:"bootstrap_chain_id"`
@@ -97,10 +91,9 @@ func (id *IdentityData) Bytes() []byte {
 	util.Assertf(len(id.GenesisControllerPublicKey) == ed25519.PublicKeySize, "id.GenesisControllerPublicKey)==ed25519.PublicKeySize")
 	buf.Write(id.GenesisControllerPublicKey)
 	_ = binary.Write(&buf, binary.BigEndian, id.TickDuration.Nanoseconds())
+	_ = binary.Write(&buf, binary.BigEndian, id.SlotInflationBase)
+	_ = binary.Write(&buf, binary.BigEndian, id.LinearInflationSlots)
 	_ = binary.Write(&buf, binary.BigEndian, id.BranchInflationBonusBase)
-	_ = binary.Write(&buf, binary.BigEndian, id.ChainInflationPerTickBase)
-	_ = binary.Write(&buf, binary.BigEndian, id.TicksPerInflationEpoch)
-	_ = binary.Write(&buf, binary.BigEndian, id.ChainInflationOpportunitySlots)
 	_ = binary.Write(&buf, binary.BigEndian, id.VBCost)
 	_ = binary.Write(&buf, binary.BigEndian, id.TransactionPace)
 	_ = binary.Write(&buf, binary.BigEndian, id.TransactionPaceSequencer)
@@ -173,22 +166,17 @@ func IdentityDataFromBytes(data []byte) (*IdentityData, error) {
 	}
 	ret.TickDuration = time.Duration(bufNano)
 
+	err = binary.Read(rdr, binary.BigEndian, &ret.SlotInflationBase)
+	if err != nil {
+		return nil, mkerr(err)
+	}
+
+	err = binary.Read(rdr, binary.BigEndian, &ret.LinearInflationSlots)
+	if err != nil {
+		return nil, mkerr(err)
+	}
+
 	err = binary.Read(rdr, binary.BigEndian, &ret.BranchInflationBonusBase)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.ChainInflationPerTickBase)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.TicksPerInflationEpoch)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.ChainInflationOpportunitySlots)
 	if err != nil {
 		return nil, mkerr(err)
 	}
@@ -312,10 +300,10 @@ func (id *IdentityData) Lines(prefix ...string) *lines.Lines {
 		Add("Genesis controller address (calculated): %s", id.GenesisControlledAddress().String()).
 		Add("Genesis Unix time: %d (%s)", id.GenesisTimeUnix, id.GenesisTime().Format(time.RFC3339)).
 		Add("Time tick duration: %v", id.TickDuration).
-		Add("Chain inflation per tick base: %s", util.Th(id.ChainInflationPerTickBase)).
+		Add("Slot inflation base (constant C): %s", util.Th(id.SlotInflationBase)).
+		Add("Linear inflation slots (constant lambda): %s", util.Th(id.LinearInflationSlots)).
+		Add("Constant initial supply/slot inflation base: %s", util.Th(id.InitialSupply/id.SlotInflationBase)).
 		Add("Branch inflation bonus base: %s", util.Th(id.BranchInflationBonusBase)).
-		Add("Chain inflation opportunity slots: %v", id.ChainInflationOpportunitySlots).
-		Add("Ticks per inflation epoch: %s", util.Th(id.TicksPerInflationEpoch)).
 		Add("Pre-branch consolidation ticks: %v", id.PreBranchConsolidationTicks).
 		Add("Post-branch consolidation ticks: %v", id.PostBranchConsolidationTicks).
 		Add("Minimum amount on sequencer: %s", util.Th(id.MinimumAmountOnSequencer)).
@@ -329,24 +317,23 @@ func (id *IdentityData) Lines(prefix ...string) *lines.Lines {
 func (id *IdentityData) YAMLAble() *IdentityDataYAMLAble {
 	chainID := id.OriginChainID()
 	return &IdentityDataYAMLAble{
-		GenesisTimeUnix:                id.GenesisTimeUnix,
-		GenesisControllerPublicKey:     hex.EncodeToString(id.GenesisControllerPublicKey),
-		InitialSupply:                  id.InitialSupply,
-		TimeTickDurationNanosec:        id.TickDuration.Nanoseconds(),
-		BranchInflationBonusBase:       id.BranchInflationBonusBase,
-		VBCost:                         id.VBCost,
-		TransactionPace:                id.TransactionPace,
-		TransactionPaceSequencer:       id.TransactionPaceSequencer,
-		ChainInflationPerTickBase:      id.ChainInflationPerTickBase,
-		ChainInflationOpportunitySlots: id.ChainInflationOpportunitySlots,
-		TicksPerInflationEpoch:         id.TicksPerInflationEpoch,
-		GenesisControllerAddress:       id.GenesisControlledAddress().String(),
-		MinimumAmountOnSequencer:       id.MinimumAmountOnSequencer,
-		MaxNumberOfEndorsements:        id.MaxNumberOfEndorsements,
-		PreBranchConsolidationTicks:    id.PreBranchConsolidationTicks,
-		PostBranchConsolidationTicks:   id.PostBranchConsolidationTicks,
-		BootstrapChainID:               chainID.StringHex(),
-		Description:                    id.Description,
+		GenesisTimeUnix:              id.GenesisTimeUnix,
+		GenesisControllerPublicKey:   hex.EncodeToString(id.GenesisControllerPublicKey),
+		InitialSupply:                id.InitialSupply,
+		TimeTickDurationNanosec:      id.TickDuration.Nanoseconds(),
+		SlotInflationBase:            id.SlotInflationBase,
+		LinearInflationSlots:         id.LinearInflationSlots,
+		BranchInflationBonusBase:     id.BranchInflationBonusBase,
+		VBCost:                       id.VBCost,
+		TransactionPace:              id.TransactionPace,
+		TransactionPaceSequencer:     id.TransactionPaceSequencer,
+		GenesisControllerAddress:     id.GenesisControlledAddress().String(),
+		MinimumAmountOnSequencer:     id.MinimumAmountOnSequencer,
+		MaxNumberOfEndorsements:      id.MaxNumberOfEndorsements,
+		PreBranchConsolidationTicks:  id.PreBranchConsolidationTicks,
+		PostBranchConsolidationTicks: id.PostBranchConsolidationTicks,
+		BootstrapChainID:             chainID.StringHex(),
+		Description:                  id.Description,
 	}
 }
 
@@ -416,13 +403,12 @@ func (id *IdentityDataYAMLAble) stateIdentityData() (*IdentityData, error) {
 		return nil, fmt.Errorf("wrong public key")
 	}
 	ret.TickDuration = time.Duration(id.TimeTickDurationNanosec)
+	ret.SlotInflationBase = id.SlotInflationBase
+	ret.LinearInflationSlots = id.LinearInflationSlots
 	ret.BranchInflationBonusBase = id.BranchInflationBonusBase
 	ret.VBCost = id.VBCost
 	ret.TransactionPace = id.TransactionPace
 	ret.TransactionPaceSequencer = id.TransactionPaceSequencer
-	ret.ChainInflationPerTickBase = id.ChainInflationPerTickBase
-	ret.ChainInflationOpportunitySlots = id.ChainInflationOpportunitySlots
-	ret.TicksPerInflationEpoch = id.TicksPerInflationEpoch
 	ret.MinimumAmountOnSequencer = id.MinimumAmountOnSequencer
 	ret.MaxNumberOfEndorsements = id.MaxNumberOfEndorsements
 	ret.PreBranchConsolidationTicks = id.PreBranchConsolidationTicks

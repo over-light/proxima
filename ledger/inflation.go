@@ -8,42 +8,16 @@ import (
 	"github.com/lunfardo314/easyfl"
 )
 
-// Inflation constraint script, when added to the chain-constrained output, adds inflation the transaction.
-// It enforces
-// - valid chain inflation value (proportional to capital and time)
-// - valid branch inflation randomness proof (as per VRF) for branches
-// The total inflation value is enforced at the transaction level.
-// Inflation on the output equals to:
-// - 0 if 'inflation' constraint script is not present
-// - for branches, it is calculated from the branch inflation randomness proof. See BranchInflationBonusFromRandomnessProof
-// - for non-branches:
-//   -- which has branch as a predecessor sums up delayed chain inflation on the branch plus own chain inflation
-//   -- for other non-branches it is equal to the chainInflation
-//
-// This trick with delayed inflation is necessary to:
-// 1. make inflation on the branch random in order to enforce fair selection of branches by the biggest coverage rule
-// 2. not to lose chain inflation when passing to another slot with the winning branch. For that, the chain inflation
-// is calculated for the branch but used in the next, successor, transaction by adding delayed inflation
-
 const (
 	InflationConstraintName = "inflation"
 	// (0) chain constraint index, (1) inflation amount or randomness proof
-	inflationConstraintTemplate = InflationConstraintName + "(u64/%d, %s, %d, %s)"
+	inflationConstraintTemplate = InflationConstraintName + "(%d, 0x%s)"
 )
 
 type InflationConstraint struct {
-	// ChainInflation inflation amount calculated according to chain inflation rule. It is used inside slot and delayed on slot boundary
-	// and can be added to the inflation of the next transaction in the chain
-	ChainInflation uint64
-	// VRFProof VRF randomness proof, used to proof VRF and calculate inflation amount on branch
-	// nil for non-branch transactions
-	VRFProof []byte
-	// ChainConstraintIndex must point to the sibling chain constraint
+	// either it is nil, which means 0 inflation, or 8 bytes of chain inflation or VRF randomness proof (on the branch only)
+	InflationData        []byte
 	ChainConstraintIndex byte
-	// DelayedInflationIndex
-	// Used only if branch successor to enforce correct ChainInflation which will sum of delayed inflation and current inflation
-	// If not used, must be 0xff
-	DelayedInflationIndex byte
 }
 
 func (i *InflationConstraint) Name() string {
@@ -66,61 +40,33 @@ func (i *InflationConstraint) String() string {
 }
 
 func (i *InflationConstraint) Source() string {
-	vrfProofStr := "0x" + hex.EncodeToString(i.VRFProof)
-	delayedInflationIndexStr := "0xff"
-	if i.DelayedInflationIndex != 0xff {
-		delayedInflationIndexStr = fmt.Sprintf("%d", i.DelayedInflationIndex)
-	}
-	return fmt.Sprintf(inflationConstraintTemplate,
-		i.ChainInflation, vrfProofStr, i.ChainConstraintIndex, delayedInflationIndexStr)
+	return fmt.Sprintf(inflationConstraintTemplate, i.ChainConstraintIndex, hex.EncodeToString(i.InflationData))
 }
 
 // InflationAmount calculates inflation amount either inside slot, or on the slot boundary
 func (i *InflationConstraint) InflationAmount(slotBoundary bool) uint64 {
 	if slotBoundary {
 		// the ChainInflation is interpreted as delayed inflation
-		return L().BranchInflationBonusFromRandomnessProof(i.VRFProof)
+		return L().BranchInflationBonusFromRandomnessProof(i.InflationData)
 	}
-	return i.ChainInflation
+	return binary.BigEndian.Uint64(i.InflationData)
 }
 
 func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
-	sym, _, args, err := L().ParseBytecodeOneLevel(data, 4)
+	sym, _, args, err := L().ParseBytecodeOneLevel(data, 2)
 	if err != nil {
 		return nil, err
 	}
 	if sym != InflationConstraintName {
 		return nil, fmt.Errorf("InflationConstraintFromBytes: not a inflation constraint script")
 	}
-	var amount uint64
-	amountBin := easyfl.StripDataPrefix(args[0])
-	if len(amountBin) != 8 {
-		return nil, fmt.Errorf("InflationConstraintFromBytes: wrong chainInflation parameter")
-	}
-	amount = binary.BigEndian.Uint64(amountBin)
-
-	vrfProof := easyfl.StripDataPrefix(args[1])
-
-	cciBin := easyfl.StripDataPrefix(args[2])
-	if len(cciBin) != 1 {
-		return nil, fmt.Errorf("InflationConstraintFromBytes: wrong chainConstraintIndex parameter")
-	}
-	cci := cciBin[0]
-
-	delayedInflationIndex := byte(0xff)
-	idxBin := easyfl.StripDataPrefix(args[3])
-
-	switch {
-	case len(idxBin) == 1:
-		delayedInflationIndex = idxBin[0]
-	case len(idxBin) > 1:
-		return nil, fmt.Errorf("InflationConstraintFromBytes: wrong delayed inflation index parameter")
+	cci := easyfl.StripDataPrefix(args[0])
+	if len(cci) != 1 || cci[0] == 0xff {
+		return nil, fmt.Errorf("InflationConstraintFromBytes: wrong ChainConstraintIndex parameter")
 	}
 	return &InflationConstraint{
-		ChainConstraintIndex:  cci,
-		ChainInflation:        amount,
-		VRFProof:              vrfProof,
-		DelayedInflationIndex: delayedInflationIndex,
+		ChainConstraintIndex: cci[0],
+		InflationData:        easyfl.StripDataPrefix(args[1]),
 	}, nil
 }
 

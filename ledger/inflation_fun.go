@@ -8,6 +8,8 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
+// TODO WIP inflation function
+
 // This file contains definitions of the inflation calculation functions in EasyFL (on-ledger)
 // The Go functions interprets EasyFL function to guarantee consistent values
 
