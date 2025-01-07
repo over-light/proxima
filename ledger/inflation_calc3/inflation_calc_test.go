@@ -48,8 +48,9 @@ func TestInflation3(t *testing.T) {
 		p := P(s)
 		if s > 0 && s%slotsPerYear == 0 {
 			inflationAnnual := supply - supplyYearStart
-			t.Logf("EoY %4d, supply %s, inflation: %s, rate YoY: %.02f%%",
-				year, util.Th(supply), util.Th(inflationAnnual), 100*float64(inflationAnnual)/float64(supplyYearStart))
+			t.Logf("EoY %4d, supply %s, inflation: %s, BIB: %s, rate YoY: %.02f%% (incl BIB %.02f%%)",
+				year, util.Th(supply), util.Th(inflationAnnual), util.Th(branchInflationBonus*slotsPerYear),
+				100*float64(inflationAnnual)/float64(supplyYearStart), 100*float64(branchInflationBonus*slotsPerYear)/float64(supplyYearStart))
 			supplyYearStart = supply
 			year++
 		}
