@@ -114,7 +114,7 @@ var (
 		{"ArrayLength8", 1, evalNumElementsOfArray},
 		{"ticksBefore", 2, evalTicksBefore64},
 		// TODO: replace Verifiable Random Function (VRF) with verified implementation, for example from Algorand
-		// Parameters; publicKey, proof, message
+		// Parameters; (publicKey, proof, message)
 		{"vrfVerify", 3, evalVRFVerify},
 	}
 )
@@ -178,6 +178,9 @@ func evalNumElementsOfArray(ctx *easyfl.CallParams) []byte {
 }
 
 // evalVRFVerify: embedded VRF verifier. Dependency on unverified external crypto library
+// arg 0 - pubkey
+// arg 1 - proof
+// arg 2 - msg
 func evalVRFVerify(glb *easyfl.CallParams) []byte {
 	var ok bool
 	err := util.CatchPanicOrError(func() error {
