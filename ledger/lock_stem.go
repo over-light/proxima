@@ -11,14 +11,13 @@ import (
 
 const (
 	StemLockName = "stemLock"
-	stemTemplate = StemLockName + "(0x%s,0x%s,%d)"
+	stemTemplate = StemLockName + "(0x%s,0x%s)"
 )
 
 type (
 	StemLock struct {
-		PredecessorOutputID  OutputID
-		VRFProof             []byte
-		StemPredecessorIndex byte
+		PredecessorOutputID OutputID
+		VRFProof            []byte
 	}
 )
 
@@ -40,7 +39,6 @@ func (st *StemLock) Source() string {
 	return fmt.Sprintf(stemTemplate,
 		hex.EncodeToString(st.PredecessorOutputID[:]),
 		hex.EncodeToString(st.VRFProof),
-		st.StemPredecessorIndex,
 	)
 }
 
@@ -62,7 +60,7 @@ func (st *StemLock) Master() Accountable {
 }
 
 func addStemLockConstraint(lib *Library) {
-	lib.extendWithConstraint(StemLockName, stemLockSource, 1, func(data []byte) (Constraint, error) {
+	lib.extendWithConstraint(StemLockName, stemLockSource, 2, func(data []byte) (Constraint, error) {
 		return StemLockFromBytes(data)
 	}, initTestStemLockConstraint)
 }
@@ -71,9 +69,8 @@ func initTestStemLockConstraint() {
 	txid := RandomTransactionID(true)
 	predID := MustNewOutputID(&txid, byte(txid.NumProducedOutputs()-1))
 	example := StemLock{
-		PredecessorOutputID:  predID,
-		VRFProof:             []byte{0x01, 0x02, 0x03},
-		StemPredecessorIndex: 2,
+		PredecessorOutputID: predID,
+		VRFProof:            []byte{0x01, 0x02, 0x03},
 	}
 	exampleBack, err := StemLockFromBytes(example.Bytes())
 	util.AssertNoError(err)
@@ -83,34 +80,29 @@ func initTestStemLockConstraint() {
 }
 
 func StemLockFromBytes(data []byte) (*StemLock, error) {
-	sym, _, args, err := L().ParseBytecodeOneLevel(data, 3)
+	sym, _, args, err := L().ParseBytecodeOneLevel(data, 2)
 	if err != nil {
 		return nil, err
 	}
 	if sym != StemLockName {
 		return nil, fmt.Errorf("not a 'stem' constraint")
 	}
-	predIDBin := easyfl.StripDataPrefix(args[0])
-
-	oid, err := OutputIDFromBytes(predIDBin)
+	oid, err := OutputIDFromBytes(easyfl.StripDataPrefix(args[0]))
 	if err != nil {
 		return nil, err
 	}
 
-	if len(args[2]) != 1 {
-		return nil, fmt.Errorf("wrong stem predecessor index")
-	}
 	return &StemLock{
-		PredecessorOutputID:  oid,
-		VRFProof:             easyfl.StripDataPrefix(args[1]),
-		StemPredecessorIndex: args[2][0],
+		PredecessorOutputID: oid,
+		VRFProof:            easyfl.StripDataPrefix(args[1]),
 	}, nil
 }
 
 const stemLockSource = `
 func producedStemLockOfSelfTx : lockConstraint(producedOutputByIndex(txStemOutputIndex))
 
-func _predOutputID : evalArgumentBytecode(producedStemLockOfSelfTx, selfBytecodePrefix, 0)
+func _predOutputIDOnSuccessor : evalArgumentBytecode(producedStemLockOfSelfTx, selfBytecodePrefix, 0)
+func _vrfProofOnSuccessor : evalArgumentBytecode(producedStemLockOfSelfTx, selfBytecodePrefix, 1)
 
 // $0 - stem predecessor index
 func _predVRFProof : evalArgumentBytecode(
@@ -121,7 +113,6 @@ func _predVRFProof : evalArgumentBytecode(
 
 // $0 - predecessor output ID
 // $1 - VRF proof (signed data is concatenation of VRF proof from stem predecessor and slot of the transaction)
-// $2 - stem predecessor input index
 // does not require unlock parameters
 func stemLock: and(
 	require(isBranchTransaction, !!!must_be_a_branch_transaction),
@@ -133,22 +124,22 @@ func stemLock: and(
     or(
        and(
           selfIsConsumedOutput,
-             // enforce correct predecessor output
-          require(equal(inputIDByIndex(selfOutputIndex), _predOutputID), !!!wrong_predecessor_output_ID),
+             // enforce correct predecessor output on the successor
+          require(
+             equal(inputIDByIndex(selfOutputIndex), _predOutputIDOnSuccessor), 
+             !!!wrong_stem_predecessor_output_ID_on_successor
+          ),
+             // enforce correct VRF proof on successor
+		  require(
+             vrfVerify(publicKeyED25519(txSignature), _vrfProofOnSuccessor, concat($1, txTimeSlot)), 
+             !!!VRF_proof_check_failed
+          )
        ),
        and(
           selfIsProducedOutput,
             // must be consistent with the transaction level data
-          equal(selfOutputIndex, txStemOutputIndex) 
-             // enforce correct VRF proof
-		  require(
-             vrfVerify(publicKeyED25519(txSignature), $1, concat(_predVRFProof($2), txTimeSlot)), 
-             !!!VRF_proof_check_failed
-         )
+          equal(selfOutputIndex, txStemOutputIndex)
        )
     )
 )
-
-// utility function to get stem predecessor. Does not use 'selfBytecodePrefix''
-func predStemOutputIDOfSelf : evalArgumentBytecode(producedStemLockOfSelfTx, #stemLock, 0)
 `

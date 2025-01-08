@@ -20,6 +20,15 @@ type InflationConstraint struct {
 	ChainConstraintIndex byte
 }
 
+func NewInflationConstraint(amount uint64, chainConstraintIndex byte) *InflationConstraint {
+	idata := make([]byte, 8)
+	binary.BigEndian.PutUint64(idata, amount)
+	return &InflationConstraint{
+		InflationData:        idata,
+		ChainConstraintIndex: chainConstraintIndex,
+	}
+}
+
 func (i *InflationConstraint) Name() string {
 	return InflationConstraintName
 }
@@ -72,69 +81,58 @@ func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
 
 func addInflationConstraint(lib *Library) {
 	lib.MustExtendMany(inflationFunctionsSource)
-	lib.extendWithConstraint(InflationConstraintName, inflationConstraintSource, 4, func(data []byte) (Constraint, error) {
+	lib.extendWithConstraint(InflationConstraintName, inflationConstraintSource, 2, func(data []byte) (Constraint, error) {
 		return InflationConstraintFromBytes(data)
 	})
 }
 
 const inflationConstraintSource = `
-// $0 - chain constraint index
-// $1 - index with the delayed inflation in the predecessor
-// 
-// returns:
-// - chain inflation in the predecessor branch transaction
-// - 0 if delayed inflation not specified or predecessor is not branch
-//
-func delayedInflationValue : 
-if(
-	equal($1, 0xff),  
-	u64/0,  // delayed inflation index on predecessor is not specified ->  not delayed inflation is zero.
-	if(
-		isBranchOutputID(inputIDByIndex(chainPredecessorInputIndex($0))),
-		// previous is branch -> parse first argument from the inflation constraint there 
-		evalArgumentBytecode(
-			consumedConstraintByIndex(concat(chainPredecessorInputIndex($0), $1)),
-			selfBytecodePrefix,
-			0
-		),
-		// previous is not a branch -> nothing is delayed
-		u64/0
-	)
-)
+func _producedVRFProof : 
+     evalArgumentBytecode(
+        producedConstraintByIndex(concat(txStemOutputIndex, lockConstraintIndex)), 
+        #stemLock, 
+        1
+     )
 
-// inflation(<inflation amount>, <VRF proof>, <chain constraint index>, <delayed inflation index>)
-// $0 - chain inflation amount (8 bytes or isZero). On slot boundary interpreted as delayed inflation. Inflation either 0 or precise amount 
-// $1 - vrf proof. Interpreted only on branch transactions
-// $2 - chain constraint index (sibling)
-// $3 - delayed inflation index. Inflation constraint index in the predecessor, 0xff means not specified
+// inflation(<inflation amount>, <chain constraint index>)
+// $0 - inflation amount (8 bytes or isZero).  
+// $1 - chain constraint index (sibling)
 //
 func inflation : or(
 	selfIsConsumedOutput, // not checked if consumed
 	isZero($0),           // zero inflation always ok
 	and(
   		selfIsProducedOutput,
-		require(equalUint(len($3), 1), !!!delayed_inflation_index_must_be_1_byte),
+        if(
+           isBranchTransaction,
+                   // branch tx
+           require(
+                equal( $0, branchInflationBonusFromRandomnessProof(_producedVRFProof) ),
+                !!!wrong_branch_inflation_bonus
+           ),
+                   // not branch tx
+           require(
+	    		lessOrEqualThan(
+                    $0,
+		    		calcChainInflationAmount(
+			    		timestampOfInputByIndex(chainPredecessorInputIndex($1)), 
+                        txTimestampBytes,
+					    amountValue(consumedOutputByIndex(chainPredecessorInputIndex($1))),
+				   )
+			    ),
+			    !!!invalid_chain_inflation_amount
+		   )
+        ),
 		require(
 			equalUint(
 				calcChainInflationAmount(
-					timestampOfInputByIndex(chainPredecessorInputIndex($2)), 
-					ticksBefore(
-                       timestampOfInputByIndex(chainPredecessorInputIndex($2)),
-                       txTimestampBytes
-                    ), 
-					amountValue(consumedOutputByIndex(chainPredecessorInputIndex($2))),
-					delayedInflationValue($2, $3)
+					timestampOfInputByIndex(chainPredecessorInputIndex($1)), 
+                    txTimestampBytes,
+					amountValue(consumedOutputByIndex(chainPredecessorInputIndex($1))),
 				),				
 				$0
 			),
 			!!!invalid_chain_inflation_amount
-		),
-		require(
-			or(
-				not(isBranchTransaction),
-				vrfVerify(publicKeyED25519(txSignature), $1, predStemOutputIDOfSelf)
-			),
-			!!!VRF_verification_failed
 		)
     )
 )

@@ -623,7 +623,7 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 		return nil, 0, nil, errP("not a chain output: %s", par.ChainInput.ID.StringShort())
 	}
 	// calculate inflation amount and create inflation constraint
-	inflationAmount, _ := calcChainInflationAmount(par.ChainInput, par.Timestamp)
+	inflationAmount := ledger.L().CalcChainInflationAmount(par.ChainInput.Timestamp(), par.Timestamp, par.ChainInput.Output.Amount())
 	chainInAmount := par.ChainInput.Output.Amount()
 	if chainInAmount+inflationAmount <= par.WithdrawAmount {
 		// we do not handle complete withdrawal of funds from the chain
@@ -631,10 +631,7 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 	}
 	var inflationConstraint *ledger.InflationConstraint
 	if inflationAmount > 0 {
-		inflationConstraint = &ledger.InflationConstraint{
-			ChainInflation:       inflationAmount,
-			ChainConstraintIndex: chainInConstraintIdx,
-		}
+		inflationConstraint = ledger.NewInflationConstraint(inflationAmount, chainInConstraintIdx)
 	}
 
 	chainOutAmount := chainInAmount + inflationAmount - par.WithdrawAmount

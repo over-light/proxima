@@ -282,7 +282,9 @@ var upgrade0BaseHelpers = []*easyfl.ExtendedFunctionData{
 	{"timeSlotPrefix", "slice($0, 0, 3)"}, // first 4 bytes of any array. It is not time slot yet
 	{"timeSlotFromTimeSlotPrefix", "bitwiseAND($0, 0x7fffffff)"},
 	{"timeTickFromTimestamp", "byte($0, 4)"},
+	{"timeSlotFromTimestamp", "timeSlotFromTimeSlotPrefix(slice($0,0,3))"},
 	{"timestamp", "concat(mustValidTimeSlot($0),mustValidTimeTick($1))"},
+	{"isTimestampOnSlotBoundary", "isZero(timeTickFromTimestamp($0))"},
 	// takes first 5 bytes and sets first bit to zero
 	{"timestampPrefix", "bitwiseAND(slice($0, 0, 4), 0x7fffffffff)"},
 	{"slotsSinceOrigin", "timeSlotFromTimeSlotPrefix(timeSlotPrefix($0))"},

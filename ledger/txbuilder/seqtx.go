@@ -5,6 +5,7 @@ import (
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/unitrie/common"
 	"github.com/yoseplee/vrf"
 )
 
@@ -87,38 +88,32 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		return nil, nil, errP("not enough tokens in the input")
 	}
 
+	var vrfProof []byte
+	var err error
+
+	if par.StemInput != nil {
+		prevStem, ok := par.StemInput.Output.StemLock()
+		if !ok {
+			return nil, nil, errP(err, "inconsistency: cannot find previous stem")
+		}
+		pubKey := par.PrivateKey.Public().(ed25519.PublicKey)
+		vrfProof, _, err = vrf.Prove(pubKey, par.PrivateKey, common.Concat(prevStem.VRFProof, par.Timestamp.Slot().Bytes()))
+		if err != nil {
+			return nil, nil, errP(err, "while generating VRF randomness proof")
+		}
+	}
+
 	var inflationAmount uint64
 	var inflationConstraint *ledger.InflationConstraint
 
 	if par.PutInflation {
-		inflationConstraint = &ledger.InflationConstraint{}
-		inflationConstraint.ChainInflation, inflationConstraint.DelayedInflationIndex = calcChainInflationAmount(par.ChainInput, par.Timestamp)
-
-		if par.StemInput == nil {
-			// calculate inflation value allowed in the context
-			// non-branch transaction
-			inflationAmount = inflationConstraint.ChainInflation
+		if par.Timestamp.IsSlotBoundary() {
+			inflationAmount = ledger.L().CalcChainInflationAmount(par.ChainInput.Timestamp(), par.Timestamp, par.ChainInput.Output.Amount())
 		} else {
-			// branch transaction. Generate verifiable randomness. It will be used to deterministically calculate inflation amount
-			pubKey := par.PrivateKey.Public().(ed25519.PublicKey)
-			var err error
-
-			util.AssertNotNil(par.StemInput)
-			// using stem predecessor ID as msg for VRF to randomize branch inflation for the same sequencer even on the same slot
-			inflationConstraint.VRFProof, _, err = vrf.Prove(pubKey, par.PrivateKey, par.StemInput.ID[:])
-			if err != nil {
-				return nil, nil, errP(err, "while generating VRF randomness proof")
-			}
-
-			{
-				var ok bool
-				// double check if VRF randomness proof has been generated correctly
-				ok, err = vrf.Verify(pubKey, inflationConstraint.VRFProof, par.StemInput.ID[:])
-				util.AssertNoError(err, "MakeSequencerTransactionWithInputLoader: verify VRF proof")
-				util.Assertf(ok, "MakeSequencerTransactionWithInputLoader: verify VRF proof")
-			}
-			inflationAmount = ledger.L().BranchInflationBonusFromRandomnessProof(inflationConstraint.VRFProof)
+			util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
+			inflationAmount = ledger.L().BranchInflationBonusFromRandomnessProof(vrfProof)
 		}
+		inflationConstraint = ledger.NewInflationConstraint(inflationAmount, 0xff)
 	}
 
 	chainOutAmount := totalInAmount + inflationAmount - additionalOut // >= 0
@@ -201,11 +196,13 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		if par.ReturnInputLoader {
 			consumedOutputs = append(consumedOutputs, par.StemInput.Output)
 		}
+		util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
 
 		stemOut := ledger.NewOutput(func(o *ledger.Output) {
 			o.WithAmount(par.StemInput.Output.Amount())
 			o.WithLock(&ledger.StemLock{
 				PredecessorOutputID: par.StemInput.ID,
+				VRFProof:            vrfProof,
 			})
 		})
 		stemOutputIndex, err = txb.ProduceOutput(stemOut)
@@ -262,31 +259,4 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		}
 	}
 	return txb.TransactionData.Bytes(), inputLoader, nil
-}
-
-func calcChainInflationAmount(chainInput *ledger.OutputWithChainID, ts ledger.Time) (uint64, byte) {
-	delayedInflation := uint64(0)
-	delayedInflationIdx := byte(0xff)
-	if chainInput.ID.IsBranchTransaction() {
-		// take delayed inflation from predecessor
-		var inflationConstraint *ledger.InflationConstraint
-		inflationConstraint, delayedInflationIdx = chainInput.Output.InflationConstraint()
-		if delayedInflationIdx != 0xff {
-			delayedInflation = inflationConstraint.ChainInflation
-		}
-	}
-	ret, idx := ledger.L().CalcChainInflationAmount(chainInput.Timestamp(), ts, chainInput.Output.Amount(), delayedInflation), delayedInflationIdx
-
-	//fmt.Printf(">>>>>>>> [%s]: pred: %s, target: %s (ticks: %d), pred amount: %s, delayed amount: %s, less delayed: %s, return: %s\n",
-	//	par.SeqName,
-	//	par.ChainInput.IDShort(),
-	//	par.Timestamp.String(),
-	//	ledger.DiffTicks(par.Timestamp, par.ChainInput.Timestamp()),
-	//	util.Th(par.ChainInput.Output.Amount()),
-	//	util.Th(delayedInflation),
-	//	util.Th(ret-delayedInflation),
-	//	util.Th(ret),
-	//)
-
-	return ret, idx
 }

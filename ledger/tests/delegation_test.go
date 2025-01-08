@@ -98,7 +98,7 @@ func TestDelegation(t *testing.T) {
 
 		var inflation uint64
 		if inflate {
-			inflation = ledger.L().CalcChainInflationAmount(delegatedOutput.ID.Timestamp(), ts, delegatedOutput.Output.Amount(), 0)
+			inflation = ledger.L().CalcChainInflationAmount(delegatedOutput.ID.Timestamp(), ts, delegatedOutput.Output.Amount())
 		}
 		t.Logf("inflation amount: %d", inflation)
 		totalProducedAmount := delegatedOutput.Output.Amount() + inflation
@@ -118,10 +118,7 @@ func TestDelegation(t *testing.T) {
 				WithLock(delegatedOutput.Output.DelegationLock())
 			idx, _ = o.PushConstraint(chainConstraint.Bytes())
 			if inflate {
-				ic := ledger.InflationConstraint{
-					ChainInflation:       inflation,
-					ChainConstraintIndex: idx,
-				}
+				ic := ledger.NewInflationConstraint(inflation, idx)
 				_, _ = o.PushConstraint(ic.Bytes())
 			}
 		})
@@ -251,7 +248,7 @@ func TestDelegation(t *testing.T) {
 		if !ledger.IsOpenDelegationSlot(chainID, ts.Slot()) {
 			ts = ts.AddSlots(1)
 		}
-		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount(), 0)
+		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
 		t.Logf("tsIn: %s, tsOut: %s, amountiIn: %s -> expected inflation: %d",
 			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
 
@@ -268,7 +265,7 @@ func TestDelegation(t *testing.T) {
 		if ts.Slot()%2 != 0 {
 			ts = ts.AddSlots(1)
 		}
-		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount(), 0)
+		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
 		t.Logf("tsIn: %s, tsOut: %s, amountiIn: %s -> expected inflation: %d",
 			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
 
@@ -285,7 +282,7 @@ func TestDelegation(t *testing.T) {
 		if ts.Slot()%2 != 0 {
 			ts = ts.AddSlots(1)
 		}
-		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount(), 0)
+		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
 		t.Logf("tsIn: %s, tsOut: %s, amountiIn: %s -> expected inflation: %d",
 			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
 
