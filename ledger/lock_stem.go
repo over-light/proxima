@@ -120,7 +120,6 @@ func stemLock: and(
 	require(equal(selfBlockIndex,1), !!!locks_must_be_at_block_1), 
 	require(isZero(selfAmountValue), !!!amount_must_be_zero),
 	mustSize($0, 33),
-	mustSize($1, 1),
     or(
        and(
           selfIsConsumedOutput,

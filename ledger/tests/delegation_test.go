@@ -35,7 +35,7 @@ func TestDelegation(t *testing.T) {
 	const (
 		tokensFromFaucet0 = 200_000_000_000
 		tokensFromFaucet1 = 200_000_000_001
-		delegatedTokens   = 100_000_000 // 150_000_000_000
+		delegatedTokens   = 1_000_000_000 // 150_000_000_000
 	)
 	var delegationLock *ledger.DelegationLock
 	var txBytes []byte
@@ -269,7 +269,7 @@ func TestDelegation(t *testing.T) {
 			ts = ts.AddSlots(1)
 		}
 		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
-		t.Logf("tsIn: %s, tsOut: %s, amountiIn: %s -> expected inflation: %d",
+		t.Logf("tsIn: %s, tsOut: %s, amountIn: %s -> expected inflation: %d",
 			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
 
 		err := transitDelegation(ts, true, delegatedOutput.Output.Amount(), false, true)
@@ -286,7 +286,7 @@ func TestDelegation(t *testing.T) {
 			ts = ts.AddSlots(1)
 		}
 		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
-		t.Logf("tsIn: %s, tsOut: %s, amountiIn: %s -> expected inflation: %d",
+		t.Logf("tsIn: %s, tsOut: %s, amountIn: %s -> expected inflation: %d",
 			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
 
 		err := transitDelegation(ts, true, delegatedOutput.Output.Amount()-5, false, true)

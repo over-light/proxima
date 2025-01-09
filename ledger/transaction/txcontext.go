@@ -80,7 +80,7 @@ func TxContextFromState(tx *Transaction, rdr multistate.SugaredStateReader) (*Tx
 
 // TxContextFromTransferableBytes constructs lazybytes.Tree from transaction bytes and consumed outputs
 func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid *ledger.OutputID) ([]byte, bool), traceOption ...int) (*TxContext, error) {
-	tx, err := FromBytes(txBytes, ScanSequencerData())
+	tx, err := FromBytes(txBytes, ScanSequencerData(), ScanOutputs())
 	if err != nil {
 		return nil, err
 	}

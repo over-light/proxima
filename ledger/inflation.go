@@ -12,7 +12,7 @@ import (
 const (
 	InflationConstraintName = "inflation"
 	// (0) chain constraint index, (1) inflation amount or randomness proof
-	inflationConstraintTemplate = InflationConstraintName + "(%d, u64/%d)"
+	inflationConstraintTemplate = InflationConstraintName + "(u64/%d, %d)"
 )
 
 type InflationConstraint struct {
@@ -41,7 +41,7 @@ func (i *InflationConstraint) String() string {
 }
 
 func (i *InflationConstraint) Source() string {
-	return fmt.Sprintf(inflationConstraintTemplate, i.ChainConstraintIndex, i.InflationAmount)
+	return fmt.Sprintf(inflationConstraintTemplate, i.InflationAmount, i.ChainConstraintIndex)
 }
 
 func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
@@ -52,17 +52,17 @@ func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
 	if sym != InflationConstraintName {
 		return nil, fmt.Errorf("InflationConstraintFromBytes: not an inflation constraint script")
 	}
-	cci := easyfl.StripDataPrefix(args[0])
-	if len(cci) != 1 || cci[0] == 0xff {
-		return nil, fmt.Errorf("InflationConstraintFromBytes: wrong ChainConstraintIndex parameter")
-	}
-	amountBin := easyfl.StripDataPrefix(args[1])
+	amountBin := easyfl.StripDataPrefix(args[0])
 	var amount uint64
 	if len(amountBin) != 0 {
 		if len(amountBin) != 8 {
 			return nil, fmt.Errorf("InflationConstraintFromBytes: wrong ChainConstraintIndex parameter")
 		}
 		amount = binary.BigEndian.Uint64(amountBin)
+	}
+	cci := easyfl.StripDataPrefix(args[1])
+	if len(cci) != 1 || cci[0] == 0xff {
+		return nil, fmt.Errorf("InflationConstraintFromBytes: wrong ChainConstraintIndex parameter")
 	}
 	return &InflationConstraint{
 		ChainConstraintIndex: cci[0],
