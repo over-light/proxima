@@ -314,7 +314,7 @@ func (o *Output) InflationConstraint() (*InflationConstraint, byte) {
 
 func (o *Output) Inflation(branch bool) uint64 {
 	if inflationConstraint, idx := o.InflationConstraint(); idx != 0xff {
-		return inflationConstraint.InflationAmount(branch)
+		return inflationConstraint.InflationAmount
 	}
 	return 0
 }

@@ -5,19 +5,33 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/util"
+	"go.uber.org/atomic"
 )
 
 // This file contains definitions of the inflation calculation functions in EasyFL (on-ledger)
 // The Go functions interprets EasyFL function to guarantee consistent values
 
+var calcChainInflationAmountExpression atomic.Pointer[easyfl.Expression]
+
+func __precompiled() (ret *easyfl.Expression) {
+	if ret = calcChainInflationAmountExpression.Load(); ret == nil {
+		var err error
+		ret, _, _, err = L().CompileExpression("calcChainInflationAmount($0,$1,$2)")
+		util.AssertNoError(err)
+		calcChainInflationAmountExpression.Store(ret)
+	}
+	return ret
+}
+
 // CalcChainInflationAmount interprets EasyFl formula. Return chain inflation amount for given in and out ledger times,
 // input amount of tokens and delayed
 func (lib *Library) CalcChainInflationAmount(inTs, outTs Time, inAmount uint64) uint64 {
-	src := fmt.Sprintf("calcChainInflationAmount(%s,u64/%d,u64/%d)", inTs.Source(), outTs.Source(), inAmount)
-	res, err := lib.EvalFromSource(nil, src)
-	util.AssertNoError(err)
-	return binary.BigEndian.Uint64(res)
+	var amountBin [8]byte
+	binary.BigEndian.PutUint64(amountBin[:], inAmount)
+	ret := easyfl.EvalExpression(nil, __precompiled(), inTs.Bytes(), outTs.Bytes(), amountBin[:])
+	return binary.BigEndian.Uint64(ret)
 }
 
 // BranchInflationBonusFromRandomnessProof makes uint64 in the range from 0 to BranchInflationBonusBase (incl)
@@ -41,8 +55,7 @@ func _adjustedDiffSlots :
 
 // $0 - ledger time (timestamp) of the predecessor
 // $1 - amount on predecessor
-func _baseInflation :
-   div($1, add(div(constInitialSupply, constSlotInflationBase), slotsSinceOrigin($0)))
+func _baseInflation : div($1, add(constAuxForInflation, slotsSinceOrigin($0)))
 
 // $0 - ledger time (timestamp) of the predecessor
 // $1 - adjusted diff slots

@@ -1,32 +1,24 @@
 package ledger
 
 import (
+	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/util"
 )
 
 const (
 	InflationConstraintName = "inflation"
 	// (0) chain constraint index, (1) inflation amount or randomness proof
-	inflationConstraintTemplate = InflationConstraintName + "(%d, 0x%s)"
+	inflationConstraintTemplate = InflationConstraintName + "(%d, u64/%d)"
 )
 
 type InflationConstraint struct {
 	// either it is nil, which means 0 inflation, or 8 bytes of chain inflation or VRF randomness proof (on the branch only)
-	InflationData        []byte
+	InflationAmount      uint64
 	ChainConstraintIndex byte
-}
-
-func NewInflationConstraint(amount uint64, chainConstraintIndex byte) *InflationConstraint {
-	idata := make([]byte, 8)
-	binary.BigEndian.PutUint64(idata, amount)
-	return &InflationConstraint{
-		InflationData:        idata,
-		ChainConstraintIndex: chainConstraintIndex,
-	}
 }
 
 func (i *InflationConstraint) Name() string {
@@ -49,16 +41,7 @@ func (i *InflationConstraint) String() string {
 }
 
 func (i *InflationConstraint) Source() string {
-	return fmt.Sprintf(inflationConstraintTemplate, i.ChainConstraintIndex, hex.EncodeToString(i.InflationData))
-}
-
-// InflationAmount calculates inflation amount either inside slot, or on the slot boundary
-func (i *InflationConstraint) InflationAmount(slotBoundary bool) uint64 {
-	if slotBoundary {
-		// the ChainInflation is interpreted as delayed inflation
-		return L().BranchInflationBonusFromRandomnessProof(i.InflationData)
-	}
-	return binary.BigEndian.Uint64(i.InflationData)
+	return fmt.Sprintf(inflationConstraintTemplate, i.ChainConstraintIndex, i.InflationAmount)
 }
 
 func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
@@ -67,15 +50,23 @@ func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
 		return nil, err
 	}
 	if sym != InflationConstraintName {
-		return nil, fmt.Errorf("InflationConstraintFromBytes: not a inflation constraint script")
+		return nil, fmt.Errorf("InflationConstraintFromBytes: not an inflation constraint script")
 	}
 	cci := easyfl.StripDataPrefix(args[0])
 	if len(cci) != 1 || cci[0] == 0xff {
 		return nil, fmt.Errorf("InflationConstraintFromBytes: wrong ChainConstraintIndex parameter")
 	}
+	amountBin := easyfl.StripDataPrefix(args[1])
+	var amount uint64
+	if len(amountBin) != 0 {
+		if len(amountBin) != 8 {
+			return nil, fmt.Errorf("InflationConstraintFromBytes: wrong ChainConstraintIndex parameter")
+		}
+		amount = binary.BigEndian.Uint64(amountBin)
+	}
 	return &InflationConstraint{
 		ChainConstraintIndex: cci[0],
-		InflationData:        easyfl.StripDataPrefix(args[1]),
+		InflationAmount:      amount,
 	}, nil
 }
 
@@ -83,7 +74,18 @@ func addInflationConstraint(lib *Library) {
 	lib.MustExtendMany(inflationFunctionsSource)
 	lib.extendWithConstraint(InflationConstraintName, inflationConstraintSource, 2, func(data []byte) (Constraint, error) {
 		return InflationConstraintFromBytes(data)
-	})
+	}, initTestInflationConstraint)
+}
+
+func initTestInflationConstraint() {
+	ic := InflationConstraint{
+		InflationAmount:      13371337,
+		ChainConstraintIndex: 5,
+	}
+	_, _, bytecode, err := L().CompileExpression(ic.Source())
+	util.AssertNoError(err)
+
+	util.Assertf(bytes.Equal(ic.Bytes(), bytecode), "bytes.Equal(ic.Bytes(), bytecode)")
 }
 
 const inflationConstraintSource = `
@@ -94,46 +96,38 @@ func _producedVRFProof :
         1
      )
 
+// $0 - chain predecessor input index
+func _calcChainInflationAmountForPredecessor :
+     calcChainInflationAmount(
+	    timestampOfInputByIndex($0), 
+        txTimestampBytes,
+	    amountValue(consumedOutputByIndex($0)),
+	 )
+
 // inflation(<inflation amount>, <chain constraint index>)
 // $0 - inflation amount (8 bytes or isZero).  
 // $1 - chain constraint index (sibling)
 //
 func inflation : or(
 	selfIsConsumedOutput, // not checked if consumed
-	isZero($0),           // zero inflation always ok
 	and(
   		selfIsProducedOutput,
         if(
            isBranchTransaction,
-                   // branch tx
+                   // branch tx. Enforce inflation is calculated from the VRF proof
            require(
                 equal( $0, branchInflationBonusFromRandomnessProof(_producedVRFProof) ),
-                !!!wrong_branch_inflation_bonus
+                !!!invalid_branch_inflation_bonus
            ),
-                   // not branch tx
+                   // not branch tx. Enforce valid chain inflation amount
            require(
 	    		lessOrEqualThan(
                     $0,
-		    		calcChainInflationAmount(
-			    		timestampOfInputByIndex(chainPredecessorInputIndex($1)), 
-                        txTimestampBytes,
-					    amountValue(consumedOutputByIndex(chainPredecessorInputIndex($1))),
-				   )
+                    _calcChainInflationAmountForPredecessor(chainPredecessorInputIndex($1))
 			    ),
 			    !!!invalid_chain_inflation_amount
 		   )
         ),
-		require(
-			equalUint(
-				calcChainInflationAmount(
-					timestampOfInputByIndex(chainPredecessorInputIndex($1)), 
-                    txTimestampBytes,
-					amountValue(consumedOutputByIndex(chainPredecessorInputIndex($1))),
-				),				
-				$0
-			),
-			!!!invalid_chain_inflation_amount
-		)
     )
 )
 `

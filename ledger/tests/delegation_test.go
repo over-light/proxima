@@ -117,8 +117,11 @@ func TestDelegation(t *testing.T) {
 			o.WithAmount(nextDelegationAmount).
 				WithLock(delegatedOutput.Output.DelegationLock())
 			idx, _ = o.PushConstraint(chainConstraint.Bytes())
+			ic := ledger.InflationConstraint{
+				InflationAmount:      inflation,
+				ChainConstraintIndex: idx,
+			}
 			if inflate {
-				ic := ledger.NewInflationConstraint(inflation, idx)
 				_, _ = o.PushConstraint(ic.Bytes())
 			}
 		})

@@ -2,6 +2,7 @@ package inflation_calc3
 
 import (
 	"testing"
+	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
@@ -45,6 +46,7 @@ func TestInflation3(t *testing.T) {
 	year := 1
 	supplyYearStart := uint64(initSupply)
 
+	startTime := time.Now()
 	for s := 0; s < slotsPerYear*years; s++ {
 		p := P(s)
 		if s > 0 && s%slotsPerYear == 0 {
@@ -57,10 +59,14 @@ func TestInflation3(t *testing.T) {
 		}
 		supply += supply/p + branchInflationBonus
 	}
+	t.Logf("calc per sec: %d", int64(slotsPerYear*years)/int64(time.Since(startTime).Seconds()))
 	t.Logf("MaxUint64: %s", util.Th(uint64(0xffffffffffffffff)))
 }
 
+// very long test
+
 func TestInflation3Final(t *testing.T) {
+	t.Skip()
 	t.Logf("----- tick duration: %v, slots per year: %s", ledger.L().ID.TickDuration, util.Th(ledger.L().ID.SlotsPerYear()))
 
 	ln := lines.New("   ")
@@ -76,28 +82,28 @@ func TestInflation3Final(t *testing.T) {
 	ln.Add("SC = %s", util.Th(SC))
 	t.Logf("\n%s", ln.String())
 
-	P := func(n int) uint64 {
-		return SC + uint64(n)
-	}
+	const years = 3
 
-	const years = 100
-
-	supply := uint64(S0)
+	supply := ledger.L().ID.InitialSupply
 	slotsPerYear := ledger.L().ID.SlotsPerYear()
 	year := 1
-	supplyYearStart := uint64(S0)
+	supplyYearStart := ledger.L().ID.InitialSupply
 
+	startTime := time.Now()
 	for s := 0; s < slotsPerYear*years; s++ {
-		p := P(s)
+		ts := ledger.NewLedgerTime(ledger.Slot(s), 5)
+		inflationSlot := ledger.L().CalcChainInflationAmount(ts, ts.AddSlots(1), supply)
+
 		if s > 0 && s%slotsPerYear == 0 {
 			inflationAnnual := supply - supplyYearStart
-			t.Logf("EoY %4d, supply %s, inflation: %s, BIB: %s, rate YoY: %.02f%% (incl BIB %.02f%%)",
+			t.Logf("EoY %4d, supply %s, inflation: %s, BIB: %s, rate YoY: %.02f%% (incl BIB %.02f%%), calc per sec: %d",
 				year, util.Th(supply), util.Th(inflationAnnual), util.Th(B*slotsPerYear),
-				100*float64(inflationAnnual)/float64(supplyYearStart), 100*float64(B*slotsPerYear)/float64(supplyYearStart))
+				100*float64(inflationAnnual)/float64(supplyYearStart), 100*float64(B*slotsPerYear)/float64(supplyYearStart),
+				int64(slotsPerYear)/int64(time.Since(startTime).Seconds()))
 			supplyYearStart = supply
 			year++
+			startTime = time.Now()
 		}
-		supply += supply/p + B
+		supply += inflationSlot + B
 	}
-	t.Logf("MaxUint64: %s", util.Th(uint64(0xffffffffffffffff)))
 }

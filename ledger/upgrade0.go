@@ -261,6 +261,7 @@ func upgrade0BaseConstants(id *IdentityData) []*easyfl.ExtendedFunctionData {
 		{"constSlotInflationBase", fmt.Sprintf("u64/%d", id.SlotInflationBase)},
 		{"constLinearInflationSlots", fmt.Sprintf("u64/%d", id.LinearInflationSlots)},
 		{"constBranchInflationBonusBase", fmt.Sprintf("u64/%d", id.BranchInflationBonusBase)},
+		{"constAuxForInflation", fmt.Sprintf("u64/%d", id.InitialSupply/id.SlotInflationBase)}, // helper constant div(constInitialSupply, constSlotInflationBase)
 		// end inflation-related
 		{"constMinimumAmountOnSequencer", fmt.Sprintf("u64/%d", id.MinimumAmountOnSequencer)},
 		{"constMaxNumberOfEndorsements", fmt.Sprintf("u64/%d", id.MaxNumberOfEndorsements)},
@@ -303,6 +304,7 @@ func (lib *Library) upgrade0WithBaseConstants(id *IdentityData) {
 		libraryGlobal.MustError("mustValidTimeSlot(255)", "wrong data size")
 		libraryGlobal.MustEqual("mustValidTimeSlot(u32/255)", Slot(255).Hex())
 		libraryGlobal.MustEqual("mustValidTimeTick(88)", "88")
+		libraryGlobal.MustEqual("constAuxForInflation", "u64/30303030")
 	})
 }
 

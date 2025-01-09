@@ -629,9 +629,13 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 		// we do not handle complete withdrawal of funds from the chain
 		return nil, 0, nil, errP("not enough tokens to withdraw specified amount %d", par.WithdrawAmount)
 	}
+
 	var inflationConstraint *ledger.InflationConstraint
 	if inflationAmount > 0 {
-		inflationConstraint = ledger.NewInflationConstraint(inflationAmount, chainInConstraintIdx)
+		inflationConstraint = &ledger.InflationConstraint{
+			InflationAmount:      inflationAmount,
+			ChainConstraintIndex: chainInConstraintIdx,
+		}
 	}
 
 	chainOutAmount := chainInAmount + inflationAmount - par.WithdrawAmount

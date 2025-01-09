@@ -113,7 +113,9 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 			util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
 			inflationAmount = ledger.L().BranchInflationBonusFromRandomnessProof(vrfProof)
 		}
-		inflationConstraint = ledger.NewInflationConstraint(inflationAmount, 0xff)
+		inflationConstraint = &ledger.InflationConstraint{
+			InflationAmount: inflationAmount,
+		}
 	}
 
 	chainOutAmount := totalInAmount + inflationAmount - additionalOut // >= 0
