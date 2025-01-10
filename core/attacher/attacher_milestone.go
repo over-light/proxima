@@ -382,20 +382,14 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 	if msData != nil {
 		msDataStr = fmt.Sprintf(" %s %d/%d", msData.Name, msData.BranchHeight, msData.ChainHeight)
 	}
-	inflChainStr := "-"
-	inflBranchStr := "-"
-	if inflationConstraint := a.vid.InflationConstraintOnSequencerOutput(); inflationConstraint != nil {
-		inflChainStr = util.Th(inflationConstraint.InflationAmount)
-		inflBranchStr = util.Th(ledger.L().BranchInflationBonusFromRandomnessProof(inflationConstraint.VRFProof))
-	}
 
 	if a.vid.IsBranchTransaction() {
-		msg = fmt.Sprintf("--- BRANCH%s %s(in %d, tx: %d), ci=%s/bi=%s",
+		msg = fmt.Sprintf("--- BRANCH%s %s(in %d, tx: %d), i = %s",
 			msDataStr, a.vid.IDShortString(), a.finals.numInputs, a.finals.numNewTransactions,
-			inflChainStr, inflBranchStr)
+			util.Th(a.vid.InflationAmount()))
 	} else {
-		msg = fmt.Sprintf("--- SEQ TX%s %s(in %d), ci=%s/bi=%s, lnow: %s",
-			msDataStr, a.vid.IDShortString(), a.finals.numInputs, inflChainStr, inflBranchStr, ledger.TimeNow().String())
+		msg = fmt.Sprintf("--- SEQ TX%s %s(in %d), i = %s, lnow: %s",
+			msDataStr, a.vid.IDShortString(), a.finals.numInputs, util.Th(a.vid.InflationAmount()), ledger.TimeNow().String())
 	}
 	if a.vid.GetTxStatus() == vertex.Bad {
 		msg += fmt.Sprintf("BAD: err = '%v'", a.vid.GetError())

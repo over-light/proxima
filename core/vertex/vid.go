@@ -794,6 +794,17 @@ func (vid *WrappedTx) _traversePastCone(opt *_unwrapOptionsTraverse) bool {
 	return ret
 }
 
+func (vid *WrappedTx) InflationAmount() (ret uint64) {
+	util.Assertf(vid.IsSequencerMilestone(), "InflationAmountOfSequencerTx: not a sequencer milestone: %s", vid.IDShortString)
+	vid.RUnwrap(UnwrapOptions{
+		Vertex: func(v *Vertex) {
+			ret = v.Tx.InflationAmount()
+		},
+		Deleted: vid.PanicAccessDeleted,
+	})
+	return
+}
+
 func (vid *WrappedTx) InflationAmountOfSequencerMilestone() (ret uint64) {
 	util.Assertf(vid.IsSequencerMilestone(), "InflationAmountOfSequencerTx: not a sequencer milestone: %s", vid.IDShortString)
 	vid.RUnwrap(UnwrapOptions{

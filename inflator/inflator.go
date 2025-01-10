@@ -44,7 +44,6 @@ type (
 		TagAlongAmount            uint64
 		MaxDelegationsPerTx       int
 		KeepInConsumedListSlots   int
-		NoInflationSlots          int
 		LoopPeriod                time.Duration
 	}
 
@@ -65,7 +64,6 @@ const (
 	minimumTagAlongAmount     = 50
 	maxDelegationsPerTx       = 100
 	keepInConsumedListSlots   = 3
-	minimumNoInflationSlots   = 3
 	defaultLoopPeriod         = 2 * time.Second
 )
 
@@ -105,13 +103,12 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 			chainID = ledger.MakeOriginChainID(&oid)
 		}
 		if !ledger.IsOpenDelegationSlot(chainID, targetTs.Slot()) {
-			// only considering delegated outputs which can be consumed in the target slo
+			// only considering delegated outputs which can be consumed in the target slot
 			return true
 		}
-		inflation := ledger.L().CalcChainInflationAmount(oid.Timestamp(), targetTs, o.Amount(), 0)
-		if inflation < fl.cfg.MinimumInflationPerOutput ||
-			ledger.DiffTicks(targetTs, oid.Timestamp())/int64(ledger.TicksPerSlot) < int64(fl.cfg.NoInflationSlots) {
-			// only consider outputs with enough inflation or (usually) older than half of the inflation opportunity window
+		inflation := ledger.L().CalcChainInflationAmount(oid.Timestamp(), targetTs, o.Amount())
+		if inflation < fl.cfg.MinimumInflationPerOutput {
+			// only consider outputs with enough inflation
 			return true
 		}
 		ret = append(ret, &InflatableOutput{
@@ -155,7 +152,7 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 			util.AssertNoError(err)
 			if pred.Inflation > 0 {
 				ccInfl := ledger.InflationConstraint{
-					ChainInflation:       pred.Inflation,
+					InflationAmount:      pred.Inflation,
 					ChainConstraintIndex: ccIdx,
 				}
 				_, err = o.PushConstraint(ccInfl.Bytes())
@@ -165,7 +162,6 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 		pred.SuccChainConstraintIdx = ccIdx
 		pred.UnlockParams = []byte{byte(i), ccIdx, 0}
 		totalMargin += pred.Margin
-
 	}
 	return ret, totalMargin
 }
@@ -306,8 +302,17 @@ func ParamsFromConfig(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *P
 		TagAlongAmount:            viper.GetUint64("sequencer.inflator.tag_along_amount"),
 		MaxDelegationsPerTx:       viper.GetInt("sequencer.inflator.max_delegations_per_tx"),
 		KeepInConsumedListSlots:   viper.GetInt("sequencer.inflator.keep_in_consumed_list_slots"),
-		NoInflationSlots:          viper.GetInt("sequencer.inflator.no_inflation_slots"),
 		LoopPeriod:                time.Duration(viper.GetInt("sequencer.inflator.loop_period_seconds")) * time.Second,
+	}
+	ret.adjustDefaults()
+	return ret
+}
+
+func ParamsDefault(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *Params {
+	ret := &Params{
+		Enable:            true,
+		Target:            ledger.AddressED25519FromPrivateKey(seqPrivateKey),
+		TagAlongSequencer: seqID,
 	}
 	ret.adjustDefaults()
 	return ret
@@ -331,9 +336,6 @@ func (p *Params) adjustDefaults() {
 	if p.KeepInConsumedListSlots < keepInConsumedListSlots {
 		p.KeepInConsumedListSlots = keepInConsumedListSlots
 	}
-	if p.NoInflationSlots < minimumNoInflationSlots || uint64(p.NoInflationSlots) > ledger.L().ID.ChainInflationOpportunitySlots {
-		p.NoInflationSlots = int(ledger.L().ID.ChainInflationOpportunitySlots / 4)
-	}
 	if p.LoopPeriod < 100*time.Millisecond {
 		p.LoopPeriod = defaultLoopPeriod
 	}
@@ -348,6 +350,5 @@ func (p *Params) Lines(prefix ...string) *lines.Lines {
 		Add("margin promille: %d", p.MarginPromille).
 		Add("tag_along_amount: %s", util.Th(p.TagAlongAmount)).
 		Add("max_delegations_per_tx: %d", p.MaxDelegationsPerTx).
-		Add("keep_in_consumed_list_slots: %d", p.KeepInConsumedListSlots).
-		Add("no_inflation_slots: %d", p.NoInflationSlots)
+		Add("keep_in_consumed_list_slots: %d", p.KeepInConsumedListSlots)
 }

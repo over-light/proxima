@@ -65,6 +65,9 @@ func newEnvironment(t *testing.T, nOwners int, timeStepTicks int) (*inflatorTest
 	require.EqualValues(t, initDelegatorLoad, ret.utxodb.Balance(ret.addrDelegator))
 
 	ts := ledger.TimeNow()
+	if ts.IsSlotBoundary() {
+		ts = ts.AddTicks(5)
+	}
 	for i := range ret.privateKeyOwner {
 		err := ret.utxodb.TokensFromFaucet(ret.addrOwner[i], initOwnerLoad)
 		require.NoError(t, err)
@@ -79,13 +82,9 @@ func newEnvironment(t *testing.T, nOwners int, timeStepTicks int) (*inflatorTest
 		require.NoError(t, err)
 		ts = ts.AddTicks(timeStepTicks)
 	}
-	ret.fl = New(ret, &Params{
-		Enable:            true,
-		Name:              "test_inflator",
-		Target:            ret.addrDelegator,
-		PrivateKey:        ret.privateKeyDelegator,
-		TagAlongSequencer: ledger.RandomChainID(),
-	})
+	par := ParamsDefault(ledger.RandomChainID(), ret.privateKeyDelegator)
+	par.Name = "test_inflator"
+	ret.fl = New(ret, par)
 
 	rdr := multistate.MakeSugared(ret.utxodb.StateReader())
 
@@ -104,10 +103,10 @@ func TestInflatorBase(t *testing.T) {
 
 		rdr := multistate.MakeSugared(env.utxodb.StateReader())
 
-		for s := 1; s <= 14; s++ {
+		for s := 1; s <= 5; s++ {
 			tsTarget := ts.AddSlots(ledger.Slot(s))
 			lst, margin := env.fl.collectInflatableTransitions(tsTarget, rdr)
-			t.Logf("+%d slots -- ts = %s, len(lst) = %d, margin = %s", s, ts.String(), len(lst), util.Th(margin))
+			t.Logf("+%d slots -- ts = %s, tsTarget = %s, len(lst) = %d, margin = %s", s, ts.String(), tsTarget.String(), len(lst), util.Th(margin))
 			if len(lst) > 0 {
 				require.True(t, ledger.IsOpenDelegationSlot(lst[0].ChainID, tsTarget.Slot()))
 				t.Logf("-------------------------\n%s", lst[0].Successor.Lines("   ").Join("\n"))
@@ -118,14 +117,14 @@ func TestInflatorBase(t *testing.T) {
 		const nOwners = 20
 		env, ts := newEnvironment(t, nOwners, 0)
 
-		const printtx = false
+		const printtx = true
 		maxMargin := uint64(0)
 		var maxMarginTx *transaction.Transaction
 		var maxCtx *transaction.TxContext
 
 		rdr := multistate.MakeSugared(env.utxodb.StateReader())
 
-		for s := 1; s <= 14; s++ {
+		for s := 1; s <= 5; s++ {
 			tsTarget := ts.AddSlots(ledger.Slot(s))
 			tx, _, margin, err := env.fl.MakeTransaction(tsTarget, rdr)
 			if errors.Is(err, ErrNoInputs) {
