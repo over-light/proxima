@@ -46,14 +46,11 @@ func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID
 	tagAlongSeq := glb.GetTagAlongSequencerID()
 	tagAlongFee := glb.GetTagAlongFee()
 
-	glb.Assertf(chainTransitionPeriodSlots <= ledger.Slot(ledger.L().ID.ChainInflationOpportunitySlots),
-		"transition period in slots should not be bigger than inflation opportunity window")
-
 	chainOutput, _, err := glb.GetClient().GetChainOutput(chainId)
 	glb.AssertNoError(err)
 	glb.Assertf(!chainOutput.ID.IsSequencerTransaction(), "must be non-sequencer output")
 
-	estimated := ledger.L().CalcChainInflationAmount(ledger.NewLedgerTime(0, 1), ledger.NewLedgerTime(chainTransitionPeriodSlots, 1), chainOutput.Output.Amount(), 0)
+	estimated := ledger.L().CalcChainInflationAmount(ledger.NewLedgerTime(0, 1), ledger.NewLedgerTime(chainTransitionPeriodSlots, 1), chainOutput.Output.Amount())
 	msg := lines.New().
 		Add("will be inflating chain %s every %d slots", chainId.StringShort(), chainTransitionPeriodSlots).
 		Add("Initial chain balance is %s, Tag-along fee to %s is %d", util.Th(chainOutput.Output.Amount()), tagAlongSeq.StringShort(), tagAlongFee).
