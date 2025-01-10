@@ -55,7 +55,7 @@ func _adjustedDiffSlots :
 
 // $0 - ledger time (timestamp) of the predecessor
 // $1 - amount on predecessor
-func _baseInflation : div($1, add(constAuxForInflation, slotsSinceOrigin($0)))
+func _baseInflation : div($1, add(constAuxMinInflatableOnSlot0, slotsSinceOrigin($0)))
 
 // $0 - ledger time (timestamp) of the predecessor
 // $1 - adjusted diff slots

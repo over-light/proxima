@@ -62,6 +62,10 @@ func NewLedgerTime(slot Slot, t uint8) (ret Time) {
 	return
 }
 
+func T(slot Slot, t uint8) Time {
+	return NewLedgerTime(slot, t)
+}
+
 func TimeFromClockTime(nowis time.Time) Time {
 	return L().ID.LedgerTimeFromClockTime(nowis)
 }
