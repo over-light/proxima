@@ -385,7 +385,7 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 	inflChainStr := "-"
 	inflBranchStr := "-"
 	if inflationConstraint := a.vid.InflationConstraintOnSequencerOutput(); inflationConstraint != nil {
-		inflChainStr = util.Th(inflationConstraint.ChainInflation)
+		inflChainStr = util.Th(inflationConstraint.InflationAmount)
 		inflBranchStr = util.Th(ledger.L().BranchInflationBonusFromRandomnessProof(inflationConstraint.VRFProof))
 	}
 

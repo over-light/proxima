@@ -8,6 +8,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/util"
+	"go.uber.org/atomic"
 )
 
 // DelegationLock is a basic delegation lock which is:
@@ -45,10 +46,10 @@ func _enforceDelegationTargetConstraintsOnSuccessor : and(
     require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 
-// $0 4-byte prefix of the chainID
+// $0 4-byte prefix of slice (usually chainID)
 // $1 4 bytes of the slot
 // return true if sum of $0 and $1 is even
-func isOpenDelegationSlot: isZero(bitwiseAND(add($0, $1), u64/1))
+func isOpenDelegationSlot: isZero(bitwiseAND(add(slice($0,0,3), $1), u64/1))
 
 // $0 predecessor chain constraint index
 func _selfSuccessorChainData : evalArgumentBytecode(producedConstraintByIndex(slice(selfSiblingUnlockParams($0),0,1)), #chain, 0)	
@@ -81,7 +82,7 @@ func delegationLock: and(
                require(
 				 // otherwise, check delegation case on even slots. Odd slots will fail
                   and(  
-                     isOpenDelegationSlot(slice(_selfSuccessorChainData($0),0,3), txTimeSlot),  
+                     isOpenDelegationSlot(_selfSuccessorChainData($0), txTimeSlot),  
                      _enforceDelegationTargetConstraintsOnSuccessor(
                          $0,
                          $1, 
@@ -194,12 +195,21 @@ func initTestDelegationConstraint() {
 	util.Assertf(example.Source() == exampleBack.Source(), "example.Source()==exampleBack.Source()")
 }
 
-func IsOpenDelegationSlot(chainID ChainID, slot Slot) bool {
-	src := fmt.Sprintf("isOpenDelegationSlot(0x%s, 0x%s)",
-		hex.EncodeToString(chainID[0:4]), hex.EncodeToString(slot.Bytes()))
-	res, err := L().EvalFromSource(nil, src)
+var __precompiledIsOpenDelegationSlotVar atomic.Pointer[easyfl.Expression]
+
+func __precompiledIsOpenDelegationSlot() (ret *easyfl.Expression) {
+	if ret = __precompiledIsOpenDelegationSlotVar.Load(); ret != nil {
+		return ret
+	}
+	var err error
+	ret, _, _, err = L().CompileExpression("isOpenDelegationSlot($0,$1)")
 	util.AssertNoError(err)
-	return len(res) > 0
+	__precompiledIsOpenDelegationSlotVar.Store(ret)
+	return
+}
+
+func IsOpenDelegationSlot(chainID ChainID, slot Slot) bool {
+	return len(easyfl.EvalExpression(nil, __precompiledIsOpenDelegationSlot(), chainID[:4], slot.Bytes())) > 0
 }
 
 func MinimumDelegationAmount() uint64 {

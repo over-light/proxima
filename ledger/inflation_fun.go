@@ -15,7 +15,7 @@ import (
 
 var calcChainInflationAmountExpression atomic.Pointer[easyfl.Expression]
 
-func __precompiled() (ret *easyfl.Expression) {
+func __precompiledChainInflation() (ret *easyfl.Expression) {
 	if ret = calcChainInflationAmountExpression.Load(); ret == nil {
 		var err error
 		ret, _, _, err = L().CompileExpression("calcChainInflationAmount($0,$1,$2)")
@@ -30,7 +30,7 @@ func __precompiled() (ret *easyfl.Expression) {
 func (lib *Library) CalcChainInflationAmount(inTs, outTs Time, inAmount uint64) uint64 {
 	var amountBin [8]byte
 	binary.BigEndian.PutUint64(amountBin[:], inAmount)
-	ret := easyfl.EvalExpression(nil, __precompiled(), inTs.Bytes(), outTs.Bytes(), amountBin[:])
+	ret := easyfl.EvalExpression(nil, __precompiledChainInflation(), inTs.Bytes(), outTs.Bytes(), amountBin[:])
 	return binary.BigEndian.Uint64(ret)
 }
 
