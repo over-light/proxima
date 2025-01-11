@@ -37,9 +37,11 @@ To manually download the snapshot and create the DB from it use
 ./update-snapshot.sh
 ```
 
-After the node is started the following directories are created under data/:
-![alt text](image.png)
+After the node is started the following directories are created under `./data/`:
 
+<div align="center">
+    <img src="image.png" alt="Alt text" width="340">
+</div>
 
 `config` contains:
 `proxima.yaml` with the node settings, e.g. node id
