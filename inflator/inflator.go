@@ -86,13 +86,18 @@ func (fl *Inflator) Run() {
 
 // collectInflatableTransitions returns list of outputs which can be inflated for the target timestamp
 func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multistate.SugaredStateReader) ([]*InflatableOutput, uint64) {
-	if targetTs.IsSlotBoundary() {
+	if targetTs.IsSlotBoundary() || targetTs.Slot() < 2 {
 		return nil, 0
 	}
 	ret := make([]*InflatableOutput, 0)
 	var totalMargin uint64
 
+	enforceInputsBefore := targetTs.AddTicks(-256)
+
 	rdr.IterateDelegatedOutputs(fl.cfg.Target, func(oid ledger.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool {
+		if !oid.Timestamp().Before(enforceInputsBefore) {
+			return true
+		}
 		if _, already := fl.consumed[oid]; already {
 			return true
 		}
@@ -173,7 +178,6 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 	if len(outs) == 0 {
 		return nil, nil, 0, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
 	}
-
 	txb := txbuilder.New()
 	for _, o := range outs {
 		inIdx, _ := txb.ConsumeOutput(o.Output, o.ID)
@@ -311,6 +315,7 @@ func ParamsFromConfig(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *P
 func ParamsDefault(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *Params {
 	ret := &Params{
 		Enable:            true,
+		PrivateKey:        seqPrivateKey,
 		Target:            ledger.AddressED25519FromPrivateKey(seqPrivateKey),
 		TagAlongSequencer: seqID,
 	}
@@ -350,5 +355,6 @@ func (p *Params) Lines(prefix ...string) *lines.Lines {
 		Add("margin promille: %d", p.MarginPromille).
 		Add("tag_along_amount: %s", util.Th(p.TagAlongAmount)).
 		Add("max_delegations_per_tx: %d", p.MaxDelegationsPerTx).
-		Add("keep_in_consumed_list_slots: %d", p.KeepInConsumedListSlots)
+		Add("keep_in_consumed_list_slots: %d", p.KeepInConsumedListSlots).
+		Add("loop_period: %s", p.LoopPeriod.String())
 }

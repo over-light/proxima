@@ -84,6 +84,7 @@ func newEnvironment(t *testing.T, nOwners int, timeStepTicks int) (*inflatorTest
 	}
 	par := ParamsDefault(ledger.RandomChainID(), ret.privateKeyDelegator)
 	par.Name = "test_inflator"
+	t.Logf("---------- inflator parameters\n%s", par.Lines("     ").String())
 	ret.fl = New(ret, par)
 
 	rdr := multistate.MakeSugared(ret.utxodb.StateReader())
@@ -117,14 +118,14 @@ func TestInflatorBase(t *testing.T) {
 		const nOwners = 20
 		env, ts := newEnvironment(t, nOwners, 0)
 
-		const printtx = true
+		const printtx = false
 		maxMargin := uint64(0)
 		var maxMarginTx *transaction.Transaction
 		var maxCtx *transaction.TxContext
 
 		rdr := multistate.MakeSugared(env.utxodb.StateReader())
 
-		for s := 1; s <= 5; s++ {
+		for s := 1; uint64(s) <= ledger.L().ID.LinearInflationSlots+10; s++ {
 			tsTarget := ts.AddSlots(ledger.Slot(s))
 			tx, _, margin, err := env.fl.MakeTransaction(tsTarget, rdr)
 			if errors.Is(err, ErrNoInputs) {
@@ -166,7 +167,7 @@ func TestInflatorBase(t *testing.T) {
 
 		rdr := multistate.MakeSugared(env.utxodb.StateReader())
 
-		for s := 1; s <= 14; s++ {
+		for s := 1; uint64(s) <= ledger.L().ID.LinearInflationSlots+10; s++ {
 			tsTarget := ts.AddSlots(ledger.Slot(s))
 			tx, _, margin, err := env.fl.MakeTransaction(tsTarget, rdr)
 			if errors.Is(err, ErrNoInputs) {
