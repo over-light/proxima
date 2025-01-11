@@ -312,7 +312,7 @@ func (o *Output) InflationConstraint() (*InflationConstraint, byte) {
 	return nil, 0xff
 }
 
-func (o *Output) Inflation(branch bool) uint64 {
+func (o *Output) Inflation() uint64 {
 	if inflationConstraint, idx := o.InflationConstraint(); idx != 0xff {
 		return inflationConstraint.InflationAmount
 	}

@@ -108,10 +108,10 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 
 	if par.PutInflation {
 		if par.Timestamp.IsSlotBoundary() {
-			inflationAmount = ledger.L().CalcChainInflationAmount(par.ChainInput.Timestamp(), par.Timestamp, par.ChainInput.Output.Amount())
-		} else {
 			util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
 			inflationAmount = ledger.L().BranchInflationBonusFromRandomnessProof(vrfProof)
+		} else {
+			inflationAmount = ledger.L().CalcChainInflationAmount(par.ChainInput.Timestamp(), par.Timestamp, par.ChainInput.Output.Amount())
 		}
 		inflationConstraint = &ledger.InflationConstraint{
 			InflationAmount: inflationAmount,

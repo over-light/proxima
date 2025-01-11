@@ -372,7 +372,7 @@ func ScanOutputs() TxValidationOption {
 				return fmt.Errorf("scanning output #%d: 'arithmetic overflow while calculating total of outputs'", i)
 			}
 			totalAmount += uint64(amount)
-			tx.totalInflation += o.Inflation(tx.IsBranchTransaction())
+			tx.totalInflation += o.Inflation()
 		}
 		if tx.totalAmount != totalAmount {
 			return fmt.Errorf("wrong total produced amount")

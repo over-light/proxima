@@ -191,7 +191,7 @@ func (txb *TransactionBuilder) ProducedAmount() (uint64, uint64) {
 	retInflation := uint64(0)
 	for _, o := range txb.TransactionData.Outputs {
 		retTotal += o.Amount()
-		retInflation += o.Inflation(false)
+		retInflation += o.Inflation()
 	}
 	return retTotal, retInflation
 }

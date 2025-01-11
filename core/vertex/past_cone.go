@@ -906,7 +906,7 @@ func (pc *PastCone) CalculateSlotInflation() (ret uint64) {
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 	for vid := range pc.vertices {
 		if pc.isNotInTheState(vid) && vid.IsSequencerMilestone() {
-			ret += vid.InflationAmountOfSequencerMilestone()
+			ret += vid.InflationAmount()
 		}
 	}
 	return
@@ -938,7 +938,7 @@ func (pc *PastCone) ledgerCoverageAdjustment() uint64 {
 	if len(pc.findConsumersOf(wOut)) == 0 {
 		o, err := pc.baseline.OutputAt(wOut.Index)
 		pc.AssertNoError(err)
-		return o.Inflation(true)
+		return o.Inflation()
 	}
 	return 0
 }

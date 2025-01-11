@@ -800,36 +800,8 @@ func (vid *WrappedTx) InflationAmount() (ret uint64) {
 		Vertex: func(v *Vertex) {
 			ret = v.Tx.InflationAmount()
 		},
-		Deleted: vid.PanicAccessDeleted,
-	})
-	return
-}
-
-func (vid *WrappedTx) InflationAmountOfSequencerMilestone() (ret uint64) {
-	util.Assertf(vid.IsSequencerMilestone(), "InflationAmountOfSequencerTx: not a sequencer milestone: %s", vid.IDShortString)
-	vid.RUnwrap(UnwrapOptions{
-		Vertex: func(v *Vertex) {
-			ret = v.Tx.InflationAmount()
-		},
 		VirtualTx: func(v *VirtualTransaction) {
-			seqOut, _ := v.SequencerOutputs()
-			ret = seqOut.Inflation(vid.IsBranchTransaction())
-		},
-		Deleted: vid.PanicAccessDeleted,
-	})
-	return
-}
-
-func (vid *WrappedTx) InflationConstraintOnSequencerOutput() (ret *ledger.InflationConstraint) {
-	util.Assertf(vid.IsSequencerMilestone(), "InflationAmountOfSequencerOutput: not a sequencer milestone: %s", vid.IDShortString)
-
-	vid.Unwrap(UnwrapOptions{
-		Vertex: func(v *Vertex) {
-			ret, _ = v.Tx.SequencerOutput().Output.InflationConstraint()
-		},
-		VirtualTx: func(v *VirtualTransaction) {
-			seqOut, _ := v.SequencerOutputs()
-			ret, _ = seqOut.InflationConstraint()
+			ret = v.inflation
 		},
 		Deleted: vid.PanicAccessDeleted,
 	})
