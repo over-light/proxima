@@ -122,7 +122,7 @@ const absoluteMaximumOfReturnedOutputs = 2000
 
 func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.Request, addr ledger.Accountable, filter func(oid ledger.OutputID, o *ledger.Output) bool) {
 	var err error
-	maxOutputs := 0
+	maxOutputs := absoluteMaximumOfReturnedOutputs
 	lst, ok := r.URL.Query()["max_outputs"]
 	if ok {
 		if len(lst) != 1 {

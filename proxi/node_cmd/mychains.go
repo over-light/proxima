@@ -105,7 +105,7 @@ func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainI
 			continue
 		}
 		chainID, _, _ := o.ExtractChainID()
-		glb.Infof("%s   %s  \t\t-> %s", chainID.String(), util.Th(o.Output.Amount()), dlock.OwnerLock.String())
+		glb.Infof("%s   %s  \t\t-> %s", chainID.String(), util.Th(o.Output.Amount()), dlock.TargetLock.String())
 
 		earned := o.Output.Amount() - dlock.StartAmount
 		slots := nowis.Slot() - dlock.StartTime.Slot()
@@ -118,5 +118,5 @@ func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainI
 
 		total += o.Output.Amount()
 	}
-	glb.Infof("\nTotal delegated amount: %s", util.Th(total))
+	glb.Infof("\nTotal delegated in %d outputs: %s", len(outs), util.Th(total))
 }

@@ -296,7 +296,7 @@ func (fl *Inflator) cleanConsumedList() {
 
 func ParamsFromConfig(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *Params {
 	ret := &Params{
-		Disable:                   viper.GetBool("sequencer.enable") && !viper.GetBool("sequencer.inflator.disable"),
+		Disable:                   !viper.GetBool("sequencer.enable") || viper.GetBool("sequencer.inflator.disable"),
 		Target:                    ledger.AddressED25519FromPrivateKey(seqPrivateKey),
 		PrivateKey:                seqPrivateKey,
 		TagAlongSequencer:         seqID,
