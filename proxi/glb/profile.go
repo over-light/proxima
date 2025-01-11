@@ -174,7 +174,7 @@ func GetTagAlongSequencerID() *ledger.ChainID {
 	ret, err := ledger.ChainIDFromHexString(seqIDStr)
 	AssertNoError(err)
 
-	o, err := GetClient().GetChainOutputData(ret)
+	o, _, err := GetClient().GetChainOutputData(ret)
 	Assertf(err == nil, "can't get tag-along sequencer: %v", err)
 	Assertf(o.ID.IsSequencerTransaction(), "can't get tag-along sequencer %s: chain output %s is not a sequencer output",
 		ret.StringShort(), o.ID.StringShort())

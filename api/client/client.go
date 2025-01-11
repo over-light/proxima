@@ -283,49 +283,58 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 	return ret, &retLRBID, nil
 }
 
-func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDataWithID, error) {
+func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDataWithID, ledger.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetChainOutput+"?chainid=%s", chainID.StringHex())
 	body, err := c.getBody(path)
 	if err != nil {
-		return nil, err
+		return nil, ledger.TransactionID{}, err
 	}
 
 	var res api.ChainOutput
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, err
+		return nil, ledger.TransactionID{}, err
 	}
 	if res.Error.Error != "" {
-		return nil, fmt.Errorf("GetChainOutputData for %s: from server: %s", chainID.StringShort(), res.Error.Error)
+		return nil, ledger.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: from server: %s", chainID.StringShort(), res.Error.Error)
 	}
 
 	oid, err := ledger.OutputIDFromHexString(res.ID)
 	if err != nil {
-		return nil, fmt.Errorf("GetChainOutputData for %s: wrong output ID data received from server: %s: '%v",
+		return nil, ledger.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: wrong output ID data received from server: %s: '%v",
 			chainID.StringShort(), res.ID, err)
 	}
 	oData, err := hex.DecodeString(res.Data)
 	if err != nil {
-		return nil, fmt.Errorf("wrong output data received from server: %s: '%v'", res.Data, err)
+		return nil, ledger.TransactionID{}, fmt.Errorf("wrong output data received from server: %s: '%v'", res.Data, err)
+	}
+
+	lrb, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return nil, ledger.TransactionID{}, fmt.Errorf("wrong LRBID data received from server: %s: '%v'", res.LRBID, err)
 	}
 
 	return &ledger.OutputDataWithID{
 		ID:   oid,
 		Data: oData,
-	}, nil
+	}, lrb, nil
 }
 
 // GetChainOutput returns parsed output for the chain ID and index of the chain constraint in it
-func (c *APIClient) GetChainOutput(chainID ledger.ChainID) (*ledger.OutputWithChainID, byte, error) {
-	oData, err := c.GetChainOutputData(chainID)
+func (c *APIClient) GetChainOutput(chainID ledger.ChainID) (*ledger.OutputWithChainID, byte, ledger.TransactionID, error) {
+	oData, lrbid, err := c.GetChainOutputData(chainID)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, ledger.TransactionID{}, err
 	}
-	return oData.ParseAsChainOutput()
+	o, constrIdx, err := oData.ParseAsChainOutput()
+	if err != nil {
+		return nil, 0, ledger.TransactionID{}, err
+	}
+	return o, constrIdx, lrbid, nil
 }
 
 func (c *APIClient) GetMilestoneData(chainID ledger.ChainID) (*ledger.MilestoneData, error) {
-	o, _, err := c.GetChainOutput(chainID)
+	o, _, _, err := c.GetChainOutput(chainID)
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving milestone for sequencer %s: %w", chainID.StringShort(), err)
 	}
@@ -771,7 +780,7 @@ type DeleteChainParams struct {
 }
 
 func (c *APIClient) DeleteChain(par DeleteChainParams) (ledger.TransactionID, string, error) {
-	chainIN, _, err := c.GetChainOutput(par.ChainID)
+	chainIN, _, _, err := c.GetChainOutput(par.ChainID)
 	util.AssertNoError(err)
 
 	ts := ledger.TimeNow()

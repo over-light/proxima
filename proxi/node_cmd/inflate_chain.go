@@ -46,7 +46,7 @@ func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID
 	tagAlongSeq := glb.GetTagAlongSequencerID()
 	tagAlongFee := glb.GetTagAlongFee()
 
-	chainOutput, _, err := glb.GetClient().GetChainOutput(chainId)
+	chainOutput, _, _, err := glb.GetClient().GetChainOutput(chainId)
 	glb.AssertNoError(err)
 	glb.Assertf(!chainOutput.ID.IsSequencerTransaction(), "must be non-sequencer output")
 
@@ -111,7 +111,7 @@ func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID
 		glb.ReportTxInclusion(txid, time.Second)
 
 		for i := 0; ; i++ {
-			chainOutput, _, err = glb.GetClient().GetChainOutput(chainId)
+			chainOutput, _, _, err = glb.GetClient().GetChainOutput(chainId)
 			glb.AssertNoError(err)
 
 			if chainOutput.ID.TransactionID() == txid {
