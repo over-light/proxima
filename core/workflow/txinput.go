@@ -162,14 +162,10 @@ func (w *Workflow) TxIn(tx *transaction.Transaction, opts ...TxInOption) error {
 	txTime := txid.Timestamp().Time()
 
 	attachOpts := []attacher.AttachTxOption{
-		//attacher.WithContext(options.ctx),
 		attacher.WithTransactionMetadata(&options.txMetadata),
 		attacher.WithInvokedBy("txInput"),
 		attacher.WithEnforceTimestampBeforeRealTime,
 	}
-	//if options.callback != nil {
-	//	attachOpts = append(attachOpts, attacher.WithAttachmentCallback(options.callback))
-	//}
 
 	if time.Until(txTime) <= 0 {
 		// timestamp is in the past -> attach immediately
