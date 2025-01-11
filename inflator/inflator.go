@@ -33,7 +33,7 @@ type (
 	}
 
 	Params struct {
-		Enable                    bool
+		Disable                   bool
 		Name                      string
 		Target                    ledger.AddressED25519
 		PrivateKey                ed25519.PrivateKey
@@ -68,7 +68,7 @@ const (
 )
 
 func New(env environment, par *Params) *Inflator {
-	util.Assertf(par.Enable, "par.Enable")
+	util.Assertf(!par.Disable, "par.Disable")
 	return &Inflator{
 		cfg:         par,
 		environment: env,
@@ -296,7 +296,7 @@ func (fl *Inflator) cleanConsumedList() {
 
 func ParamsFromConfig(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *Params {
 	ret := &Params{
-		Enable:                    viper.GetBool("sequencer.enable") && viper.GetBool("sequencer.inflator.enable"),
+		Disable:                   viper.GetBool("sequencer.enable") && !viper.GetBool("sequencer.inflator.disable"),
 		Target:                    ledger.AddressED25519FromPrivateKey(seqPrivateKey),
 		PrivateKey:                seqPrivateKey,
 		TagAlongSequencer:         seqID,
@@ -314,7 +314,6 @@ func ParamsFromConfig(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *P
 
 func ParamsDefault(seqID ledger.ChainID, seqPrivateKey ed25519.PrivateKey) *Params {
 	ret := &Params{
-		Enable:            true,
 		PrivateKey:        seqPrivateKey,
 		Target:            ledger.AddressED25519FromPrivateKey(seqPrivateKey),
 		TagAlongSequencer: seqID,
@@ -348,7 +347,7 @@ func (p *Params) adjustDefaults() {
 
 func (p *Params) Lines(prefix ...string) *lines.Lines {
 	return lines.New(prefix...).
-		Add("enable: %v", p.Enable).
+		Add("disable: %v", p.Disable).
 		Add("delegation target: %s", p.Target.String()).
 		Add("tag_along_sequencer: %s", p.TagAlongSequencer.String()).
 		Add("collect margin: %v", !p.DontCollectMargin).

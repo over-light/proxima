@@ -120,14 +120,11 @@ func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey
 
 	inflatorParams := inflator.ParamsFromConfig(ret.sequencerID, ret.controllerKey)
 	inflatorParams.Name = ret.logName
-	if cfg.ForceRunInflator {
-		inflatorParams.Enable = true
-	}
-	if inflatorParams.Enable {
+	if inflatorParams.Disable {
+		ret.Log().Infof("inflator is DISABLED")
+	} else {
 		ret.inflator = inflator.New(ret, inflatorParams)
 		ret.Log().Infof("inflator is ENABLED with params:\n%s", inflatorParams.Lines("        ").String())
-	} else {
-		ret.Log().Infof("inflator is DISABLED")
 	}
 	return ret, nil
 }
@@ -482,15 +479,6 @@ func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetad
 	}
 
 	seq.OwnSequencerMilestoneIn(tx.Bytes(), meta)
-
-	//
-	//deadline := time.Now().Add(submitTimeout)
-	//vid, err := seq.SequencerMilestoneAttachWait(tx.Bytes(), meta, submitTimeout)
-	//if err != nil {
-	//	seq.Log().Errorf("failed to submit new milestone %s: '%v'", tx.IDShortString(), err)
-	//	return nil
-	//}
-	//util.Assertf(vid != nil, "submitMilestone: vid != nil")
 
 	seq.Tracef(TraceTag, "new milestone %s submitted successfully", tx.IDShortString)
 
