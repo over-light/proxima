@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var UseAlternativeTagAlongSequencer bool
+
 var displayEndpointOnce sync.Once
 
 func GetClient() *client.APIClient {

@@ -167,7 +167,15 @@ func GetTagAlongFee() uint64 {
 }
 
 func GetTagAlongSequencerID() *ledger.ChainID {
-	seqIDStr := viper.GetString("tag_along.sequencer_id")
+	var seqIDStr string
+
+	if UseAlternativeTagAlongSequencer {
+		seqIDStr = viper.GetString("tag_along.alt_sequencer_id")
+		Infof("using alternative tag_along sequencer: %s", seqIDStr)
+	} else {
+		seqIDStr = viper.GetString("tag_along.sequencer_id")
+		Infof("using tag_along sequencer: %s", seqIDStr)
+	}
 	if seqIDStr == "" {
 		return nil
 	}

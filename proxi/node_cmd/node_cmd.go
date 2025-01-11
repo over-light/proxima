@@ -39,6 +39,10 @@ func Init() *cobra.Command {
 	err = viper.BindPFlag("finality.weak", nodeCmd.PersistentFlags().Lookup("finality.weak"))
 	glb.AssertNoError(err)
 
+	nodeCmd.PersistentFlags().BoolVarP(&glb.UseAlternativeTagAlongSequencer, "tag_along.alt", "a", false, "use alternative tag-along sequencer")
+	err = viper.BindPFlag("tag_along.alt", nodeCmd.PersistentFlags().Lookup("tag_along.alt"))
+	glb.AssertNoError(err)
+
 	nodeCmd.InitDefaultHelpCmd()
 	nodeCmd.AddCommand(
 		initGetOutputsCmd(),
