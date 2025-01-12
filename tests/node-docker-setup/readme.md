@@ -5,7 +5,7 @@ This setup lets you run a Proxima node in the public testnet using Docker.
 The only tools required are git and docker. 
 The setup was tested on Linux and Windows 11 with WSL2.
 
-First get the Proxima repository and checkout the correct testnet branch with these commands:
+First get the Proxima repository and checkout the testnet branch with these commands:
 
 ```bash
 git clone https://github.com/lunfardo314/proxima.git
@@ -43,9 +43,9 @@ After the node is started the following directories are created under `./data/`:
     <img src="image.png" alt="Alt text" width="340">
 </div>
 
-`config` contains:
-`proxima.yaml` with the node settings, e.g. node id
-`proxi.yaml` with your wallet settings, e.g. account address and the secret key.
+`config` contains:  
+`proxima.yaml` with the node settings, e.g. node id  
+`proxi.yaml` with your wallet settings, e.g. account address and the secret key.  
 You can adapt these files to your needs. The changes will be copied to the docker image with a restart. 
 To restart the node, press CTRL+C and then ./run.sh.
 
