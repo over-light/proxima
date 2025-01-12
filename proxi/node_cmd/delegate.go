@@ -107,7 +107,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 		o.WithLock(ledger.NewDelegationLock(walletData.Account, delegationTarget, 2, ts, amount))
 		_, _ = o.PushConstraint(ledger.NewChainOrigin().Bytes())
 	})
-	_, _ = txb.ProduceOutput(outDelegation)
+	delegationOutputIdx, _ := txb.ProduceOutput(outDelegation)
 
 	outTagAlong := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(feeAmount)
@@ -136,6 +136,12 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 		glb.Infof("exit")
 		os.Exit(0)
 	}
+
+	delegationOid, err := ledger.NewOutputID(&txid, delegationOutputIdx)
+	glb.AssertNoError(err)
+
+	delegationID := ledger.MakeOriginChainID(&delegationOid)
+	glb.Infof("\ndelegation ID: %s\n", delegationID.String())
 
 	err = client.SubmitTransaction(txBytes)
 	glb.AssertNoError(err)
