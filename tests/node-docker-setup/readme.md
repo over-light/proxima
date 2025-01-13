@@ -30,7 +30,7 @@ To start the node execute the command
 ./run.sh
 ```
 
-This will build (if started for the first time) and run a node in access mode. It also downloads the most recent snapshot file if run for the first time. It will ask for sudo pwd. Downloading the snapshot can take a while depending on the size.
+This will build (if started for the first time) and run a node in access mode. It also downloads the most recent snapshot file if run for the first time. It will ask for sudo pwd. Downloading the snapshot can take a while depending on the size.  
 To manually download the snapshot and create the DB from it use
 
 ```bash
@@ -46,8 +46,8 @@ After the node is started the following directories are created under `./data/`:
 `config` contains:  
 `proxima.yaml` with the node settings, e.g. node id  
 `proxi.yaml` with your wallet settings, e.g. account address and the secret key.  
-You can adapt these files to your needs. The changes will be copied to the docker image with a restart. 
-To restart the node, press CTRL+C and then ./run.sh.
+You can adapt these files to your needs. The changes will be copied to the docker image with a restart.  
+To restart the node, press CTRL+C and then `./run.sh`.
 
 `proximadb` and `proximadb.txstore` contain the DB files.
 
