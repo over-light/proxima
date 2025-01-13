@@ -4,15 +4,15 @@
 
 _Delegation_ is a way to participate in the _cooperative consensus_ on the Proxima ledger **without the need of running a sequencer**.
 
-Each token holder can delegate their to a _sequencer_. The sequencer then will be able to generate inflation from the delegated tokens. 
+Each token holder can delegate their tokens to a _sequencer_. The sequencer then will be able to generate inflation from the delegated tokens. 
 It will not be able to steal delegated tokens though. From the other side, the sequencer will increase its ledger coverage with the delegated tokens.  
 
-Through _delegation_ one can generate inflation from their tokens by outsourcing all the trouble of running anode an sequencer to somebody else.
+Through _delegation_ one can generate inflation from their tokens by outsourcing all the trouble of running node and sequencer to somebody else.
 
 In Proxima, each token holder is incentivized to earn from inflation. If token holder is lazy and its holding stay in a passive address, 
-she will suffer the opportunity cost of inflation (dilution).
+he/she will suffer the opportunity cost of inflation (dilution).
 
-This is by design: we want every token will be in the ledger coverage, therefore delegation will contribute to the security of the ledger
+This is by design: we want every token will be in the ledger coverage. Delegation will contribute to the security of the ledger
 and will be rewarded by inflation tokens.
 
 So, the general rule for the token holder is to keep tokens delegated all the time they are not needed for transacting. 
@@ -55,7 +55,7 @@ list of all sequencer chains (1)
 ```
 
 The command `proxi node delegate 150000000000 -q 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc` will create 
-new chain with new delegation ID (which is it's chain ID), in this case with _delegation ID_ `2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf`.
+new chain with new _delegation ID_ (which is its chain ID) `2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf`.
 
 ```text
 Command line: 'proxi node delegate 150000000000 -q 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc'
