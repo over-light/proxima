@@ -8,17 +8,25 @@ import (
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
+var showSequencersOnly bool
+
 func initAllChainsCmd() *cobra.Command {
-	chainsCmd := &cobra.Command{
+	allChainsCmd := &cobra.Command{
 		Use:   "allchains",
 		Short: `lists all chains in the latest reliable branch`,
 		Args:  cobra.NoArgs,
 		Run:   runAllChainsCmd,
 	}
-	chainsCmd.InitDefaultHelpCmd()
-	return chainsCmd
+	allChainsCmd.InitDefaultHelpCmd()
+
+	allChainsCmd.PersistentFlags().BoolVarP(&showSequencersOnly, "seq", "q", false, "show sequencer chains only")
+	err := viper.BindPFlag("seq", allChainsCmd.PersistentFlags().Lookup("seq"))
+	glb.AssertNoError(err)
+
+	return allChainsCmd
 }
 
 func runAllChainsCmd(_ *cobra.Command, _ []string) {
@@ -30,11 +38,20 @@ func runAllChainsCmd(_ *cobra.Command, _ []string) {
 	sort.Slice(chains, func(i, j int) bool {
 		return chains[i].ID.Timestamp().After(chains[j].ID.Timestamp())
 	})
+	if showSequencersOnly {
+		chains = util.PurgeSlice(chains, func(o *ledger.OutputWithChainID) bool {
+			return o.ID.IsSequencerTransaction()
+		})
+	}
 	listChains(chains)
 }
 
 func listChains(chains []*ledger.OutputWithChainID) {
-	glb.Infof("\nlist of all chains (%d)", len(chains))
+	if showSequencersOnly {
+		glb.Infof("\nlist of all sequencer chains (%d)", len(chains))
+	} else {
+		glb.Infof("\nlist of all chains (%d)", len(chains))
+	}
 
 	for i, o := range chains {
 		lock := o.Output.Lock()
