@@ -86,6 +86,11 @@ finality:
         # for example during bootstrap
     weak: false
 
+# provides parameters for 'proxi node getfunds' command
+faucet:
+    port:  9500
+    addr:  http://5.180.181.103
+
 # provides parameters for 'proxi node spam' command
 # The spammer in a loop sends bundles of transactions to the target address by using specified tag-along sequencer
 # Before sending next bundle, the spammer waits for the finality of the previous according to the provided criterion

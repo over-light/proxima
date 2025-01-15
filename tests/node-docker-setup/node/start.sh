@@ -7,6 +7,10 @@ fi
 
 if [ ! -f "./proxi.yaml" ]; then
     ./proxi init wallet    
+fi
+
+# copy always if not found
+if [ ! -f "./config/proxi.yaml" ]; then
     cp ./proxi.yaml ./config/proxi.yaml
 fi
 
@@ -17,6 +21,10 @@ fi
 
 if [ ! -f "./proxima.yaml" ]; then
     ./proxi init node -s
+fi
+
+# copy always if not found
+if [ ! -f "./config/proxima.yaml" ]; then
     cp ./proxima.yaml ./config/proxima.yaml
 fi
 
