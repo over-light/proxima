@@ -76,7 +76,7 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathQueryTxStatus, srv.queryTxStatus)
 	// GET request format: '/api/v1/query_inclusion_score?txid=<hex-encoded transaction ID>&threshold=N-D[&slots=<slot span>]'
 	srv.addHandler(api.PathQueryInclusionScore, srv.queryTxInclusionScore)
-	// POST request format '/api/v1/submit_nowait'. Feedback only on parsing error, otherwise async posting
+	// POST request format '/api/v1/submit_tx'. Feedback only on parsing error, otherwise async posting
 	srv.addHandler(api.PathSubmitTransaction, srv.submitTx)
 	// GET sync info from the node '/api/v1/sync_info'
 	srv.addHandler(api.PathGetSyncInfo, srv.getSyncInfo)

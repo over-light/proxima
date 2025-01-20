@@ -225,11 +225,13 @@ curl -L -X GET 'http://localhost:8000/txapi/v1/get_vertex_dep?txid=8000001400017
 # General API
 * [get_ledger_id](#get_ledger_id)
 * [get_account_outputs](#get_account_outputs)
+* [get_account_simple_siglocked](#get_account_simple_siglocked)
+* [get_chain_outputs](#get_chain_outputs)
 * [get_chain_output](#get_chain_output)
 * [get_output](#get_output)
 * [query_tx_status](#query_tx_status)
 * [query_inclusion_score](#query_inclusion_score)
-* [submit_nowait](#submit_nowait)
+* [submit_tx](#submit_tx)
 * [sync_info](#sync_info)
 * [node_info](#node_info)
 * [peers_info](#peers_info)
@@ -237,6 +239,7 @@ curl -L -X GET 'http://localhost:8000/txapi/v1/get_vertex_dep?txid=8000001400017
 * [check_txid_in_lrb](#check_txid_in_lrb)
 * [last_known_milestones](#last_known_milestones)
 * [get_mainchain](#get_mainchain)
+* [get_all_chains](#get_all_chains)
 
 
 ## get_ledger_id
@@ -274,6 +277,44 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_account_outputs?accountable=a(0
     "80003cad00014db2b8d461642ccf92177fa83f3feb4a165d8a2ed8ac8281d2db00": "40060b45ab8800038d7f7c182c6b2345b3a0033d48aa6f02b3f37811ae82d9c383855d3d23373cbd28ab94639fdd94a4f02d2645c2a36393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc0002000d49d181028800038d7f7c182c6b1d504287626f6f742e6230840000043f84000002248800000000000000006151d7880000000000386580d103948987dc2a310986f2a9691b5b2dfcb6f634ce0d77bcb36fa4ffd0aeb1237886229954002d65b5cf4f9acee89b460896069413fdffe68994a1a36514cd01c4e8179ffa0c889079739e745425e0ed64bd810281ff"
   },
   "lrb_id": "80003cad00014db2b8d461642ccf92177fa83f3feb4a165d8a2ed8ac8281d2db"
+}
+```
+
+## get_account_simple_siglocked
+GET outputs locked with simple AddressED25519 lock
+`/api/v1/get_account_simple_siglocked?addr=<EasyFL source form of the accountable lock constraint>`
+
+Example:
+
+``` bash
+curl -L -X GET 'http://localhost:8000/api/v1/get_account_simple_siglocked?addr=a(0x24db3c3d477f29d558fbe6f215b0c9d198dcc878866fb60cba023ba3c3d74a03)'
+```
+
+```json
+{
+  "outputs": {
+    "0000003d810277c133543f4b79248fb4a0c7b445e44c227d4bddd4d93b5c34a802": "40020b45ad88000088555040760c2345b6a024db3c3d477f29d558fbe6f215b0c9d198dcc878866fb60cba023ba3c3d74a03"
+  },
+  "lrb_id": "80007f9a0001b96d152c58ba26ede99644735cfa8b8353dff823e925c8f73140"
+}
+```
+
+## get_chain_outputs
+Get the chain outputs for the provided accountable
+`/api/v1/get_chain_outputs?accountable=<EasyFL source form of the accountable lock constraint>`
+
+Example:
+
+``` bash
+curl -L -X GET 'http://localhost:8000/api/v1/get_chain_outputs?accountable=a(0x24db3c3d477f29d558fbe6f215b0c9d198dcc878866fb60cba023ba3c3d74a03)'
+```
+
+```json
+{
+  "outputs": {
+    "00007fa40301870f4ed68e631ddef7dfeb2fbc2f1a39241f59303ead0e0afb2200": "40040b45ad880000001748800d4b5955ea810245b6a0aad6a0102e6f51834bf26b6d8367cc424cf78713f59dd3bc6d54eab23ccdee5245b6a024db3c3d477f29d558fbe6f215b0c9d198dcc878866fb60cba023ba3c3d74a03850000003d8188000000174876e8002645c5a311c0a3a0f40215f6bf9d03a45ba7a90fcfb3d44b09582c20aa13fba17cc59a9e0002000d49dd8800000000000019c08102"
+  },
+  "lrb_id": "80007fa50001a93dbaf389afa9faa00e1236d6d28671cf4a8e3824ae0d891340"
 }
 ```
 
@@ -357,10 +398,10 @@ curl -L -X GET 'http://localhost:8000/api/v1/query_tx_status?txid=8000e1ed00014f
 }
 ```
 
-## submit_nowait
+## submit_tx
 POST transaction bytes
 Feedback only on parsing error, otherwise async posting
-`/api/v1/submit_nowait`
+`/api/v1/submit_tx`
 
 Example:
 TODO
@@ -585,4 +626,44 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_mainchain?max=3'
     }
   ]
 }
+```
+
+## get_all_chains
+GET all chains in the LRB
+`/api/v1/get_all_chains`
+
+Example:
+
+``` bash
+curl -L -X GET 'http://localhost:8000/api/v1/get_all_chains'
+```
+
+```json
+
+{
+  "chains": {
+    "11c0a3a0f40215f6bf9d03a45ba7a90fcfb3d44b09582c20aa13fba17cc59a9e": {
+      "id": "00007fb61c01d1f0a6458fd02e30b43757ca75b67b3feb9af21690c288f4303000",
+      "data": "40040b45ad88000000174880dde05955ea810245b6a0aad6a0102e6f51834bf26b6d8367cc424cf78713f59dd3bc6d54eab23ccdee5245b6a024db3c3d477f29d558fbe6f215b0c9d198dcc878866fb60cba023ba3c3d74a03850000003d8188000000174876e8002645c5a311c0a3a0f40215f6bf9d03a45ba7a90fcfb3d44b09582c20aa13fba17cc59a9e0002000d49dd8800000000000019c08102"
+    },
+    "3862b91b75c881d0f2787d0ad55c1da1ed66cfa932db84e774630ce56d20d7e4": {
+      "id": "80007fb71900f36d6cdb90ac153c29ce32c7a06e8d1112395583010dbab9655700",
+      "data": "40060b45ad8800007f549671420e2345b6a0aa401c8c6a9deacf479ab2209c07c01a27bd1eeecf0d7eaa4180b8049c6190d02645c5a33862b91b75c881d0f2787d0ad55c1da1ed66cfa932db84e774630ce56d20d7e40002000d49d581028800007f549671420e1d504287736571312e6531840000014084000000388800000000000000000d49dd880000000000466b968102"
+    },
+    "6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc": {
+      "id": "80007fb719001cba6e861d193b9a048ce49101925c044139dde564b0498e749400",
+      "data": "40060b45ad8800016bcaac35db212345b6a0033d48aa6f02b3f37811ae82d9c383855d3d23373cbd28ab94639fdd94a4f02d2645c5a36393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc0002000d49d581028800016bcaac35db211d504287626f6f742e6531840000015a840000003a8800000000000000000d49dd880000000000c9320d8102"
+    },
+    "795d6449ef9c59a47294d6b339246d092fd98e3ed679ac6755102cf58590a9ea": {
+      "id": "80007fb800018c63fb7e200056e0e548fd30e45dd0f3d43481e9215c3b58a17700",
+      "data": "40060b45ad8800007f5496c2fc7e2345b6a0aad6a0102e6f51834bf26b6d8367cc424cf78713f59dd3bc6d54eab23ccdee522645c5a3795d6449ef9c59a47294d6b339246d092fd98e3ed679ac6755102cf58590a9ea0002000d49d581028800007f5496c2fc7e1d504287736571342e62308400000161840000003c8800000000000000000d49dd88000000000039d8c38102"
+    },
+    "d048d81f4330dbebc149b2dafcdbb9ff088c7516ddf41590c1f09a033517dbdc": {
+      "id": "80007fb63700de6821f02227cb1701a9597f0ac4c04f8545ea62c7c3dcd5524400",
+      "data": "40060b45ad8800007f54955b423c2345b6a062c733803a83a26d4db1ce9f22206281f64af69401da6eb26390d34e6a88c5fa2645c5a3d048d81f4330dbebc149b2dafcdbb9ff088c7516ddf41590c1f09a033517dbdc0002000d49d581028800007f54955b423c1d504287736571322e6532840000013f84000000398800000000000000000d49dd8800000000000000008102"
+    }
+  },
+  "lrb_id": "80007fb800018c63fb7e200056e0e548fd30e45dd0f3d43481e9215c3b58a177"
+}
+
 ```
