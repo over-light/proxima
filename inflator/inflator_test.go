@@ -141,10 +141,10 @@ func TestInflatorBase(t *testing.T) {
 			}
 
 			if printtx {
-				t.Logf("+%d slots -- ts = %s, marging collected: %s -- %s\n--------------------- %s",
+				t.Logf("+%d slots -- ts = %s, margin collected: %s -- %s\n--------------------- %s",
 					s, ts.String(), util.Th(margin), tx.IDShortString(), ctx.String())
 			} else {
-				t.Logf("+%d slots -- ts = %s, marging collected: %s -- %s", s, ts.String(), util.Th(margin), tx.IDShortString())
+				t.Logf("+%d slots -- ts = %s, margin collected: %s -- %s", s, ts.String(), util.Th(margin), tx.IDShortString())
 			}
 
 			err = ctx.Validate()

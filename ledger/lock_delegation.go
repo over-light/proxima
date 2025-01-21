@@ -13,7 +13,8 @@ import (
 
 // DelegationLock is a basic delegation lock which is:
 // - unlockable by owner any slot
-// = unlockable by delegation target on even slots (slot mod 2 == 0) with additional constraints
+// - unlockable by delegation target on C=0,1,2,3 slots, where C = (slot + chainID[0:3]) mod 6
+// - NOT unlockable by delegation target on C=5,6 slots, where C = (slot + chainID[0:3]) mod 6
 type DelegationLock struct {
 	TargetLock Accountable
 	OwnerLock  Accountable
@@ -46,10 +47,18 @@ func _enforceDelegationTargetConstraintsOnSuccessor : and(
     require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 
+// constant. A map which has != 0 at bytes where delegation transaction is open  
+func _openDelegationSlotMap : 0xffffffff0000
+
 // $0 4-byte prefix of slice (usually chainID)
 // $1 4 bytes of the slot
-// return true if sum of $0 and $1 is even
-func isOpenDelegationSlot: isZero(bitwiseAND(add(slice($0,0,3), $1), u64/1))
+// return true if _openDelegationSlotMap has non-0 in the position of mod(sum($0,$1), len(_openDelegationSlotMap))
+func isOpenDelegationSlot : not(isZero(
+    byte(
+       _openDelegationSlotMap, 
+       byte(mod(add(slice($0,0,3), $1),len(_openDelegationSlotMap)), 7)
+    )
+))
 
 // $0 predecessor chain constraint index
 func _selfSuccessorChainData : evalArgumentBytecode(producedConstraintByIndex(slice(selfSiblingUnlockParams($0),0,1)), #chain, 0)	
@@ -216,4 +225,24 @@ func MinimumDelegationAmount() uint64 {
 	res, err := L().EvalFromSource(nil, "minimumDelegatedAmount")
 	util.AssertNoError(err)
 	return binary.BigEndian.Uint64(res)
+}
+
+func NextOpenDelegationSlot(chainID ChainID, slot Slot) Slot {
+	for ; !IsOpenDelegationSlot(chainID, slot); slot++ {
+	}
+	return slot
+}
+
+func NextOpenDelegationTimestamp(chainID ChainID, ts Time) Time {
+	return NewLedgerTime(NextOpenDelegationSlot(chainID, ts.Slot()), ts.Tick())
+}
+
+func NextClosedDelegationSlot(chainID ChainID, slot Slot) Slot {
+	for ; IsOpenDelegationSlot(chainID, slot); slot++ {
+	}
+	return slot
+}
+
+func NextClosedDelegationTimestamp(chainID ChainID, ts Time) Time {
+	return NewLedgerTime(NextClosedDelegationSlot(chainID, ts.Slot()), ts.Tick())
 }
