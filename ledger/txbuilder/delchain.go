@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -15,7 +16,7 @@ type DeleteChainParams struct {
 	EnforceNoDelegationTransition bool
 }
 
-func MakeDeleteChainTransaction(par DeleteChainParams) ([]byte, ledger.TransactionID, error) {
+func MakeDeleteChainTransaction(par DeleteChainParams) (*transaction.Transaction, error) {
 	chainID, _, _ := par.ChainIn.ExtractChainID()
 	// adjust timestamp
 	ts := ledger.MaximumTime(ledger.TimeNow(), par.ChainIn.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace)))
@@ -50,7 +51,7 @@ func MakeDeleteChainTransaction(par DeleteChainParams) ([]byte, ledger.Transacti
 				WithLock(ledger.ChainLockFromChainID(par.TagAlongSeqID))
 		})
 		if _, err = txb.ProduceOutput(tagAlongFeeOut); err != nil {
-			return nil, ledger.TransactionID{}, err
+			return nil, err
 		}
 	}
 
@@ -62,9 +63,9 @@ func MakeDeleteChainTransaction(par DeleteChainParams) ([]byte, ledger.Transacti
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
 	txb.SignED25519(par.PrivateKey)
 
-	txBytes, txid, _, err := txb.BytesWithValidation()
+	tx, err := txb.Transaction()
 	if err != nil {
-		return nil, ledger.TransactionID{}, err
+		return nil, err
 	}
-	return txBytes, txid, nil
+	return tx, nil
 }

@@ -170,6 +170,11 @@ func (txb *TransactionBuilder) ConsumedAmount() uint64 {
 	return ret
 }
 
+func (txb *TransactionBuilder) Transaction() (*transaction.Transaction, error) {
+	txBytes := txb.TransactionData.Bytes()
+	return transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+}
+
 func (txb *TransactionBuilder) BytesWithValidation() ([]byte, ledger.TransactionID, string, error) {
 	txBytes := txb.TransactionData.Bytes()
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)

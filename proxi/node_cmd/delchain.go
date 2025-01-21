@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -38,21 +39,21 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	clnt := glb.GetClient()
 
-	if feeAmount > 0 {
-		pTagAlongSeqID := glb.GetTagAlongSequencerID()
-		glb.Assertf(pTagAlongSeqID != nil, "tag-along sequencer not specified")
-		tagAlongSeqID = *pTagAlongSeqID
+	pTagAlongSeqID := glb.GetTagAlongSequencerID()
+	glb.Assertf(pTagAlongSeqID != nil, "tag-along sequencer not specified")
+	tagAlongSeqID = *pTagAlongSeqID
 
-		md, err := clnt.GetMilestoneData(tagAlongSeqID)
-		glb.AssertNoError(err)
+	md, err := clnt.GetMilestoneData(tagAlongSeqID)
+	glb.AssertNoError(err)
 
-		if md != nil && md.MinimumFee > feeAmount {
-			feeAmount = md.MinimumFee
-		}
+	if md != nil && md.MinimumFee > feeAmount {
+		feeAmount = md.MinimumFee
 	}
+
 	chainIN, _, _, err := clnt.GetChainOutput(chainID)
 	glb.AssertNoError(err)
 
+	glb.Infof("on the ledger now is %s", ledger.TimeNow().String())
 	glb.Infof("deleting chain:")
 	glb.Infof("   chain id: %s", chainID.String())
 	glb.Infof("   chain output: %s", chainIN.ID.String())
@@ -65,25 +66,25 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	var txBytes []byte
-	var txid ledger.TransactionID
+	var tx *transaction.Transaction
 
 	for {
-		txBytes, txid, err = txbuilder.MakeDeleteChainTransaction(txbuilder.DeleteChainParams{
+		tx, err = txbuilder.MakeDeleteChainTransaction(txbuilder.DeleteChainParams{
 			ChainIn:                       chainIN,
 			PrivateKey:                    walletData.PrivateKey,
-			TagAlongSeqID:                 chainID,
+			TagAlongSeqID:                 tagAlongSeqID,
 			TagAlongFee:                   feeAmount,
 			EnforceNoDelegationTransition: true,
 		})
 		glb.AssertNoError(err)
 
-		leftUntilDelegationClosedSlot := int(ledger.TimeNow().Slot() - txid.Slot())
+		leftUntilDelegationClosedSlot := int(ledger.TimeNow().Slot() - tx.Slot())
 		if leftUntilDelegationClosedSlot <= 1 {
-			glb.Infof("submitting transaction %s", txid.String())
-			err = clnt.SubmitTransaction(txBytes)
+			glb.Infof("submitting transaction %s", tx.IDString())
+			glb.Verbosef("-------------- transaction --------------\n%s", tx.String())
+			err = clnt.SubmitTransaction(tx.Bytes())
 			glb.AssertNoError(err)
-			glb.ReportTxInclusion(txid, 2*time.Second)
+			glb.ReportTxInclusion(tx.ID(), 2*time.Second)
 			return
 		}
 		glb.Infof("waiting for the slot which is closed for delegation: ~%v..", time.Duration(leftUntilDelegationClosedSlot)*ledger.L().ID.SlotDuration())
