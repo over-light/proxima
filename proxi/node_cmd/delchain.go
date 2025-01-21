@@ -78,8 +78,7 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 		})
 		glb.AssertNoError(err)
 
-		leftUntilDelegationClosedSlot := int(ledger.TimeNow().Slot() - tx.Slot())
-		if leftUntilDelegationClosedSlot <= 1 {
+		if ledger.TimeNow().Slot() >= tx.Slot() {
 			glb.Infof("submitting transaction %s", tx.IDString())
 			glb.Verbosef("-------------- transaction --------------\n%s", tx.String())
 			err = clnt.SubmitTransaction(tx.Bytes())
@@ -87,7 +86,7 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 			glb.ReportTxInclusion(tx.ID(), 2*time.Second)
 			return
 		}
-		glb.Infof("waiting for the slot which is closed for delegation: ~%v..", time.Duration(leftUntilDelegationClosedSlot)*ledger.L().ID.SlotDuration())
+		glb.Infof("waiting for the slot which is closed for delegation: approx %v..", time.Duration(tx.Slot()-ledger.TimeNow().Slot())*ledger.L().ID.SlotDuration())
 		time.Sleep(ledger.L().ID.SlotDuration())
 	}
 }
