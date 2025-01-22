@@ -63,7 +63,7 @@ const (
 	defaultMarginPromille     = 100
 	minimumTagAlongAmount     = 50
 	maxDelegationsPerTx       = 100
-	keepInConsumedListSlots   = 3
+	keepInConsumedListSlots   = 5
 	defaultLoopPeriod         = 2 * time.Second
 )
 
@@ -173,17 +173,19 @@ func (fl *Inflator) collectInflatableTransitions(targetTs ledger.Time, rdr multi
 
 var ErrNoInputs = errors.New("no delegated outputs has been found")
 
-func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, uint64, error) {
+func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.SugaredStateReader) (*transaction.Transaction, []*ledger.OutputID, []ledger.ChainID, uint64, error) {
 	outs, totalMarginOut := fl.collectInflatableTransitions(targetTs, rdr)
 	if len(outs) == 0 {
-		return nil, nil, 0, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
+		return nil, nil, nil, 0, fmt.Errorf("MakeTransaction: target = %s: %w", targetTs.String(), ErrNoInputs)
 	}
+	chainIDsMoved := make([]ledger.ChainID, len(outs))
 	txb := txbuilder.New()
-	for _, o := range outs {
+	for i, o := range outs {
 		inIdx, _ := txb.ConsumeOutput(o.Output, o.ID)
 		_, _ = txb.ProduceOutput(o.Successor)
 		txb.PutSignatureUnlock(inIdx) // all of them will check signatures -> suboptimal
 		txb.PutUnlockParams(inIdx, o.PredecessorConstraintIndex, o.UnlockParams)
+		chainIDsMoved[i] = o.ChainID
 	}
 
 	if totalMarginOut >= fl.cfg.TagAlongAmount {
@@ -197,14 +199,14 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 		// not enough collected margin for tag along. Use own funds
 		ownOuts, actualAmount := rdr.GetOutputsLockedInAddressED25519ForAmount(fl.cfg.Target, fl.cfg.TagAlongAmount)
 		if actualAmount < fl.cfg.TagAlongAmount {
-			return nil, nil, 0, fmt.Errorf("not enough funds for the tag-along of the transaction")
+			return nil, nil, nil, 0, fmt.Errorf("not enough funds for the tag-along of the transaction")
 		}
 		first := true
 		var firstIdx byte
 		for _, o := range ownOuts {
 			idx, err := txb.ConsumeOutput(o.Output, o.ID)
 			if err != nil {
-				return nil, nil, 0, err
+				return nil, nil, nil, 0, err
 			}
 			if first {
 				txb.PutSignatureUnlock(idx)
@@ -213,7 +215,7 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 			} else {
 				err = txb.PutUnlockReference(idx, ledger.ConstraintIndexLock, firstIdx)
 				if err != nil {
-					return nil, nil, 0, err
+					return nil, nil, nil, 0, err
 				}
 			}
 		}
@@ -233,7 +235,7 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 				o.WithLock(fl.cfg.Target)
 			}))
 			if err != nil {
-				return nil, nil, 0, err
+				return nil, nil, nil, 0, err
 			}
 		}
 	}
@@ -246,9 +248,9 @@ func (fl *Inflator) MakeTransaction(targetTs ledger.Time, rdr multistate.Sugared
 
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
-	return tx, txb.TransactionData.InputIDs, totalMarginOut, nil
+	return tx, txb.TransactionData.InputIDs, chainIDsMoved, totalMarginOut, nil
 }
 
 func (fl *Inflator) doStep(targetTs ledger.Time) {
@@ -262,7 +264,7 @@ func (fl *Inflator) doStep(targetTs ledger.Time) {
 		fl.Log().Infof("[%s] skip target %s: on slot boundary", Name, targetTs.String())
 		return
 	}
-	tx, outIDs, margin, err := fl.MakeTransaction(targetTs, lrb)
+	tx, outIDs, chainIDs, margin, err := fl.MakeTransaction(targetTs, lrb)
 	if errors.Is(err, ErrNoInputs) {
 		// fl.Log().Infof("[%s] skip target %s", Name, targetTs.String())
 		return
@@ -281,8 +283,16 @@ func (fl *Inflator) doStep(targetTs ledger.Time) {
 		fl.consumed[*oid] = nowis
 	}
 	fl.SubmitTxBytesFromInflator(tx.Bytes())
-	fl.Log().Infof("[%s] submitted transaction %s. Inputs: %d, total amount: %s, inflation: %s, margin collected: %s",
-		Name, tx.IDShortString(), tx.NumInputs(), util.Th(tx.TotalAmount()), util.Th(tx.InflationAmount()), util.Th(margin))
+	fl.Log().Infof("[%s] submitted transaction %s. Inputs: %d, total amount: %s, inflation: %s, margin collected: %s\n                 [%s]",
+		Name, tx.IDShortString(), tx.NumInputs(), util.Th(tx.TotalAmount()), util.Th(tx.InflationAmount()), util.Th(margin), _chainIDLines(chainIDs).Join(", "))
+}
+
+func _chainIDLines(chainIDs []ledger.ChainID, prefix ...string) *lines.Lines {
+	ret := lines.New(prefix...)
+	for _, cid := range chainIDs {
+		ret.Add(cid.StringShort())
+	}
+	return ret
 }
 
 func (fl *Inflator) cleanConsumedList() {

@@ -72,11 +72,3 @@ func (l *Lines) String() string {
 func (l *Lines) Slice() []string {
 	return l.l
 }
-
-func SliceToLines[T fmt.Stringer](slice []T, prefix ...string) *Lines {
-	ret := New(prefix...)
-	for i := range slice {
-		ret.Add(slice[i].String())
-	}
-	return ret
-}
