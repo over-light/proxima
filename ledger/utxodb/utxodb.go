@@ -439,6 +439,42 @@ func (u *UTXODB) DoTransfer(par *txbuilder.TransferData) error {
 	return err
 }
 
+func (u *UTXODB) MakeNewChain(amount uint64, privateKey ed25519.PrivateKey, chainController ledger.Lock, timestamp ...ledger.Time) (*ledger.OutputWithChainID, error) {
+	ts := ledger.TimeNow()
+	if len(timestamp) > 0 {
+		ts = timestamp[0]
+	}
+
+	par, err := u.MakeTransferInputData(privateKey, nil, ts)
+	if err != nil {
+		return nil, err
+	}
+	par.WithAmount(amount, true).
+		WithTargetLock(chainController).
+		WithConstraint(ledger.NewChainOrigin())
+
+	outs, err := u.DoTransferOutputs(par)
+	if err != nil {
+		return nil, err
+	}
+	outs = util.PurgeSlice(outs, func(o *ledger.OutputWithID) bool {
+		_, idx := o.Output.ChainConstraint()
+		return idx != 0xff
+	})
+	util.Assertf(len(outs) == 1, "len(outs)>0")
+
+	chainID, predecessorConstraintIndex, ok := outs[0].ExtractChainID()
+	if !ok {
+		return nil, fmt.Errorf("error extracting chainID")
+	}
+
+	return &ledger.OutputWithChainID{
+		OutputWithID:               *outs[0],
+		ChainID:                    chainID,
+		PredecessorConstraintIndex: predecessorConstraintIndex,
+	}, nil
+}
+
 func (u *UTXODB) ValidationContextFromTransaction(txBytes []byte) (*transaction.TxContext, error) {
 	return transaction.TxContextFromTransferableBytes(txBytes, u.state.Readable().GetUTXO)
 }

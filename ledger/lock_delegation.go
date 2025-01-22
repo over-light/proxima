@@ -29,6 +29,8 @@ const (
 	delegationLockTemplate = DelegationLockName + "(%d, %s, %s, 0x%s, u64/%d)"
 )
 
+// TODO fix delegation lock should not fail because owner lock and target lock uses different unlock data formats
+
 const delegationLockSource = `
 func minimumDelegatedAmount : u64/50000000
 
@@ -89,7 +91,7 @@ func delegationLock: and(
             or(
                $2,   // unlocked owner's lock validates it all
                require(
-				 // otherwise, check delegation case on even slots. Odd slots will fail
+				 // otherwise, check delegation case on open slots. Closed slots will fail
                   and(  
                      isOpenDelegationSlot(_selfSuccessorChainData($0), txTimeSlot),  
                      _enforceDelegationTargetConstraintsOnSuccessor(

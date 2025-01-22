@@ -48,8 +48,6 @@ type (
 	}
 )
 
-// TODO tag-along and delegation locks
-
 const TraceTag = "backlog"
 
 func New(env Environment) (*InputBacklog, error) {
