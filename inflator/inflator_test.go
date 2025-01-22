@@ -127,7 +127,7 @@ func TestInflatorBase(t *testing.T) {
 
 		for s := 1; uint64(s) <= ledger.L().ID.LinearInflationSlots+10; s++ {
 			tsTarget := ts.AddSlots(ledger.Slot(s))
-			tx, _, margin, err := env.fl.MakeTransaction(tsTarget, rdr)
+			tx, _, _, margin, err := env.fl.MakeTransaction(tsTarget, rdr)
 			if errors.Is(err, ErrNoInputs) {
 				continue
 			}
@@ -169,7 +169,7 @@ func TestInflatorBase(t *testing.T) {
 
 		for s := 1; uint64(s) <= ledger.L().ID.LinearInflationSlots+10; s++ {
 			tsTarget := ts.AddSlots(ledger.Slot(s))
-			tx, _, margin, err := env.fl.MakeTransaction(tsTarget, rdr)
+			tx, _, _, margin, err := env.fl.MakeTransaction(tsTarget, rdr)
 			if errors.Is(err, ErrNoInputs) {
 				continue
 			}
