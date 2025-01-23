@@ -129,14 +129,6 @@ func initTestAddressED25519Constraint() {
 	util.AssertNoError(err)
 }
 
-// TODO put for better diagnostics -->> optimize overall
-// func unlockedByReference: and(
-//  require(equal(selfUnlockParameters,1), !!!wrong_unlock_parameters_in address25519),
-//	lessThan(selfUnlockParameters, selfOutputIndex),              // unlock parameter must point to another input with
-//							                                      // strictly smaller index. This prevents reference cycles
-//	equal(self, consumedLockByInputIndex(selfUnlockParameters))  // the referenced constraint bytes must be equal to the self constraint bytes
-//)
-
 const addressED25519ConstraintSource = `
 
 // ED25519 address constraint wraps 32 bytes address, the blake2b hash of the public key
@@ -156,16 +148,19 @@ func unlockedWithSigED25519: and(
 // 'unlockedByReference'' specifies validation of the input unlock with the reference.
 // The referenced constraint must be exactly the same  but with strictly lesser index.
 // This prevents from cycles and forces some other unlock mechanism up in the list of outputs
+// $0 self unlock parameters
 func unlockedByReference: and(
-	lessThan(selfUnlockParameters, selfOutputIndex),              // unlock parameter must point to another input with 
+    equal(len($0), u64/1),                      // prevent panic in compound locks
+	lessThan($0, selfOutputIndex),              // unlock parameter must point to another input with 
 							                                      // strictly smaller index. This prevents reference cycles	
-	equal(self, consumedLockByInputIndex(selfUnlockParameters))  // the referenced constraint bytes must be equal to the self constraint bytes
+	equal(self, consumedLockByInputIndex($0))  // the referenced constraint bytes must be equal to the self constraint bytes
 )
 
 // if it is 'produced' invocation context (constraint invoked in the input), only size of the address is checked
 // Otherwise the first will check first condition if it is unlocked by reference, otherwise checks unlocking signature
 // Second condition not evaluated if the first is true
 // $0 - ED25519 address, 32 byte blake2b hash of the public key
+// Unlock data is 1 byte with reference index to the previous input or signature unlock with 0xff
 func addressED25519: and(
 	require(equal(selfBlockIndex,1), !!!locks_must_be_at_block_1), 
 	selfMustStandardAmount,
@@ -178,7 +173,7 @@ func addressED25519: and(
 			selfIsConsumedOutput, 
 			or(
 					// if it is unlocked with reference, the signature is not checked
-				unlockedByReference,
+				unlockedByReference(selfUnlockParameters),
 					// tx signature is checked
 				unlockedWithSigED25519($0, signatureED25519(txSignature), publicKeyED25519(txSignature)) 
 			)

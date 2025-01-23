@@ -115,11 +115,13 @@ func selfReferencedChainIDAdjusted : if(
 )
 
 // $0 - chainID
+// $1 - self unlock parameters
 func validChainUnlock : and(
+    equal(len($1), u64/2),                          // prevent panic in compound locks
 	equal($0, selfReferencedChainIDAdjusted(slice(selfReferencedChainData,0,31))), // chain id must be equal to the referenced chain id 
 	equal(
 		// the chain must be unlocked for state transition (mode = 0) 
-		byte(unlockParamsByConstraintIndex(selfUnlockParameters),2),
+		byte(unlockParamsByConstraintIndex($1),2),
 		0
 	)
 )
@@ -138,7 +140,7 @@ func chainLock : and(
 		and(
 			selfIsConsumedOutput,
 			not(equal(selfOutputIndex, byte(selfUnlockParameters,0))), // prevent self referencing 
-			validChainUnlock($0)
+			validChainUnlock($0, selfUnlockParameters)
 		)
 	)
 )

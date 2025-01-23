@@ -457,7 +457,7 @@ func TestDelegationChainLock(t *testing.T) {
 		initTest(true)
 		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
 	})
-	t.Run("->delegated open, no inflation (ok)", func(t *testing.T) {
+	t.Run("->delegation transition open, no inflation (ok)", func(t *testing.T) {
 		chainID := initTest(false)
 		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
 
@@ -468,7 +468,7 @@ func TestDelegationChainLock(t *testing.T) {
 		require.NoError(t, err)
 
 		rdr := multistate.MakeSugared(u.StateReader())
-		outs, err := rdr.GetOutputsDelegatedToAccount(delegationAddr)
+		outs, err := rdr.GetOutputsDelegatedToAccount(targetChainID.AsChainLock())
 		require.NoError(t, err)
 		require.EqualValues(t, 1, len(outs))
 
