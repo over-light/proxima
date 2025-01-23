@@ -35,7 +35,7 @@ type (
 		IsConsumedInThePastPath(wOut vertex.WrappedOutput, ms *vertex.WrappedTx) bool
 		AddOwnMilestone(vid *vertex.WrappedTx)
 		FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOutput, targetTs ledger.Time) []vertex.WrappedOutput
-		MaxTagAlongInputs() int
+		MaxInputs() (int, int)
 		LatestMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
 		EvidenceProposal(strategyShortName string)
 		EvidenceBestProposalForTheTarget(strategyShortName string)
@@ -203,20 +203,21 @@ func (t *Task) startProposers() {
 	}
 }
 
-const TraceTagInsertTagAlongInputs = "InsertTagAlongInputs"
+const TraceTagInsertInputs = "InsertInputs"
 
-// InsertTagAlongInputs includes tag-along outputs from the backlog into attacher
-func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher) (numInserted int) {
-	t.Tracef(TraceTagInsertTagAlongInputs, "IN: %s", a.Name)
+// InsertInputs includes tag-along or delegation outputs from the backlog into attacher
+func (t *Task) InsertInputs(a *attacher.IncrementalAttacher, lockName string, maxInputs int) (numInserted int) {
+	t.Assertf(lockName == ledger.ChainLockName || lockName == ledger.DelegationLockName, "lockName == ledger.ChainLockName || lockName == ledger.DelegationLockName")
+	t.Tracef(TraceTagInsertInputs, "IN: %s", a.Name)
 
 	if ledger.L().ID.IsPreBranchConsolidationTimestamp(a.TargetTs()) {
 		// skipping tagging-along in pre-branch consolidation zone
-		t.Tracef(TraceTagInsertTagAlongInputs, "%s. No tag-along in the pre-branch consolidation zone of ticks", a.Name())
+		t.Tracef(TraceTagInsertInputs, "%s. No tag-along in the pre-branch consolidation zone of ticks", a.Name())
 		return 0
 	}
 
 	preSelected := t.Backlog().FilterAndSortOutputs(func(wOut vertex.WrappedOutput) bool {
-		if wOut.LockName() != ledger.ChainLockName {
+		if wOut.LockName() != lockName {
 			return false
 		}
 		if !ledger.ValidSequencerPace(wOut.Timestamp(), a.TargetTs()) {
@@ -225,7 +226,7 @@ func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher) (numInserte
 		// fast filtering out already consumed outputs in the predecessor milestone context
 		return !t.IsConsumedInThePastPath(wOut, a.Extending().VID)
 	})
-	t.Tracef(TraceTagInsertTagAlongInputs, "%s. Pre-selected: %d", a.Name, len(preSelected))
+	t.Tracef(TraceTagInsertInputs, "%s. Pre-selected: %d", a.Name, len(preSelected))
 
 	for _, wOut := range preSelected {
 		select {
@@ -233,13 +234,13 @@ func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher) (numInserte
 			return
 		default:
 		}
-		if success, err := a.InsertTagAlongInput(wOut); success {
+		if success, err := a.InsertInput(wOut); success {
 			numInserted++
-			t.Tracef(TraceTagInsertTagAlongInputs, "%s. Inserted %s", a.Name, wOut.IDShortString)
+			t.Tracef(TraceTagInsertInputs, "%s. Inserted %s", a.Name, wOut.IDShortString)
 		} else {
-			t.Tracef(TraceTagInsertTagAlongInputs, "%s. Failed to insert %s: '%v'", a.Name, wOut.IDShortString, err)
+			t.Tracef(TraceTagInsertInputs, "%s. Failed to insert %s: '%v'", a.Name, wOut.IDShortString, err)
 		}
-		if a.NumInputs() >= t.MaxTagAlongInputs() {
+		if a.NumInputs() >= maxInputs {
 			return
 		}
 	}

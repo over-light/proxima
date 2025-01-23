@@ -17,6 +17,7 @@ type (
 		SequencerName           string
 		Pace                    int // pace in ticks
 		MaxTagAlongInputs       int
+		MaxInputs               int
 		MaxTargetTs             ledger.Time
 		MaxBranches             int
 		DelayStart              time.Duration
@@ -30,7 +31,8 @@ type (
 )
 
 const (
-	defaultMaxTagAlongInputs  = 20
+	defaultMaxInputs          = 100
+	defaultMaxTagAlongInputs  = 50
 	minimumBacklogTTLSlots    = 10
 	minimumMilestonesTTLSlots = 24 // 10
 )
@@ -40,6 +42,7 @@ func defaultConfigOptions() *ConfigOptions {
 		SequencerName:      "seq",
 		Pace:               ledger.TransactionPaceSequencer(),
 		MaxTagAlongInputs:  defaultMaxTagAlongInputs,
+		MaxInputs:          defaultMaxInputs,
 		MaxTargetTs:        ledger.NilLedgerTime,
 		MaxBranches:        math.MaxInt,
 		DelayStart:         ledger.SlotDuration(),
@@ -90,7 +93,7 @@ func paramsFromConfig() ([]ConfigOption, ledger.ChainID, ed25519.PrivateKey, err
 	cfg := []ConfigOption{
 		WithName(name),
 		WithPace(subViper.GetInt("pace")),
-		WithMaxTagAlongInputs(subViper.GetInt("max_tag_along_inputs")),
+		WithMaxInputs(subViper.GetInt("max_inputs"), subViper.GetInt("max_tag_along_inputs")),
 		WithMaxBranches(subViper.GetInt("max_branches")),
 		WithBacklogTTLSlots(backlogTTLSlots),
 		WithMilestonesTTLSlots(milestonesTTLSlots),
@@ -120,15 +123,14 @@ func WithDelayStart(delay time.Duration) ConfigOption {
 	}
 }
 
-func WithMaxTagAlongInputs(maxInputs int) ConfigOption {
+func WithMaxInputs(maxInputs, maxTagAlongInputs int) ConfigOption {
 	return func(o *ConfigOptions) {
-		if maxInputs >= 1 {
-			if maxInputs > 254 {
-				o.MaxTagAlongInputs = 254
-			} else {
-				o.MaxTagAlongInputs = maxInputs
-			}
+		if maxInputs <= 0 || maxTagAlongInputs <= 0 || maxInputs > 254 || maxTagAlongInputs > maxInputs {
+			o.MaxInputs = defaultMaxInputs
+			o.MaxTagAlongInputs = defaultMaxTagAlongInputs
 		}
+		o.MaxInputs = maxInputs
+		o.MaxTagAlongInputs = maxTagAlongInputs
 	}
 }
 

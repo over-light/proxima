@@ -180,9 +180,9 @@ func (a *IncrementalAttacher) insertEndorsement(endorsement *vertex.WrappedTx) e
 	return nil
 }
 
-// InsertTagAlongInput inserts tag along input.
+// InsertInput inserts tag along or delegation input.
 // In case of failure return false and attacher state with vertex references remains consistent
-func (a *IncrementalAttacher) InsertTagAlongInput(wOut vertex.WrappedOutput) (bool, error) {
+func (a *IncrementalAttacher) InsertInput(wOut vertex.WrappedOutput) (bool, error) {
 	util.Assertf(!a.IsClosed(), "a.IsClosed()")
 	util.AssertNoError(a.err)
 
@@ -193,7 +193,7 @@ func (a *IncrementalAttacher) InsertTagAlongInput(wOut vertex.WrappedOutput) (bo
 		// it is either conflicting, or not solid yet
 		// in either case rollback
 		a.pastCone.RollbackDelta()
-		err = fmt.Errorf("InsertTagAlongInput: %w", err)
+		err = fmt.Errorf("InsertInput: %w", err)
 		a.setError(nil)
 		return false, err
 	}

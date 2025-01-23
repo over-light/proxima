@@ -549,8 +549,8 @@ func (seq *Sequencer) runOnMilestoneSubmitted(ms *vertex.WrappedTx) {
 	}
 }
 
-func (seq *Sequencer) MaxTagAlongInputs() int {
-	return seq.config.MaxTagAlongInputs
+func (seq *Sequencer) MaxInputs() (int, int) {
+	return seq.config.MaxInputs, seq.config.MaxTagAlongInputs
 }
 
 func (seq *Sequencer) BacklogTTLSlots() int {

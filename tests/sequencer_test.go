@@ -56,7 +56,7 @@ func Test1Sequencer(t *testing.T) {
 
 		//testData.env.StartTracingTags(proposer_base.TraceTag)
 		//testData.env.StartTracingTags(attacher.TraceTagAttach)
-		//testData.env.StartTracingTags(attacher.TraceTagIncrementalAttacher)
+		//testData.env.StartTracingTags(task.TraceTagInsertTagAlongInputs)
 
 		seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey)
 		require.NoError(t, err)
@@ -236,7 +236,7 @@ func initMultiSequencerTest(t *testing.T, nSequencers int, startPruner ...bool) 
 
 	testData.bootstrapSeq, err = sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey,
 		sequencer.WithName("boot"),
-		sequencer.WithMaxTagAlongInputs(30),
+		sequencer.WithMaxInputs(50, 30),
 		sequencer.WithPace(5),
 		sequencer.WithDelayStart(3*time.Second),
 		sequencer.WithForceInflator(),

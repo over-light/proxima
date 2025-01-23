@@ -119,10 +119,24 @@ func (b *InputBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) boo
 		wOut.VID.UnReference()
 		return false
 	}
-	if o != nil {
-		if _, idx := o.ChainConstraint(); idx != 0xff {
-			// filter out all chain constrained outputs
-			// TODO must be revisited with delegated accounts (delegation-locked on the current sequencer)
+	if o == nil {
+		return true
+	}
+	if _, idx := o.ChainConstraint(); idx != 0xff {
+		// filter out all chain constrained outputs
+		wOut.VID.UnReference()
+		return false
+	}
+	lock := wOut.Lock()
+	if lock.Name() != ledger.ChainLockName && lock.Name() != ledger.DelegationLockName {
+		// filter out all which cannot be consumed by the sequencer
+		wOut.VID.UnReference()
+		return false
+	}
+	if dl, ok := lock.(*ledger.DelegationLock); ok {
+		seqID := b.SequencerID()
+		if !ledger.EqualAccountables(seqID.AsChainLock(), dl.TargetLock) {
+			// filter out delegation locks is delegation target cannot be consumed
 			wOut.VID.UnReference()
 			return false
 		}
