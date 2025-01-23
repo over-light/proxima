@@ -43,6 +43,38 @@ func (o *WrappedOutput) IsAvailable() (available bool) {
 	return
 }
 
+func (o *WrappedOutput) Output() (ret *ledger.Output) {
+	o.VID.Unwrap(UnwrapOptions{
+		Vertex: func(v *Vertex) {
+			var err error
+			if ret, err = v.Tx.ProducedOutputAt(o.Index); err != nil {
+				ret = nil
+			}
+		},
+		VirtualTx: func(v *VirtualTransaction) {
+			var available bool
+			if ret, available = v.OutputAt(o.Index); !available {
+				ret = nil
+			}
+		},
+	})
+	return
+}
+
+func (o *WrappedOutput) Lock() ledger.Lock {
+	if out := o.Output(); out != nil {
+		return out.Lock()
+	}
+	return nil
+}
+
+func (o *WrappedOutput) LockName() string {
+	if l := o.Lock(); l != nil {
+		return l.Name()
+	}
+	return ""
+}
+
 func (o *WrappedOutput) IDHasFragment(frag string) bool {
 	return strings.Contains(o.DecodeID().String(), frag)
 }

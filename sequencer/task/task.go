@@ -216,6 +216,9 @@ func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher) (numInserte
 	}
 
 	preSelected := t.Backlog().FilterAndSortOutputs(func(wOut vertex.WrappedOutput) bool {
+		if wOut.LockName() != ledger.ChainLockName {
+			return false
+		}
 		if !ledger.ValidSequencerPace(wOut.Timestamp(), a.TargetTs()) {
 			return false
 		}

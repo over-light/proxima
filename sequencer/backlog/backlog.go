@@ -58,7 +58,7 @@ func New(env Environment) (*InputBacklog, error) {
 	}
 	env.Tracef(TraceTag, "starting input backlog for the sequencer %s..", env.SequencerName)
 
-	// start listening to chain-locked account
+	// start listening to chain-locked account. Tag-along and delegation outputs
 	env.ListenToAccount(seqID.AsChainLock(), func(wOut vertex.WrappedOutput) {
 		env.Tracef(TraceTag, "[%s] output IN: %s", ret.SequencerName, wOut.IDShortString)
 
