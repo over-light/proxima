@@ -75,7 +75,7 @@ func MakeDistributionTransaction(stateStore multistate.StateStore, originPrivate
 		AdditionalOutputs: genesisDistributionOutputs,
 		Endorsements:      nil,
 		PrivateKey:        originPrivateKey,
-		PutInflation:      false,
+		InflateMainChain:  false,
 	})
 	if err != nil {
 		return nil, err

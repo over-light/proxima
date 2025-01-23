@@ -2,6 +2,7 @@ package txbuilder
 
 import (
 	"crypto/ed25519"
+	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
@@ -26,13 +27,17 @@ type MakeSequencerTransactionParams struct {
 	AdditionalInputs []*ledger.OutputWithID
 	// additional outputs to produce
 	AdditionalOutputs []*ledger.Output
+	// delegation outputs to transit
+	DelegationOutputs []*ledger.OutputWithChainID
+	// delegation inflation margin
+	DelegationInflationMarginPromille int
 	// Endorsements
 	Endorsements []*ledger.TransactionID
 	// chain controller
 	PrivateKey ed25519.PrivateKey
-	// PutInflation if true, calculates maximum inflation possible
+	// InflateMainChain if true, calculates maximum inflation possible on main chain transition
 	// if false, does not add inflation constraint at all
-	PutInflation      bool
+	InflateMainChain  bool
 	ReturnInputLoader bool
 }
 
@@ -67,6 +72,12 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		return nil, nil, errP("chain predecessor is not a sequencer transaction -> endorsement of sequencer transaction is mandatory (unless making a branch)")
 	}
 
+	delegationTransition, delegationTotalIn, delegationTotalOut, delegationMargin, err :=
+		makeDelegationTransitions(par.DelegationOutputs, par.Timestamp, par.DelegationInflationMarginPromille)
+	if err != nil {
+		return nil, nil, errP(err, "while creating delegation transition")
+	}
+
 	chainInConstraint, chainInConstraintIdx := par.ChainInput.Output.ChainConstraint()
 	if chainInConstraintIdx == 0xff {
 		return nil, nil, errP("not a chain output: %s", par.ChainInput.ID.StringShort())
@@ -83,13 +94,12 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	}
 	chainInAmount := par.ChainInput.Output.Amount()
 
-	totalInAmount := chainInAmount + additionalIn
+	totalInAmount := chainInAmount + additionalIn + delegationTotalIn
 	if totalInAmount < additionalOut {
 		return nil, nil, errP("not enough tokens in the input")
 	}
 
 	var vrfProof []byte
-	var err error
 
 	if par.StemInput != nil {
 		prevStem, ok := par.StemInput.Output.StemLock()
@@ -103,22 +113,22 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		}
 	}
 
-	var inflationAmount uint64
-	var inflationConstraint *ledger.InflationConstraint
+	var mainChainInflationAmount uint64
+	var mainChainInflationConstraint *ledger.InflationConstraint
 
-	if par.PutInflation {
+	if par.InflateMainChain {
 		if par.Timestamp.IsSlotBoundary() {
 			util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
-			inflationAmount = ledger.L().BranchInflationBonusFromRandomnessProof(vrfProof)
+			mainChainInflationAmount = ledger.L().BranchInflationBonusFromRandomnessProof(vrfProof)
 		} else {
-			inflationAmount = ledger.L().CalcChainInflationAmount(par.ChainInput.Timestamp(), par.Timestamp, par.ChainInput.Output.Amount())
+			mainChainInflationAmount = ledger.L().CalcChainInflationAmount(par.ChainInput.Timestamp(), par.Timestamp, par.ChainInput.Output.Amount())
 		}
-		inflationConstraint = &ledger.InflationConstraint{
-			InflationAmount: inflationAmount,
+		mainChainInflationConstraint = &ledger.InflationConstraint{
+			InflationAmount: mainChainInflationAmount,
 		}
 	}
 
-	chainOutAmount := totalInAmount + inflationAmount - additionalOut // >= 0
+	chainOutAmount := totalInAmount + mainChainInflationAmount + delegationMargin - additionalOut // >= 0
 
 	if chainOutAmount < ledger.L().Const().MinimumAmountOnSequencer() {
 		return nil, nil, errP("amount on the chain output is below minimum required for the sequencer: %s",
@@ -126,7 +136,8 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	}
 
 	totalOutAmount := chainOutAmount + additionalOut
-	util.Assertf(totalInAmount+inflationAmount == totalOutAmount, "totalInAmount == totalOutAmount")
+	util.Assertf(totalInAmount+delegationTotalIn+mainChainInflationAmount+delegationMargin+delegationTotalOut == totalOutAmount,
+		"totalInAmount+delegationTotalIn+mainChainInflationAmount+delegationMargin+delegationTotalOut == totalOutAmount")
 
 	// make chain input/output
 	chainPredIdx, err := txb.ConsumeOutput(par.ChainInput.Output, par.ChainInput.ID)
@@ -174,10 +185,10 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		idxMsData, _ := o.PushConstraint(outData.AsConstraint().Bytes())
 		util.Assertf(idxMsData == ledger.MilestoneDataFixedIndex, "idxMsData == MilestoneDataFixedIndex")
 
-		if inflationConstraint != nil {
-			inflationConstraint.ChainConstraintIndex = chainOutConstraintIdx
-			_, _ = o.PushConstraint(inflationConstraint.Bytes())
-			//fmt.Printf(">>>>>>>>>>>>>>> push %s\n", inflationConstraint.String())
+		if mainChainInflationConstraint != nil {
+			mainChainInflationConstraint.ChainConstraintIndex = chainOutConstraintIdx
+			_, _ = o.PushConstraint(mainChainInflationConstraint.Bytes())
+			//fmt.Printf(">>>>>>>>>>>>>>> push %s\n", mainChainInflationConstraint.String())
 		}
 	})
 
@@ -237,6 +248,13 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		tsIn = ledger.MaximumTime(tsIn, o.Timestamp())
 	}
 
+	// transit delegation outputs
+	util.Assertf(len(par.DelegationOutputs) == len(delegationTransition), "len(par.DelegationOutputs)==len(delegationTransition)")
+	for i, o := range par.DelegationOutputs {
+		// TODO
+		txb.ConsumeOutput(o.Output, o.ID)
+	}
+
 	if !ledger.ValidSequencerPace(tsIn, par.Timestamp) {
 		return nil, nil, errP("timestamp %s is inconsistent with latest input timestamp %s", par.Timestamp.String(), tsIn.String())
 	}
@@ -261,4 +279,61 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		}
 	}
 	return txb.TransactionData.Bytes(), inputLoader, nil
+}
+
+func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, targetTs ledger.Time, delegationMarginPromille int) ([]*ledger.Output, uint64, uint64, uint64, error) {
+	if len(inputs) == 0 {
+		return nil, 0, 0, 0, nil
+	}
+	ret := make([]*ledger.Output, len(inputs))
+	retMargin := uint64(0)
+	retTotalOut := uint64(0)
+	retTotalIn := uint64(0)
+	inflationTotal := uint64(0)
+
+	var err error
+
+	for i, in := range inputs {
+		ret[i] = ledger.NewOutput(func(o *ledger.Output) {
+			cc, ccIdx := in.Output.ChainConstraint()
+			util.Assertf(ccIdx != 0xff, "ccIdx != 0xff")
+			chainID := cc.ID
+			if cc.IsOrigin() {
+				chainID = ledger.MakeOriginChainID(&in.ID)
+			}
+			if !ledger.IsOpenDelegationSlot(chainID, targetTs.Slot()) {
+				// only considering delegated outputs which can be consumed in the target slot
+				err = fmt.Errorf("delegation is not open for %s: chainID: %s, oid: %s",
+					targetTs.String(), chainID.StringShort(), in.ID.StringShort())
+				return
+			}
+
+			delegationInflation := ledger.L().CalcChainInflationAmount(in.ID.Timestamp(), targetTs, o.Amount())
+			inflationTotal += delegationInflation
+			delegationMargin := uint64(delegationMarginPromille) / 1000
+			retTotalIn += o.Amount()
+			retMargin += delegationMargin
+			retTotalOut += o.Amount() + delegationInflation - delegationMargin
+
+			o.WithAmount(in.Output.Amount() + delegationInflation - delegationMargin)
+			o.WithLock(in.Output.Lock())
+			// TODO pul chain constraint, handle predecessor index
+			if delegationInflation > 0 {
+				ic := ledger.InflationConstraint{
+					InflationAmount:      delegationInflation,
+					ChainConstraintIndex: ccIdx,
+				}
+				if _, err = o.PushConstraint(ic.Bytes()); err != nil {
+					return
+				}
+			}
+		})
+		if err != nil {
+			return nil, 0, 0, 0, err
+		}
+	}
+	util.Assertf(retTotalOut == retTotalIn+inflationTotal, "retTotalOut == retTotalIn+inflationTotal")
+	util.Assertf(inflationTotal+retTotalIn == retMargin+retTotalOut, "inflationTotal+retTotalIn == retMargin+retTotalOut")
+
+	return ret, retTotalIn, retTotalOut, retMargin, nil
 }
