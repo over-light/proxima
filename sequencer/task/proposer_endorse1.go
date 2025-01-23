@@ -5,7 +5,6 @@ import (
 
 	"github.com/lunfardo314/proxima/core/attacher"
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/ledger"
 )
 
 const TraceTagEndorse1Proposer = "propose-endorse1"
@@ -55,8 +54,7 @@ func endorse1ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 		return nil, false
 	}
 
-	_, maxTagAlong := p.MaxInputs()
-	p.InsertInputs(a, ledger.ChainLockName, maxTagAlong)
+	p.insertInputs(a)
 
 	if !a.Completed() {
 		endorsing := a.Endorsing()[0]

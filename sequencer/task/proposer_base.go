@@ -82,10 +82,7 @@ func baseProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
 	} else {
 		p.Tracef(TraceTagBaseProposer, "%s making non-branch, extending %s, collecting and inserting tag-along inputs", p.Name, extend.IDShortString)
 
-		_, maxTagAlong := p.MaxInputs()
-		numInserted := p.InsertInputs(a, ledger.ChainLockName, maxTagAlong)
-
-		p.Tracef(TraceTagBaseProposer, "%s inserted %d tag-along inputs", p.Name, numInserted)
+		p.insertInputs(a)
 	}
 
 	p.slotData.lastExtendedOutputB0 = extend

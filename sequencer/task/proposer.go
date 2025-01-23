@@ -208,3 +208,9 @@ func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 	}
 	return ret
 }
+
+func (p *Proposer) insertInputs(a *attacher.IncrementalAttacher) {
+	maxInputs, maxTagAlong := p.MaxInputs()
+	_ = p.InsertInputs(a, ledger.ChainLockName, maxTagAlong)
+	_ = p.InsertInputs(a, ledger.DelegationLockName, maxInputs)
+}
