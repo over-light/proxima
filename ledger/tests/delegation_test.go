@@ -368,7 +368,7 @@ func TestDelegationChainLock(t *testing.T) {
 		return chainID
 	}
 
-	transitDelegation := func(ts ledger.Time, inflate bool, nextDelegationAmount uint64, unlockByOwner bool, printtTx ...bool) error {
+	transitDelegationWithChain := func(ts ledger.Time, inflate bool, nextDelegationAmount uint64, printtTx ...bool) error {
 		txb := txbuilder.New()
 
 		// target chain output transition
@@ -429,11 +429,7 @@ func TestDelegationChainLock(t *testing.T) {
 		if remainder > 0 {
 			remOut := ledger.NewOutput(func(o *ledger.Output) {
 				o.WithAmount(remainder)
-				if unlockByOwner {
-					o.WithLock(dl.OwnerLock.AsLock())
-				} else {
-					o.WithLock(dl.TargetLock.AsLock())
-				}
+				o.WithLock(dl.TargetLock.AsLock())
 			})
 			_, err = txb.ProduceOutput(remOut)
 			require.NoError(t, err)
@@ -441,11 +437,7 @@ func TestDelegationChainLock(t *testing.T) {
 
 		txb.TransactionData.Timestamp = ts
 		txb.TransactionData.InputCommitment = txb.InputCommitment()
-		if unlockByOwner {
-			txb.SignED25519(ownerPrivateKey)
-		} else {
-			txb.SignED25519(delegationPrivateKey)
-		}
+		txb.SignED25519(delegationPrivateKey)
 		txBytes = txb.TransactionData.Bytes()
 		if len(printtTx) > 0 && printtTx[0] {
 			t.Logf("------------------ delegation transition tx --------------\n%s", u.TxToString(txBytes))
@@ -464,7 +456,7 @@ func TestDelegationChainLock(t *testing.T) {
 		ts := delegatedOutput.ID.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace))
 
 		ts = ledger.NextOpenDelegationTimestamp(chainID, ts)
-		err := transitDelegation(ts, false, delegatedOutput.Output.Amount(), false, true)
+		err := transitDelegationWithChain(ts, false, delegatedOutput.Output.Amount(), true)
 		require.NoError(t, err)
 
 		rdr := multistate.MakeSugared(u.StateReader())
@@ -474,5 +466,75 @@ func TestDelegationChainLock(t *testing.T) {
 
 		delegatedOutput = outs[0]
 		t.Logf("delegated output 1:\n%s", delegatedOutput.Lines("      ").String())
+	})
+	t.Run("->delegation closed slot no inflation (not ok)", func(t *testing.T) {
+		// delegation should fail on odd slot
+		chainID := initTest(false)
+		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
+
+		ts := delegatedOutput.ID.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace))
+		ts = ledger.NextClosedDelegationTimestamp(chainID, ts)
+		err := transitDelegationWithChain(ts, false, delegatedOutput.Output.Amount())
+		t.Logf("expected error: %v", err)
+		require.True(t, err != nil && strings.Contains(err.Error(), "delegation target lock failed"))
+	})
+	t.Run("-> delegation steal no inflation (not ok)", func(t *testing.T) {
+		chainID := initTest(false)
+		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
+
+		ts := delegatedOutput.ID.Timestamp().AddSlots(1)
+		ts = ledger.NextOpenDelegationTimestamp(chainID, ts)
+
+		err := transitDelegationWithChain(ts, false, delegatedOutput.Output.Amount()-100, false)
+		t.Logf("expected error: %v", err)
+		require.True(t, err != nil && strings.Contains(err.Error(), "amount should not decrease"))
+	})
+	t.Run("-> delegate inflate1 (ok)", func(t *testing.T) {
+		chainID := initTest(false)
+		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
+
+		tsPrev := delegatedOutput.ID.Timestamp()
+		ts := tsPrev.AddSlots(1)
+		ts = ts.AddSlots(10)
+		ts = ledger.NextOpenDelegationTimestamp(chainID, ts)
+
+		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
+		t.Logf("tsIn: %s, tsOut: %s, amountIn: %s -> expected inflation: %d",
+			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
+
+		err := transitDelegationWithChain(ts, true, delegatedOutput.Output.Amount()+expectedInflation)
+		require.NoError(t, err)
+	})
+	t.Run("-> delegate inflate2 (ok)", func(t *testing.T) {
+		chainID := initTest(false)
+		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
+
+		tsPrev := delegatedOutput.ID.Timestamp()
+		ts := tsPrev.AddSlots(3)
+		ts = ledger.NextOpenDelegationTimestamp(chainID, ts)
+
+		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
+		t.Logf("tsIn: %s, tsOut: %s, amountIn: %s -> expected inflation: %d",
+			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
+
+		err := transitDelegationWithChain(ts, true, delegatedOutput.Output.Amount())
+		require.NoError(t, err)
+	})
+	t.Run("-> delegate inflate steal (not ok)", func(t *testing.T) {
+		chainID := initTest(true)
+		t.Logf("delegated output 0:\n%s", delegatedOutput.Lines("      ").String())
+
+		tsPrev := delegatedOutput.ID.Timestamp()
+		ts := tsPrev.AddTicks(int(ledger.L().ID.TransactionPace))
+		ts = ts.AddSlots(5)
+		ts = ledger.NextOpenDelegationTimestamp(chainID, ts)
+
+		expectedInflation := ledger.L().CalcChainInflationAmount(tsPrev, ts, delegatedOutput.Output.Amount())
+		t.Logf("tsIn: %s, tsOut: %s, amountIn: %s -> expected inflation: %d",
+			tsPrev.String(), ts.String(), util.Th(delegatedOutput.Output.Amount()), expectedInflation)
+
+		err := transitDelegationWithChain(ts, true, delegatedOutput.Output.Amount()-5)
+		t.Logf("failed with error: '%v'", err)
+		require.True(t, err != nil && strings.Contains(err.Error(), "amount should not decrease"))
 	})
 }
