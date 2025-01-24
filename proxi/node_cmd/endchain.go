@@ -14,10 +14,11 @@ import (
 
 func initDeleteChainCmd() *cobra.Command {
 	deleteChainCmd := &cobra.Command{
-		Use:   "delchain <chain id>",
-		Short: `deletes a chain origin (not a sequencer)`,
-		Args:  cobra.ExactArgs(1),
-		Run:   runDeleteChainCmd,
+		Use:     "endchain <chain id>",
+		Aliases: []string{"delchain"},
+		Short:   `ends a chain by destroying chain output. All tokens are converted into the addressED25519-locked output with the same controlling private key`,
+		Args:    cobra.ExactArgs(1),
+		Run:     runDeleteChainCmd,
 	}
 	deleteChainCmd.InitDefaultHelpCmd()
 
@@ -54,7 +55,7 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 	glb.AssertNoError(err)
 
 	glb.Infof("on the ledger now is %s", ledger.TimeNow().String())
-	glb.Infof("deleting chain:")
+	glb.Infof("ending (discontinuing) chain:")
 	glb.Infof("   chain id: %s", chainID.String())
 	glb.Infof("   chain output: %s", chainIN.ID.String())
 	glb.Infof("   chain controller: %s", target)
@@ -69,7 +70,7 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 	var tx *transaction.Transaction
 
 	for {
-		tx, err = txbuilder.MakeDeleteChainTransaction(txbuilder.DeleteChainParams{
+		tx, err = txbuilder.MakeEndChainTransaction(txbuilder.EndChainParams{
 			ChainIn:                       chainIN,
 			PrivateKey:                    walletData.PrivateKey,
 			TagAlongSeqID:                 tagAlongSeqID,

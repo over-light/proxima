@@ -8,7 +8,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 )
 
-type DeleteChainParams struct {
+type EndChainParams struct {
 	ChainIn                       *ledger.OutputWithChainID
 	PrivateKey                    ed25519.PrivateKey
 	TagAlongSeqID                 ledger.ChainID
@@ -16,7 +16,7 @@ type DeleteChainParams struct {
 	EnforceNoDelegationTransition bool
 }
 
-func MakeDeleteChainTransaction(par DeleteChainParams) (*transaction.Transaction, error) {
+func MakeEndChainTransaction(par EndChainParams) (*transaction.Transaction, error) {
 	chainID, _, _ := par.ChainIn.ExtractChainID()
 	// adjust timestamp
 	ts := ledger.MaximumTime(ledger.TimeNow(), par.ChainIn.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace)))

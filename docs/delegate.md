@@ -108,12 +108,12 @@ it means either it is down, or delegated amount is too small.
 ### How to reclaim delegated tokens back?
 It works by simply by destroying the delegation chain with the command:
 
-`proxi node delchain <delegation ID hex>`.
+`proxi node endchain <delegation ID hex>`.
 
 For example:
 
 ```text
-Command line: 'proxi node delchain 2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf'
+Command line: 'proxi node endchain 2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf'
 using profile: ./proxi.yaml
 using API endpoint: http://127.0.0.1:8000, default timeout
 successfully connected to the node at http://127.0.0.1:8000
@@ -138,12 +138,12 @@ All tokens from the chain are returned to the normal wallet's `ED25519` address.
 
 **Important!**
 
-If the command `proxi node delchain <delegation ID hex>` does not confirm the transaction in 30-40 sec, it means it was orphaned. 
+If the command `proxi node endchain <delegation ID hex>` does not confirm the transaction in 30-40 sec, it means it was orphaned. 
 It can happen because there are significant chances of a race condition between sequencer and the deletion transaction, 
 so it looks like "the sequencer does not want to give my tokens back". 
 
 This, however, there's no risk of losing your tokens because:
-- normally, after repeating the command `proxi node delchain <delegation ID hex>` one or several time everything works out. 
+- normally, after repeating the command `proxi node endchain <delegation ID hex>` one or several time everything works out. 
 Probability of the race condition is ~50%, so the coin falling one side forever is impossible.
 - even if sequencer which is delegation target becomes malicious and ignores your transaction or is simply down, 
 it is easy to switch to alternative one  or even several of them. 

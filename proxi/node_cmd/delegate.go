@@ -18,9 +18,9 @@ var targetChainIDStr string
 
 func initDelegateCmd() *cobra.Command {
 	delegateCmd := &cobra.Command{
-		Use:     "delegate <amount> [-q <target sequencer ID hex encoded>] [-t <target ed25519 lock>] ",
+		Use:     "delegate <amount> -q <target sequencer ID hex encoded>",
 		Aliases: util.List("send"),
-		Short:   `delegates amount to target ED25519 address by creating delegation chain output`,
+		Short:   `delegates amount to target sequencer by creating delegation chain output`,
 		Args:    cobra.ExactArgs(1),
 		Run:     runDelegateCmd,
 	}
@@ -39,28 +39,16 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromNode()
 	walletData := glb.GetWalletData()
 
-	var delegationTarget ledger.Accountable
 	glb.Infof("wallet account is: %s", walletData.Account.String())
 
-	if targetChainIDStr != "" {
-		seqID, err := ledger.ChainIDFromHexString(targetChainIDStr)
-		glb.Assertf(err == nil, "failed parsing target chainID: %v", err)
+	glb.Assertf(targetChainIDStr != "", "target sequencer ID not specified")
 
-		seqOut, _, _, err := glb.GetClient().GetChainOutput(seqID)
-		glb.Assertf(err == nil, "can't get output for the target chainID %s: %v", seqID.StringShort(), err)
-		glb.Assertf(seqOut.ID.IsSequencerTransaction(), "chainID %s does not represent sequencer", seqID.StringShort())
+	targetSeqID, err := ledger.ChainIDFromHexString(targetChainIDStr)
+	glb.Assertf(err == nil, "failed parsing target chainID: %v", err)
 
-		lock := seqOut.Output.Lock()
-		glb.Assertf(lock.Name() == ledger.AddressED25519Name, "sequencer %s must have AddressEDED25519 as a controller")
-
-		delegationTarget = lock.(ledger.AddressED25519)
-
-		glb.Infof("delegation target will be controller %s of the sequencer %s", delegationTarget.String(), seqID.String())
-	} else {
-		delegationTarget = glb.MustGetTarget()
-		glb.Assertf(delegationTarget.Name() == ledger.AddressED25519Name, "delegation target must be ED25519 address")
-		glb.Infof("delegation target will be %s", delegationTarget.String())
-	}
+	seqOut, _, _, err := glb.GetClient().GetChainOutput(targetSeqID)
+	glb.Assertf(err == nil, "can't find sequencer ID %s: %v", targetSeqID.StringShort(), err)
+	glb.Assertf(seqOut.ID.IsSequencerTransaction(), "chainID %s does not represent a sequencer", targetSeqID.StringShort())
 
 	var tagAlongSeqID *ledger.ChainID
 	feeAmount := glb.GetTagAlongFee()
@@ -104,7 +92,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 
 	outDelegation := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(amount)
-		o.WithLock(ledger.NewDelegationLock(walletData.Account, delegationTarget, 2, ts, amount))
+		o.WithLock(ledger.NewDelegationLock(walletData.Account, targetSeqID.AsChainLock(), 2, ts, amount))
 		_, _ = o.PushConstraint(ledger.NewChainOrigin().Bytes())
 	})
 	delegationOutputIdx, _ := txb.ProduceOutput(outDelegation)
@@ -130,7 +118,8 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	txBytes, txid, failedTx, err := txb.BytesWithValidation()
 	glb.Assertf(err == nil, "transaction invalid: %v\n------------------\n%s", err, failedTx)
 
-	prompt := fmt.Sprintf("delegate amount %s to controller %s (plus tag-along fee %s)?", util.Th(amount), delegationTarget, util.Th(feeAmount))
+	prompt := fmt.Sprintf("delegate amount %s to sequencer %s (plus tag-along fee %s)?",
+		util.Th(amount), targetSeqID.String(), util.Th(feeAmount))
 
 	if !glb.YesNoPrompt(prompt, true) {
 		glb.Infof("exit")
