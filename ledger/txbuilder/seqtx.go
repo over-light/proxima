@@ -37,8 +37,7 @@ type MakeSequencerTransactionParams struct {
 	PrivateKey ed25519.PrivateKey
 	// InflateMainChain if true, calculates maximum inflation possible on main chain transition
 	// if false, does not add inflation constraint at all
-	InflateMainChain  bool
-	ReturnInputLoader bool
+	InflateMainChain bool
 }
 
 func MakeSequencerTransaction(par MakeSequencerTransactionParams) ([]byte, error) {
@@ -47,10 +46,6 @@ func MakeSequencerTransaction(par MakeSequencerTransactionParams) ([]byte, error
 }
 
 func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams) ([]byte, func(i byte) (*ledger.Output, error), error) {
-	var consumedOutputs []*ledger.Output
-	if par.ReturnInputLoader {
-		consumedOutputs = make([]*ledger.Output, 0)
-	}
 	errP := util.MakeErrFuncForPrefix("MakeSequencerTransaction")
 
 	if !par.Timestamp.IsSlotBoundary() && !ledger.L().ID.IsPostBranchConsolidationTimestamp(par.Timestamp) {
@@ -74,7 +69,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 
 	txb := New()
 
-	// calculate delegation outputs
+	// calculate delegation outputs. Offset = 1 because input are consumed starting from index 1
 	delegationTransition, delegationTotalIn, delegationTotalOut, delegationMargin, err :=
 		makeDelegationTransitions(par.DelegationOutputs, 1, par.Timestamp, par.DelegationInflationMarginPromille)
 	if err != nil {
@@ -87,7 +82,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		return nil, nil, errP("not a chain output: %s", par.ChainInput.ID.StringShort())
 	}
 
-	// count sums
+	// count sums of additional inputs and outputs
 	additionalIn, additionalOut := uint64(0), uint64(0)
 	for _, o := range par.AdditionalInputs {
 		additionalIn += o.Output.Amount()
@@ -122,7 +117,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	var mainChainInflationConstraint *ledger.InflationConstraint
 
 	if par.InflateMainChain {
-		// calculate mai chain inflation amount
+		// calculate main chain inflation amount
 		if par.Timestamp.IsSlotBoundary() {
 			// from VRF proof for branch
 			util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
@@ -153,9 +148,6 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	chainPredIdx, err := txb.ConsumeOutput(par.ChainInput.Output, par.ChainInput.ID)
 	if err != nil {
 		return nil, nil, errP(err)
-	}
-	if par.ReturnInputLoader {
-		consumedOutputs = append(consumedOutputs, par.ChainInput.Output)
 	}
 	txb.PutSignatureUnlock(chainPredIdx)
 
@@ -191,7 +183,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 			}
 			outData.Name = par.SeqName
 		}
-		// milestone data is on fixed index. For some reason
+		// milestone data is on fixed index. For some reason TODO
 		idxMsData, _ := o.PushConstraint(outData.AsConstraint().Bytes())
 		util.Assertf(idxMsData == ledger.MilestoneDataFixedIndex, "idxMsData == MilestoneDataFixedIndex")
 
@@ -214,9 +206,6 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		_, err = txb.ConsumeOutput(o.Output, o.ID)
 		util.AssertNoError(err)
 		txb.PutUnlockParams(byte(i+1), 2, ledger.NewChainLockUnlockParams(0, chainInConstraintIdx))
-		if par.ReturnInputLoader {
-			consumedOutputs = append(consumedOutputs, o.Output)
-		}
 
 		_, _ = txb.ProduceOutput(delegationTransition[i])
 	}
@@ -227,9 +216,6 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		_, err = txb.ConsumeOutput(par.StemInput.Output, par.StemInput.ID)
 		if err != nil {
 			return nil, nil, errP(err)
-		}
-		if par.ReturnInputLoader {
-			consumedOutputs = append(consumedOutputs, par.StemInput.Output)
 		}
 		util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
 
@@ -253,9 +239,6 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		idx, err := txb.ConsumeOutput(o.Output, o.ID)
 		if err != nil {
 			return nil, nil, errP(err)
-		}
-		if par.ReturnInputLoader {
-			consumedOutputs = append(consumedOutputs, o.Output)
 		}
 		switch lockName := o.Output.Lock().Name(); lockName {
 		case ledger.AddressED25519Name:
@@ -285,15 +268,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
 	txb.SignED25519(par.PrivateKey)
 
-	inputLoader := func(i byte) (*ledger.Output, error) {
-		panic("MakeSequencerTransactionWithInputLoader: par.ReturnInputLoader parameter must be set to true")
-	}
-	if par.ReturnInputLoader {
-		inputLoader = func(i byte) (*ledger.Output, error) {
-			return consumedOutputs[i], nil
-		}
-	}
-	return txb.TransactionData.Bytes(), inputLoader, nil
+	return txb.TransactionData.Bytes(), txb.LoadInput, nil
 }
 
 func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, targetTs ledger.Time, delegationMarginPromille int) ([]*ledger.Output, uint64, uint64, uint64, error) {

@@ -255,7 +255,6 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		Endorsements:      endorsements,
 		PrivateKey:        privateKey,
 		InflateMainChain:  true,
-		ReturnInputLoader: true,
 	})
 	if err != nil {
 		return nil, err
