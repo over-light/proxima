@@ -261,6 +261,7 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 	for i, vid := range a.endorse {
 		endorsements[i] = &vid.ID
 	}
+	// create sequencer transaction
 	txBytes, inputLoader, err := txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
 		SeqName:           seqName,
 		ChainInput:        chainIn.MustAsChainOutput(),
