@@ -32,7 +32,7 @@ func TestBase(t *testing.T) {
 		t.Logf("commnd output:\n%s", o.ToString("    "))
 
 		parser := NewCommandParser(addrController)
-		sendOutput, err := parser.ParseSequencerCommandToOutput(&ledger.OutputWithID{Output: o})
+		sendOutput, err := parser.ParseSequencerCommandToOutputs(&ledger.OutputWithID{Output: o})
 		require.NoError(t, err)
 		t.Logf("send output:\n%s", sendOutput[0].ToString("    "))
 	})

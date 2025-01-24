@@ -61,6 +61,17 @@ func (o *WrappedOutput) Output() (ret *ledger.Output) {
 	return
 }
 
+func (o *WrappedOutput) OutputWithID() *ledger.OutputWithID {
+	ret := ledger.OutputWithID{
+		ID:     *o.DecodeID(),
+		Output: o.Output(),
+	}
+	if ret.Output == nil {
+		return nil
+	}
+	return &ret
+}
+
 func (o *WrappedOutput) Lock() ledger.Lock {
 	if out := o.Output(); out != nil {
 		return out.Lock()

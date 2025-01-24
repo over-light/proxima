@@ -129,7 +129,7 @@ type (
 		// - nil, nil if a syntactically valid sequencer command is not detected  in the inputs
 		// - nil, err if a syntactically valid command can be detected, however it contains errors
 		// - list of outputs, nil if it is a success
-		ParseSequencerCommandToOutput(input *ledger.OutputWithID) ([]*ledger.Output, error)
+		ParseSequencerCommandToOutputs(input *ledger.OutputWithID) ([]*ledger.Output, error)
 	}
 )
 

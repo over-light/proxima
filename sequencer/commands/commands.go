@@ -26,7 +26,7 @@ func NewCommandParser(ownerAddress ledger.AddressED25519) CommandParser {
 	return CommandParser{ownerAddress}
 }
 
-func (p CommandParser) ParseSequencerCommandToOutput(input *ledger.OutputWithID) ([]*ledger.Output, error) {
+func (p CommandParser) ParseSequencerCommandToOutputs(input *ledger.OutputWithID) ([]*ledger.Output, error) {
 	cmdCode, cmdParamArr := parseSenderCommand(p.ownerAddress, input)
 	if cmdParamArr == nil {
 		// command has not been found in the output. Ignore
@@ -35,7 +35,7 @@ func (p CommandParser) ParseSequencerCommandToOutput(input *ledger.OutputWithID)
 
 	outputs, err := makeOutputFromCommandData(cmdCode, cmdParamArr)
 	if err != nil {
-		return nil, fmt.Errorf("ParseSequencerCommandToOutput: error while parsing sequencer command input %s: %w", input.ID.StringShort(), err)
+		return nil, fmt.Errorf("ParseSequencerCommandToOutputs: error while parsing sequencer command input %s: %w", input.ID.StringShort(), err)
 	}
 	return outputs, nil
 }
@@ -152,7 +152,7 @@ func MakeSequencerWithdrawCmdOutput(par MakeSequencerWithdrawCmdOutputParams) (*
 	// reverse checking
 	cmdParserDummy := NewCommandParser(par.ControllerAddr)
 	oWithIDDummy := &ledger.OutputWithID{Output: ret}
-	out, err := cmdParserDummy.ParseSequencerCommandToOutput(oWithIDDummy)
+	out, err := cmdParserDummy.ParseSequencerCommandToOutputs(oWithIDDummy)
 	util.AssertNoError(err)
 	util.Assertf(len(out) == 1, "len(out)==1")
 	util.Assertf(out[0].Amount() == par.Amount, "out[0].Amount()==par.Amount")

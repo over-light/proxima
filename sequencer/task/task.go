@@ -205,9 +205,8 @@ func (t *Task) startProposers() {
 
 const TraceTagInsertInputs = "InsertInputs"
 
-// InsertInputs includes tag-along or delegation outputs from the backlog into attacher
-func (t *Task) InsertInputs(a *attacher.IncrementalAttacher, lockName string, maxInputs int) (numInserted int) {
-	t.Assertf(lockName == ledger.ChainLockName || lockName == ledger.DelegationLockName, "lockName == ledger.ChainLockName || lockName == ledger.DelegationLockName")
+// InsertInputs includes filtered outputs from the backlog into attacher
+func (t *Task) insertInputs(a *attacher.IncrementalAttacher, maxInputs int, preSelectFilter func(wOut vertex.WrappedOutput) bool) (numInserted int) {
 	t.Tracef(TraceTagInsertInputs, "IN: %s", a.Name)
 
 	if ledger.L().ID.IsPreBranchConsolidationTimestamp(a.TargetTs()) {
@@ -217,14 +216,14 @@ func (t *Task) InsertInputs(a *attacher.IncrementalAttacher, lockName string, ma
 	}
 
 	preSelected := t.Backlog().FilterAndSortOutputs(func(wOut vertex.WrappedOutput) bool {
-		if wOut.LockName() != lockName {
-			return false
-		}
 		if !ledger.ValidSequencerPace(wOut.Timestamp(), a.TargetTs()) {
 			return false
 		}
 		// fast filtering out already consumed outputs in the predecessor milestone context
-		return !t.IsConsumedInThePastPath(wOut, a.Extending().VID)
+		if !!t.IsConsumedInThePastPath(wOut, a.Extending().VID) {
+			return false
+		}
+		return preSelectFilter(wOut)
 	})
 	t.Tracef(TraceTagInsertInputs, "%s. Pre-selected: %d", a.Name, len(preSelected))
 
@@ -245,4 +244,33 @@ func (t *Task) InsertInputs(a *attacher.IncrementalAttacher, lockName string, ma
 		}
 	}
 	return
+}
+
+func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
+	return t.insertInputs(a, maxInputs, func(wOut vertex.WrappedOutput) bool {
+		return wOut.LockName() == ledger.ChainLockName
+	})
+}
+
+func (t *Task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
+	return t.insertInputs(a, maxInputs, func(wOut vertex.WrappedOutput) bool {
+		if wOut.LockName() != ledger.DelegationLockName {
+			return false
+		}
+		o := wOut.OutputWithID()
+		if o == nil {
+			return false
+		}
+		delegationID, _, ok := o.ExtractChainID()
+		if !ok {
+			return false
+		}
+		if !ledger.IsOpenDelegationSlot(delegationID, a.TargetTs().Slot()) {
+			return false
+		}
+		if ledger.L().CalcChainInflationAmount(o.ID.Timestamp(), a.TargetTs(), o.Output.Amount()) == 0 {
+			return false
+		}
+		return true
+	})
 }

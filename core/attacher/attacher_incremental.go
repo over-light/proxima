@@ -207,37 +207,53 @@ func (a *IncrementalAttacher) InsertInput(wOut vertex.WrappedOutput) (bool, erro
 // Increments slotInflation by the amount inflated in the transaction
 func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKey ed25519.PrivateKey, cmdParser SequencerCommandParser) (*transaction.Transaction, error) {
 	util.Assertf(!a.IsClosed(), "!a.IsDisposed()")
-	otherInputs := make([]*ledger.OutputWithID, 0, len(a.inputs))
 
-	var chainIn ledger.OutputWithID
+	tagAlongInputs := make([]*ledger.OutputWithID, 0, len(a.inputs))
+	otherOutputs := make([]*ledger.Output, 0)
+	delegationInputs := make([]*ledger.OutputWithChainID, 0)
+
+	var chainIn *ledger.OutputWithID
 	var stemIn *ledger.OutputWithID
 	var err error
 
-	additionalOutputs := make([]*ledger.Output, 0)
+	// separate delegation and tag-along outputs
 	for i, wOut := range a.inputs {
-		switch {
-		case i == 0:
-			if chainIn, err = wOut.VID.OutputWithIDAt(a.inputs[0].Index); err != nil {
-				return nil, err
-			}
-		case i == 1 && a.targetTs.Tick() == 0:
-			var stemInTmp ledger.OutputWithID
-			if stemInTmp, err = a.stemOutput.VID.OutputWithIDAt(a.stemOutput.Index); err != nil {
-				return nil, err
-			}
-			stemIn = &stemInTmp
-		default:
-			o, err := wOut.VID.OutputWithIDAt(wOut.Index)
-			if err != nil {
-				return nil, err
-			}
-			otherInputs = append(otherInputs, &o)
-			outputs, err := cmdParser.ParseSequencerCommandToOutput(&o)
+		if i == 0 {
+			// main chain input expected at index 0
+			chainIn = wOut.OutputWithID()
+			util.Assertf(chainIn != nil, "chainIn!=nil")
+			continue
+		}
+
+		o := wOut.OutputWithID()
+		util.Assertf(o != nil, "o!=nil")
+
+		switch o.Output.Lock().Name() {
+		case ledger.DelegationLockName:
+			delegationID, predIdx, ok := o.ExtractChainID()
+			util.Assertf(ok, "must be delegation output")
+
+			delegationInputs = append(delegationInputs, &ledger.OutputWithChainID{
+				OutputWithID:               *o,
+				ChainID:                    delegationID,
+				PredecessorConstraintIndex: predIdx,
+			})
+		case ledger.ChainLockName:
+			tagAlongInputs = append(tagAlongInputs, o)
+			// parse sequencer command if any
+			outputs, err := cmdParser.ParseSequencerCommandToOutputs(o)
 			if err != nil {
 				a.Tracef(TraceTagIncrementalAttacher, "error while parsing input: %v", err)
 			} else {
-				additionalOutputs = append(additionalOutputs, outputs...)
+				otherOutputs = append(otherOutputs, outputs...)
 			}
+		case ledger.StemLockName:
+			a.Assertf(a.targetTs.IsSlotBoundary(), "a.targetTs.IsSlotBoundary()")
+			stemIn = a.stemOutput.OutputWithID()
+			a.Assertf(stemIn != nil && stemIn.ID == o.ID, "stemIn != nil && stemIn.ID == o.ID")
+			// skip
+		default:
+			a.Assertf(false, "unexpected output type %s", o.Output.Lock().Name())
 		}
 	}
 
@@ -250,8 +266,9 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		ChainInput:        chainIn.MustAsChainOutput(),
 		StemInput:         stemIn,
 		Timestamp:         a.targetTs,
-		AdditionalInputs:  otherInputs,
-		AdditionalOutputs: additionalOutputs,
+		DelegationOutputs: delegationInputs,
+		AdditionalInputs:  tagAlongInputs,
+		AdditionalOutputs: otherOutputs,
 		Endorsements:      endorsements,
 		PrivateKey:        privateKey,
 		InflateMainChain:  true,
