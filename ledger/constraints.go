@@ -192,9 +192,8 @@ func AccountableFromSource(src string) (Accountable, error) {
 }
 
 func BelongsToAccount(lock Lock, acc Accountable) bool {
-	accBytes := acc.Bytes()
 	for _, a := range lock.Accounts() {
-		if bytes.Equal(accBytes, a.Bytes()) {
+		if EqualAccountables(acc, a) {
 			return true
 		}
 	}

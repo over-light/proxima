@@ -298,14 +298,16 @@ func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, ta
 				return
 			}
 
-			delegationInflation := ledger.L().CalcChainInflationAmount(in.ID.Timestamp(), targetTs, o.Amount())
+			inChainAmount := in.Output.Amount()
+			delegationInflation := ledger.L().CalcChainInflationAmount(in.ID.Timestamp(), targetTs, inChainAmount)
+
 			inflationTotal += delegationInflation
 			delegationMargin := uint64(delegationMarginPromille) / 1000
-			retTotalIn += o.Amount()
+			retTotalIn += inChainAmount
 			retMargin += delegationMargin
-			retTotalOut += o.Amount() + delegationInflation - delegationMargin
+			retTotalOut += inChainAmount + delegationInflation - delegationMargin
 
-			o.WithAmount(in.Output.Amount() + delegationInflation - delegationMargin)
+			o.WithAmount(inChainAmount + delegationInflation - delegationMargin)
 			o.WithLock(in.Output.Lock())
 			ccSucc := ledger.NewChainConstraint(chainID, byte(i)+offs, ccIdx, 0)
 			_, _ = o.PushConstraint(ccSucc.Bytes())

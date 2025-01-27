@@ -60,7 +60,7 @@ func New(env Environment) (*InputBacklog, error) {
 
 	// start listening to chain-locked account. Tag-along and delegation outputs
 	env.ListenToAccount(seqID.AsChainLock(), func(wOut vertex.WrappedOutput) {
-		env.Tracef(TraceTag, "[%s] output IN: %s", ret.SequencerName, wOut.IDShortString)
+		env.Tracef(TraceTag, "[%s] output IN: %s, lockName: %s", ret.SequencerName, wOut.IDShortString, wOut.LockName())
 
 		ret.mutex.Lock()
 		defer ret.mutex.Unlock()
@@ -79,7 +79,8 @@ func New(env Environment) (*InputBacklog, error) {
 		ret.outputs[wOut] = nowis
 		ret.lastOutputArrived = nowis
 		ret.outputCount++
-		env.Tracef(TraceTag, "output stored in input backlog: %s (total: %d)", wOut.IDShortString, len(ret.outputs))
+		env.Tracef(TraceTag, "output included into input backlog (lock: %s): %s (total: %d)",
+			wOut.LockName(), wOut.IDShortString, len(ret.outputs))
 	})
 
 	// start periodic cleanup in background
@@ -121,12 +122,12 @@ func (b *InputBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) boo
 	if o == nil {
 		return true
 	}
-	if _, idx := o.ChainConstraint(); idx != 0xff {
-		// filter out all chain constrained outputs
+	lock := wOut.Lock()
+	if _, idx := o.ChainConstraint(); idx != 0xff && lock.Name() != ledger.DelegationLockName {
+		// filter out all chain constrained outputs which are not on delegated chains
 		wOut.VID.UnReference()
 		return false
 	}
-	lock := wOut.Lock()
 	if lock.Name() != ledger.ChainLockName && lock.Name() != ledger.DelegationLockName {
 		// filter out all which cannot be consumed by the sequencer
 		wOut.VID.UnReference()
