@@ -83,9 +83,8 @@ func New(env Environment) (*InputBacklog, error) {
 	})
 
 	// start periodic cleanup in background
-	ttlTagAlongBacklog, ttlDelegationBacklog := env.BacklogTTLSlots()
 	env.RepeatInBackground(env.SequencerName()+"_backlogCleanup", time.Second, func() bool {
-		if n := ret.purgeBacklog(time.Duration(ttlTagAlongBacklog)*ledger.L().ID.SlotDuration(), time.Duration(ttlDelegationBacklog)*ledger.L().ID.SlotDuration()); n > 0 {
+		if n := ret.purgeBacklog(); n > 0 {
 			ret.Log().Infof("deleted %d outputs from the backlog", n)
 		}
 		return true
@@ -213,9 +212,10 @@ func (b *InputBacklog) numOutputs() int {
 	return len(b.outputs)
 }
 
-func (b *InputBacklog) purgeBacklog(ttlTagAlong, ttlDelegation time.Duration) int {
-	horizonTagAlong := time.Now().Add(-ttlTagAlong)
-	horizonDelegation := time.Now().Add(-ttlDelegation)
+func (b *InputBacklog) purgeBacklog() int {
+	ttlTagAlongSlots, ttlDelegationSlots := b.BacklogTTLSlots()
+	horizonTagAlong := time.Now().Add(-time.Duration(ttlTagAlongSlots) * ledger.L().ID.SlotDuration())
+	horizonDelegation := time.Now().Add(-time.Duration(ttlDelegationSlots) * ledger.L().ID.SlotDuration())
 
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
