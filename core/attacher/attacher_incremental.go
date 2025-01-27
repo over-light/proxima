@@ -283,8 +283,13 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 			err = fmt.Errorf("%w:\n%s", err, tx.ToStringWithInputLoaderByIndex(inputLoader))
 		}
 		a.Log().Fatalf("IncrementalAttacher.MakeSequencerTransaction: %v", err) // should produce correct transaction
-		//return nil, err
+		return nil, err
 	}
+	if err = tx.Validate(transaction.ValidateOptionWithFullContext(inputLoader)); err != nil {
+		err = fmt.Errorf("%w:\n%s", err, tx.ToStringWithInputLoaderByIndex(inputLoader))
+		a.Log().Fatalf("IncrementalAttacher.MakeSequencerTransaction: %v", err) // should produce correct transaction
+	}
+
 	a.slotInflation = a.pastCone.CalculateSlotInflation()
 	// in the incremental attacher we must add inflation on the branch
 	a.slotInflation += tx.InflationAmount()

@@ -75,14 +75,14 @@ func delegationLock: and(
            // only sizes are enforced, otherwise $3 and $4 are auxiliary, for information
 	require(and(equal(len($3),u64/5), equal(len($4),u64/8)), !!!args_$3_and_$4_must_be_5_and_8_bytes_length), 
     require(not(isBranchTransaction), !!!delegation_should_not_be_branch),
-    require(greaterOrEqualThan(selfAmountValue, minimumDelegatedAmount), !!!delegation_amount_is_below_minimum),
-	require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
-    require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
+    // require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
     or(
 		and(
              // check general consistency of the lock on the produced output
             selfIsProducedOutput,
-            evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0),
+            parseArgumentBytecode(selfSiblingConstraint($0), #chain, 0),
+            require(greaterOrEqualThan(selfAmountValue, minimumDelegatedAmount), !!!delegation_amount_is_below_minimum),
+	        require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
             $1, $2
         ), 
         and(

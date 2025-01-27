@@ -75,10 +75,11 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	if err != nil {
 		return nil, nil, errP(fmt.Errorf("error while creating delegation transition: %w", err))
 	}
-	fmt.Printf(">>>>>>>>>> delegationTotalIn, delegationTotalOut, delegationMargin == %s, %s, %s\n",
-		util.Th(delegationTotalIn), util.Th(delegationTotalOut), util.Th(delegationMargin),
-	)
+	//fmt.Printf(">>>>>>>>>> delegationTotalIn, delegationTotalOut, delegationMargin == %s, %s, %s\n",
+	//	util.Th(delegationTotalIn), util.Th(delegationTotalOut), util.Th(delegationMargin),
+	//)
 	util.Assertf(delegationTotalIn <= delegationTotalOut+delegationMargin, "delegationTotalIn<=delegationTotalOut+delegationMargin")
+	delegationInflation := delegationTotalOut - delegationTotalIn + delegationMargin
 
 	// find main chain constraint
 	chainInConstraint, chainInConstraintIdx := par.ChainInput.Output.ChainConstraint()
@@ -150,9 +151,9 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	// total produced amount on transaction
 	rightSideAmount := chainOutAmount + withdrawOut + delegationTotalOut
 	// enforce consistency
-	util.Assertf(leftSideAmount+mainChainInflationAmount+delegationMargin == rightSideAmount,
-		"leftSideAmount(%s)+mainChainInflationAmount(%s)+delegationMargin(%s) == rightSideAmount(%s), diff: %d",
-		util.Th(leftSideAmount), util.Th(mainChainInflationAmount), util.Th(delegationMargin), util.Th(rightSideAmount),
+	util.Assertf(leftSideAmount+mainChainInflationAmount+delegationInflation+delegationMargin == rightSideAmount,
+		"leftSideAmount(%s)+mainChainInflationAmount(%s)+delegationInflation(%s)+delegationMargin(%s) == rightSideAmount(%s), diff: %d",
+		util.Th(leftSideAmount), util.Th(mainChainInflationAmount), util.Th(delegationMargin), util.Th(delegationInflation), util.Th(rightSideAmount),
 		int(leftSideAmount+mainChainInflationAmount+delegationMargin)-int(rightSideAmount),
 	)
 
@@ -217,9 +218,12 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	for i, o := range par.DelegationOutputs {
 		_, err = txb.ConsumeOutput(o.Output, o.ID)
 		util.AssertNoError(err)
-		txb.PutUnlockParams(byte(i+1), 2, ledger.NewChainLockUnlockParams(0, chainInConstraintIdx))
+		txb.PutUnlockParams(byte(i+1), ledger.ConstraintIndexLock, ledger.NewChainLockUnlockParams(0, chainInConstraintIdx))
 
-		_, _ = txb.ProduceOutput(delegationTransitions[i])
+		succIdx, err := txb.ProduceOutput(delegationTransitions[i])
+		util.AssertNoError(err)
+		_, ccIdx := delegationTransitions[i].ChainConstraint()
+		txb.PutUnlockParams(byte(i+1), ccIdx, ledger.NewChainUnlockParams(succIdx, ccIdx, 0))
 	}
 
 	// make stem input/output if it is a branch transaction
