@@ -26,7 +26,7 @@ type MakeSequencerTransactionParams struct {
 	// can contain sender commands to the sequencer
 	AdditionalInputs []*ledger.OutputWithID
 	// additional outputs to produce
-	AdditionalOutputs []*ledger.Output
+	WithdrawOutputs []*ledger.Output
 	// delegation outputs to transit
 	DelegationOutputs []*ledger.OutputWithChainID
 	// delegation inflation margin
@@ -51,13 +51,13 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	if !par.Timestamp.IsSlotBoundary() && !ledger.L().ID.IsPostBranchConsolidationTimestamp(par.Timestamp) {
 		return nil, nil, errP("timestamp violates post-branch timestamp constraint: %s", par.Timestamp.String())
 	}
-	nIn := len(par.AdditionalInputs) + 1
+	nIn := len(par.AdditionalInputs) + len(par.DelegationOutputs) + 1
 	if par.StemInput != nil {
 		nIn++
 	}
 	switch {
 	case nIn > 256:
-		return nil, nil, errP("too many inputs")
+		return nil, nil, errP("too many inputs. Max 256")
 	case par.StemInput != nil && par.Timestamp.Tick() != 0:
 		return nil, nil, errP("wrong timestamp for branch transaction: %s", par.Timestamp.String())
 	case par.Timestamp.Slot() > par.ChainInput.ID.Slot() && par.Timestamp.Tick() != 0 && len(par.Endorsements) == 0:
@@ -70,32 +70,29 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	txb := New()
 
 	// calculate delegation outputs. Offset = 1 because input are consumed starting from index 1
-	delegationTransition, delegationTotalIn, delegationTotalOut, delegationMargin, err :=
+	delegationTransitions, delegationTotalIn, delegationTotalOut, delegationMargin, err :=
 		makeDelegationTransitions(par.DelegationOutputs, 1, par.Timestamp, par.DelegationInflationMarginPromille)
 	if err != nil {
-		return nil, nil, errP(err, "while creating delegation transition")
+		return nil, nil, errP(fmt.Errorf("error while creating delegation transition: %w", err))
 	}
+	fmt.Printf(">>>>>>>>>> delegationTotalIn, delegationTotalOut, delegationMargin == %s, %s, %s\n",
+		util.Th(delegationTotalIn), util.Th(delegationTotalOut), util.Th(delegationMargin),
+	)
+	util.Assertf(delegationTotalIn <= delegationTotalOut+delegationMargin, "delegationTotalIn<=delegationTotalOut+delegationMargin")
 
 	// find main chain constraint
 	chainInConstraint, chainInConstraintIdx := par.ChainInput.Output.ChainConstraint()
 	if chainInConstraintIdx == 0xff {
-		return nil, nil, errP("not a chain output: %s", par.ChainInput.ID.StringShort())
+		return nil, nil, errP("is not a chain output: %s", par.ChainInput.ID.StringShort())
 	}
 
 	// count sums of additional inputs and outputs
-	additionalIn, additionalOut := uint64(0), uint64(0)
+	additionalIn, withdrawOut := uint64(0), uint64(0)
 	for _, o := range par.AdditionalInputs {
 		additionalIn += o.Output.Amount()
 	}
-	for _, o := range par.AdditionalOutputs {
-		additionalOut += o.Amount()
-	}
-	chainInAmount := par.ChainInput.Output.Amount()
-
-	// check totals
-	totalInAmount := chainInAmount + additionalIn + delegationTotalIn
-	if totalInAmount < additionalOut {
-		return nil, nil, errP("not enough tokens in the input")
+	for _, o := range par.WithdrawOutputs {
+		withdrawOut += o.Amount()
 	}
 
 	var vrfProof []byte
@@ -131,18 +128,33 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		}
 	}
 
+	// total input amount on chain
+	chainInAmount := par.ChainInput.Output.Amount()
+
+	// check if withdrawals are possible
+	if chainInAmount+additionalIn+mainChainInflationAmount+delegationMargin < withdrawOut {
+		return nil, nil, errP("not enough tokens on chain for withdrawal of %s", util.Th(withdrawOut))
+	}
+
+	// total input amount
+	leftSideAmount := chainInAmount + additionalIn + delegationTotalIn
+
 	// amount on produced chain output
-	chainOutAmount := totalInAmount + mainChainInflationAmount + delegationMargin - additionalOut // >= 0
+	chainOutAmount := chainInAmount + additionalIn + mainChainInflationAmount + delegationMargin - withdrawOut // >= 0
 	if chainOutAmount < ledger.L().Const().MinimumAmountOnSequencer() {
-		return nil, nil, errP("amount on the chain output is below minimum required for the sequencer: %s",
+		return nil, nil, errP("amount %s on the produced chain output is below minimum %s required for the sequencer",
+			util.Th(chainOutAmount),
 			util.Th(ledger.L().Const().MinimumAmountOnSequencer()))
 	}
 
 	// total produced amount on transaction
-	totalOutAmount := chainOutAmount + additionalOut + delegationTotalOut
+	rightSideAmount := chainOutAmount + withdrawOut + delegationTotalOut
 	// enforce consistency
-	util.Assertf(totalInAmount+delegationTotalIn+mainChainInflationAmount+delegationMargin+delegationTotalOut == totalOutAmount,
-		"totalInAmount+delegationTotalIn+mainChainInflationAmount+delegationMargin+delegationTotalOut == totalOutAmount")
+	util.Assertf(leftSideAmount+mainChainInflationAmount+delegationMargin == rightSideAmount,
+		"leftSideAmount(%s)+mainChainInflationAmount(%s)+delegationMargin(%s) == rightSideAmount(%s), diff: %d",
+		util.Th(leftSideAmount), util.Th(mainChainInflationAmount), util.Th(delegationMargin), util.Th(rightSideAmount),
+		int(leftSideAmount+mainChainInflationAmount+delegationMargin)-int(rightSideAmount),
+	)
 
 	// make main chain input/output
 	chainPredIdx, err := txb.ConsumeOutput(par.ChainInput.Output, par.ChainInput.ID)
@@ -165,7 +177,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		chainOutConstraint := ledger.NewChainConstraint(seqID, chainPredIdx, chainInConstraintIdx, 0)
 		chainOutConstraintIdx, _ = o.PushConstraint(chainOutConstraint.Bytes())
 		// put sequencer constraint
-		sequencerConstraint := ledger.NewSequencerConstraint(chainOutConstraintIdx, totalOutAmount)
+		sequencerConstraint := ledger.NewSequencerConstraint(chainOutConstraintIdx, rightSideAmount)
 		_, _ = o.PushConstraint(sequencerConstraint.Bytes())
 
 		outData := ledger.ParseMilestoneData(par.ChainInput.Output)
@@ -201,13 +213,13 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	txb.PutUnlockParams(chainPredIdx, chainInConstraintIdx, ledger.NewChainUnlockParams(chainOutIndex, chainOutConstraintIdx, 0))
 
 	// transit delegation outputs
-	util.Assertf(len(par.DelegationOutputs) == len(delegationTransition), "len(par.DelegationOutputs)==len(delegationTransition)")
+	util.Assertf(len(par.DelegationOutputs) == len(delegationTransitions), "len(par.DelegationOutputs)==len(delegationTransitions)")
 	for i, o := range par.DelegationOutputs {
 		_, err = txb.ConsumeOutput(o.Output, o.ID)
 		util.AssertNoError(err)
 		txb.PutUnlockParams(byte(i+1), 2, ledger.NewChainLockUnlockParams(0, chainInConstraintIdx))
 
-		_, _ = txb.ProduceOutput(delegationTransition[i])
+		_, _ = txb.ProduceOutput(delegationTransitions[i])
 	}
 
 	// make stem input/output if it is a branch transaction
@@ -257,7 +269,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		return nil, nil, errP("timestamp %s is inconsistent with latest input timestamp %s", par.Timestamp.String(), tsIn.String())
 	}
 
-	_, err = txb.ProduceOutputs(par.AdditionalOutputs...)
+	_, err = txb.ProduceOutputs(par.WithdrawOutputs...)
 	if err != nil {
 		return nil, nil, errP(err)
 	}
@@ -271,44 +283,50 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	return txb.TransactionData.Bytes(), txb.LoadInput, nil
 }
 
-func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, targetTs ledger.Time, delegationMarginPromille int) ([]*ledger.Output, uint64, uint64, uint64, error) {
+func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, targetTs ledger.Time, delegationMarginPromille int) (
+	ret []*ledger.Output,
+	retTotalIn uint64,
+	retTotalOut uint64,
+	retMargin uint64,
+	err error,
+) {
 	if len(inputs) == 0 {
-		return nil, 0, 0, 0, nil
+		return
 	}
-	ret := make([]*ledger.Output, len(inputs))
-	retMargin := uint64(0)
-	retTotalOut := uint64(0)
-	retTotalIn := uint64(0)
+	ret = make([]*ledger.Output, len(inputs))
 	inflationTotal := uint64(0)
 
-	var err error
-
 	for i, in := range inputs {
+		cc, ccIdx := in.Output.ChainConstraint()
+		if ccIdx == 0xff {
+			err = fmt.Errorf("delegation output must be chain output")
+			return
+		}
+		chainID := cc.ID
+		if cc.IsOrigin() {
+			chainID = ledger.MakeOriginChainID(&in.ID)
+		}
+		if !ledger.IsOpenDelegationSlot(chainID, targetTs.Slot()) {
+			// only considering delegated outputs which can be consumed in the target slot
+			err = fmt.Errorf("delegation is not open for %s: chainID: %s, oid: %s",
+				targetTs.String(), chainID.StringShort(), in.ID.StringShort())
+			return
+		}
+
+		inChainAmount := in.Output.Amount()
+		delegationInflation := ledger.L().CalcChainInflationAmount(in.ID.Timestamp(), targetTs, inChainAmount)
+
+		inflationTotal += delegationInflation
+		delegationMargin := uint64(delegationMarginPromille) * delegationInflation / 1000
+
+		retTotalIn += inChainAmount
+		retMargin += delegationMargin
+		outChainAmount := inChainAmount + delegationInflation - delegationMargin
+		retTotalOut += outChainAmount
+
 		ret[i] = ledger.NewOutput(func(o *ledger.Output) {
-			cc, ccIdx := in.Output.ChainConstraint()
-			util.Assertf(ccIdx != 0xff, "ccIdx != 0xff")
-			chainID := cc.ID
-			if cc.IsOrigin() {
-				chainID = ledger.MakeOriginChainID(&in.ID)
-			}
-			if !ledger.IsOpenDelegationSlot(chainID, targetTs.Slot()) {
-				// only considering delegated outputs which can be consumed in the target slot
-				err = fmt.Errorf("delegation is not open for %s: chainID: %s, oid: %s",
-					targetTs.String(), chainID.StringShort(), in.ID.StringShort())
-				return
-			}
-
-			inChainAmount := in.Output.Amount()
-			delegationInflation := ledger.L().CalcChainInflationAmount(in.ID.Timestamp(), targetTs, inChainAmount)
-
-			inflationTotal += delegationInflation
-			delegationMargin := uint64(delegationMarginPromille) / 1000
-			retTotalIn += inChainAmount
-			retMargin += delegationMargin
-			retTotalOut += inChainAmount + delegationInflation - delegationMargin
-
-			o.WithAmount(inChainAmount + delegationInflation - delegationMargin)
-			o.WithLock(in.Output.Lock())
+			o.WithAmount(outChainAmount).
+				WithLock(in.Output.Lock())
 			ccSucc := ledger.NewChainConstraint(chainID, byte(i)+offs, ccIdx, 0)
 			_, _ = o.PushConstraint(ccSucc.Bytes())
 
@@ -323,11 +341,11 @@ func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, ta
 			}
 		})
 		if err != nil {
-			return nil, 0, 0, 0, err
+			return
 		}
 	}
 	util.Assertf(retTotalOut == retTotalIn+inflationTotal, "retTotalOut == retTotalIn+inflationTotal")
-	util.Assertf(inflationTotal+retTotalIn == retMargin+retTotalOut, "inflationTotal+retTotalIn == retMargin+retTotalOut")
+	util.Assertf(retTotalIn+inflationTotal == retMargin+retTotalOut, "retTotalIn+inflationTotal == retMargin+retTotalOut")
 
 	return ret, retTotalIn, retTotalOut, retMargin, nil
 }

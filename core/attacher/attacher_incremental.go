@@ -269,7 +269,7 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		Timestamp:         a.targetTs,
 		DelegationOutputs: delegationInputs,
 		AdditionalInputs:  tagAlongInputs,
-		AdditionalOutputs: otherOutputs,
+		WithdrawOutputs:   otherOutputs,
 		Endorsements:      endorsements,
 		PrivateKey:        privateKey,
 		InflateMainChain:  true,
