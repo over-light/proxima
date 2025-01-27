@@ -14,40 +14,43 @@ import (
 
 type (
 	ConfigOptions struct {
-		SequencerName           string
-		Pace                    int // pace in ticks
-		MaxTagAlongInputs       int
-		MaxInputs               int
-		MaxTargetTs             ledger.Time
-		MaxBranches             int
-		DelayStart              time.Duration
-		BacklogTTLSlots         int
-		MilestonesTTLSlots      int
-		SingleSequencerEnforced bool
-		ForceRunInflator        bool
+		SequencerName             string
+		Pace                      int // pace in ticks
+		MaxTagAlongInputs         int
+		MaxInputs                 int
+		MaxTargetTs               ledger.Time
+		MaxBranches               int
+		DelayStart                time.Duration
+		BacklogTagAlongTTLSlots   int
+		BacklogDelegationTTLSlots int
+		MilestonesTTLSlots        int
+		SingleSequencerEnforced   bool
+		ForceRunInflator          bool
 	}
 
 	ConfigOption func(options *ConfigOptions)
 )
 
 const (
-	defaultMaxInputs          = 100
-	defaultMaxTagAlongInputs  = 50
-	minimumBacklogTTLSlots    = 10
-	minimumMilestonesTTLSlots = 24 // 10
+	defaultMaxInputs                 = 100
+	defaultMaxTagAlongInputs         = 50
+	minimumBacklogTagAlongTTLSlots   = 10
+	minimumBacklogDelegationTTLSlots = 10
+	minimumMilestonesTTLSlots        = 24 // 10
 )
 
 func defaultConfigOptions() *ConfigOptions {
 	return &ConfigOptions{
-		SequencerName:      "seq",
-		Pace:               ledger.TransactionPaceSequencer(),
-		MaxTagAlongInputs:  defaultMaxTagAlongInputs,
-		MaxInputs:          defaultMaxInputs,
-		MaxTargetTs:        ledger.NilLedgerTime,
-		MaxBranches:        math.MaxInt,
-		DelayStart:         ledger.SlotDuration(),
-		BacklogTTLSlots:    minimumBacklogTTLSlots,
-		MilestonesTTLSlots: minimumMilestonesTTLSlots,
+		SequencerName:             "seq",
+		Pace:                      ledger.TransactionPaceSequencer(),
+		MaxTagAlongInputs:         defaultMaxTagAlongInputs,
+		MaxInputs:                 defaultMaxInputs,
+		MaxTargetTs:               ledger.NilLedgerTime,
+		MaxBranches:               math.MaxInt,
+		DelayStart:                ledger.SlotDuration(),
+		BacklogTagAlongTTLSlots:   minimumBacklogTagAlongTTLSlots,
+		BacklogDelegationTTLSlots: minimumBacklogDelegationTTLSlots,
+		MilestonesTTLSlots:        minimumMilestonesTTLSlots,
 	}
 }
 
@@ -81,9 +84,14 @@ func paramsFromConfig() ([]ConfigOption, ledger.ChainID, ed25519.PrivateKey, err
 	if err != nil {
 		return nil, ledger.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse private key: %v", err)
 	}
-	backlogTTLSlots := subViper.GetInt("backlog_ttl_slots")
-	if backlogTTLSlots < minimumBacklogTTLSlots {
-		backlogTTLSlots = minimumBacklogTTLSlots
+
+	backlogTagAlongTTLSlots := subViper.GetInt("backlog_tag_along_ttl_slots")
+	if backlogTagAlongTTLSlots < minimumBacklogTagAlongTTLSlots {
+		backlogTagAlongTTLSlots = minimumBacklogTagAlongTTLSlots
+	}
+	backlogDelegationTTLSlots := subViper.GetInt("backlog_delegation_ttl_slots")
+	if backlogDelegationTTLSlots < minimumBacklogDelegationTTLSlots {
+		backlogDelegationTTLSlots = minimumBacklogDelegationTTLSlots
 	}
 	milestonesTTLSlots := subViper.GetInt("milestones_ttl_slots")
 	if milestonesTTLSlots < minimumMilestonesTTLSlots {
@@ -95,7 +103,8 @@ func paramsFromConfig() ([]ConfigOption, ledger.ChainID, ed25519.PrivateKey, err
 		WithPace(subViper.GetInt("pace")),
 		WithMaxInputs(subViper.GetInt("max_inputs"), subViper.GetInt("max_tag_along_inputs")),
 		WithMaxBranches(subViper.GetInt("max_branches")),
-		WithBacklogTTLSlots(backlogTTLSlots),
+		WithBacklogTagAlongTTLSlots(backlogTagAlongTTLSlots),
+		WithBacklogDelegationTTLSlots(backlogDelegationTTLSlots),
 		WithMilestonesTTLSlots(milestonesTTLSlots),
 		WithSingleSequencerEnforced,
 	}
@@ -142,9 +151,15 @@ func WithMaxBranches(maxBranches int) ConfigOption {
 	}
 }
 
-func WithBacklogTTLSlots(slots int) ConfigOption {
+func WithBacklogTagAlongTTLSlots(slots int) ConfigOption {
 	return func(o *ConfigOptions) {
-		o.BacklogTTLSlots = slots
+		o.BacklogTagAlongTTLSlots = slots
+	}
+}
+
+func WithBacklogDelegationTTLSlots(slots int) ConfigOption {
+	return func(o *ConfigOptions) {
+		o.BacklogDelegationTTLSlots = slots
 	}
 }
 
@@ -174,6 +189,7 @@ func (cfg *ConfigOptions) lines(seqID ledger.ChainID, controller ledger.AddressE
 		Add("MaxTargetTs: %s", cfg.MaxTargetTs.String()).
 		Add("MaxSlots: %d", cfg.MaxBranches).
 		Add("DelayStart: %v", cfg.DelayStart).
-		Add("BacklogTTLSlots: %d", cfg.BacklogTTLSlots).
+		Add("BacklogTagAlongTTLSlots: %d", cfg.BacklogTagAlongTTLSlots).
+		Add("BacklogDelegationTTLSlots: %d", cfg.BacklogDelegationTTLSlots).
 		Add("MilestoneTTLSlots: %d", cfg.MilestonesTTLSlots)
 }

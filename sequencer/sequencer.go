@@ -553,8 +553,8 @@ func (seq *Sequencer) MaxInputs() (int, int) {
 	return seq.config.MaxInputs, seq.config.MaxTagAlongInputs
 }
 
-func (seq *Sequencer) BacklogTTLSlots() int {
-	return seq.config.BacklogTTLSlots
+func (seq *Sequencer) BacklogTTLSlots() (int, int) {
+	return seq.config.BacklogTagAlongTTLSlots, seq.config.BacklogDelegationTTLSlots
 }
 
 func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {

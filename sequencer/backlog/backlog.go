@@ -26,7 +26,7 @@ type (
 		LatestMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
 		LatestMilestonesShuffled(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
 		NumSequencerTips() int
-		BacklogTTLSlots() int
+		BacklogTTLSlots() (int, int)
 		MustEnsureBranch(txid ledger.TransactionID) *vertex.WrappedTx
 		EvidenceBacklogSize(size int)
 	}
@@ -83,9 +83,9 @@ func New(env Environment) (*InputBacklog, error) {
 	})
 
 	// start periodic cleanup in background
-	ttlInBacklog := time.Duration(env.BacklogTTLSlots()) * ledger.L().ID.SlotDuration()
+	ttlTagAlongBacklog, ttlDelegationBacklog := env.BacklogTTLSlots()
 	env.RepeatInBackground(env.SequencerName()+"_backlogCleanup", time.Second, func() bool {
-		if n := ret.purgeBacklog(ttlInBacklog); n > 0 {
+		if n := ret.purgeBacklog(time.Duration(ttlTagAlongBacklog)*ledger.L().ID.SlotDuration(), time.Duration(ttlDelegationBacklog)*ledger.L().ID.SlotDuration()); n > 0 {
 			ret.Log().Infof("deleted %d outputs from the backlog", n)
 		}
 		return true
@@ -213,15 +213,23 @@ func (b *InputBacklog) numOutputs() int {
 	return len(b.outputs)
 }
 
-func (b *InputBacklog) purgeBacklog(ttl time.Duration) int {
-	horizon := time.Now().Add(-ttl)
+func (b *InputBacklog) purgeBacklog(ttlTagAlong, ttlDelegation time.Duration) int {
+	horizonTagAlong := time.Now().Add(-ttlTagAlong)
+	horizonDelegation := time.Now().Add(-ttlDelegation)
 
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
 	count := 0
-	for wOut, since := range b.outputs {
-		if since.Before(horizon) {
+	for wOut, whenAdded := range b.outputs {
+		del := true
+		switch wOut.LockName() {
+		case ledger.ChainLockName:
+			del = whenAdded.Before(horizonTagAlong)
+		case ledger.DelegationLockName:
+			del = whenAdded.Before(horizonDelegation)
+		}
+		if del {
 			wOut.VID.UnReference()
 			delete(b.outputs, wOut)
 			count++
