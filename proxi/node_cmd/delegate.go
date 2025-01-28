@@ -107,15 +107,12 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	totalAmountConsumed := txb.ConsumedAmount()
 	totalAmountProduced, _ := txb.ProducedAmount()
 
-	fmt.Printf(">>>>>>>>>> cons %d, prod %d\n", totalAmountConsumed, totalAmountProduced)
-
 	if totalAmountConsumed > totalAmountProduced {
 		remainderOut := ledger.NewOutput(func(o *ledger.Output) {
 			o.WithAmount(totalAmountConsumed - totalAmountProduced)
 			o.WithLock(walletData.Account)
 		})
 		_, _ = txb.ProduceOutput(remainderOut)
-		fmt.Printf(">>>>>>>>> remainder out\n%s\n", remainderOut.Lines("         ").String())
 	}
 
 	totalAmountProduced, _ = txb.ProducedAmount()

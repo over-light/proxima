@@ -9,27 +9,18 @@ import (
 )
 
 type EndChainParams struct {
-	ChainIn                       *ledger.OutputWithChainID
-	PrivateKey                    ed25519.PrivateKey
-	TagAlongSeqID                 ledger.ChainID
-	TagAlongFee                   uint64 // 0 means no fee output will be produced
-	EnforceNoDelegationTransition bool
+	// transaction timestamp. Not adjusted
+	Timestamp ledger.Time
+	// chain output data
+	ChainIn *ledger.OutputWithChainID
+	// controlling private key
+	PrivateKey ed25519.PrivateKey
+	// tag-along sequencer and fee amount
+	TagAlongSeqID ledger.ChainID
+	TagAlongFee   uint64 // 0 means no fee output will be produced
 }
 
 func MakeEndChainTransaction(par EndChainParams) (*transaction.Transaction, error) {
-	chainID, _, _ := par.ChainIn.ExtractChainID()
-	// adjust timestamp
-	ts := ledger.MaximumTime(ledger.TimeNow(), par.ChainIn.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace)))
-	if ts.IsSlotBoundary() {
-		ts.AddTicks(1)
-	}
-	if par.ChainIn.Output.Lock().Name() == ledger.DelegationLockName && par.EnforceNoDelegationTransition {
-		ts1 := ledger.NextClosedDelegationTimestamp(chainID, ts)
-		if ts1.Slot() != ts.Slot() {
-			ts = ledger.NewLedgerTime(ts1.Slot(), 1)
-		}
-	}
-
 	_, predecessorConstraintIndex := par.ChainIn.Output.ChainConstraint()
 	txb := New()
 
@@ -59,7 +50,7 @@ func MakeEndChainTransaction(par EndChainParams) (*transaction.Transaction, erro
 	txb.PutSignatureUnlock(consumedIndex)
 
 	// finalize the transaction
-	txb.TransactionData.Timestamp = ts
+	txb.TransactionData.Timestamp = par.Timestamp
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
 	txb.SignED25519(par.PrivateKey)
 
