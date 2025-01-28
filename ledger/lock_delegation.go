@@ -49,7 +49,7 @@ func _enforceDelegationTargetConstraintsOnSuccessor : and(
     require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 
-// constant. A map which has != 0 at bytes where delegation transaction is open  
+// constant. A map with!= 0 at bytes where delegation transaction is open  
 func _openDelegationSlotMap : 0xffffffff0000
 
 // $0 4-byte prefix of slice (usually chainID)
@@ -75,12 +75,11 @@ func delegationLock: and(
            // only sizes are enforced, otherwise $3 and $4 are auxiliary, for information
 	require(and(equal(len($3),u64/5), equal(len($4),u64/8)), !!!args_$3_and_$4_must_be_5_and_8_bytes_length), 
     require(not(isBranchTransaction), !!!delegation_should_not_be_branch),
-    // require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
     or(
 		and(
              // check general consistency of the lock on the produced output
             selfIsProducedOutput,
-            parseArgumentBytecode(selfSiblingConstraint($0), #chain, 0),
+            require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
             require(greaterOrEqualThan(selfAmountValue, minimumDelegatedAmount), !!!delegation_amount_is_below_minimum),
 	        require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
             $1, $2

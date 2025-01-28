@@ -277,17 +277,13 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 	if err != nil {
 		return nil, err
 	}
-	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	tx, err := transaction.FromBytes(txBytes, append(transaction.MainTxValidationOptions, transaction.ValidateOptionWithFullContext(inputLoader))...)
 	if err != nil {
 		if tx != nil {
 			err = fmt.Errorf("%w:\n%s", err, tx.ToStringWithInputLoaderByIndex(inputLoader))
 		}
 		a.Log().Fatalf("IncrementalAttacher.MakeSequencerTransaction: %v", err) // should produce correct transaction
 		return nil, err
-	}
-	if err = tx.Validate(transaction.ValidateOptionWithFullContext(inputLoader)); err != nil {
-		err = fmt.Errorf("%w:\n%s", err, tx.ToStringWithInputLoaderByIndex(inputLoader))
-		a.Log().Fatalf("IncrementalAttacher.MakeSequencerTransaction: %v", err) // should produce correct transaction
 	}
 
 	a.slotInflation = a.pastCone.CalculateSlotInflation()

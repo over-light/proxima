@@ -35,7 +35,7 @@ const (
 	defaultMaxInputs                 = 100
 	defaultMaxTagAlongInputs         = 50
 	minimumBacklogTagAlongTTLSlots   = 10
-	minimumBacklogDelegationTTLSlots = 10
+	minimumBacklogDelegationTTLSlots = 20
 	minimumMilestonesTTLSlots        = 24 // 10
 )
 
@@ -137,9 +137,10 @@ func WithMaxInputs(maxInputs, maxTagAlongInputs int) ConfigOption {
 		if maxInputs <= 0 || maxTagAlongInputs <= 0 || maxInputs > 254 || maxTagAlongInputs > maxInputs {
 			o.MaxInputs = defaultMaxInputs
 			o.MaxTagAlongInputs = defaultMaxTagAlongInputs
+		} else {
+			o.MaxInputs = maxInputs
+			o.MaxTagAlongInputs = maxTagAlongInputs
 		}
-		o.MaxInputs = maxInputs
-		o.MaxTagAlongInputs = maxTagAlongInputs
 	}
 }
 
@@ -186,6 +187,7 @@ func (cfg *ConfigOptions) lines(seqID ledger.ChainID, controller ledger.AddressE
 		Add("Name: %s", cfg.SequencerName).
 		Add("Pace: %d ticks", cfg.Pace).
 		Add("MaxTagAlongInputs: %d", cfg.MaxTagAlongInputs).
+		Add("MaxInputs: %d", cfg.MaxInputs).
 		Add("MaxTargetTs: %s", cfg.MaxTargetTs.String()).
 		Add("MaxSlots: %d", cfg.MaxBranches).
 		Add("DelayStart: %v", cfg.DelayStart).

@@ -66,17 +66,18 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	glb.AssertNoError(err)
 	glb.PrintLRB(lrbid)
 
-	sum := uint64(0)
+	sumIn := uint64(0)
 	walletOutputs = util.PurgeSlice(walletOutputs, func(o *ledger.OutputWithID) bool {
-		if sum >= amount+feeAmount {
+		if sumIn >= amount+feeAmount {
 			return false
 		}
-		sum += o.Output.Amount()
+		sumIn += o.Output.Amount()
 		return true
 	})
+	glb.Assertf(sumIn >= amount+feeAmount, "not enough tokens. Needed %s, got %s", util.Th(amount+feeAmount), util.Th(sumIn))
 
 	txb := txbuilder.New()
-	totalAmountConsumed, inTs, err := txb.ConsumeOutputs(walletOutputs...)
+	_, inTs, err := txb.ConsumeOutputs(walletOutputs...)
 	glb.AssertNoError(err)
 
 	ts := ledger.MaximumTime(inTs, ledger.TimeNow())
@@ -103,13 +104,22 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	})
 	_, _ = txb.ProduceOutput(outTagAlong)
 
-	if totalAmountConsumed > amount+feeAmount {
+	totalAmountConsumed := txb.ConsumedAmount()
+	totalAmountProduced, _ := txb.ProducedAmount()
+
+	fmt.Printf(">>>>>>>>>> cons %d, prod %d\n", totalAmountConsumed, totalAmountProduced)
+
+	if totalAmountConsumed > totalAmountProduced {
 		remainderOut := ledger.NewOutput(func(o *ledger.Output) {
-			o.WithAmount(totalAmountConsumed - amount - feeAmount)
+			o.WithAmount(totalAmountConsumed - totalAmountProduced)
 			o.WithLock(walletData.Account)
 		})
 		_, _ = txb.ProduceOutput(remainderOut)
+		fmt.Printf(">>>>>>>>> remainder out\n%s\n", remainderOut.Lines("         ").String())
 	}
+
+	totalAmountProduced, _ = txb.ProducedAmount()
+	glb.Assertf(totalAmountConsumed == totalAmountProduced, "totalAmountConsumed==totalAmountProduced")
 
 	txb.TransactionData.Timestamp = ts
 	txb.TransactionData.InputCommitment = txb.InputCommitment()

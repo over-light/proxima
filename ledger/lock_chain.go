@@ -11,7 +11,8 @@ import (
 type ChainLock []byte
 
 const (
-	ChainLockName     = "chainLock"
+	//ChainLockName     = "chainLock"
+	ChainLockName     = "c"
 	chainLockTemplate = ChainLockName + "(0x%s)"
 )
 
@@ -145,4 +146,8 @@ func chainLock : and(
 	)
 )
 
+// short version of chainLock
+// $0 - chainID
+// Unlock parameters 2 bytes: [unlocked chain output index, chain constraint index]
+func c : chainLock($0)
 `

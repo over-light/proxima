@@ -203,11 +203,10 @@ func (t *Task) startProposers() {
 	}
 }
 
-const TraceTagInsertInputs = "InsertInputs"
+const TraceTagInsertInputs = "insertInputs"
 
 // InsertInputs includes filtered outputs from the backlog into attacher
 func (t *Task) insertInputs(a *attacher.IncrementalAttacher, maxInputs int, preSelectFilter func(wOut vertex.WrappedOutput) bool) (numInserted int) {
-	t.Tracef(TraceTagInsertInputs, "IN: %s", a.Name)
 
 	if ledger.L().ID.IsPreBranchConsolidationTimestamp(a.TargetTs()) {
 		// skipping tagging-along in pre-branch consolidation zone
@@ -220,14 +219,15 @@ func (t *Task) insertInputs(a *attacher.IncrementalAttacher, maxInputs int, preS
 			return false
 		}
 		// fast filtering out already consumed outputs in the predecessor milestone context
-		if !!t.IsConsumedInThePastPath(wOut, a.Extending().VID) {
+		if t.IsConsumedInThePastPath(wOut, a.Extending().VID) {
 			return false
 		}
 		return preSelectFilter(wOut)
 	})
-	t.Tracef(TraceTagInsertInputs, "%s. Pre-selected: %d", a.Name, len(preSelected))
 
 	for _, wOut := range preSelected {
+		t.Tracef(TraceTagInsertInputs, "%s. delegation input PRE-SELECTED %s (%d)", a.Name, wOut.IDShortString, len(preSelected))
+
 		select {
 		case <-t.ctx.Done():
 			return
@@ -247,13 +247,15 @@ func (t *Task) insertInputs(a *attacher.IncrementalAttacher, maxInputs int, preS
 }
 
 func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
+	t.Tracef(TraceTagInsertInputs, "IN InsertTagAlongInputs: %s", a.Name)
 	return t.insertInputs(a, maxInputs, func(wOut vertex.WrappedOutput) bool {
 		return wOut.LockName() == ledger.ChainLockName
 	})
 }
 
 func (t *Task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
-	return t.insertInputs(a, maxInputs, func(wOut vertex.WrappedOutput) bool {
+	t.Tracef(TraceTagInsertInputs, "IN InsertDelegationInputs: %s, maxInputs: %d", a.Name, maxInputs)
+	numInserted = t.insertInputs(a, maxInputs, func(wOut vertex.WrappedOutput) bool {
 		if wOut.LockName() != ledger.DelegationLockName {
 			return false
 		}
@@ -268,9 +270,14 @@ func (t *Task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs
 		if !ledger.IsOpenDelegationSlot(delegationID, a.TargetTs().Slot()) {
 			return false
 		}
-		if ledger.L().CalcChainInflationAmount(o.ID.Timestamp(), a.TargetTs(), o.Output.Amount()) == 0 {
+
+		inflation := ledger.L().CalcChainInflationAmount(o.ID.Timestamp(), a.TargetTs(), o.Output.Amount())
+		if inflation == 0 {
 			return false
 		}
+
 		return true
 	})
+	t.Tracef(TraceTagInsertInputs, "InsertDelegationInputs: %s. inserted: %d", a.Name, numInserted)
+	return
 }
