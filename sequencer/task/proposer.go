@@ -210,6 +210,11 @@ func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 }
 
 func (p *Proposer) insertInputs(a *attacher.IncrementalAttacher) {
+	if ledger.L().ID.IsPreBranchConsolidationTimestamp(a.TargetTs()) {
+		// skipping tagging-along in pre-branch consolidation zone
+		p.Tracef(TraceTagInsertInputs, "%s. No tag-along or delegation in the pre-branch consolidation zone of ticks", a.Name())
+		return
+	}
 	maxInputs, maxTagAlong := p.MaxInputs()
 	_ = p.InsertTagAlongInputs(a, maxTagAlong)
 	_ = p.InsertDelegationInputs(a, maxInputs)

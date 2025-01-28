@@ -443,17 +443,22 @@ func (o *OutputDataWithID) MustParse() *OutputWithID {
 	return ret
 }
 
-// ExtractChainID return chainID, predecessor constraint index, existence flag
-func (o *OutputWithID) ExtractChainID() (chainID ChainID, predecessorConstraintIndex byte, ok bool) {
-	cc, blockIdx := o.Output.ChainConstraint()
+func ExtractChainID(o *Output, oid OutputID) (chainID ChainID, predecessorConstraintIndex byte, ok bool) {
+	cc, blockIdx := o.ChainConstraint()
 	if blockIdx == 0xff {
 		return ChainID{}, 0, false
 	}
 	ret := cc.ID
 	if cc.ID == NilChainID {
-		ret = blake2b.Sum256(o.ID[:])
+		ret = blake2b.Sum256(oid[:])
 	}
 	return ret, cc.PredecessorConstraintIndex, true
+
+}
+
+// ExtractChainID return chainID, predecessor constraint index, existence flag
+func (o *OutputWithID) ExtractChainID() (chainID ChainID, predecessorConstraintIndex byte, ok bool) {
+	return ExtractChainID(o.Output, o.ID)
 }
 
 func (o *OutputWithID) AsChainOutput() (*OutputWithChainID, error) {

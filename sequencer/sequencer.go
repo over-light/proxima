@@ -47,7 +47,7 @@ type (
 		stopFun            context.CancelFunc // local stop function
 		sequencerID        ledger.ChainID
 		controllerKey      ed25519.PrivateKey
-		backlog            *backlog.InputBacklog
+		backlog            *backlog.TagAlongBacklog
 		config             *ConfigOptions
 		logName            string
 		log                *zap.SugaredLogger
@@ -250,7 +250,7 @@ func (seq *Sequencer) checkSequencerStartOutput(wOut vertex.WrappedOutput) bool 
 	return true
 }
 
-func (seq *Sequencer) Backlog() *backlog.InputBacklog {
+func (seq *Sequencer) Backlog() *backlog.TagAlongBacklog {
 	return seq.backlog
 }
 

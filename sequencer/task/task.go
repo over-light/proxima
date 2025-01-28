@@ -31,7 +31,7 @@ type (
 		SequencerID() ledger.ChainID
 		ControllerPrivateKey() ed25519.PrivateKey
 		OwnLatestMilestoneOutput() vertex.WrappedOutput
-		Backlog() *backlog.InputBacklog
+		Backlog() *backlog.TagAlongBacklog
 		IsConsumedInThePastPath(wOut vertex.WrappedOutput, ms *vertex.WrappedTx) bool
 		AddOwnMilestone(vid *vertex.WrappedTx)
 		FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOutput, targetTs ledger.Time) []vertex.WrappedOutput
@@ -205,29 +205,8 @@ func (t *Task) startProposers() {
 
 const TraceTagInsertInputs = "insertInputs"
 
-// InsertInputs includes filtered outputs from the backlog into attacher
-func (t *Task) insertInputs(a *attacher.IncrementalAttacher, maxInputs int, preSelectFilter func(wOut vertex.WrappedOutput) bool) (numInserted int) {
-
-	if ledger.L().ID.IsPreBranchConsolidationTimestamp(a.TargetTs()) {
-		// skipping tagging-along in pre-branch consolidation zone
-		t.Tracef(TraceTagInsertInputs, "%s. No tag-along in the pre-branch consolidation zone of ticks", a.Name())
-		return 0
-	}
-
-	preSelected := t.Backlog().FilterAndSortOutputs(func(wOut vertex.WrappedOutput) bool {
-		if !ledger.ValidSequencerPace(wOut.Timestamp(), a.TargetTs()) {
-			return false
-		}
-		// fast filtering out already consumed outputs in the predecessor milestone context
-		if t.IsConsumedInThePastPath(wOut, a.Extending().VID) {
-			return false
-		}
-		return preSelectFilter(wOut)
-	})
-
-	for _, wOut := range preSelected {
-		t.Tracef(TraceTagInsertInputs, "%s. delegation input PRE-SELECTED %s (%d)", a.Name, wOut.IDShortString, len(preSelected))
-
+func (t *Task) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.WrappedOutput, maxInputs int) (numInserted int) {
+	for _, wOut := range outs {
 		select {
 		case <-t.ctx.Done():
 			return
@@ -246,38 +225,54 @@ func (t *Task) insertInputs(a *attacher.IncrementalAttacher, maxInputs int, preS
 	return
 }
 
+// InsertTagAlongInputs includes filtered outputs from the backlog into attacher
 func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
-	t.Tracef(TraceTagInsertInputs, "IN InsertTagAlongInputs: %s", a.Name)
-	return t.insertInputs(a, maxInputs, func(wOut vertex.WrappedOutput) bool {
-		return wOut.LockName() == ledger.ChainLockName
+	preSelected := t.Backlog().FilterAndSortOutputs(func(wOut vertex.WrappedOutput) bool {
+		t.Assertf(wOut.LockName() == ledger.ChainLockName, "wOut.LockName() == ledger.ChainLockName")
+
+		if !ledger.ValidSequencerPace(wOut.Timestamp(), a.TargetTs()) {
+			return false
+		}
+		// fast filtering out already consumed outputs in the predecessor milestone context
+		if t.IsConsumedInThePastPath(wOut, a.Extending().VID) {
+			return false
+		}
+		return true
 	})
+	return t.insertInputs(a, preSelected, maxInputs)
 }
 
 func (t *Task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
 	t.Tracef(TraceTagInsertInputs, "IN InsertDelegationInputs: %s, maxInputs: %d", a.Name, maxInputs)
-	numInserted = t.insertInputs(a, maxInputs, func(wOut vertex.WrappedOutput) bool {
-		if wOut.LockName() != ledger.DelegationLockName {
-			return false
+
+	rdr := a.BaselineSugaredStateReader()
+	seqID := t.SequencerID()
+	preSelected := make([]vertex.WrappedOutput, 0, maxInputs-a.NumInputs())
+
+	rdr.IterateDelegatedOutputs(seqID.AsChainLock(), func(oid ledger.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool {
+		wOut, err := attacher.AttachOutputWithID(&ledger.OutputWithID{
+			ID:     oid,
+			Output: o,
+		}, a)
+		if err != nil {
+			t.Log().Warnf("InsertDelegationInputs: failed to attach output %s: %v", oid.StringShort(), err)
+			return true
 		}
-		o := wOut.OutputWithID()
-		if o == nil {
-			return false
+		if t.IsConsumedInThePastPath(wOut, a.Extending().VID) {
+			return true
 		}
-		delegationID, _, ok := o.ExtractChainID()
+		delegationID, _, ok := ledger.ExtractChainID(o, oid)
 		if !ok {
-			return false
+			return true
 		}
 		if !ledger.IsOpenDelegationSlot(delegationID, a.TargetTs().Slot()) {
-			return false
+			return true
 		}
-
-		inflation := ledger.L().CalcChainInflationAmount(o.ID.Timestamp(), a.TargetTs(), o.Output.Amount())
-		if inflation == 0 {
-			return false
+		if ledger.L().CalcChainInflationAmount(oid.Timestamp(), a.TargetTs(), o.Amount()) == 0 {
+			return true
 		}
-
+		preSelected = append(preSelected, wOut)
 		return true
 	})
-	t.Tracef(TraceTagInsertInputs, "InsertDelegationInputs: %s. inserted: %d", a.Name, numInserted)
-	return
+	return t.insertInputs(a, preSelected, maxInputs)
 }

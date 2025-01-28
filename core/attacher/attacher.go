@@ -33,7 +33,7 @@ func (a *attacher) Name() string {
 	return a.name
 }
 
-func (a *attacher) baselineSugaredStateReader() multistate.SugaredStateReader {
+func (a *attacher) BaselineSugaredStateReader() multistate.SugaredStateReader {
 	return multistate.MakeSugared(a.baselineStateReader())
 }
 
@@ -259,7 +259,7 @@ func (a *attacher) attachVertexUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.
 	}
 
 	a.Tracef(TraceTagAttachVertex, " %s IN: %s", a.name, vidUnwrapped.IDShortString)
-	a.Assertf(!util.IsNil(a.baselineSugaredStateReader), "!util.IsNil(a.baselineSugaredStateReader)")
+	a.Assertf(!util.IsNil(a.BaselineSugaredStateReader), "!util.IsNil(a.BaselineSugaredStateReader)")
 
 	if !a.pastCone.Flags(vidUnwrapped).FlagsUp(vertex.FlagPastConeVertexEndorsementsSolid) {
 		a.Tracef(TraceTagAttachVertex, "endorsements not all solidified in %s -> attachEndorsements", v.Tx.IDShortString)
@@ -360,7 +360,7 @@ func (a *attacher) defineInTheStateStatus(vid *vertex.WrappedTx) {
 		return
 	}
 
-	if a.baselineSugaredStateReader().KnowsCommittedTransaction(&vid.ID) {
+	if a.BaselineSugaredStateReader().KnowsCommittedTransaction(&vid.ID) {
 		a.pastCone.SetFlagsUp(vid, vertex.FlagPastConeVertexCheckedInTheState|vertex.FlagPastConeVertexInTheState|vertex.FlagPastConeVertexDefined)
 	} else {
 		// not on the state, so it is not defined
@@ -483,7 +483,7 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 
 func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID *ledger.OutputID) bool {
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
-	o, err := a.baselineSugaredStateReader().GetOutputWithID(inputID)
+	o, err := a.BaselineSugaredStateReader().GetOutputWithID(inputID)
 	if errors.Is(err, multistate.ErrNotFound) {
 		a.setError(fmt.Errorf("output %s is already consumed", inputID.StringShort()))
 		return false

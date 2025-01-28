@@ -31,7 +31,7 @@ type (
 		EvidenceBacklogSize(size int)
 	}
 
-	InputBacklog struct {
+	TagAlongBacklog struct {
 		Environment
 		mutex                    sync.RWMutex
 		outputs                  map[vertex.WrappedOutput]time.Time
@@ -50,17 +50,17 @@ type (
 
 const TraceTag = "backlog"
 
-func New(env Environment) (*InputBacklog, error) {
+func New(env Environment) (*TagAlongBacklog, error) {
 	seqID := env.SequencerID()
-	ret := &InputBacklog{
+	ret := &TagAlongBacklog{
 		Environment: env,
 		outputs:     make(map[vertex.WrappedOutput]time.Time),
 	}
 	env.Tracef(TraceTag, "starting input backlog for the sequencer %s..", env.SequencerName)
 
-	// start listening to chain-locked account. Tag-along and delegation outputs
+	// start listening to chain-locked account. Tag-along outputs
 	env.ListenToAccount(seqID.AsChainLock(), func(wOut vertex.WrappedOutput) {
-		env.Tracef(TraceTag, "[%s] output IN: %s, lockName: %s", ret.SequencerName, wOut.IDShortString, wOut.LockName())
+		env.Tracef(TraceTag, "[%s] output IN: %s", ret.SequencerName, wOut.IDShortString)
 
 		ret.mutex.Lock()
 		defer ret.mutex.Unlock()
@@ -79,8 +79,7 @@ func New(env Environment) (*InputBacklog, error) {
 		ret.outputs[wOut] = nowis
 		ret.lastOutputArrived = nowis
 		ret.outputCount++
-		env.Tracef(TraceTag, "output included into input backlog (lock: %s): %s (total: %d)",
-			wOut.LockName(), wOut.IDShortString, len(ret.outputs))
+		env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDShortString, len(ret.outputs))
 	})
 
 	// start periodic cleanup in background
@@ -94,7 +93,7 @@ func New(env Environment) (*InputBacklog, error) {
 	return ret, nil
 }
 
-func (b *InputBacklog) ArrivedOutputsSince(t time.Time) bool {
+func (b *TagAlongBacklog) ArrivedOutputsSince(t time.Time) bool {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
@@ -102,7 +101,7 @@ func (b *InputBacklog) ArrivedOutputsSince(t time.Time) bool {
 }
 
 // checkAndReferenceCandidate if returns false, it is unreferenced, otherwise referenced
-func (b *InputBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) bool {
+func (b *TagAlongBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) bool {
 	if wOut.VID.IsBranchTransaction() {
 		// outputs of branch transactions are filtered out
 		return false
@@ -123,12 +122,12 @@ func (b *InputBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) boo
 		return true
 	}
 	lock := wOut.Lock()
-	if _, idx := o.ChainConstraint(); idx != 0xff && lock.Name() != ledger.DelegationLockName {
-		// filter out all chain constrained outputs which are not on delegated chains
+	if _, idx := o.ChainConstraint(); idx != 0xff {
+		// filter out all chain constrained outputs
 		wOut.VID.UnReference()
 		return false
 	}
-	if lock.Name() != ledger.ChainLockName && lock.Name() != ledger.DelegationLockName {
+	if lock.Name() != ledger.ChainLockName {
 		// filter out all which cannot be consumed by the sequencer
 		wOut.VID.UnReference()
 		return false
@@ -146,7 +145,7 @@ func (b *InputBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) boo
 }
 
 // CandidatesToEndorseSorted returns descending (by coverage) list of transactions which can be endorsed from the given timestamp
-func (b *InputBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*vertex.WrappedTx {
+func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*vertex.WrappedTx {
 	targetSlot := targetTs.Slot()
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesDescending(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {
@@ -159,7 +158,7 @@ func (b *InputBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*vertex
 }
 
 // CandidatesToEndorseShuffled returns randomly ordered list of transactions which can be endorsed from the given timestamp
-func (b *InputBacklog) CandidatesToEndorseShuffled(targetTs ledger.Time) []*vertex.WrappedTx {
+func (b *TagAlongBacklog) CandidatesToEndorseShuffled(targetTs ledger.Time) []*vertex.WrappedTx {
 	targetSlot := targetTs.Slot()
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesShuffled(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {
@@ -170,11 +169,11 @@ func (b *InputBacklog) CandidatesToEndorseShuffled(targetTs ledger.Time) []*vert
 	})
 }
 
-func (b *InputBacklog) GetOwnLatestMilestoneTx() *vertex.WrappedTx {
+func (b *TagAlongBacklog) GetOwnLatestMilestoneTx() *vertex.WrappedTx {
 	return b.GetLatestMilestone(b.SequencerID())
 }
 
-func (b *InputBacklog) FilterAndSortOutputs(filter func(wOut vertex.WrappedOutput) bool) []vertex.WrappedOutput {
+func (b *TagAlongBacklog) FilterAndSortOutputs(filter func(wOut vertex.WrappedOutput) bool) []vertex.WrappedOutput {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
@@ -185,14 +184,14 @@ func (b *InputBacklog) FilterAndSortOutputs(filter func(wOut vertex.WrappedOutpu
 	return ret
 }
 
-func (b *InputBacklog) NumOutputsInBuffer() int {
+func (b *TagAlongBacklog) NumOutputsInBuffer() int {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
 	return len(b.outputs)
 }
 
-func (b *InputBacklog) getStatsAndReset() (ret Stats) {
+func (b *TagAlongBacklog) getStatsAndReset() (ret Stats) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
@@ -206,14 +205,14 @@ func (b *InputBacklog) getStatsAndReset() (ret Stats) {
 	return
 }
 
-func (b *InputBacklog) numOutputs() int {
+func (b *TagAlongBacklog) numOutputs() int {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
 	return len(b.outputs)
 }
 
-func (b *InputBacklog) purgeBacklog() int {
+func (b *TagAlongBacklog) purgeBacklog() int {
 	ttlTagAlongSlots, ttlDelegationSlots := b.BacklogTTLSlots()
 	horizonTagAlong := time.Now().Add(-time.Duration(ttlTagAlongSlots) * ledger.L().ID.SlotDuration())
 	horizonDelegation := time.Now().Add(-time.Duration(ttlDelegationSlots) * ledger.L().ID.SlotDuration())
@@ -241,7 +240,7 @@ func (b *InputBacklog) purgeBacklog() int {
 }
 
 // LoadSequencerStartTips loads tip transactions relevant to the sequencer startup from persistent state to the memDAG
-func (b *InputBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
+func (b *TagAlongBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 	var branchData *multistate.BranchData
 	if b.IsBootstrapMode() {
 		branchData = multistate.FindLatestReliableBranchWithSequencerID(b.StateStore(), b.SequencerID(), global.FractionHealthyBranch)
