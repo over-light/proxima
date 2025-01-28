@@ -13,7 +13,6 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/inflator"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
@@ -49,7 +48,6 @@ type (
 		sequencerID        ledger.ChainID
 		controllerKey      ed25519.PrivateKey
 		backlog            *backlog.InputBacklog
-		inflator           *inflator.Inflator
 		config             *ConfigOptions
 		logName            string
 		log                *zap.SugaredLogger
@@ -118,14 +116,6 @@ func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey
 	}
 	ret.Log().Infof("sequencer is starting with config:\n%s", cfg.lines(seqID, ledger.AddressED25519FromPrivateKey(controllerKey), "     ").String())
 
-	inflatorParams := inflator.ParamsFromConfig(ret.sequencerID, ret.controllerKey)
-	inflatorParams.Name = ret.logName
-	//if inflatorParams.Disable {
-	//	ret.Log().Infof("inflator is DISABLED")
-	//} else {
-	//	ret.inflator = inflator.New(ret, inflatorParams)
-	//	ret.Log().Infof("inflator is ENABLED with params:\n%s", inflatorParams.Lines("     ").String())
-	//}
 	return ret, nil
 }
 
@@ -292,10 +282,6 @@ func (seq *Sequencer) sequencerLoop() {
 		seq.Log().Infof("sequencer loop STOPPING..")
 		_ = seq.Log().Sync()
 	}()
-
-	if seq.inflator != nil {
-		seq.inflator.Run()
-	}
 
 	for {
 		select {
