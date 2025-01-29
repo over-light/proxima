@@ -164,9 +164,6 @@ func requireChainTransition : require(
 func transitionMode: byte($0, 34)
 func predecessorConstraintIndex : slice($0, 32, 33) // 2 bytes
 
-// accessing predecessor data
-func chainPredecessorInputID : inputIDByIndex(byte($0,32))
-
 // unlock parameters for the chain constraint. 3 bytes: 
 // 0 - successor output index 
 // 1 - successor constraint block index
@@ -181,7 +178,7 @@ func validPredecessorData : and(
 		and(
 			// case 1: predecessor is origin. ChainID must be blake2b hash of the corresponding input ID 
 			equal($1, originChainData),
-			equal(chainID($0), blake2b(chainPredecessorInputID($0)))
+			equal(chainID($0), blake2b(inputIDByIndex(byte($0,32))))
 		),
 		and(
 			// case 2: normal transition
@@ -285,5 +282,11 @@ func chain: and(
 )
 
 // $0 - chain constraint index in the produced output
+// Returns chain predecessor input by 1-byte index
 func chainPredecessorInputIndex : byte(evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0),32)
+
+// $0 - chain constraint index in the produced output
+// Returns chain predecessor timestamp in the context of produced successor by by 1-byte index of the chain constraint 
+func chainPredecessorTimestamp : timestampOfInputByIndex(chainPredecessorInputIndex($0))
+
 `

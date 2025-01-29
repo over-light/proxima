@@ -34,6 +34,8 @@ const (
 const delegationLockSource = `
 func minimumDelegatedAmount : u64/50000000
 
+func delegationPaceTicks : u64/256
+
 // $0 sibling index
 func selfSiblingUnlockParams : @Array8(unlockParamsByIndex(selfOutputIndex), $0)
 
@@ -82,6 +84,7 @@ func delegationLock: and(
             require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
             require(greaterOrEqualThan(selfAmountValue, minimumDelegatedAmount), !!!delegation_amount_is_below_minimum),
 	        require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
+            require(lessThan(delegationPaceTicks, ticksBefore(chainPredecessorTimestamp($0),txTimestampBytes)), !!!wrong_delegation_chain_pace),  // FIXME chain origin edge case
             $1, $2
         ), 
         and(
