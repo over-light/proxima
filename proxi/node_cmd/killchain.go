@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
@@ -60,75 +61,52 @@ func runKillChainCmd(_ *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	var ts ledger.Time
-	var chainIN *ledger.OutputWithChainID
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
 
-	for {
-		chainIN, _, _, err = clnt.GetChainOutput(chainID)
-		glb.AssertNoError(err)
-
-		ts = ledger.MaximumTime(ledger.TimeNow(), chainIN.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace)))
-		if ts.IsSlotBoundary() {
-			ts.AddTicks(1)
+	wg.Add(2)
+	go func() {
+		if checkChainLoop(chainID, 2*time.Second, ctx) {
+			glb.Infof("success")
+		} else {
+			glb.Infof("failed")
 		}
-		closedDelegationSlot := ledger.NextClosedDelegationSlot(chainID, ts.Slot())
-		if closedDelegationSlot != ts.Slot() {
-			ts = ledger.NewLedgerTime(closedDelegationSlot, 1)
-		}
-		if ts.Slot() <= ledger.TimeNow().Slot() {
-			break
-		}
-		glb.Infof("until suitable time window left %d ticks = ~%0.2f seconds",
-			ledger.DiffTicks(ts, ledger.TimeNow()), float64(time.Until(ts.Time()))/float64(time.Second))
-		time.Sleep(2 * time.Second)
-	}
+		cancel()
+		wg.Done()
+	}()
 
-	tx, err := txbuilder.MakeEndChainTransaction(txbuilder.EndChainParams{
-		Timestamp:     ts,
-		ChainIn:       chainIN,
-		PrivateKey:    walletData.PrivateKey,
-		TagAlongSeqID: tagAlongSeqID,
-		TagAlongFee:   feeAmount,
-	})
-	glb.AssertNoError(err)
-
-	err = clnt.SubmitTransaction(tx.Bytes())
-	glb.AssertNoError(err)
-
-	glb.Infof("submitted transaction %s", tx.IDString())
-	glb.Verbosef("-------------- transaction --------------\n%s", tx.String())
-	err = clnt.SubmitTransaction(tx.Bytes())
-	glb.AssertNoError(err)
-
-	if ledger.TimeNow().Slot() < tx.Slot() {
-		waitUntil := tx.TimestampTime()
-		leftWaiting := time.Until(waitUntil)
-		glb.Infof("transaction delayed for %d ticks = ~%0.2f seconds",
-			ledger.DiffTicks(tx.Timestamp(), ledger.TimeNow()), float64(leftWaiting)/float64(time.Second))
-		glb.Infof("sleeping for %v", leftWaiting)
-		time.Sleep(leftWaiting)
-	}
-	glb.ReportTxInclusion(tx.ID(), 2*time.Second)
+	go func() {
+		makeTransactionLoop(killChainParams{
+			chainID:       chainID,
+			privateKey:    walletData.PrivateKey,
+			tagAlongSeqID: tagAlongSeqID,
+			tagAlongFee:   feeAmount,
+			repeatPeriod:  2 * time.Second,
+			ctx:           ctx,
+		})
+		wg.Done()
+	}()
+	wg.Wait()
 }
 
-func checkChainLoop(chainID ledger.ChainID, privateKey ed25519.PrivateKey, repeatPeriod time.Duration, ctx context.Context) bool {
+type killChainParams struct {
+	chainID       ledger.ChainID
+	privateKey    ed25519.PrivateKey
+	tagAlongSeqID ledger.ChainID
+	tagAlongFee   uint64
+	repeatPeriod  time.Duration
+	ctx           context.Context
+}
+
+func checkChainLoop(chainID ledger.ChainID, repeatPeriod time.Duration, ctx context.Context) bool {
 	clnt := glb.GetClient()
 
 	for {
-		chainIN, _, _, err := clnt.GetChainOutput(chainID)
+		_, _, _, err := clnt.GetChainOutput(chainID)
 		if errors.Is(err, multistate.ErrNotFound) {
-			glb.Infof("[check] chain %s has been destroyed", chainID.StringShort())
+			glb.Infof("[check] chain %s has been converted into ordinary output", chainID.StringShort())
 			return true
 		}
-		glb.AssertNoError(err)
-
-		tx, err := txbuilder.MakeEndChainTransaction(txbuilder.EndChainParams{
-			Timestamp:     ts,
-			ChainIn:       chainIN,
-			PrivateKey:    privateKey,
-			TagAlongSeqID: tagAlongSeqID,
-			TagAlongFee:   feeAmount,
-		})
 		glb.AssertNoError(err)
 
 		select {
@@ -140,30 +118,50 @@ func checkChainLoop(chainID ledger.ChainID, privateKey ed25519.PrivateKey, repea
 	}
 }
 
-func makeTransactionLoop(chainID ledger.ChainID, repeatPeriod time.Duration, ctx context.Context) {
+func makeTransactionLoop(par killChainParams) {
 	clnt := glb.GetClient()
 	consumedOutputs := set.New[ledger.OutputID]()
 
 	for {
-		o, constrIdx, lrbid, err := clnt.GetChainOutput(chainID)
+		o, _, lrbid, err := clnt.GetChainOutput(par.chainID)
 		if errors.Is(err, multistate.ErrNotFound) {
-			glb.Infof("[maketx] chain %s has been destroyed", chainID.StringShort())
+			glb.Infof("[maketx] chain %s has been destroyed", par.chainID.StringShort())
 			return
 		}
 		glb.AssertNoError(err)
 		if ledger.TimeNow().Slot()-lrbid.Slot() > 2 {
-			glb.Infof("[maketx] no sync. Exit")
+			glb.Infof("[maketx] LRB is %d slots behind. Exit", ledger.TimeNow().Slot()-lrbid.Slot())
 			return
 		}
-		if consumedOutputs.Contains(o.ID) {
-			continue
+		if !consumedOutputs.Contains(o.ID) {
+			ts := ledger.NextClosedDelegationTimestamp(par.chainID, o.Timestamp())
+
+			tx, err := txbuilder.MakeEndChainTransaction(txbuilder.EndChainParams{
+				Timestamp:     ts,
+				ChainIn:       o,
+				PrivateKey:    par.privateKey,
+				TagAlongSeqID: par.tagAlongSeqID,
+				TagAlongFee:   par.tagAlongFee,
+			})
+			glb.AssertNoError(err)
+
+			err = clnt.SubmitTransaction(tx.Bytes())
+			glb.AssertNoError(err)
+
+			err = clnt.SubmitTransaction(tx.Bytes())
+			glb.AssertNoError(err)
+
+			glb.Infof("[maketx] submitted transaction %s. Ticks relative to now: %d", tx.IDString(), ledger.DiffTicks(tx.Timestamp(), ledger.TimeNow()))
+			glb.Verbosef("-------------- transaction --------------\n%s", tx.String())
+
+			consumedOutputs.Insert(o.ID)
 		}
 
 		select {
-		case <-ctx.Done():
+		case <-par.ctx.Done():
 			glb.Infof("[maketx] exit")
 			return
-		case <-time.After(repeatPeriod):
+		case <-time.After(par.repeatPeriod):
 		}
 	}
 
