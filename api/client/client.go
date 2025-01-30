@@ -296,6 +296,9 @@ func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDa
 		return nil, ledger.TransactionID{}, err
 	}
 	if res.Error.Error != "" {
+		if strings.Contains(res.Error.Error, "object not found") {
+			return nil, ledger.TransactionID{}, multistate.ErrNotFound
+		}
 		return nil, ledger.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: from server: %s", chainID.StringShort(), res.Error.Error)
 	}
 

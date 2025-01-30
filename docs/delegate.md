@@ -108,7 +108,7 @@ it means either it is down, or delegated amount is too small.
 ### How to reclaim delegated tokens back?
 It works by simply by destroying the delegation chain with the command:
 
-`proxi node endchain <delegation ID hex>`.
+`proxi node killchain <delegation ID hex>`.
 
 For example:
 

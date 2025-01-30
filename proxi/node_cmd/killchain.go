@@ -60,7 +60,7 @@ func runKillChainCmd(_ *cobra.Command, args []string) {
 		glb.Infof("exit")
 		os.Exit(0)
 	}
-
+	glb.Infof("\n")
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -84,6 +84,7 @@ func runKillChainCmd(_ *cobra.Command, args []string) {
 			repeatPeriod:  2 * time.Second,
 			ctx:           ctx,
 		})
+		cancel()
 		wg.Done()
 	}()
 	wg.Wait()
@@ -104,14 +105,13 @@ func checkChainLoop(chainID ledger.ChainID, repeatPeriod time.Duration, ctx cont
 	for {
 		_, _, _, err := clnt.GetChainOutput(chainID)
 		if errors.Is(err, multistate.ErrNotFound) {
-			glb.Infof("[check] chain %s has been converted into ordinary output", chainID.StringShort())
+			glb.Infof("chain %s does not exist anymore", chainID.String())
 			return true
 		}
 		glb.AssertNoError(err)
 
 		select {
 		case <-ctx.Done():
-			glb.Infof("[check] exit")
 			return false
 		case <-time.After(repeatPeriod):
 		}
@@ -122,15 +122,15 @@ func makeTransactionLoop(par killChainParams) {
 	clnt := glb.GetClient()
 	consumedOutputs := set.New[ledger.OutputID]()
 
+	attempt := 1
 	for {
 		o, _, lrbid, err := clnt.GetChainOutput(par.chainID)
 		if errors.Is(err, multistate.ErrNotFound) {
-			glb.Infof("[maketx] chain %s has been destroyed", par.chainID.StringShort())
 			return
 		}
 		glb.AssertNoError(err)
 		if ledger.TimeNow().Slot()-lrbid.Slot() > 2 {
-			glb.Infof("[maketx] LRB is %d slots behind. Exit", ledger.TimeNow().Slot()-lrbid.Slot())
+			glb.Infof("LRB is %d slots behind. Exit", ledger.TimeNow().Slot()-lrbid.Slot())
 			return
 		}
 		if !consumedOutputs.Contains(o.ID) {
@@ -151,15 +151,19 @@ func makeTransactionLoop(par killChainParams) {
 			err = clnt.SubmitTransaction(tx.Bytes())
 			glb.AssertNoError(err)
 
-			glb.Infof("[maketx] submitted transaction %s. Ticks relative to now: %d", tx.IDString(), ledger.DiffTicks(tx.Timestamp(), ledger.TimeNow()))
+			ahead := ledger.DiffTicks(tx.Timestamp(), ledger.TimeNow())
+			lrbBehindTicks := ledger.DiffTicks(lrbid.Timestamp(), ledger.TimeNow())
+			glb.Infof("attempt #%d. LRB is %d ticks (%v) behind", attempt, lrbBehindTicks, time.Duration(lrbBehindTicks)*ledger.TickDuration())
+			glb.Infof("          submitted transaction %s. Liquidity window is %+d ticks ahead (%v)",
+				tx.IDString(), ahead, time.Duration(ahead)*ledger.TickDuration())
 			glb.Verbosef("-------------- transaction --------------\n%s", tx.String())
 
 			consumedOutputs.Insert(o.ID)
+			attempt++
 		}
 
 		select {
 		case <-par.ctx.Done():
-			glb.Infof("[maketx] exit")
 			return
 		case <-time.After(par.repeatPeriod):
 		}

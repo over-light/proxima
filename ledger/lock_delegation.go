@@ -69,7 +69,7 @@ func _selfSuccessorChainData : evalArgumentBytecode(producedConstraintByIndex(sl
 // $0 chain constraint index
 func _validDelegationChainPace : or(
 	isZero(chainID(selfChainData($0))),  // origin
-    require(lessThan(delegationPaceTicks, ticksBefore(selfChainPredecessorTimestamp($0),txTimestampBytes)), !!!wrong_delegation_chain_pace)
+    require(lessOrEqualThan(delegationPaceTicks, ticksBefore(selfChainPredecessorTimestamp($0),txTimestampBytes)), !!!wrong_delegation_chain_pace)
 )
 
 // $0 chain constraint index
@@ -273,4 +273,8 @@ func DelegationLockPaceTicks() uint64 {
 	v = binary.BigEndian.Uint64(constBin)
 	_delegationLockPace.Store(v)
 	return v
+}
+
+func ValidDelegationPace(predTs, succTs Time) bool {
+	return DiffTicks(succTs, predTs) >= int64(DelegationLockPaceTicks())
 }

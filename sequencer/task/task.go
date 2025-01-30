@@ -258,6 +258,9 @@ func (t *Task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs
 			t.Log().Warnf("InsertDelegationInputs: failed to attach output %s: %v", oid.StringShort(), err)
 			return true
 		}
+		if !ledger.ValidDelegationPace(wOut.Timestamp(), a.TargetTs()) {
+			return false
+		}
 		if t.IsConsumedInThePastPath(wOut, a.Extending().VID) {
 			return true
 		}

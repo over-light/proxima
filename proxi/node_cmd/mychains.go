@@ -112,7 +112,7 @@ func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainI
 		perSlot := earned / uint64(slots)
 		annualExtrapolationEarnings := uint64(ledger.L().ID.SlotsPerYear()) * perSlot
 		annualRate := 100 * float64(annualExtrapolationEarnings) / float64(dlock.StartAmount)
-		glb.Verbosef("        +%s since %s (%d slots), %s per slot, start amount %s, annual rate: ~%.02f%%\n",
+		glb.Verbosef("        +%s since %s (%d slots), avg %s per slot, start amount %s, annual rate: ~%.02f%%\n",
 			util.Th(earned), dlock.StartTime.String(), slots, util.Th(perSlot),
 			util.Th(dlock.StartAmount), annualRate)
 
