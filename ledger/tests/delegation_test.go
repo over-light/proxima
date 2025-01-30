@@ -72,6 +72,9 @@ func TestDelegationSigLock(t *testing.T) {
 		require.NoError(t, err)
 
 		err = u.AddTransaction(txBytes)
+		if err != nil {
+			t.Logf("============ failing transaction ==============\n%s", u.TxToString(txBytes))
+		}
 		require.NoError(t, err)
 
 		require.EqualValues(t, 1, u.NumUTXOs(u.GenesisControllerAddress()))
@@ -172,7 +175,7 @@ func TestDelegationSigLock(t *testing.T) {
 		ts := delegatedOutput.ID.Timestamp().AddTicks(int(ledger.L().ID.TransactionPace))
 
 		ts = ledger.NextOpenDelegationTimestamp(chainID, ts)
-		err := transitDelegation(ts, false, delegatedOutput.Output.Amount(), false)
+		err := transitDelegation(ts, false, delegatedOutput.Output.Amount(), false, true)
 		require.NoError(t, err)
 
 		rdr := multistate.MakeSugared(u.StateReader())
@@ -210,7 +213,7 @@ func TestDelegationSigLock(t *testing.T) {
 		ts = ledger.NextClosedDelegationTimestamp(chainID, ts)
 		err := transitDelegation(ts, false, delegatedOutput.Output.Amount(), false)
 		t.Logf("expected error: %v", err)
-		require.True(t, err != nil && strings.Contains(err.Error(), "delegation target lock failed"))
+		require.True(t, err != nil && strings.Contains(err.Error(), "must be on liquidity slot"))
 	})
 	t.Run("->owner odd slot no inflation (ok)", func(t *testing.T) {
 		chainID := initTest()
@@ -476,7 +479,7 @@ func TestDelegationChainLock(t *testing.T) {
 		ts = ledger.NextClosedDelegationTimestamp(chainID, ts)
 		err := transitDelegationWithChain(ts, false, delegatedOutput.Output.Amount())
 		t.Logf("expected error: %v", err)
-		require.True(t, err != nil && strings.Contains(err.Error(), "delegation target lock failed"))
+		require.True(t, err != nil && strings.Contains(err.Error(), "must be on liquidity slot"))
 	})
 	t.Run("-> delegation steal no inflation (not ok)", func(t *testing.T) {
 		chainID := initTest(false)
@@ -485,7 +488,7 @@ func TestDelegationChainLock(t *testing.T) {
 		ts := delegatedOutput.ID.Timestamp().AddSlots(1)
 		ts = ledger.NextOpenDelegationTimestamp(chainID, ts)
 
-		err := transitDelegationWithChain(ts, false, delegatedOutput.Output.Amount()-100, false)
+		err := transitDelegationWithChain(ts, false, delegatedOutput.Output.Amount()-100, true)
 		t.Logf("expected error: %v", err)
 		require.True(t, err != nil && strings.Contains(err.Error(), "amount should not decrease"))
 	})

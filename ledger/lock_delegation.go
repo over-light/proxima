@@ -29,11 +29,10 @@ const (
 	delegationLockTemplate = DelegationLockName + "(%d, %s, %s, 0x%s, u64/%d)"
 )
 
-// TODO fix delegation lock should not fail because owner lock and target lock uses different unlock data formats
-
 const delegationLockSource = `
 func minimumDelegatedAmount : u64/50000000
 
+// ledger constant. At least 1 slot between transactions of delegation chain
 func delegationPaceTicks : u64/256
 
 // $0 sibling index
@@ -68,6 +67,12 @@ func isOpenDelegationSlot : not(isZero(
 func _selfSuccessorChainData : evalArgumentBytecode(producedConstraintByIndex(slice(selfSiblingUnlockParams($0),0,1)), #chain, 0)	
 
 // $0 chain constraint index
+func _validDelegationChainPace : or(
+	isZero(chainID(selfChainData($0))),  // origin
+    require(lessThan(delegationPaceTicks, ticksBefore(selfChainPredecessorTimestamp($0),txTimestampBytes)), !!!wrong_delegation_chain_pace)
+)
+
+// $0 chain constraint index
 // $1 target lock
 // $2 owner lock
 // $3 start time 
@@ -84,7 +89,7 @@ func delegationLock: and(
             require(equal(parsePrefixBytecode(selfSiblingConstraint($0)), #chain), !!!wrong_chain_constraint_index),
             require(greaterOrEqualThan(selfAmountValue, minimumDelegatedAmount), !!!delegation_amount_is_below_minimum),
 	        require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
-            require(lessThan(delegationPaceTicks, ticksBefore(chainPredecessorTimestamp($0),txTimestampBytes)), !!!wrong_delegation_chain_pace),  // FIXME chain origin edge case
+            _validDelegationChainPace($0),
             $1, $2
         ), 
         and(
@@ -92,17 +97,13 @@ func delegationLock: and(
             selfIsConsumedOutput,
             or(
                $2,   // unlocked owner's lock validates it all
-               require(
-				 // otherwise, check delegation case on open slots. Closed slots will fail
-                  and(  
-                     isOpenDelegationSlot(_selfSuccessorChainData($0), txTimeSlot),  
-                     _enforceDelegationTargetConstraintsOnSuccessor(
-                         $0,
-                         $1, 
-                         producedOutputByIndex(byte(selfSiblingUnlockParams($0), 0))
-                     ) // check successor
-                  ),
-                  !!!delegation_target_lock_failed
+               and(
+                   require(isOpenDelegationSlot(_selfSuccessorChainData($0), txTimeSlot), !!!must _be_on_liquidity_slot),
+                   require(_enforceDelegationTargetConstraintsOnSuccessor(
+                      $0,
+                      $1, 
+                      producedOutputByIndex(byte(selfSiblingUnlockParams($0), 0))
+                   ), !!!wrong_delegation_target_successor)
                )
             )
         )
@@ -237,8 +238,12 @@ func NextOpenDelegationSlot(chainID ChainID, slot Slot) Slot {
 	return slot
 }
 
-func NextOpenDelegationTimestamp(chainID ChainID, ts Time) Time {
-	return NewLedgerTime(NextOpenDelegationSlot(chainID, ts.Slot()), ts.Tick())
+func NextOpenDelegationTimestamp(chainID ChainID, ts Time) (ret Time) {
+	ret = ts
+	if DiffTicks(ret, ts) < int64(DelegationLockPaceTicks()) {
+		ret = ts.AddTicks(int(DelegationLockPaceTicks()))
+	}
+	return NewLedgerTime(NextOpenDelegationSlot(chainID, ret.Slot()), ret.Tick())
 }
 
 func NextClosedDelegationSlot(chainID ChainID, slot Slot) Slot {
@@ -247,6 +252,25 @@ func NextClosedDelegationSlot(chainID ChainID, slot Slot) Slot {
 	return slot
 }
 
-func NextClosedDelegationTimestamp(chainID ChainID, ts Time) Time {
-	return NewLedgerTime(NextClosedDelegationSlot(chainID, ts.Slot()), ts.Tick())
+func NextClosedDelegationTimestamp(chainID ChainID, ts Time) (ret Time) {
+	ret = ts
+	if DiffTicks(ret, ts) < int64(DelegationLockPaceTicks()) {
+		ret = ts.AddTicks(int(DelegationLockPaceTicks()))
+	}
+	return NewLedgerTime(NextClosedDelegationSlot(chainID, ret.Slot()), ret.Tick())
+}
+
+var _delegationLockPace atomic.Uint64
+
+func DelegationLockPaceTicks() uint64 {
+	v := _delegationLockPace.Load()
+	if v > 0 {
+		return v
+	}
+	constBin, err := L().EvalFromSource(nil, "delegationPaceTicks")
+	util.AssertNoError(err)
+
+	v = binary.BigEndian.Uint64(constBin)
+	_delegationLockPace.Store(v)
+	return v
 }

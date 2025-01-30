@@ -123,7 +123,7 @@ func inflation : or(
            require(
 	    		lessOrEqualThan(
                     $0,
-                    _calcChainInflationAmountForPredecessor(chainPredecessorInputIndex($1))
+                    _calcChainInflationAmountForPredecessor(selfChainPredecessorInputIndex($1))
 			    ),
 			    !!!invalid_chain_inflation_amount
 		   )

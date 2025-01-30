@@ -153,14 +153,7 @@ func destroyUnlockParams : 0xffffff
 // $0 - chain constraint data
 func chainID : slice($0, 0, 31)
 
-func requireChainTransition : require(
-    and(
-       not(equal(chainID($0), repeat(0,32))),
-       isZero(byte($0, 34))
-	),
-    !!!must_be_a_chain_transition
-)
-
+// $0 - chain constraint data
 func transitionMode: byte($0, 34)
 func predecessorConstraintIndex : slice($0, 32, 33) // 2 bytes
 
@@ -281,12 +274,15 @@ func chain: and(
    )
 )
 
+// $0 - chain constraint index
+func selfChainData : evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0)
+
 // $0 - chain constraint index in the produced output
 // Returns chain predecessor input by 1-byte index
-func chainPredecessorInputIndex : byte(evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0),32)
+func selfChainPredecessorInputIndex : byte(selfChainData($0),32)
 
 // $0 - chain constraint index in the produced output
 // Returns chain predecessor timestamp in the context of produced successor by by 1-byte index of the chain constraint 
-func chainPredecessorTimestamp : timestampOfInputByIndex(chainPredecessorInputIndex($0))
+func selfChainPredecessorTimestamp : timestampOfInputByIndex(selfChainPredecessorInputIndex($0))
 
 `
