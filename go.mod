@@ -28,6 +28,12 @@ require (
 )
 
 require (
+	github.com/golang/mock v1.6.0 // indirect
+	github.com/rs/xid v1.4.0 // indirect
+)
+
+require (
+	github.com/DrmagicE/gmqtt v0.5.0
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -94,6 +100,7 @@ require (
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/mochi-mqtt/server/v2 v2.6.6
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
