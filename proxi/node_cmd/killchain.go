@@ -133,11 +133,17 @@ func makeTransactionLoop(par killChainParams) {
 	attempt := 1
 	for {
 		o, _, lrbid, err := clnt.GetChainOutput(par.chainID)
-		if !errors.Is(err, multistate.ErrNotFound) {
+		if errors.Is(err, multistate.ErrNotFound) {
+			_, lrbid, err = clnt.GetLatestReliableBranch()
 			glb.AssertNoError(err)
+			glb.Infof("chain %s not found. LRB (latest reliable branch) is %s (%d slots behind from now)",
+				par.chainID.StringShort(), lrbid.String(), ledger.TimeNow().Slot()-lrbid.Slot())
+			return
 		}
+		glb.AssertNoError(err)
+
 		if ledger.TimeNow().Slot()-lrbid.Slot() > 2 {
-			glb.Infof("warning: LRB is %d slots behind from now. Node may not be synced", ledger.TimeNow().Slot()-lrbid.Slot())
+			glb.Infof("warning: LRB  (latest reliable branch) is %d slots behind from now. Node may not be synced", ledger.TimeNow().Slot()-lrbid.Slot())
 		}
 		if !consumedOutputs.Contains(o.ID) {
 			ts := ledger.NextClosedDelegationTimestamp(par.chainID, o.Timestamp())
@@ -157,11 +163,9 @@ func makeTransactionLoop(par killChainParams) {
 			err = clnt.SubmitTransaction(tx.Bytes())
 			glb.AssertNoError(err)
 
-			ahead := ledger.DiffTicks(tx.Timestamp(), ledger.TimeNow())
 			lrbBehindTicks := ledger.DiffTicks(lrbid.Timestamp(), ledger.TimeNow())
-			glb.Infof("attempt #%d. LRB is %d ticks (%v) behind", attempt, lrbBehindTicks, time.Duration(lrbBehindTicks)*ledger.TickDuration())
-			glb.Infof("          submitted transaction %s. Liquidity window is %+d ticks in the future (past) (%v)",
-				tx.IDString(), ahead, time.Duration(ahead)*ledger.TickDuration())
+			glb.Infof("attempt #%d. Submitted transaction %s. LRB (latest reliable branch) is %d ticks, %d slots, %v behind. ",
+				attempt, tx.IDString(), lrbBehindTicks, lrbBehindTicks/256, time.Duration(lrbBehindTicks)*ledger.TickDuration())
 			glb.Verbosef("-------------- transaction --------------\n%s", tx.String())
 
 			consumedOutputs.Insert(o.ID)
