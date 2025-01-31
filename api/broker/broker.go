@@ -6,8 +6,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/listeners"
@@ -53,26 +55,27 @@ func Run(addr string, env environment) {
 	}()
 	log.Println("MQTT server running on tcp://localhost:1883 and ws://localhost:8082")
 
-	// Start publishing messages
-	//go srv.startPublishing()
-
 	env.ListenToVids(func(vid *vertex.WrappedTx) {
 		env.Tracef("brk", "TX ID: %s", vid.IDShortString())
 
 		log.Println("got vid TXID: ", vid.IDShortString())
 
-		// JSON-encode the vid object
-		vidJSON, err := json.Marshal(vid)
+		var tx *transaction.Transaction
+		vid.RUnwrap(vertex.UnwrapOptions{
+			Vertex: func(v *vertex.Vertex) {
+				tx = v.Tx
+			},
+		})
+
+		vidDep := api.VertexWithDependenciesFromTransaction(tx)
+		respBin, err := json.MarshalIndent(vidDep, "", "  ")
 		if err != nil {
 			log.Printf("Error encoding vid to JSON: %v", err)
 			return
 		}
 
-		// Send the JSON-encoded vid
-		// Replace this with your actual sending logic
-		log.Printf("Sending JSON-encoded vid: %s", string(vidJSON))
-		// Example: sendToMQTT(vidJSON)
-		srv.Server.Publish("test/topic", []byte(vidJSON), false, 0)
+		//log.Printf("Sending JSON-encoded vid: %s", string(respBin))
+		srv.Server.Publish("test/topic", []byte(respBin), false, 0)
 		if err != nil {
 			log.Printf("Published message err: %s", err.Error())
 		}
