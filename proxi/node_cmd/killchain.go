@@ -66,14 +66,12 @@ func runKillChainCmd(_ *cobra.Command, args []string) {
 
 	wg.Add(2)
 	go func() {
-		if checkChainLoop(chainID, 2*time.Second, ctx) {
-			glb.Infof("success")
-		} else {
-			glb.Infof("failed")
-		}
+		checkChainLoop(chainID, 2*time.Second, ctx)
 		cancel()
 		wg.Done()
 	}()
+
+	time.Sleep(500 * time.Millisecond)
 
 	go func() {
 		makeTransactionLoop(killChainParams{
@@ -99,25 +97,35 @@ type killChainParams struct {
 	ctx           context.Context
 }
 
-func checkChainLoop(chainID ledger.ChainID, repeatPeriod time.Duration, ctx context.Context) bool {
+// checkChainLoop polls chain in the LRB state and exits when chain does not exist anymore
+func checkChainLoop(chainID ledger.ChainID, repeatPeriod time.Duration, ctx context.Context) {
 	clnt := glb.GetClient()
 
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		_, _, _, err := clnt.GetChainOutput(chainID)
 		if errors.Is(err, multistate.ErrNotFound) {
 			glb.Infof("chain %s does not exist anymore", chainID.String())
-			return true
+			return
 		}
 		glb.AssertNoError(err)
-
 		select {
 		case <-ctx.Done():
-			return false
+			return
 		case <-time.After(repeatPeriod):
 		}
+
 	}
 }
 
+// makeTransactionLoop periodically issues new killchain transaction for each new LRB which has new delegation output
+// the transaction's timestamp is at the nearest liquidity window timestamp.
+// Multiple transactions are issued until one succeeds. The rest are double-spends and are orphaned
 func makeTransactionLoop(par killChainParams) {
 	clnt := glb.GetClient()
 	consumedOutputs := set.New[ledger.OutputID]()
@@ -125,13 +133,11 @@ func makeTransactionLoop(par killChainParams) {
 	attempt := 1
 	for {
 		o, _, lrbid, err := clnt.GetChainOutput(par.chainID)
-		if errors.Is(err, multistate.ErrNotFound) {
-			return
+		if !errors.Is(err, multistate.ErrNotFound) {
+			glb.AssertNoError(err)
 		}
-		glb.AssertNoError(err)
 		if ledger.TimeNow().Slot()-lrbid.Slot() > 2 {
-			glb.Infof("LRB is %d slots behind. Exit", ledger.TimeNow().Slot()-lrbid.Slot())
-			return
+			glb.Infof("warning: LRB is %d slots behind from now. Node may not be synced", ledger.TimeNow().Slot()-lrbid.Slot())
 		}
 		if !consumedOutputs.Contains(o.ID) {
 			ts := ledger.NextClosedDelegationTimestamp(par.chainID, o.Timestamp())
@@ -154,7 +160,7 @@ func makeTransactionLoop(par killChainParams) {
 			ahead := ledger.DiffTicks(tx.Timestamp(), ledger.TimeNow())
 			lrbBehindTicks := ledger.DiffTicks(lrbid.Timestamp(), ledger.TimeNow())
 			glb.Infof("attempt #%d. LRB is %d ticks (%v) behind", attempt, lrbBehindTicks, time.Duration(lrbBehindTicks)*ledger.TickDuration())
-			glb.Infof("          submitted transaction %s. Liquidity window is %+d ticks ahead (%v)",
+			glb.Infof("          submitted transaction %s. Liquidity window is %+d ticks in the future (past) (%v)",
 				tx.IDString(), ahead, time.Duration(ahead)*ledger.TickDuration())
 			glb.Verbosef("-------------- transaction --------------\n%s", tx.String())
 

@@ -571,7 +571,7 @@ func (seq *Sequencer) generateMilestoneForTarget(targetTs ledger.Time) (*transac
 		targetTs.String, deadline.Format("15:04:05.999"), nowis.Format("15:04:05.999"))
 
 	if deadline.Before(nowis) {
-		return nil, nil, fmt.Errorf("target %s is in the past by %v: impossible to generate milestone",
+		return nil, nil, fmt.Errorf("sequencer: target %s is in the past by %v: impossible to generate milestone",
 			targetTs.String(), nowis.Sub(deadline))
 	}
 	return task.Run(seq, targetTs, seq.slotData)
