@@ -337,6 +337,6 @@ func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 	return p.peers.DurationSinceLastMessageFromPeer()
 }
 
-func (p *ProximaNode) ListenToAccount(account ledger.Accountable, fun func(wOut vertex.WrappedOutput)) {
-	// Implement the method as required by the broker.environment interface
+func (p *ProximaNode) ListenToVids(fun func(vid *vertex.WrappedTx)) {
+	p.workflow.ListenToVids(fun)
 }

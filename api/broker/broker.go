@@ -1,13 +1,13 @@
 package broker
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/listeners"
@@ -17,7 +17,7 @@ import (
 type (
 	environment interface {
 		global.Logging
-		ListenToAccount(account ledger.Accountable, fun func(wOut vertex.WrappedOutput))
+		ListenToVids(fun func(vid *vertex.WrappedTx))
 	}
 
 	broker struct {
@@ -53,41 +53,32 @@ func Run(addr string, env environment) {
 	}()
 	log.Println("MQTT server running on tcp://localhost:1883 and ws://localhost:8082")
 
-	// Subscribe to a topic
-	//srv.subscribeToTopic("test/topic")
-
 	// Start publishing messages
-	go srv.startPublishing()
+	//go srv.startPublishing()
 
-	account, _ := ledger.AccountableFromSource("a(0x033d48aa6f02b3f37811ae82d9c383855d3d23373cbd28ab94639fdd94a4f02d)")
-	env.ListenToAccount(account, func(wOut vertex.WrappedOutput) {
-		env.Tracef("brk", "output IN: %s", wOut.IDShortString)
+	env.ListenToVids(func(vid *vertex.WrappedTx) {
+		env.Tracef("brk", "TX ID: %s", vid.IDShortString())
 
-		// ret.mutex.Lock()
-		// defer ret.mutex.Unlock()
+		log.Println("got vid TXID: ", vid.IDShortString())
 
-		// if _, already := ret.outputs[wOut]; already {
-		// 	env.Tracef(TraceTag, "repeating output %s", wOut.IDShortString)
-		// 	return
-		// }
-		// // reference it
-		// if !ret.checkAndReferenceCandidate(wOut) {
-		// 	// failed to reference -> ignore
-		// 	return
-		// }
-		// // new referenced output -> put it into the map
-		// nowis := time.Now()
-		// ret.outputs[wOut] = nowis
-		// ret.lastOutputArrived = nowis
-		// ret.outputCount++
-		// env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDShortString, len(ret.outputs))
+		// JSON-encode the vid object
+		vidJSON, err := json.Marshal(vid)
+		if err != nil {
+			log.Printf("Error encoding vid to JSON: %v", err)
+			return
+		}
+
+		// Send the JSON-encoded vid
+		// Replace this with your actual sending logic
+		log.Printf("Sending JSON-encoded vid: %s", string(vidJSON))
+		// Example: sendToMQTT(vidJSON)
+		srv.Server.Publish("test/topic", []byte(vidJSON), false, 0)
+		if err != nil {
+			log.Printf("Published message err: %s", err.Error())
+		}
 	})
 
 	// srv.registerHandlers()
-	// srv.registerMetrics()
-
-	// err := srv.ListenAndServe()
-	// util.AssertNoError(err)
 }
 
 // 	//srv.Server.Subscribe(topic, func(cl *mqtt.Client, msg packets.Message) {
