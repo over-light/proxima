@@ -59,16 +59,23 @@ func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithCha
 		len(outs), addr.String())
 	for i, o := range outs {
 		seq := "NO"
-		if o.ID.IsSequencerTransaction() {
-			sd, _ := o.Output.SequencerOutputData()
-			if sd != nil {
-				seq = "YES"
-				if md := sd.MilestoneData; md != nil {
-					seq = fmt.Sprintf("%s (%d/%d)", md.Name, md.ChainHeight, md.BranchHeight)
-				}
+		sd, _ := o.Output.SequencerOutputData()
+		if sd != nil {
+			if showDelegationsOnly {
+				continue
+			}
+			seq = "YES"
+			if md := sd.MilestoneData; md != nil {
+				seq = fmt.Sprintf("%s (%d/%d)", md.Name, md.ChainHeight, md.BranchHeight)
 			}
 		}
+
 		lock := o.Output.Lock()
+		if lock.Name() == ledger.DelegationLockName {
+			if showSequencersOnly {
+				continue
+			}
+		}
 		glb.Infof("\n%2d: %s -- %s, sequencer: "+seq, i, o.ChainID.String(), o.ID.StringShort())
 		glb.Infof("      balance     : %s", util.Th(o.Output.Amount()))
 		glb.Infof("      lock        : %s", lock.String())
