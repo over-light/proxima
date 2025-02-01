@@ -6,8 +6,8 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/api"
-	"github.com/lunfardo314/proxima/api/broker"
 	"github.com/lunfardo314/proxima/api/server"
+	"github.com/lunfardo314/proxima/api/streaming"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -28,7 +28,7 @@ func (p *ProximaNode) startAPIServer() {
 	p.Log().Infof("starting API server on %s", addr)
 
 	go server.Run(addr, p)
-	go broker.Run(addr, p)
+	go streaming.Run(addr, p)
 	go func() {
 		<-p.Ctx().Done()
 		p.stopAPIServer()
