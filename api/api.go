@@ -241,24 +241,15 @@ type (
 	}
 
 	// VertexWithDependencies primary purpose is streaming vertices for DAG visualization
-
-	InputDependency struct {
-		ID               string `json:"id"`
-		IsStem           bool   `json:"is_stem,omitempty"`
-		IsSeqPredecessor bool   `json:"is_seq_predecessor,omitempty"`
-	}
-
 	VertexWithDependencies struct {
-		ID                  string   `json:"id"`
-		TotalAmount         uint64   `json:"total_amount"`
-		TotalInflation      uint64   `json:"total_inflation"`
-		IsSequencerTx       bool     `json:"is_sequencer_tx"`
-		IsBranch            bool     `json:"is_branch"`
-		SequencerID         string   `json:"sequencer_id,omitempty"`
-		SequencerInputIndex *byte    `json:"sequencer_input_index,omitempty"`
-		StemInputIndex      *byte    `json:"stem_input_index,omitempty"`
-		InputDependencies   []string `json:"input_dependencies"`
-		Endorsements        []string `json:"endorsements,omitempty"`
+		ID                  string   `json:"id"`                // transaction ID in hex form
+		TotalAmount         uint64   `json:"a"`                 // total produced amount on transaction
+		TotalInflation      uint64   `json:"i,omitempty"`       // total inflation on transaction
+		SequencerID         string   `json:"seqid,omitempty"`   // "" (omitted) for non-seq. Useful for coloring
+		SequencerInputIndex *byte    `json:"seqidx,omitempty"`  // sequencer predecessor index for sequencer tx, otherwise nil
+		StemInputIndex      *byte    `json:"stemidx,omitempty"` // step predecessor index for branches, otherwise nil
+		Inputs              []string `json:"in"`                // list of input IDs (not empty)
+		Endorsements        []string `json:"endorse,omitempty"` // list of endorsements (can be nil)
 	}
 
 	KnownLatestMilestones struct {
@@ -376,25 +367,22 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 
 func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexWithDependencies {
 	ret := &VertexWithDependencies{
-		ID:                tx.IDStringHex(),
-		TotalAmount:       tx.TotalAmount(),
-		TotalInflation:    tx.InflationAmount(),
-		IsSequencerTx:     tx.IsSequencerMilestone(),
-		IsBranch:          tx.IsBranchTransaction(),
-		InputDependencies: make([]string, tx.NumInputs()),
-		Endorsements:      make([]string, tx.NumEndorsements()),
+		ID:             tx.IDStringHex(),
+		TotalAmount:    tx.TotalAmount(),
+		TotalInflation: tx.InflationAmount(),
+		Inputs:         make([]string, tx.NumInputs()),
+		Endorsements:   make([]string, tx.NumEndorsements()),
 	}
-	seqInputIdx, stemInput := tx.SequencerAndStemInputData()
+	seqInputIdx, stemInputIdx, seqID := tx.SequencerAndStemInputData()
 
-	if tx.IsSequencerMilestone() {
-		ret.SequencerInputIndex = seqInputIdx
+	ret.SequencerInputIndex = seqInputIdx
+	ret.StemInputIndex = stemInputIdx
+	if seqID != nil {
+		ret.SequencerID = seqID.StringHex()
 	}
 
 	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-		ret.InputDependencies[i] = oid.StringHex()
-		if stemInput != nil && *stemInput == *oid {
-			ret.StemInputIndex = util.Ref(i)
-		}
+		ret.Inputs[i] = oid.StringHex()
 		return true
 	})
 

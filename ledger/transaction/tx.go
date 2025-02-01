@@ -790,7 +790,7 @@ func (tx *Transaction) InputLoaderFromState(rdr multistate.StateReader) func(idx
 	})
 }
 
-func (tx *Transaction) SequencerAndStemInputData() (seqInputIdx *byte, stemInput *ledger.OutputID) {
+func (tx *Transaction) SequencerAndStemInputData() (seqInputIdx *byte, stemInputIdx *byte, seqID *ledger.ChainID) {
 	if !tx.IsSequencerMilestone() {
 		return
 	}
@@ -798,8 +798,15 @@ func (tx *Transaction) SequencerAndStemInputData() (seqInputIdx *byte, stemInput
 	if !seqMeta.SequencerOutputData.ChainConstraint.IsOrigin() {
 		seqInputIdx = util.Ref(seqMeta.SequencerOutputData.ChainConstraint.PredecessorInputIndex)
 	}
+	seqID = util.Ref(seqMeta.SequencerID)
+
 	if tx.IsBranchTransaction() {
-		stemInput = util.Ref(seqMeta.StemOutputData.PredecessorOutputID)
+		tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
+			if *oid == seqMeta.StemOutputData.PredecessorOutputID {
+				stemInputIdx = util.Ref(i)
+			}
+			return true
+		})
 	}
 	return
 }

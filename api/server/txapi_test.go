@@ -220,7 +220,6 @@ func TestGetParsedTransaction(t *testing.T) {
 }
 
 func TestGetVertexDep(t *testing.T) {
-
 	env, txid, err := tests.StartTestEnv()
 	require.NoError(t, err)
 
@@ -246,12 +245,22 @@ func TestGetVertexDep(t *testing.T) {
 	data, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 
+	t.Logf("JSON data:\n%s", string(data))
 	var ret api.VertexWithDependencies
 	err = json.Unmarshal(data, &ret)
 	assert.NoError(t, err)
-	assert.Equal(t, ret.TotalAmount, uint64(0x38d7ea4c68000))
-	assert.Equal(t, ret.IsBranch, true)
-	assert.Equal(t, len(ret.InputDependencies), 2)
+	txidBack, err := ledger.TransactionIDFromHexString(ret.ID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, ret.SequencerID, ledger.BoostrapSequencerIDHex)
+	assert.EqualValues(t, *txid, txidBack)
+	assert.True(t, txid.IsSequencerMilestone())
+	assert.True(t, txid.IsBranchTransaction())
+	assert.EqualValues(t, 1_000_000_000_000_000, ret.TotalAmount)
+	assert.EqualValues(t, 0, ret.TotalInflation)
+	assert.True(t, ret.SequencerInputIndex != nil && *ret.SequencerInputIndex == 0)
+	assert.True(t, ret.StemInputIndex != nil && *ret.StemInputIndex == 1)
+	assert.EqualValues(t, 2, len(ret.Inputs))
+	assert.EqualValues(t, 0, len(ret.Endorsements))
 }
 
 // use this function is avoid crash for err = nil
