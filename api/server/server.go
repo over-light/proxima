@@ -10,11 +10,9 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/lunfardo314/proxima/api"
-	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -34,8 +32,6 @@ type (
 		LatestReliableState() (multistate.SugaredStateReader, error)
 		CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int)
 		SubmitTxBytesFromAPI(txBytes []byte)
-		QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble
-		GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion
 		GetLatestReliableBranch() *multistate.BranchData
 		StateStore() multistate.StateStore
 		TxBytesStore() global.TxBytesStore
@@ -46,11 +42,6 @@ type (
 		*http.Server
 		environment
 		metrics
-	}
-
-	TxStatus struct {
-		vertex.TxIDStatus
-		*multistate.TxInclusion
 	}
 
 	metrics struct {
@@ -73,10 +64,6 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetChainOutput, srv.getChainOutput)
 	// GET request format: '/api/v1/get_output?id=<hex-encoded output ID>'
 	srv.addHandler(api.PathGetOutput, srv.getOutput)
-	// GET request format: '/api/v1/query_tx_status?txid=<hex-encoded transaction ID>[&slots=<slot span>]'
-	srv.addHandler(api.PathQueryTxStatus, srv.queryTxStatus)
-	// GET request format: '/api/v1/query_inclusion_score?txid=<hex-encoded transaction ID>&threshold=N-D[&slots=<slot span>]'
-	srv.addHandler(api.PathQueryInclusionScore, srv.queryTxInclusionScore)
 	// POST request format '/api/v1/submit_tx'. Feedback only on parsing error, otherwise async posting
 	srv.addHandler(api.PathSubmitTransaction, srv.submitTx)
 	// GET sync info from the node '/api/v1/sync_info'
@@ -547,142 +534,6 @@ func (srv *server) getAllChains(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 }
 
-const maxSlotsSpan = 10
-
-func (srv *server) queryTxStatus(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
-
-	var txid ledger.TransactionID
-	var err error
-
-	lst, ok := r.URL.Query()["txid"]
-	if len(lst) != 1 {
-		writeErr(w, "txid expected")
-		return
-	}
-	txid, err = ledger.TransactionIDFromHexString(lst[0])
-	if err != nil {
-		writeErr(w, err.Error())
-		return
-	}
-
-	slotSpan := 1
-	lst, ok = r.URL.Query()["slots"]
-	if ok && len(lst) == 1 {
-		slotSpan, err = strconv.Atoi(lst[0])
-
-		if slotSpan < 1 || slotSpan > maxSlotsSpan {
-			writeErr(w, fmt.Sprintf("parameter 'slots' must be between 1 and %d", maxSlotsSpan))
-			return
-		}
-	}
-
-	// query tx ID status
-	var resp api.QueryTxStatus
-	err = util.CatchPanicOrError(func() error {
-		resp = api.QueryTxStatus{
-			TxIDStatus: srv.QueryTxIDStatusJSONAble(&txid),
-			Inclusion:  srv.GetTxInclusion(&txid, slotSpan).JSONAble(),
-		}
-		return nil
-	})
-	if err != nil {
-		writeErr(w, err.Error())
-		return
-	}
-	respBin, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		writeErr(w, err.Error())
-		return
-	}
-	_, err = w.Write(respBin)
-	util.AssertNoError(err)
-}
-
-func decodeThreshold(par string) (int, int, error) {
-	thrSplit := strings.Split(par, "-")
-	if len(thrSplit) != 2 {
-		return 0, 0, fmt.Errorf("wrong parameter 'threshold'")
-	}
-	num, err := strconv.Atoi(thrSplit[0])
-	if err != nil {
-		return 0, 0, fmt.Errorf("wrong parameter 'threshold': %v", err)
-	}
-	denom, err := strconv.Atoi(thrSplit[1])
-	if err != nil {
-		return 0, 0, fmt.Errorf("wrong parameter 'threshold': %v", err)
-	}
-	if !multistate.ValidInclusionThresholdFraction(num, denom) {
-		return 0, 0, fmt.Errorf("wrong parameter 'threshold': %s", par)
-	}
-	return num, denom, nil
-}
-
-const TraceTagQueryInclusion = "inclusion"
-
-func (srv *server) queryTxInclusionScore(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
-
-	var txid ledger.TransactionID
-	var err error
-
-	lst, ok := r.URL.Query()["txid"]
-	if len(lst) != 1 {
-		writeErr(w, "txid expected")
-		return
-	}
-
-	txid, err = ledger.TransactionIDFromHexString(lst[0])
-	if err != nil {
-		writeErr(w, err.Error())
-		return
-	}
-
-	slotSpan := 1
-	lst, ok = r.URL.Query()["slots"]
-	if ok && len(lst) == 1 {
-		slotSpan, err = strconv.Atoi(lst[0])
-
-		if slotSpan < 1 || slotSpan > maxSlotsSpan {
-			writeErr(w, fmt.Sprintf("parameter 'slots' must be between 1 and %d", maxSlotsSpan))
-			return
-		}
-	}
-
-	var thresholdNumerator, thresholdDenominator int
-	lst, ok = r.URL.Query()["threshold"]
-	if ok && len(lst) == 1 {
-		thresholdNumerator, thresholdDenominator, err = decodeThreshold(lst[0])
-		if err != nil {
-			writeErr(w, err.Error())
-			return
-		}
-	} else {
-		writeErr(w, fmt.Sprintf("wrong or missing parameter 'threshold': %+v", lst))
-		return
-	}
-	var inclusion *multistate.TxInclusion
-	err = util.CatchPanicOrError(func() error {
-		inclusion = srv.GetTxInclusion(&txid, slotSpan)
-		return nil
-	})
-	if err != nil {
-		writeErr(w, err.Error())
-		return
-	}
-	resp := api.QueryTxInclusionScore{
-		TxInclusionScore: srv.calcTxInclusionScore(inclusion, thresholdNumerator, thresholdDenominator),
-	}
-
-	respBin, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		writeErr(w, err.Error())
-		return
-	}
-	_, err = w.Write(respBin)
-	util.AssertNoError(err)
-}
-
 func (srv *server) getLatestReliableBranch(w http.ResponseWriter, r *http.Request) {
 	setHeader(w)
 
@@ -752,16 +603,6 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 	}
 	_, err = w.Write(respBin)
 	util.AssertNoError(err)
-}
-
-// calcTxInclusionScore calculates inclusion score response from inclusion data
-func (srv *server) calcTxInclusionScore(inclusion *multistate.TxInclusion, thresholdNumerator, thresholdDenominator int) api.TxInclusionScore {
-	srv.Tracef(TraceTagQueryInclusion, "calcTxInclusionScore: %s, threshold: %d/%d", inclusion.String(), thresholdNumerator, thresholdDenominator)
-
-	ret := api.CalcTxInclusionScore(inclusion, thresholdNumerator, thresholdDenominator)
-	ret.LRBID = inclusion.LRBID.StringHex()
-	ret.IncludedInLRB = inclusion.IncludedInLRB
-	return ret
 }
 
 func writeErr(w http.ResponseWriter, errStr string) {

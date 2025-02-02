@@ -7,7 +7,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/api/server"
-	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -105,14 +104,6 @@ func (p *ProximaNode) SubmitTxBytesFromAPI(txBytes []byte) {
 
 func (p *ProximaNode) SubmitTxBytesFromInflator(txBytes []byte) {
 	p.workflow.TxBytesInFromInflatorQueued(txBytes)
-}
-
-func (p *ProximaNode) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble {
-	return p.workflow.QueryTxIDStatusJSONAble(txid)
-}
-
-func (p *ProximaNode) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion {
-	return p.workflow.GetTxInclusion(txid, slotsBack)
 }
 
 func (p *ProximaNode) GetLatestReliableBranch() (ret *multistate.BranchData) {

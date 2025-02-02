@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/api"
-	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -423,54 +422,6 @@ func (c *APIClient) GetAccountOutputsExt(account ledger.Accountable, maxOutputs 
 		return nil, nil, err
 	}
 	return outs, lrbid, nil
-}
-
-func (c *APIClient) QueryTxIDStatus(txid ledger.TransactionID, slotSpan int) (*vertex.TxIDStatus, *multistate.TxInclusion, error) {
-	path := fmt.Sprintf(api.PathQueryTxStatus+"?txid=%s&slots=%d", txid.StringHex(), slotSpan)
-	body, err := c.getBody(path)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var res api.QueryTxStatus
-
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unmarshal: %w", err)
-	}
-	if res.Error.Error != "" {
-		return nil, nil, fmt.Errorf("from server: %s", res.Error.Error)
-	}
-
-	retTxIDStatus, err := res.TxIDStatus.Parse()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	retInclusion, err := res.Inclusion.Parse()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return retTxIDStatus, retInclusion, nil
-}
-
-func (c *APIClient) QueryTxInclusionScore(txid ledger.TransactionID, thresholdNumerator, thresholdDenominator, slotSpan int) (*api.TxInclusionScore, error) {
-	path := fmt.Sprintf(api.PathQueryInclusionScore+"?txid=%s&threshold=%d-%d&slots=%d",
-		txid.StringHex(), thresholdNumerator, thresholdDenominator, slotSpan)
-	body, err := c.getBody(path)
-	if err != nil {
-		return nil, err
-	}
-	var res api.QueryTxInclusionScore
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal returned: %v\nbody: '%s'", err, string(body))
-	}
-	if res.Error.Error != "" {
-		return nil, fmt.Errorf("from server: %s", res.Error.Error)
-	}
-	return &res.TxInclusionScore, nil
 }
 
 func (c *APIClient) GetNodeInfo() (*global.NodeInfo, error) {

@@ -89,15 +89,6 @@ func (w *Workflow) QueryTxIDStatus(txid *ledger.TransactionID) (ret vertex.TxIDS
 	return
 }
 
-func (w *Workflow) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble {
-	ret := w.QueryTxIDStatus(txid)
-	return ret.JSONAble()
-}
-
-func (w *Workflow) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion {
-	return multistate.GetTxInclusion(w.StateStore(), txid, slotsBack)
-}
-
 func (w *Workflow) WaitTxIDDefined(txid *ledger.TransactionID, pollPeriod, timeout time.Duration) (vertex.Status, error) {
 	deadline := time.Now().Add(timeout)
 	for {

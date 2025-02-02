@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 
 	"github.com/lunfardo314/proxima/core/txmetadata"
-	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -22,8 +21,6 @@ const (
 	PathGetChainedOutputs                = PrefixAPIV1 + "/get_chain_outputs"
 	PathGetChainOutput                   = PrefixAPIV1 + "/get_chain_output"
 	PathGetOutput                        = PrefixAPIV1 + "/get_output"
-	PathQueryTxStatus                    = PrefixAPIV1 + "/query_tx_status"
-	PathQueryInclusionScore              = PrefixAPIV1 + "/query_inclusion_score"
 	PathSubmitTransaction                = PrefixAPIV1 + "/submit_tx"
 	PathGetSyncInfo                      = PrefixAPIV1 + "/sync_info"
 	PathGetNodeInfo                      = PrefixAPIV1 + "/node_info"
@@ -102,28 +99,6 @@ type (
 		Error
 		Outputs map[string]string `json:"outputs,omitempty"`
 		LRBID   string            `json:"lrb_id"`
-	}
-
-	QueryTxStatus struct {
-		Error
-		TxIDStatus vertex.TxIDStatusJSONAble       `json:"txid_status"`
-		Inclusion  *multistate.TxInclusionJSONAble `json:"inclusion,omitempty"`
-	}
-
-	TxInclusionScore struct {
-		ThresholdNumerator   int    `json:"threshold_numerator"`
-		ThresholdDenominator int    `json:"threshold_denominator"`
-		LatestSlot           int    `json:"latest_slot"`
-		EarliestSlot         int    `json:"earliest_slot"`
-		StrongScore          int    `json:"strong_score"`
-		WeakScore            int    `json:"weak_score"`
-		LRBID                string `json:"lrb_id"`
-		IncludedInLRB        bool   `json:"included_in_lrb"`
-	}
-
-	QueryTxInclusionScore struct {
-		Error
-		TxInclusionScore
 	}
 
 	SyncInfo struct {
@@ -269,37 +244,6 @@ type (
 )
 
 const ErrGetOutputNotFound = "output not found"
-
-func CalcTxInclusionScore(inclusion *multistate.TxInclusion, thresholdNumerator, thresholdDenominator int) TxInclusionScore {
-	ret := TxInclusionScore{
-		ThresholdNumerator:   thresholdNumerator,
-		ThresholdDenominator: thresholdDenominator,
-		LatestSlot:           int(inclusion.LatestSlot),
-		EarliestSlot:         int(inclusion.EarliestSlot),
-		StrongScore:          0,
-		WeakScore:            0,
-	}
-	if len(inclusion.Inclusion) == 0 {
-		return ret
-	}
-	var includedInBranches, numDominatingBranches, numIncludedInDominating int
-	for i := range inclusion.Inclusion {
-		if inclusion.Inclusion[i].Included {
-			includedInBranches++
-		}
-		if inclusion.Inclusion[i].RootRecord.IsCoverageAboveThreshold(thresholdNumerator, thresholdDenominator) {
-			numDominatingBranches++
-			if inclusion.Inclusion[i].Included {
-				numIncludedInDominating++
-			}
-		}
-	}
-	ret.WeakScore = (includedInBranches * 100) / len(inclusion.Inclusion)
-	if numDominatingBranches > 0 {
-		ret.StrongScore = (numIncludedInDominating * 100) / numDominatingBranches
-	}
-	return ret
-}
 
 func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 	ret := &TransactionJSONAble{

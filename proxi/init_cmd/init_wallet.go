@@ -70,21 +70,6 @@ tag_along:
     # Later it is up to the wallet owner to set the preferred tag-along sequencer
     sequencer_id: {{.BootstrapSeqID}}
     fee: 500
-finality:
-    # finality rule used by the wallet. It has no effect on the way transaction is treated by the network, 
-    # only used by the proxi to determine when to consider transaction final
-    inclusion_threshold:
-        # numerator / denominator is the 'theta' of the WP.
-        # with strong finality, the wallet waits until all branches in last 2 slots 
-        # with coverage > (numerator / denominator) * supply contains the transaction
-        # With weak finality inclusion_threshold has no effect
-        numerator: 2
-        denominator: 3
-        # strong: based on ledger coverage and inclusion_threshold
-        # weak: wait until all branches in the last 2 slots contains the transaction.
-        # The weak finality may be used when less than totalSupply/2 of sequencers are active,
-        # for example during bootstrap
-    weak: false
 
 # provides parameters for 'proxi node getfunds' command
 faucet:
