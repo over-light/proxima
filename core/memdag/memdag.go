@@ -192,6 +192,15 @@ func (d *MemDAG) HeaviestStateForLatestTimeSlot() multistate.SugaredStateReader 
 	return multistate.MakeSugared(multistate.MustNewReadable(d.StateStore(), rootRecords[0].Root, 0))
 }
 
+func (d *MemDAG) CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int) {
+	lrb, atDepth := multistate.CheckTransactionInLRB(d.StateStore(), txid, maxDepth, global.FractionHealthyBranch)
+	if lrb == nil || atDepth < 0 {
+		foundAtDepth = -1
+		return
+	}
+	return lrb.Stem.ID.TransactionID(), atDepth
+}
+
 // WaitUntilTransactionInHeaviestState for testing mostly
 func (d *MemDAG) WaitUntilTransactionInHeaviestState(txid ledger.TransactionID, timeout ...time.Duration) (*vertex.WrappedTx, error) {
 	deadline := time.Now().Add(10 * time.Minute)

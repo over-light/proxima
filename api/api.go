@@ -173,11 +173,11 @@ type (
 		BranchID ledger.TransactionID          `json:"branch_id,omitempty"`
 	}
 
-	CheckRxIDInLRB struct {
+	CheckTxIDInLRB struct {
 		Error
-		LRBID    string `json:"lrb_id"`
-		TxID     string `json:"txid"`
-		Included bool   `json:"included"`
+		TxID         string `json:"txid"`
+		LRBID        string `json:"lrbid"`
+		FoundAtDepth int    `json:"found_at_depth"`
 	}
 
 	TxBytes struct {

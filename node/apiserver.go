@@ -95,6 +95,10 @@ func (p *ProximaNode) LatestReliableState() (multistate.SugaredStateReader, erro
 	return p.workflow.LatestReliableState()
 }
 
+func (p *ProximaNode) CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int) {
+	return p.workflow.CheckTransactionInLRB(txid, maxDepth)
+}
+
 func (p *ProximaNode) SubmitTxBytesFromAPI(txBytes []byte) {
 	p.workflow.TxBytesInFromAPIQueued(txBytes)
 }

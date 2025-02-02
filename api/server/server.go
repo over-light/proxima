@@ -32,6 +32,7 @@ type (
 		GetSyncInfo() *api.SyncInfo
 		GetPeersInfo() *api.PeersInfo
 		LatestReliableState() (multistate.SugaredStateReader, error)
+		CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int)
 		SubmitTxBytesFromAPI(txBytes []byte)
 		QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble
 		GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion
@@ -86,7 +87,7 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetPeersInfo, srv.getPeersInfo)
 	// GET latest reliable branch '/api/v1/get_latest_reliable_branch'
 	srv.addHandler(api.PathGetLatestReliableBranch, srv.getLatestReliableBranch)
-	// GET latest reliable branch and check if transaction ID is in it '/check_txid_in_lrb?txid=<hex-encoded transaction ID>'
+	// GET latest reliable branch and check if transaction ID is in it '/check_txid_in_lrb?txid=<hex-encoded transaction ID>[&max_depth=<max depth in LRB>]'
 	srv.addHandler(api.PathCheckTxIDInLRB, srv.checkTxIDIncludedInLRB)
 	// GET last milestone list
 	srv.addHandler(api.PathGetLastKnownSequencerMilestones, srv.getMilestoneList)
@@ -710,6 +711,7 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 	var txid ledger.TransactionID
 	var err error
 
+	// mandatory parameter txid
 	lst, ok := r.URL.Query()["txid"]
 	if !ok || len(lst) != 1 {
 		writeErr(w, "txid expected")
@@ -721,18 +723,28 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var resp api.CheckRxIDInLRB
-	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
-		lrbid := rdr.GetStemOutput().ID.TransactionID()
-		resp.LRBID = lrbid.StringHex()
-		resp.TxID = txid.StringHex()
-		resp.Included = rdr.KnowsCommittedTransaction(&txid)
-		return nil
-	})
-	if err != nil {
-		writeErr(w, err.Error())
-		return
+	maxDepth := 1 // default max depth is 1
+	// optional parameter
+	lst, ok = r.URL.Query()["max_depth"]
+	if ok && len(lst) == 1 {
+		maxDepth, err = strconv.Atoi(lst[0])
+		if err != nil {
+			writeErr(w, err.Error())
+			return
+		}
+		if maxDepth < 0 || maxDepth > 5 {
+			// wrong value reset to default
+			maxDepth = 1
+		}
 	}
+
+	lrbid, foundAyDepth := srv.CheckTransactionInLRB(txid, maxDepth)
+	resp := api.CheckTxIDInLRB{
+		TxID:         txid.StringHex(),
+		LRBID:        lrbid.StringHex(),
+		FoundAtDepth: foundAyDepth,
+	}
+
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		writeErr(w, err.Error())

@@ -102,7 +102,7 @@ func listGrouped(chains []*ledger.OutputWithChainID) {
 	m := make(map[string][]*ledger.OutputWithChainID)
 
 	total := uint64(0)
-
+	count := 0
 	for _, o := range chains {
 		lock := o.Output.Lock()
 		if lock.Name() != ledger.DelegationLockName {
@@ -119,7 +119,7 @@ func listGrouped(chains []*ledger.OutputWithChainID) {
 	}
 
 	for tl := range m {
-		glb.Infof("\ntarget lock: %s", tl)
+		glb.Infof("\ntarget lock: %s, total delegations: %d", tl, len(m[tl]))
 		totalForTarget := uint64(0)
 		for _, o := range m[tl] {
 			glb.Infof("\n      id              : %s", o.ChainID.String())
@@ -127,9 +127,10 @@ func listGrouped(chains []*ledger.OutputWithChainID) {
 			glb.Infof("      controller lock : %s", o.Output.Lock().String())
 			glb.Infof("      output          : %s", o.ID.String())
 			totalForTarget += o.Output.Amount()
+			count++
 		}
-		glb.Infof("\n------ total delegated to the target lock: %s", util.Th(totalForTarget))
+		glb.Infof("\n------ Amount delegated to the target lock: %s", util.Th(totalForTarget))
 		total += totalForTarget
 	}
-	glb.Infof("\nTOTAL delegated amount: %s", util.Th(total))
+	glb.Infof("\nTOTAL delegations: %d, delegated amount: %s", count, util.Th(total))
 }

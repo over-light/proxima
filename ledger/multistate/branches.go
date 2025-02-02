@@ -480,10 +480,13 @@ func IterateSlotsBack(store StateStoreReader, fun func(slot ledger.Slot, roots [
 	}
 }
 
-// FindRootsFromLatestHealthySlot return all roots from the latest slot which contains at least one healthy root
-// Note that in theory it may not exist at all. Normally it will exist tho, because:
-// - either database contain branches down to genesis
-// - or it was started from snapshot which (normally) represents healthy state
+// FindRootsFromLatestHealthySlot
+// Healthy slot is a slot which contains at least one healthy root.
+// Function returns all roots from the latest healthy slot.
+// Note that in theory latest healthy slot it may not exist at all, i.e. all slot in the DB does not contain any healthy root.
+// Normally it will exist tho, because:
+// - either database contains all branches down to genesis
+// - or it was started from snapshot which (normally) represents a healthy state
 func FindRootsFromLatestHealthySlot(store StateStoreReader, fraction global.Fraction) ([]RootRecord, bool) {
 	var rootsFound []RootRecord
 
@@ -523,8 +526,8 @@ func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func
 	}
 }
 
-// FindLatestReliableBranch reliable branch is the latest branch, which is contained in any
-// tip from the latest healthy branch with ledger coverage bigger than total supply
+// FindLatestReliableBranch latest reliable branch (LRB) is the latest branch, which is contained in any
+// tip from the latest healthy branch with ledger coverage bigger than fraction total supply.
 // Reliable branch is the latest global consensus state with big probability
 // Returns nil if not found
 func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) *BranchData {
@@ -533,7 +536,7 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 		// if healthy slot does not exist, reliable branch does not exist too
 		return nil
 	}
-	// filter out not healthy
+	// filter out not healthy roots in the healthy slot
 	tipRoots = util.PurgeSlice(tipRoots, func(rr RootRecord) bool {
 		return global.IsHealthyCoverage(rr.LedgerCoverage, rr.Supply, fraction)
 	})
@@ -542,7 +545,9 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 		// if only one branch is in the latest healthy slot, it is the one reliable
 		return util.Ref(FetchBranchDataByRoot(store, tipRoots[0]))
 	}
-	// there are several roots. We start traversing back from the heaviest one
+
+	// there are several healthy roots in the latest healthy slot.
+	// We start traversing back from the heaviest one
 	util.Assertf(len(tipRoots) > 1, "len(tipRoots)>1")
 	rootMaxIdx := util.IndexOfMaximum(tipRoots, func(i, j int) bool {
 		return tipRoots[i].LedgerCoverage < tipRoots[j].LedgerCoverage
@@ -631,4 +636,27 @@ func GetMainChain(store StateStoreReader, fraction global.Fraction, max ...int) 
 		return true
 	})
 	return ret, nil
+}
+
+// CheckTransactionInLRB return number of slots behind the LRB which contains txid.
+// The backwards scan is capped by maxDepth parameter. If maxDepth == 0, it means only LRB is checked
+func CheckTransactionInLRB(store StateStoreReader, txid ledger.TransactionID, maxDepth int, fraction global.Fraction) (lrb *BranchData, foundAtDepth int) {
+	foundAtDepth = -1
+	lrb = FindLatestReliableBranch(store, fraction)
+	if lrb == nil {
+		return
+	}
+
+	IterateBranchChainBack(store, lrb, func(branchID *ledger.TransactionID, branch *BranchData) bool {
+		if foundAtDepth >= maxDepth {
+			return false
+		}
+		rdr := MustNewReadable(store, branch.Root, 0)
+		if !rdr.KnowsCommittedTransaction(&txid) {
+			return false
+		}
+		foundAtDepth++
+		return true
+	})
+	return
 }

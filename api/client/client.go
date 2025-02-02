@@ -814,14 +814,17 @@ func (c *APIClient) GetLastKnownSequencerData() (map[string]tippool.LatestSequen
 	return res.Sequencers, nil
 }
 
-func (c *APIClient) CheckTransactionIDInLRB(txid ledger.TransactionID) (lrbID ledger.TransactionID, included bool, err error) {
+func (c *APIClient) CheckTransactionIDInLRB(txid ledger.TransactionID, maxDepth ...int) (lrbID ledger.TransactionID, foundAtDepth int, err error) {
 	path := api.PathCheckTxIDInLRB + "?txid=" + txid.StringHex()
+	if len(maxDepth) > 0 {
+		path += fmt.Sprintf("&max_depth=%d", maxDepth[0])
+	}
 	body, err := c.getBody(path)
 	if err != nil {
 		return
 	}
 
-	var res api.CheckRxIDInLRB
+	var res api.CheckTxIDInLRB
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		err = fmt.Errorf("unmarshal returned: %v\nbody: '%s'", err, string(body))
@@ -837,13 +840,13 @@ func (c *APIClient) CheckTransactionIDInLRB(txid ledger.TransactionID) (lrbID le
 		return
 	}
 	if resTxID != txid {
-		return ledger.TransactionID{}, false, fmt.Errorf("inconsistency: wrong txid from server")
+		return ledger.TransactionID{}, -1, fmt.Errorf("inconsistency: wrong txid from server")
 	}
 	lrbID, err = ledger.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return
 	}
-	included = res.Included
+	foundAtDepth = res.FoundAtDepth
 	return
 }
 

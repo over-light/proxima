@@ -45,12 +45,12 @@ func runSnapshotCheckAllCmd(_ *cobra.Command, _ []string) {
 			continue
 		}
 
-		_, included, err := clnt.CheckTransactionIDInLRB(ssData.branchID)
+		_, foundAtDepth, err := clnt.CheckTransactionIDInLRB(ssData.branchID, 0)
 		if err != nil {
 			glb.Infof("#%d %20s: %v", i, fname, err)
 			continue
 		}
-		if included {
+		if foundAtDepth >= 0 {
 			glb.Infof("#%d %20s: branchID: %s, seqID: %s -- CAN BE USED to start a node", i, fname, ssData.branchID.StringShort(), ssData.rootRecord.SequencerID.StringShort())
 		} else {
 			glb.Infof("#%d %20s: branchID: %s, seqID: %s -- CANNOT BE USED to start a node", i, fname, ssData.branchID.StringShort(), ssData.rootRecord.SequencerID.StringShort())

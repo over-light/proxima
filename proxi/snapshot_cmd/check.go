@@ -50,10 +50,10 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 		return
 	}
 
-	lrbID, included, err := clnt.CheckTransactionIDInLRB(ssData.branchID)
+	lrbID, foundAtDepth, err := clnt.CheckTransactionIDInLRB(ssData.branchID, 0)
 	glb.AssertNoError(err)
 	glb.Infof("\n-----------------------\nlatest reliable branch (LRB) is %s", lrbID.String())
-	if included {
+	if foundAtDepth >= 0 {
 		glb.Infof("the snapshot:")
 		glb.Infof("      - is INCLUDED in the current LRB of the network. It CAN BE USED to start a node")
 		glb.Infof("      - is %d slots back from LRB and %d slots back from now", lrbID.Slot()-ssData.branchID.Slot(), ledger.TimeNow().Slot()-ssData.branchID.Slot())
