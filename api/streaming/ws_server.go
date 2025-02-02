@@ -67,17 +67,21 @@ func (srv *ws_server) wsHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		})
 
-		vidDep := api.VertexWithDependenciesFromTransaction(tx)
-		respBin, err := json.MarshalIndent(vidDep, "", "  ")
-		if err != nil {
-			srv.Tracef(TraceTag, "Error in MarshalIndent: %s", err.Error())
-		}
+		if tx != nil {
+			vidDep := api.VertexWithDependenciesFromTransaction(tx)
+			respBin, err := json.MarshalIndent(vidDep, "", "  ")
+			if err != nil {
+				srv.Tracef(TraceTag, "Error in MarshalIndent: %s", err.Error())
+			}
 
-		//log.Printf("Sending JSON-encoded vid: %s", string(respBin))
-		err = streamData(conn, respBin)
-		if err != nil {
-			srv.Tracef(TraceTag, "Client disconnected")
-			return
+			//log.Printf("Sending JSON-encoded vid: %s", string(respBin))
+			err = streamData(conn, respBin)
+			if err != nil {
+				srv.Tracef(TraceTag, "Client disconnected")
+				return
+			}
+		} else {
+			srv.Log().Infof("wsHandler error: tx is nil")
 		}
 	})
 }
