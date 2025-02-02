@@ -11,6 +11,13 @@ INTERVAL=5   # Interval between retries (in seconds)
 START_TIME=$(date +%s)
 NEXT_OK_FILE=""
 
+if [ ! -f "proxi" ]; then
+    echo "proxi not found locally. fetching it from the container..."
+    docker create --name temp_container_proxima proxima-node
+    docker cp temp_container_proxima:/app/proxi .
+    docker rm temp_container_proxima
+fi
+
 # Retry mechanism in case the latest snapshot file is currently written. Wait for the export to finish
 while true; do
     echo "searching for valid file..."
@@ -53,6 +60,6 @@ if [ -n "$NEXT_OK_FILE" ]; then
 
     original_path=$(pwd)
     cd "${LOCAL_SAVE_PATH}"
-    proxi snapshot restore "${RECENT_FILE}"
+    ./../proxi snapshot restore "${RECENT_FILE}"
     cd "$original_path"
 fi
