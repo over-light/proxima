@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
-	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/cobra"
@@ -102,9 +101,7 @@ func NoWait() bool {
 	return viper.GetBool("nowait")
 }
 
-const slotSpan = 2
-
-func ReportTxInclusion(txid ledger.TransactionID, poll time.Duration) {
+func TrackTxInclusion(txid ledger.TransactionID, poll time.Duration) {
 	inclusionDepth := GetTargetInclusionDepth()
 	Infof("tracking inclusion of the transaction %s.\ntarget inclusion depth: %d", txid.String(), inclusionDepth)
 	lrbids := set.New[ledger.TransactionID]()
@@ -131,65 +128,6 @@ func ReportTxInclusion(txid ledger.TransactionID, poll time.Duration) {
 		}
 		time.Sleep(poll)
 	}
-}
-
-func ReportTxInclusionOld(txid ledger.TransactionID, poll time.Duration, maxSlots ...ledger.Slot) {
-	weakFinality := GetIsWeakFinality()
-
-	if len(maxSlots) > 0 {
-		Infof("Tracking inclusion of %s (hex=%s) for at most %d slots:", txid.String(), txid.StringHex(), maxSlots[0])
-	} else {
-		Infof("Tracking inclusion of %s (hex=%s):", txid.String(), txid.StringHex())
-	}
-	inclusionThresholdNumerator, inclusionThresholdDenominator := GetInclusionThreshold()
-	fin := "strong"
-	if weakFinality {
-		fin = "weak"
-	}
-	Infof("  finality criterion: %s, slot span: %d, strong inclusion threshold: %d/%d",
-		fin, slotSpan, inclusionThresholdNumerator, inclusionThresholdDenominator)
-
-	startSlot := ledger.TimeNow().Slot()
-	for {
-		score, err := GetClient().QueryTxInclusionScore(txid, inclusionThresholdNumerator, inclusionThresholdDenominator, slotSpan)
-		AssertNoError(err)
-
-		lrbid, err := ledger.TransactionIDFromHexString(score.LRBID)
-		AssertNoError(err)
-
-		slotsBack := ledger.TimeNow().Slot() - lrbid.Slot()
-		Infof("   weak score: %d%%, strong score: %d%%, slot span %d - %d (%d), included in LRB: %v, LRB is slots back: %d",
-			score.WeakScore, score.StrongScore, score.EarliestSlot, score.LatestSlot, score.LatestSlot-score.EarliestSlot+1,
-			score.IncludedInLRB, slotsBack)
-
-		if weakFinality {
-			if score.WeakScore == 100 {
-				return
-			}
-		} else {
-			if score.StrongScore == 100 {
-				return
-			}
-		}
-		time.Sleep(poll)
-
-		slotNow := ledger.TimeNow().Slot()
-		if len(maxSlots) > 0 && maxSlots[0] < slotNow-startSlot {
-			Infof("----- failed to reach finality in %d slots", maxSlots[0])
-			return
-		}
-	}
-}
-
-func GetInclusionThreshold() (int, int) {
-	numerator := viper.GetInt("finality.inclusion_threshold.numerator")
-	denominator := viper.GetInt("finality.inclusion_threshold.denominator")
-	Assertf(multistate.ValidInclusionThresholdFraction(numerator, denominator), "wrong or missing inclusion threshold")
-	return numerator, denominator
-}
-
-func GetIsWeakFinality() bool {
-	return viper.GetBool("finality.weak")
 }
 
 func GetTagAlongFee() uint64 {

@@ -54,7 +54,7 @@ func runSeqSetupCmd(_ *cobra.Command, args []string) {
 	glb.AssertNoError(err)
 	glb.Infof("new chain ID is %s", chainID.String())
 	if !glb.NoWait() {
-		glb.ReportTxInclusionOld(*txCtx.TransactionID(), time.Second)
+		glb.TrackTxInclusion(*txCtx.TransactionID(), time.Second)
 	}
 
 	// update proxi.yaml with chain id

@@ -35,10 +35,6 @@ func Init() *cobra.Command {
 	err = viper.BindPFlag("nowait", nodeCmd.PersistentFlags().Lookup("nowait"))
 	glb.AssertNoError(err)
 
-	nodeCmd.PersistentFlags().BoolP("finality.weak", "w", false, "makes to use weak finality mode")
-	err = viper.BindPFlag("finality.weak", nodeCmd.PersistentFlags().Lookup("finality.weak"))
-	glb.AssertNoError(err)
-
 	nodeCmd.PersistentFlags().BoolVarP(&glb.UseAlternativeTagAlongSequencer, "tag_along.alt", "a", false, "use alternative tag-along sequencer")
 	err = viper.BindPFlag("tag_along.alt", nodeCmd.PersistentFlags().Lookup("tag_along.alt"))
 	glb.AssertNoError(err)
@@ -61,7 +57,6 @@ func Init() *cobra.Command {
 		initChainsCmd(),
 		initNodeInfoCmd(),
 		seq_cmd.Init(),
-		initScoreCmd(),
 		initSeqSetupCmd(),
 		initSyncInfoCmd(),
 		initPeersInfoCmd(),
