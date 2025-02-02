@@ -104,19 +104,19 @@ func NoWait() bool {
 
 const slotSpan = 2
 
-func ReportTxInclusion(txid ledger.TransactionID, poll time.Duration, inclusionDepth int) {
+func ReportTxInclusion(txid ledger.TransactionID, poll time.Duration) {
+	inclusionDepth := GetTargetInclusionDepth()
 	Infof("tracking inclusion of the transaction %s.\ntarget inclusion depth: %d", txid.String(), inclusionDepth)
 	lrbids := set.New[ledger.TransactionID]()
 	clnt := GetClient()
 	start := time.Now()
+	last := time.Now()
 	for {
 		lrbid, foundAtDepth, err := clnt.CheckTransactionIDInLRB(txid, inclusionDepth)
 		AssertNoError(err)
 
-		last := time.Now()
-		if time.Since(last) > poll*2 || !lrbids.Contains(lrbid) {
+		if time.Since(last) > poll*4 || !lrbids.Contains(lrbid) {
 			since := time.Since(start) / time.Second
-			last = time.Now()
 			if foundAtDepth < 0 {
 				Infof("%2d sec. Transaction is NOT included in the latest reliable branch (LRB) %s", since, lrbid.String())
 			} else {
@@ -126,6 +126,7 @@ func ReportTxInclusion(txid ledger.TransactionID, poll time.Duration, inclusionD
 					return
 				}
 			}
+			last = time.Now()
 			lrbids.Insert(lrbid)
 		}
 		time.Sleep(poll)
@@ -217,4 +218,11 @@ func GetTagAlongSequencerID() *ledger.ChainID {
 		ret.StringShort(), o.ID.StringShort())
 
 	return &ret
+}
+
+func GetTargetInclusionDepth() int {
+	if TargetInclusionDepth < 0 {
+		return 1
+	}
+	return TargetInclusionDepth
 }

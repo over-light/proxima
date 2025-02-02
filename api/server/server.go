@@ -732,7 +732,7 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 			writeErr(w, err.Error())
 			return
 		}
-		if maxDepth < 0 || maxDepth > 5 {
+		if maxDepth < 0 {
 			// wrong value reset to default
 			maxDepth = 1
 		}

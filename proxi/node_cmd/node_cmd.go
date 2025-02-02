@@ -43,6 +43,10 @@ func Init() *cobra.Command {
 	err = viper.BindPFlag("tag_along.alt", nodeCmd.PersistentFlags().Lookup("tag_along.alt"))
 	glb.AssertNoError(err)
 
+	nodeCmd.PersistentFlags().IntVarP(&glb.TargetInclusionDepth, "depth", "e", 2, "target inclusion depth")
+	err = viper.BindPFlag("depth", nodeCmd.PersistentFlags().Lookup("depth"))
+	glb.AssertNoError(err)
+
 	nodeCmd.InitDefaultHelpCmd()
 	nodeCmd.AddCommand(
 		initGetOutputsCmd(),

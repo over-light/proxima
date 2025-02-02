@@ -9,7 +9,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-var UseAlternativeTagAlongSequencer bool
+var (
+	UseAlternativeTagAlongSequencer bool
+	TargetInclusionDepth            int
+)
 
 var displayEndpointOnce sync.Once
 
