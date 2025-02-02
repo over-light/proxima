@@ -160,7 +160,7 @@ func doSpamming(cfg spammerConfig) {
 			}
 		}
 
-		glb.ReportTxInclusion(oid.TransactionID(), time.Second, ledger.Slot(cfg.finalitySlots))
+		glb.ReportTxInclusionOld(oid.TransactionID(), time.Second, ledger.Slot(cfg.finalitySlots))
 
 		txCounter += len(bundle)
 		timeSinceBeginning := time.Since(beginTime)

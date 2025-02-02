@@ -142,5 +142,5 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	err = client.SubmitTransaction(txBytes)
 	glb.AssertNoError(err)
 
-	glb.ReportTxInclusion(txid, 2*time.Second)
+	glb.ReportTxInclusionOld(txid, 2*time.Second)
 }

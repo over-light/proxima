@@ -7,6 +7,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -103,7 +104,35 @@ func NoWait() bool {
 
 const slotSpan = 2
 
-func ReportTxInclusion(txid ledger.TransactionID, poll time.Duration, maxSlots ...ledger.Slot) {
+func ReportTxInclusion(txid ledger.TransactionID, poll time.Duration, inclusionDepth int) {
+	Infof("tracking inclusion of the transaction %s.\ntarget inclusion depth: %d", txid.String(), inclusionDepth)
+	lrbids := set.New[ledger.TransactionID]()
+	clnt := GetClient()
+	start := time.Now()
+	for {
+		lrbid, foundAtDepth, err := clnt.CheckTransactionIDInLRB(txid, inclusionDepth)
+		AssertNoError(err)
+
+		last := time.Now()
+		if time.Since(last) > poll*2 || !lrbids.Contains(lrbid) {
+			since := time.Since(start) / time.Second
+			last = time.Now()
+			if foundAtDepth < 0 {
+				Infof("%2d sec. Transaction is NOT included in the latest reliable branch (LRB) %s", since, lrbid.String())
+			} else {
+				Infof("%2d sec. Transaction INCLUDED in the latest reliable branch (LRB) %s at depth %d", since, lrbid.String(), foundAtDepth)
+				if foundAtDepth == inclusionDepth {
+					Infof("target inclusion depth %d has been reached", inclusionDepth)
+					return
+				}
+			}
+			lrbids.Insert(lrbid)
+		}
+		time.Sleep(poll)
+	}
+}
+
+func ReportTxInclusionOld(txid ledger.TransactionID, poll time.Duration, maxSlots ...ledger.Slot) {
 	weakFinality := GetIsWeakFinality()
 
 	if len(maxSlots) > 0 {

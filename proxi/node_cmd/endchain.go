@@ -103,5 +103,5 @@ func runDeleteChainCmd(_ *cobra.Command, args []string) {
 		glb.Infof("sleeping for %v", leftWaiting)
 		time.Sleep(leftWaiting)
 	}
-	glb.ReportTxInclusion(tx.ID(), 2*time.Second)
+	glb.ReportTxInclusionOld(tx.ID(), 2*time.Second)
 }

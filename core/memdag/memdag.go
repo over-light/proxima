@@ -194,11 +194,13 @@ func (d *MemDAG) HeaviestStateForLatestTimeSlot() multistate.SugaredStateReader 
 
 func (d *MemDAG) CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int) {
 	lrb, atDepth := multistate.CheckTransactionInLRB(d.StateStore(), txid, maxDepth, global.FractionHealthyBranch)
-	if lrb == nil || atDepth < 0 {
+	if atDepth < 0 {
 		foundAtDepth = -1
-		return
 	}
-	return lrb.Stem.ID.TransactionID(), atDepth
+	if lrb != nil {
+		lrbid = lrb.Stem.ID.TransactionID()
+	}
+	return
 }
 
 // WaitUntilTransactionInHeaviestState for testing mostly

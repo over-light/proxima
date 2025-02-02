@@ -108,7 +108,7 @@ func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID
 		err = glb.GetClient().SubmitTransaction(txBytes)
 		glb.AssertNoError(err)
 
-		glb.ReportTxInclusion(txid, time.Second)
+		glb.ReportTxInclusionOld(txid, time.Second)
 
 		for i := 0; ; i++ {
 			chainOutput, _, _, err = glb.GetClient().GetChainOutput(chainId)
