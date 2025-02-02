@@ -60,7 +60,6 @@ func runKillChainCmd(_ *cobra.Command, args []string) {
 		glb.Infof("exit")
 		os.Exit(0)
 	}
-	glb.Infof("\n")
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 

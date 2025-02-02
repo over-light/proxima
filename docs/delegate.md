@@ -42,63 +42,74 @@ available:
 ```text
 Command line: 'proxi node allchains -q'
 using profile: ./proxi.yaml
-using API endpoint: http://127.0.0.1:8000, default timeout
-successfully connected to the node at http://127.0.0.1:8000
-Latest reliable branch (LRB) ID: [15146|0br]01f44069d693c62919c7b56536589ec84b6382aed2e83095f46b8c, 0 slot(s) from now. Now is 15146|92
+using API endpoint: http://5.180.181.103:8001, default timeout
+successfully connected to the node at http://5.180.181.103:8001
+Latest reliable branch (LRB) ID: [8197|0br]01807d6a8602298bc647ac765b69ddacdb34fe2f9c1677c0fa2700, 1 slot(s) from now. Now is 8198|199
 
-list of all sequencer chains (1)
+show sequencers only = true
+show delegations only = false
+------------------------------
 
- 0: $/6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc, sequencer: boot.b0 (3272/1315)
-      balance         : 999_246_442_212_122
-      controller lock : a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98)
-      output          : [15146|0br]01f44069d693..[0]
+ 0: $/6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc, sequencer: boot.b0 (15138/1699)
+      balance         : 397_973_834_185_064
+      controller lock : a(0x370563b1f08fcc06fa250c59034acfd4ab5a29b60640f751d644e9c3b84004d0)
+      output          : [8197|0br]01807d6a8602298bc647ac765b69ddacdb34fe2f9c1677c0fa2700[0]
+
+ 1: $/41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8, sequencer: loc1.r2 (14432/1566)
+      balance         : 150_043_422_243_737
+      controller lock : a(0x5950f002387d659a3d1723235fabbf8b32decadc6807c24f85bffc2fff21c948)
+      output          : [8196|56sq]006f9b58c468161cc81f1ec4221223f4bbb89f26c0991e1d6baa5a[0]
+
+....
 ```
 
-The command `proxi node delegate 150000000000 -q 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc` will create 
-new chain with new _delegation ID_ (which is its chain ID) `2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf`.
+Flag `-d` will show delegations only, `-g` will show all delegations grouped by the delegation target.
+
+The command `proxi node delegate 500138000000 -q 41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8` will create 
+new chain with new _delegation ID_ (which is its chain ID) `9b20051b59651a5a54b8079ff389cdda6f8b2453a166f31b3b744626766c6655`.
 
 ```text
-Command line: 'proxi node delegate 150000000000 -q 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc'
+Command line: 'proxi node delegate 500138000000 -q 41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8'
 using profile: ./proxi.yaml
-using API endpoint: http://127.0.0.1:8000, default timeout
-successfully connected to the node at http://127.0.0.1:8000
-wallet account is: a(0x77c01a4e09a49a85c77db28d7891108d4073bbd0f534c27484be7366bc15610d)
-delegation target will be controller a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98) of the sequencer $/6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
+using API endpoint: http://5.180.181.103:8001, default timeout
+successfully connected to the node at http://5.180.181.103:8001
+wallet account is: a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98)
 using tag_along sequencer: 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
-Latest reliable branch (LRB) ID: [10726|0br]01ef03ef1bf8b5dd2d3d0c1088cead27bc466e393e76144aac8135, 0 slot(s) from now. Now is 10726|239
-delegate amount 150_000_000_000 to controller a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98) (plus tag-along fee 50)? (Y/n)
+Latest reliable branch (LRB) ID: [8266|0br]0150d56cdaaa87d4f1b71dcaeaee900d21ee0e3e72f488ae9d2eab, 1 slot(s) from now. Now is 8267|133
+delegate amount 500_138_000_000 to sequencer $/41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8 (plus tag-along fee 50)? (Y/n)
 
-delegation ID: $/2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf
+delegation ID: $/9b20051b59651a5a54b8079ff389cdda6f8b2453a166f31b3b744626766c6655
 
-Tracking inclusion of [10726|239]02ca7b0d08cd1e0d6f6c92da00ee10221adfc209dd93ec587e573a (hex=000029e6ef02ca7b0d08cd1e0d6f6c92da00ee10221adfc209dd93ec587e573a):
-  finality criterion: strong, slot span: 2, strong inclusion threshold: 2/3
-   weak score: 0%, strong score: 0%, slot span 10726 - 10727 (2), included in LRB: false, LRB is slots back: 0
-   weak score: 0%, strong score: 0%, slot span 10726 - 10727 (2), included in LRB: false, LRB is slots back: 0
-   ...
-   weak score: 50%, strong score: 50%, slot span 10727 - 10728 (2), included in LRB: true, LRB is slots back: 0
-   weak score: 100%, strong score: 100%, slot span 10728 - 10729 (2), included in LRB: true, LRB is slots back: 0
+tracking inclusion of the transaction [8267|133]02e7c9f92591175d1175cde455d70cf88eb541d0a239d3f22c03c9.
+target inclusion depth: 2
+ 0 sec. Transaction is NOT included in the latest reliable branch (LRB) [8266|0br]0150d56cdaaa87d4f1b71dcaeaee900d21ee0e3e72f488ae9d2eab
+ 4 sec. Transaction is NOT included in the latest reliable branch (LRB) [8267|0br]010f3e8f9c10204da63976271d7073dd6e0cfcbd0b70ae9d54aa4b
+12 sec. Transaction is NOT included in the latest reliable branch (LRB) [8267|0br]010f3e8f9c10204da63976271d7073dd6e0cfcbd0b70ae9d54aa4b
+14 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8268|0br]01d48bf5b31d053a5d7517311f0b2a8035a1fd4b0420c43eb60665 at depth 0
+22 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8268|0br]01d48bf5b31d053a5d7517311f0b2a8035a1fd4b0420c43eb60665 at depth 0
+24 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8269|0br]011495d9808d928bacdc2655aa2d667399e62a9f7fe6986e6d68c3 at depth 1
+32 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8269|0br]011495d9808d928bacdc2655aa2d667399e62a9f7fe6986e6d68c3 at depth 1
+34 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8270|0br]0156f6e943f6d554e099c03fe991931cdf4937d440d0eaee36445c at depth 2
 ```
 
 ### How to check my delegations?
-Commands `proxi node mychains -s` or `proxi node mychains -s -v` lists all chains, which are delegations controlled 
+Commands `proxi node mychains -d` or `proxi node mychains -d -v` lists all chains, which are delegations controlled 
 from the current wallet. For example:
 
 ```text
 Command line: 'proxi node mychains -d -v'
 using profile: ./proxi.yaml
-using API endpoint: http://127.0.0.1:8000, default timeout
-successfully connected to the node at http://127.0.0.1:8000
-Latest reliable branch (LRB) ID: [10750|0br]01050538356eeee0a17a46266cb1ef9a09d4a3ef02c1cb3e42b1e0, 0 slot(s) from now. Now is 10750|149
+using API endpoint: http://5.180.181.103:8001, default timeout
+successfully connected to the node at http://5.180.181.103:8001
+Latest reliable branch (LRB) ID: [8250|0br]01122b0d3a6f1470aaf14d0f0ecefc486c89d5ffbb58144ac22a70, 1 slot(s) from now. Now is 8251|147
 
-List of delegations in account a(0x77c01a4e09a49a85c77db28d7891108d4073bbd0f534c27484be7366bc15610d)
+List of delegations in account a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98)
 
-$/2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf   150_000_097_977            -> a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98)
-        +97_977 since 10726|239 (24 slots), 4_082 per slot, start amount 150_000_000_000, annual rate: ~8.38%
+$/948626bceef1971ac75b57f6c4b29a2b97f98fe5237e47eb557051dfe06090e2   500_105_069_384            -> c(0x779a59583ec045b5c8ddea2782f1f9a5bf7ec77e7378149195118ee1f1184e10)
+        inflation +104_069_384 since 1937|52 (6314 slots), avg 16_482 per slot, start amount 500_001_000_000, annual rate: ~10.15%
 
-$/6453068190f2088f8620c3f906eb756c23200a02f8ad42c1f1fb5ffa67f1bc27   200_001_615_000            -> a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98)
-        +1_615_000 since 10477|98 (273 slots), 5_915 per slot, start amount 200_000_000_000, annual rate: ~9.11%
-
-Total delegated in 2 outputs: 350_001_712_977
+$/ce290b09402ac5b9decbc9013703ed7fae6bba4ccfa49984b458dd8e8b88c06f   1_000_237_222_622                  -> c(0x6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc)
+        inflation +237_222_622 since 1056|224 (7195 slots), avg 32_970 per slot, start amount 1_000_000_000_000, annual rate: ~10.15%
 ```
 
 By repeating commands `proxi node mychains -s` or `proxi node mychains -s -v` you will see how newly created tokens are 
@@ -113,43 +124,28 @@ It works by simply by destroying the delegation chain with the command:
 For example:
 
 ```text
-Command line: 'proxi node endchain 2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf'
+Command line: 'proxi node killchain 19de6d99662eca0e16209e4922dfbbacf1832dd7727738eea8b0cbff7eeafd16'
 using profile: ./proxi.yaml
-using API endpoint: http://127.0.0.1:8000, default timeout
-successfully connected to the node at http://127.0.0.1:8000
-wallet account will be used as target: a(0x77c01a4e09a49a85c77db28d7891108d4073bbd0f534c27484be7366bc15610d)
+using API endpoint: http://5.180.181.103:8001, default timeout
+successfully connected to the node at http://5.180.181.103:8001
 using tag_along sequencer: 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
-Deleting chain:
-   chain id: $/2fed1ce675e654c973b314459447ff8b895e826ed6356400cd20d25b32e508cf
-   tag-along fee 50 to the sequencer $/6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
-   source account: a(0x77c01a4e09a49a85c77db28d7891108d4073bbd0f534c27484be7366bc15610d)
-   chain controller: a(0x77c01a4e09a49a85c77db28d7891108d4073bbd0f534c27484be7366bc15610d)
-proceed?: (Y/n)
-Tracking inclusion of [10797|99]010a5331cbf6ebd6967742f22280e6302d61cb4d01ce64595b79b2 (hex=00002a2d63010a5331cbf6ebd6967742f22280e6302d61cb4d01ce64595b79b2):
-  finality criterion: strong, slot span: 2, strong inclusion threshold: 2/3
-   weak score: 0%, strong score: 0%, slot span 10796 - 10797 (2), included in LRB: false, LRB is slots back: 0
-   weak score: 0%, strong score: 0%, slot span 10796 - 10797 (2), included in LRB: false, LRB is slots back: 0
-  ...
-   weak score: 50%, strong score: 50%, slot span 10797 - 10798 (2), included in LRB: true, LRB is slots back: 0
-   weak score: 100%, strong score: 100%, slot span 10798 - 10799 (2), included in LRB: true, LRB is slots back: 0
+discontinue chain $/19de6d99662eca0e16209e4922dfbbacf1832dd7727738eea8b0cbff7eeafd16? (Y/n)
+
+
+attempt #1. Submitted transaction [8219|51]014cf1ee1fab53a815d0c3c2cff923355aacce010270dc9288c579. LRB (latest reliable branch) is -423 ticks, -1 slots, -16.92s behind.
+attempt #2. Submitted transaction [8219|51]017aadb67e759b50567e93fb96401db9e194c17f7f3a3830ae89a8. LRB (latest reliable branch) is -271 ticks, -1 slots, -10.84s behind.
+attempt #3. Submitted transaction [8219|51]014c7527b9bda574970df22b7119fd89c87a690a8ade44760d3ca2. LRB (latest reliable branch) is -272 ticks, -1 slots, -10.88s behind.
+chain $/19de6d99662e.. not found. LRB (latest reliable branch) is [8221|0br]01c992a83bf21052f11507fd47e8d2d8d3c2affa22867d577782d9 (1 slots behind from now)
 ```
 
 All tokens from the chain are returned to the normal wallet's `ED25519` address.
 
 **Important!**
 
-If the command `proxi node endchain <delegation ID hex>` does not confirm the transaction in 30-40 sec, it means it was orphaned. 
-It can happen because there are significant chances of a race condition between sequencer and the deletion transaction, 
-so it looks like "the sequencer does not want to give my tokens back". 
-
-This, however, there's no risk of losing your tokens because:
-- normally, after repeating the command `proxi node endchain <delegation ID hex>` one or several time everything works out. 
-Probability of the race condition is ~50%, so the coin falling one side forever is impossible.
-- even if sequencer which is delegation target becomes malicious and ignores your transaction or is simply down, 
-it is easy to switch to alternative one  or even several of them. 
-
-Testnet implementation of the _delegation lock_ is very simplistic and experimental. There are a lot of other possibilities to 
-avoid race conditions with _EasyFL_ scripts.
+The `proxi node killchain` command when applied to delegation-locked chained outputs will look for the most convenient liquidity window
+for the delegated fund. It may take some time, often a minute or so. This is by intention. Wallet tries to avoid race condition with
+sequencer who keeps moving the delegated tokens whenever possible, and issues many transactions until first one hits the liquidity
+window (which alwasy exist)
 
 ### How it works?
 
