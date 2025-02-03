@@ -9,6 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/set"
 )
 
 const (
@@ -314,7 +315,7 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ID:             tx.IDStringHex(),
 		TotalAmount:    tx.TotalAmount(),
 		TotalInflation: tx.InflationAmount(),
-		Inputs:         make([]string, tx.NumInputs()),
+		Inputs:         make([]string, 0),
 		Endorsements:   make([]string, tx.NumEndorsements()),
 	}
 	seqInputIdx, stemInputIdx, seqID := tx.SequencerAndStemInputData()
@@ -325,10 +326,18 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ret.SequencerID = seqID.StringHex()
 	}
 
+	inputTxIDs := set.New[ledger.TransactionID]()
 	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-		ret.Inputs[i] = oid.StringHex()
+		inputTxIDs.Insert(oid.TransactionID())
 		return true
 	})
+	sorted := util.KeysSorted(inputTxIDs, func(txid1, txid2 ledger.TransactionID) bool {
+		return ledger.LessTxID(txid1, txid2)
+	})
+
+	for _, txid := range sorted {
+		ret.Inputs = append(ret.Inputs, txid.StringHex())
+	}
 
 	tx.ForEachEndorsement(func(i byte, txid *ledger.TransactionID) bool {
 		ret.Endorsements[i] = txid.StringHex()
