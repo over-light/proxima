@@ -33,63 +33,27 @@ The `<target sequencer ID>` is hex-encoded chain ID of the chosen target sequenc
 Normally target sequencer for delegation is selected based on its market parameters such as uptime and effective inflation rate. 
 In the testnet you can find all sequencer chains with the following command:
 
-`proxi node allchains -q`
+`proxi node allchains -q -d`
 
-Choose a chain which is run by some sequencer, preferably the one active in the last several slots from now. It will be a delegation target.
+Choose a chain which is run by some sequencer, preferably the one active in the last several slots from now and not too many of delegations already. 
+It will be a delegation target.
 
-For example, in the following command, the chain `6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc` is the ony sequencer
-available:
+For example:
 ```text
-Command line: 'proxi node allchains -q'
+Command line: 'proxi node allchains -q -d'
 using profile: ./proxi.yaml
 using API endpoint: http://5.180.181.103:8001, default timeout
 successfully connected to the node at http://5.180.181.103:8001
-Latest reliable branch (LRB) ID: [8197|0br]01807d6a8602298bc647ac765b69ddacdb34fe2f9c1677c0fa2700, 1 slot(s) from now. Now is 8198|199
+Latest reliable branch (LRB) ID: [16577|0br]01140c94ab7255fb121c8a3a7bdea536366740b0452b72369e1e6f, 1 slot(s) from now. Now is 16578|121
 
-show sequencers only = true
-show delegations only = false
-------------------------------
-
- 0: $/6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc, sequencer: boot.b0 (15138/1699)
-      balance         : 397_973_834_185_064
-      controller lock : a(0x370563b1f08fcc06fa250c59034acfd4ab5a29b60640f751d644e9c3b84004d0)
-      output          : [8197|0br]01807d6a8602298bc647ac765b69ddacdb34fe2f9c1677c0fa2700[0]
-
- 1: $/41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8, sequencer: loc1.r2 (14432/1566)
-      balance         : 150_043_422_243_737
-      controller lock : a(0x5950f002387d659a3d1723235fabbf8b32decadc6807c24f85bffc2fff21c948)
-      output          : [8196|56sq]006f9b58c468161cc81f1ec4221223f4bbb89f26c0991e1d6baa5a[0]
-
-....
-```
-
-Flag `-d` will show delegations only, `-g` will show all delegations grouped by the delegation target.
-
-The command `proxi node delegate 500138000000 -q 41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8` will create 
-new chain with new _delegation ID_ (which is its chain ID) `9b20051b59651a5a54b8079ff389cdda6f8b2453a166f31b3b744626766c6655`.
-
-```text
-Command line: 'proxi node delegate 500138000000 -q 41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8'
-using profile: ./proxi.yaml
-using API endpoint: http://5.180.181.103:8001, default timeout
-successfully connected to the node at http://5.180.181.103:8001
-wallet account is: a(0x43ceee694015e327a85c66c9c1a0c0bb8c7de37f19d5e8a9ec86d1eb81931d98)
-using tag_along sequencer: 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
-Latest reliable branch (LRB) ID: [8266|0br]0150d56cdaaa87d4f1b71dcaeaee900d21ee0e3e72f488ae9d2eab, 1 slot(s) from now. Now is 8267|133
-delegate amount 500_138_000_000 to sequencer $/41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8 (plus tag-along fee 50)? (Y/n)
-
-delegation ID: $/9b20051b59651a5a54b8079ff389cdda6f8b2453a166f31b3b744626766c6655
-
-tracking inclusion of the transaction [8267|133]02e7c9f92591175d1175cde455d70cf88eb541d0a239d3f22c03c9.
-target inclusion depth: 2
- 0 sec. Transaction is NOT included in the latest reliable branch (LRB) [8266|0br]0150d56cdaaa87d4f1b71dcaeaee900d21ee0e3e72f488ae9d2eab
- 4 sec. Transaction is NOT included in the latest reliable branch (LRB) [8267|0br]010f3e8f9c10204da63976271d7073dd6e0cfcbd0b70ae9d54aa4b
-12 sec. Transaction is NOT included in the latest reliable branch (LRB) [8267|0br]010f3e8f9c10204da63976271d7073dd6e0cfcbd0b70ae9d54aa4b
-14 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8268|0br]01d48bf5b31d053a5d7517311f0b2a8035a1fd4b0420c43eb60665 at depth 0
-22 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8268|0br]01d48bf5b31d053a5d7517311f0b2a8035a1fd4b0420c43eb60665 at depth 0
-24 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8269|0br]011495d9808d928bacdc2655aa2d667399e62a9f7fe6986e6d68c3 at depth 1
-32 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8269|0br]011495d9808d928bacdc2655aa2d667399e62a9f7fe6986e6d68c3 at depth 1
-34 sec. Transaction INCLUDED in the latest reliable branch (LRB) [8270|0br]0156f6e943f6d554e099c03fe991931cdf4937d440d0eaee36445c at depth 2
+Sequencers with delegation totals:
+   $/35e5c2f9bbaf07df23676cead81539e2cabb04e9a27921834e17cb99d8e6f083   # delegations:   3, total delegated amount:       30_015_308_699, last active: 2 slots ago
+   $/779a59583ec045b5c8ddea2782f1f9a5bf7ec77e7378149195118ee1f1184e10   # delegations:   1, total delegated amount:      500_170_828_886, last active: 2 slots ago
+   $/41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8   # delegations:   1, total delegated amount:      500_274_999_500, last active: 2 slots ago
+   $/6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc   # delegations:   1, total delegated amount:    1_000_511_831_978, last active: 2 slots ago
+   $/dcdd9ddc7b42dd0c925aba67c3a2c37338bc5d1c1c316879d03f69b42a499a72   # delegations:   0, total delegated amount:                    0, last active: 1 slots ago
+---------------
+TOTAL DELEGATED AMOUNT: 2_030_972_969_063
 ```
 
 ### How to check my delegations?
