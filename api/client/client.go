@@ -224,6 +224,46 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 	return ret, &retLRBID, nil
 }
 
+func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint64) ([]*ledger.OutputWithID, *ledger.TransactionID, error) {
+	path := fmt.Sprintf(api.PathGetOutputsForAmount+"?addr=%s&amount=%d", addr.Source(), amount)
+	body, err := c.getBody(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var res api.OutputList
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+	if res.Error.Error != "" {
+		return nil, nil, fmt.Errorf("from server: %s", res.Error.Error)
+	}
+
+	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+	}
+
+	ret := make([]*ledger.OutputWithID, 0, len(res.Outputs))
+
+	for idStr, dataStr := range res.Outputs {
+		id, err := ledger.OutputIDFromHexString(idStr)
+		if err != nil {
+			return nil, nil, fmt.Errorf("wrong output ID data from server: %s: '%w'", idStr, err)
+		}
+		o, err := ledger.OutputFromHexString(dataStr)
+		if err != nil {
+			return nil, nil, fmt.Errorf("wrong output data from server: %s: '%w'", dataStr, err)
+		}
+		ret = append(ret, &ledger.OutputWithID{
+			ID:     id,
+			Output: o,
+		})
+	}
+	return ret, &retLRBID, nil
+}
+
 // GetChainedOutputs fetches all outputs of the account. Optionally sorts them on the server
 func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger.OutputWithChainID, *ledger.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetChainedOutputs+"?accountable=%s", accountable.String())
