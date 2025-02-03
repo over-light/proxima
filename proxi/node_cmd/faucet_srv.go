@@ -2,7 +2,6 @@ package node_cmd
 
 import (
 	"crypto/ed25519"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -25,19 +24,18 @@ import (
 
 const getFundsPath = "/"
 
-type faucetConfig struct {
-	redrawFromChain    bool
+type faucetServerConfig struct {
+	fromChain          bool
+	seqID              ledger.ChainID
 	outputAmount       uint64
 	port               uint64
-	addr               string
-	account            ledger.Accountable
 	privKey            ed25519.PrivateKey
 	maxRequestsPerHour int
 	maxRequestsPerDay  int
 }
 
-type faucet struct {
-	cfg                faucetConfig
+type faucetServer struct {
+	cfg                faucetServerConfig
 	walletData         glb.WalletData
 	mutex              sync.Mutex
 	accountRequestList map[string][]time.Time
@@ -56,7 +54,7 @@ func initFaucetCmd() *cobra.Command {
 		Use:   "faucet",
 		Short: `starts a faucet server`,
 		Args:  cobra.NoArgs,
-		Run:   runFaucetCmd,
+		Run:   runFaucetServerCmd,
 	}
 
 	cmd.PersistentFlags().Uint64("faucet.output_amount", defaultFaucetOutputAmount, "amount to send to the requester")
@@ -67,12 +65,12 @@ func initFaucetCmd() *cobra.Command {
 	err = viper.BindPFlag("faucet.port", cmd.PersistentFlags().Lookup("faucet.port"))
 	glb.AssertNoError(err)
 
-	cmd.PersistentFlags().String("faucet.account", "a(0xe141252fd0ff04d12f9d485abfee4976e81e95cde436e8b9afde5b859d121e3e)", "faucet account")
-	err = viper.BindPFlag("faucet.port", cmd.PersistentFlags().Lookup("faucet.account"))
-	glb.AssertNoError(err)
-
 	cmd.PersistentFlags().String("faucet.priv_key", "", "faucet private key")
 	err = viper.BindPFlag("faucet.priv_key", cmd.PersistentFlags().Lookup("faucet.priv_key"))
+	glb.AssertNoError(err)
+
+	cmd.PersistentFlags().String("faucet.sequencer_id", "", "chain ID of the sequencer from which draw funds. It must be controlled by the private key")
+	err = viper.BindPFlag("faucet.sequencer_id", cmd.PersistentFlags().Lookup("faucet.sequencer_id"))
 	glb.AssertNoError(err)
 
 	cmd.PersistentFlags().Uint64("faucet.max_requests_per_hour", defaultMaxRequestsPerHour, "maximum number of requests per hour")
@@ -85,86 +83,63 @@ func initFaucetCmd() *cobra.Command {
 	return cmd
 }
 
-func readFaucetConfigIn(sub *viper.Viper, server bool) (ret faucetConfig) {
-	if sub != nil {
-		ret.port = sub.GetUint64("port")
-		if server {
-			ret.outputAmount = sub.GetUint64("output_amount")
-			privateKeyStr := sub.GetString("priv_key")
-			if len(privateKeyStr) > 0 {
-				var err error
-				ret.privKey, err = util.ED25519PrivateKeyFromHexString(privateKeyStr)
-				glb.AssertNoError(err)
-				ret.account = ledger.AddressED25519FromPrivateKey(ret.privKey)
-				ret.redrawFromChain = false
-			} else {
-				ret.redrawFromChain = true
-			}
-		} else {
-			ret.addr = sub.GetString("addr")
-		}
-		ret.maxRequestsPerHour = sub.GetInt("max_requests_per_hour")
-		if ret.maxRequestsPerHour == 0 {
-			ret.maxRequestsPerHour = defaultMaxRequestsPerHour
-		}
-		ret.maxRequestsPerDay = sub.GetInt("max_requests_per_day")
-		if ret.maxRequestsPerDay == 0 {
-			ret.maxRequestsPerDay = defaultMaxRequestsPerDay
-		}
-	} else {
-		// get default values
-		ret.port = viper.GetUint64("faucet.port")
-		if server {
-			ret.outputAmount = viper.GetUint64("faucet.output_amount")
-			privateKeyStr := viper.GetString("faucet.priv_key")
-			if len(privateKeyStr) > 0 {
-				var err error
-				ret.privKey, err = util.ED25519PrivateKeyFromHexString(privateKeyStr)
-				glb.AssertNoError(err)
-				ret.account = ledger.AddressED25519FromPrivateKey(ret.privKey)
-				ret.redrawFromChain = false
-			} else {
-				ret.redrawFromChain = true
-			}
-		} else {
-			ret.addr = viper.GetString("faucet.addr")
-		}
-		ret.maxRequestsPerHour = sub.GetInt("faucet.max_requests_per_hour")
-		ret.maxRequestsPerDay = sub.GetInt("faucet.max_requests_per_day")
+const minOutputAmount = 1_000_000
+
+func readFaucetServerConfigIn(sub *viper.Viper) (ret faucetServerConfig) {
+	glb.Assertf(sub != nil, "faucet server configuration has not found")
+	var err error
+
+	ret.port = sub.GetUint64("port")
+	glb.Assertf(ret.port > 0, "wrong port")
+	ret.outputAmount = sub.GetUint64("output_amount")
+	glb.Assertf(ret.outputAmount >= minOutputAmount, "output_amount must be greater than %s", util.Th(minOutputAmount))
+
+	privateKeyStr := sub.GetString("priv_key")
+	ret.privKey, err = util.ED25519PrivateKeyFromHexString(privateKeyStr)
+	glb.AssertNoError(err)
+
+	seqIDStr := sub.GetString("sequencer_id")
+	if seqIDStr != "" {
+		// take funds from sequencer
+		ret.seqID, err = ledger.ChainIDFromHexString(sub.GetString("sequencer_id"))
+		glb.AssertNoError(err)
+		ret.fromChain = true
 	}
+	ret.maxRequestsPerHour = sub.GetInt("max_requests_per_hour")
+	glb.Assertf(ret.maxRequestsPerHour > 0, "wrong max requests per hour")
+	ret.maxRequestsPerDay = sub.GetInt("max_requests_per_hour")
+	glb.Assertf(ret.maxRequestsPerDay > 0, "wrong max requests per day")
 	return
 }
 
-func displayFaucetConfig() faucetConfig {
-	cfg := readFaucetConfigIn(viper.Sub("faucet"), true)
-	glb.Infof("faucet configuration:")
+func displayFaucetConfig(cfg faucetServerConfig) {
+	glb.Infof("faucet server configuration:")
 	glb.Infof("     output amount:          %d", cfg.outputAmount)
 	glb.Infof("     port:                   %d", cfg.port)
-	glb.Infof("     private key:            %s", hex.EncodeToString(cfg.privKey))
+	glb.Infof("     controlling address:    %s", ledger.AddressED25519FromPrivateKey(cfg.privKey).String())
 	glb.Infof("     maximum number of requests per hour: %d, per day: %d", cfg.maxRequestsPerHour, cfg.maxRequestsPerDay)
-
-	return cfg
 }
 
-func runFaucetCmd(_ *cobra.Command, args []string) {
+func runFaucetServerCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromNode()
 	walletData := glb.GetWalletData()
 	glb.Assertf(walletData.Sequencer != nil, "can't get own sequencer ID")
 	glb.Infof("sequencer ID (funds source): %s", walletData.Sequencer.String())
-	cfg := displayFaucetConfig()
-	fct := &faucet{
+	cfg := readFaucetServerConfigIn(viper.Sub("faucet"))
+	displayFaucetConfig(cfg)
+
+	fct := &faucetServer{
 		cfg:                cfg,
 		walletData:         walletData,
 		accountRequestList: make(map[string][]time.Time),
 		addressRequestList: make(map[string][]time.Time),
 	}
-	if !cfg.redrawFromChain {
-		funds := getAccountTotal(cfg.account)
-		glb.Infof(" wallet funds: %d", funds)
-		if funds < cfg.outputAmount {
-			glb.Infof("Error not enough funds in waller")
-			return
-		}
+
+	if !cfg.fromChain {
+		addr := ledger.AddressED25519FromPrivateKey(cfg.privKey)
+		funds := getAccountTotal(addr)
+		glb.Infof(" funds in the address %s: %s", addr.String(), util.Th(funds))
+		glb.Assertf(funds > cfg.outputAmount, "not enough tokens in the account")
 	}
 	fct.faucetServer()
 }
@@ -183,7 +158,7 @@ func getAccountTotal(accountable ledger.Accountable) uint64 {
 	return sum
 }
 
-func (fct *faucet) redrawFromChain(targetLock ledger.Accountable) (string, *ledger.TransactionID) {
+func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (string, *ledger.TransactionID) {
 	glb.Infof("querying wallet's outputs..")
 	walletOutputs, lrbid, err := glb.GetClient().GetAccountOutputs(fct.walletData.Account, func(_ *ledger.OutputID, o *ledger.Output) bool {
 		return o.NumConstraints() == 2
@@ -245,7 +220,7 @@ func (fct *faucet) redrawFromChain(targetLock ledger.Accountable) (string, *ledg
 	return "", &txid
 }
 
-func (fct *faucet) redrawFromAccount(targetLock ledger.Accountable) (string, *ledger.TransactionID) {
+func (fct *faucetServer) redrawFromAccount(targetLock ledger.Accountable) (string, *ledger.TransactionID) {
 	funds := getAccountTotal(fct.cfg.account)
 	glb.Infof(" wallet funds: %d", funds)
 	if funds < fct.cfg.outputAmount {
@@ -299,7 +274,7 @@ func _trimToLastDay(lst []time.Time) ([]time.Time, int) {
 	return ret, lastHour
 }
 
-func (fct *faucet) checkAndUpdateRequestTime(account string, addr string) bool {
+func (fct *faucetServer) checkAndUpdateRequestTime(account string, addr string) bool {
 	fct.mutex.Lock()
 	defer fct.mutex.Unlock()
 
@@ -348,7 +323,7 @@ func logRequest(account string, ipAddress string, funds uint64) error {
 	logger.Printf("Time: %s, Account: %s, IP: %s, Funds: %d\n", time.Now().Format(time.RFC3339), account, ipAddress, funds)
 	return nil
 }
-func (fct *faucet) handler(w http.ResponseWriter, r *http.Request) {
+func (fct *faucetServer) handler(w http.ResponseWriter, r *http.Request) {
 	targetStr, ok := r.URL.Query()["addr"]
 	if !ok || len(targetStr) != 1 {
 		writeResponse(w, "wrong parameter 'addr' in request 'get_funds'")
@@ -370,7 +345,7 @@ func (fct *faucet) handler(w http.ResponseWriter, r *http.Request) {
 	glb.Infof("sending funds to %s", targetStr[0])
 	var result string
 	var txid *ledger.TransactionID
-	if fct.cfg.redrawFromChain {
+	if fct.cfg.fromChain {
 		glb.Infof("redrawing from sequencer chain")
 		result, txid = fct.redrawFromChain(targetLock)
 	} else {
@@ -402,7 +377,7 @@ func writeResponse(w http.ResponseWriter, respStr string) {
 	util.AssertNoError(err)
 }
 
-func (fct *faucet) faucetServer() {
+func (fct *faucetServer) faucetServer() {
 	http.HandleFunc(getFundsPath, fct.handler) // Route for the handler function
 	sport := fmt.Sprintf(":%d", fct.cfg.port)
 	glb.Infof("running proxi faucet server on %s. Press Ctrl-C to stop..", sport)
@@ -431,7 +406,7 @@ func initGetFundsCmd() *cobra.Command {
 func getFundsCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromNode()
 	walletData := glb.GetWalletData()
-	cfg := readFaucetConfigIn(viper.Sub("faucet"), false)
+	cfg := readFaucetServerConfigIn(viper.Sub("faucet"), false)
 
 	faucetAddr := fmt.Sprintf("%s:%d", cfg.addr, cfg.port)
 
