@@ -18,6 +18,7 @@ const (
 	PathGetLedgerID                      = PrefixAPIV1 + "/get_ledger_id"
 	PathGetAccountOutputs                = PrefixAPIV1 + "/get_account_outputs"
 	PathGetAccountSimpleSiglockedOutputs = PrefixAPIV1 + "/get_account_simple_siglocked"
+	PathGetOutputsForAmount              = PrefixAPIV1 + "/get_outputs_for_amount"
 	PathGetChainedOutputs                = PrefixAPIV1 + "/get_chain_outputs"
 	PathGetChainOutput                   = PrefixAPIV1 + "/get_chain_output"
 	PathGetOutput                        = PrefixAPIV1 + "/get_output"

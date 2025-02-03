@@ -226,6 +226,39 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 	})
 }
 
+func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
+	lst, ok := r.URL.Query()["addr"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'addr' in request 'get_outputs_for_amount'")
+		return
+	}
+	addr, err := ledger.AddressED25519FromSource(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+
+	lst, ok = r.URL.Query()["amount"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'amount' in request 'get_outputs_for_amount'")
+		return
+	}
+
+	resp := &api.OutputList{
+		Outputs: make(map[string]string),
+	}
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) (errRet error) {
+		lrbid := rdr.GetStemOutput().ID.TransactionID()
+		resp.LRBID = lrbid.StringHex()
+		err1 := rdr.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
+			return true
+		})
+		if err1 != nil {
+			return err1
+		}
+	})
+}
+
 func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 	setHeader(w)
 
