@@ -95,6 +95,8 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 
 	vid = AttachTxID(tx.ID(), env, WithInvokedBy("addTx"))
 
+	env.PostEventNewTransaction(vid)
+
 	vid.UnwrapVirtualTx(func(v *vertex.VirtualTransaction) {
 		if vid.FlagsUpNoLock(vertex.FlagVertexTxAttachmentStarted) {
 			// case with already attached transaction
@@ -141,8 +143,6 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 		if !vid.IsSequencerMilestone() || vid.IsBranchTransaction() {
 			env.PokeAllWith(vid)
 		}
-
-		env.PostEventNewTransaction(vid)
 	})
 	return
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/lunfardo314/proxima/api"
-	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -15,7 +14,7 @@ import (
 type (
 	environment interface {
 		global.Logging
-		ListenToVids(fun func(vid *vertex.WrappedTx))
+		ListenToTransactions(fun func(tx *transaction.Transaction))
 	}
 
 	ws_server struct {
@@ -57,15 +56,15 @@ func (srv *ws_server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 	srv.Tracef(TraceTag, "Client connected")
 
-	srv.ListenToVids(func(vid *vertex.WrappedTx) {
-		srv.Tracef(TraceTag, "TX ID: %s", vid.IDShortString())
+	srv.ListenToTransactions(func(tx *transaction.Transaction) {
+		//srv.Tracef(TraceTag, "TX ID: %s", vid.IDShortString())
 
-		var tx *transaction.Transaction
-		vid.RUnwrap(vertex.UnwrapOptions{
-			Vertex: func(v *vertex.Vertex) {
-				tx = v.Tx
-			},
-		})
+		// var tx *transaction.Transaction
+		// vid.RUnwrap(vertex.UnwrapOptions{
+		// 	Vertex: func(v *vertex.Vertex) {
+		// 		tx = v.Tx
+		// 	},
+		// })
 
 		if tx != nil {
 			vidDep := api.VertexWithDependenciesFromTransaction(tx)

@@ -12,6 +12,7 @@ import (
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/sequencer"
 	"github.com/lunfardo314/proxima/util"
@@ -339,4 +340,8 @@ func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 
 func (p *ProximaNode) ListenToVids(fun func(vid *vertex.WrappedTx)) {
 	p.workflow.ListenToVids(fun)
+}
+
+func (p *ProximaNode) ListenToTransactions(fun func(tx *transaction.Transaction)) {
+	p.workflow.ListenToTransactions(fun)
 }
