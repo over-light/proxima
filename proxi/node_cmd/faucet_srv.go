@@ -144,7 +144,7 @@ func runFaucetServerCmd(_ *cobra.Command, args []string) {
 	fct.faucetServer()
 }
 
-const ownSequencerCmdFee = 50
+const tagAlongFee = 50
 
 func getAccountTotal(accountable ledger.Accountable) uint64 {
 	var sum uint64
@@ -169,7 +169,7 @@ func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (string,
 	}
 
 	glb.PrintLRB(lrbid)
-	glb.Infof("will be using %d tokens as tag-along fee. Outputs in the wallet:", ownSequencerCmdFee)
+	glb.Infof("will be using %d tokens as tag-along fee. Outputs in the wallet:", tagAlongFee)
 	for i, o := range walletOutputs {
 		glb.Infof("%d : %s : %s", i, o.ID.StringShort(), util.Th(o.Output.Amount()))
 	}
@@ -185,7 +185,7 @@ func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (string,
 		glb.AssertNoError(err)
 
 		if md != nil && md.MinimumFee > feeAmount {
-			feeAmount = ownSequencerCmdFee
+			feeAmount = tagAlongFee
 		}
 	}
 
@@ -221,13 +221,14 @@ func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (string,
 }
 
 func (fct *faucetServer) redrawFromAccount(targetLock ledger.Accountable) (string, *ledger.TransactionID) {
-	funds := getAccountTotal(fct.cfg.account)
+	account := ledger.AddressED25519FromPrivateKey(fct.cfg.privKey)
+	funds := getAccountTotal(account)
 	glb.Infof(" wallet funds: %d", funds)
 	if funds < fct.cfg.outputAmount {
 		return "Error not enough funds in wallet", nil
 	}
 
-	glb.Infof("source is the wallet account: %s", fct.cfg.account.String())
+	glb.Infof("source is the account: %s", account.String())
 
 	var tagAlongSeqID *ledger.ChainID
 	feeAmount := glb.GetTagAlongFee()
@@ -240,7 +241,7 @@ func (fct *faucetServer) redrawFromAccount(targetLock ledger.Accountable) (strin
 		glb.AssertNoError(err)
 
 		if md != nil && md.MinimumFee > feeAmount {
-			feeAmount = ownSequencerCmdFee
+			feeAmount = tagAlongFee
 		}
 	}
 	txCtx, err := glb.GetClient().TransferFromED25519Wallet(client.TransferFromED25519WalletParams{
@@ -382,49 +383,4 @@ func (fct *faucetServer) faucetServer() {
 	sport := fmt.Sprintf(":%d", fct.cfg.port)
 	glb.Infof("running proxi faucet server on %s. Press Ctrl-C to stop..", sport)
 	glb.AssertNoError(http.ListenAndServe(sport, nil))
-}
-
-func initGetFundsCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "getfunds",
-		Short: `requests funds from a faucet`,
-		Args:  cobra.NoArgs,
-		Run:   getFundsCmd,
-	}
-
-	cmd.PersistentFlags().Uint64("faucet.port", 9500, "faucet port")
-	err := viper.BindPFlag("faucet.port", cmd.PersistentFlags().Lookup("faucet.port"))
-	glb.AssertNoError(err)
-
-	cmd.PersistentFlags().String("faucet.addr", "http://113.30.191.219", "faucet address")
-	err = viper.BindPFlag("faucet.addr", cmd.PersistentFlags().Lookup("faucet.addr"))
-	glb.AssertNoError(err)
-
-	return cmd
-}
-
-func getFundsCmd(_ *cobra.Command, _ []string) {
-	glb.InitLedgerFromNode()
-	walletData := glb.GetWalletData()
-	cfg := readFaucetServerConfigIn(viper.Sub("faucet"), false)
-
-	faucetAddr := fmt.Sprintf("%s:%d", cfg.addr, cfg.port)
-
-	glb.Infof("requesting funds from faucet at %s", faucetAddr)
-
-	path := fmt.Sprintf(getFundsPath+"?addr=%s", walletData.Account.String())
-
-	c := client.NewWithGoogleDNS(faucetAddr)
-	answer, err := c.Get(path)
-	glb.Infof("answer len: %d", len(answer))
-
-	if err != nil || len(answer) > 2 {
-		if err != nil {
-			glb.Infof("error requesting funds from: %s", err.Error())
-		} else {
-			glb.Infof("error requesting funds from: %s", string(answer))
-		}
-	} else {
-		glb.Infof("Funds requested successfully!")
-	}
 }
