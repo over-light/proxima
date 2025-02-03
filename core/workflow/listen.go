@@ -3,6 +3,7 @@ package workflow
 import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 )
 
 //const TraceTag = "listenAccount"
@@ -32,8 +33,10 @@ func (w *Workflow) ListenToAccount(account ledger.Accountable, fun func(wOut ver
 	})
 }
 
-func (w *Workflow) ListenToSequencers(fun func(vid *vertex.WrappedTx)) {
-	w.events.OnEvent(EventNewGoodTx, func(vid *vertex.WrappedTx) {
-		fun(vid)
+func (w *Workflow) ListenToTransactions(fun func(tx *transaction.Transaction)) {
+	w.events.OnEvent(EventNewTx, func(vid *vertex.WrappedTx) {
+		vid.RUnwrap(vertex.UnwrapOptions{Vertex: func(v *vertex.Vertex) {
+			fun(v.Tx)
+		}})
 	})
 }
