@@ -403,6 +403,7 @@ func (c *APIClient) SubmitTransaction(txBytes []byte) error {
 	return nil
 }
 
+// GetAccountOutputs returns all UTXOs in the account
 func (c *APIClient) GetAccountOutputs(account ledger.Accountable, filter ...func(oid *ledger.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, *ledger.TransactionID, error) {
 	return c.GetAccountOutputsExt(account, 0, "", filter...)
 }

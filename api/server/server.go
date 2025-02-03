@@ -188,7 +188,7 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 	util.AssertNoError(err)
 }
 
-// getAccountOutputs returns in general non-deterministic set of outputs because of random ordering and limits
+// getAccountOutputs returns all outputs from the account because of random ordering and limits
 // Lock can be of any type
 func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 	setHeader(w)
