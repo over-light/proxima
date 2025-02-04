@@ -57,7 +57,7 @@ if [ ! -f "$INITIALIZED_FILE" ]; then
         echo "node init sequencer"
         # Loop until the command succeeds
         while true; do
-            ./proxi node setup_seq --finality.weak seq$NODE_NAME 140000000000000
+            ./proxi node setup_seq seq$NODE_NAME 100000000000000
             
             # Check if the command was successful
             if [ $? -eq 0 ]; then
