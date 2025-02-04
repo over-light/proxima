@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -28,8 +29,8 @@ type (
 		fromChain          bool
 		amount             uint64
 		port               uint64
-		maxRequestsPerHour int
-		maxRequestsPerDay  int
+		maxRequestsPerHour uint
+		maxRequestsPerDay  uint
 	}
 
 	faucetServer struct {
@@ -67,21 +68,17 @@ func readFaucetServerConfigIn(sub *viper.Viper) (ret faucetServerConfig) {
 	}
 	ret.amount = sub.GetUint64("amount")
 	glb.Assertf(ret.amount >= minAmount, "amount must be greater than %s", util.Th(minAmount))
-
-	ret.maxRequestsPerHour = sub.GetInt("max_requests_per_hour")
-	glb.Assertf(ret.maxRequestsPerHour > 0, "wrong maximum requests per hour")
-	ret.maxRequestsPerDay = sub.GetInt("max_requests_per_hour")
-	glb.Assertf(ret.maxRequestsPerDay > 0, "wrong maxium requests per day")
+	if ret.maxRequestsPerHour = sub.GetUint("max_requests_per_hour"); ret.maxRequestsPerHour == 0 {
+		ret.maxRequestsPerHour = 1
+	}
+	if ret.maxRequestsPerDay = sub.GetUint("max_requests_per_day"); ret.maxRequestsPerDay == 0 {
+		ret.maxRequestsPerDay = 1
+	}
 	return
 }
 
 func (fct *faucetServer) displayFaucetConfig() {
 	glb.Infof("faucet server configuration:")
-	if fct.cfg.fromChain {
-		glb.Infof("     draw funds from sequencer %s", fct.walletData.Sequencer.String())
-	} else {
-		glb.Infof("     draw funds from wallet address %s", fct.walletData.Account.String())
-	}
 	glb.Infof("     amount:          %d", fct.cfg.amount)
 	glb.Infof("     port:            %d", fct.cfg.port)
 	glb.Infof("     wallet address:  %s", fct.walletData.Account.String())
@@ -95,6 +92,7 @@ func (fct *faucetServer) displayFaucetConfig() {
 
 func runFaucetServerCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromNode()
+	glb.Infof("\nstarting Proxima faucet server..\n")
 	walletData := glb.GetWalletData()
 	glb.Assertf(walletData.Sequencer != nil, "can't get own sequencer ID")
 	glb.Assertf(glb.GetTagAlongFee() > 0, "tag-along amount not specified")
@@ -186,14 +184,13 @@ func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (*ledger
 	}
 	// sending command to sequencer
 	transferData := txbuilder.NewTransferData(fct.walletData.PrivateKey, fct.walletData.Account, ledger.TimeNow()).
-		WithChainOutput(o).
 		WithAmount(glb.GetTagAlongFee()).
 		WithTargetLock(fct.walletData.Sequencer.AsChainLock()).
 		MustWithInputs(walletOutputs...).
 		WithSender().
 		WithConstraint(withdrawCmd)
 
-	txBytes, err := txbuilder.MakeChainTransferTransaction(transferData)
+	txBytes, err := txbuilder.MakeSimpleTransferTransaction(transferData)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +242,7 @@ func (fct *faucetServer) checkAndUpdateRequestTime(account string, addr string) 
 	lst, ok := fct.accountRequestList[account]
 	if ok {
 		lst, lastHour = _trimToLastDay(lst)
-		if len(lst) >= fct.cfg.maxRequestsPerDay || lastHour >= fct.cfg.maxRequestsPerHour {
+		if len(lst) >= int(fct.cfg.maxRequestsPerDay) || lastHour >= int(fct.cfg.maxRequestsPerHour) {
 			return false
 		}
 		lst = append(lst, time.Now())
@@ -254,23 +251,27 @@ func (fct *faucetServer) checkAndUpdateRequestTime(account string, addr string) 
 	}
 	fct.accountRequestList[account] = lst
 
-	lst, ok = fct.addressRequestList[addr]
+	remoteHost, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		remoteHost = addr
+	}
+	lst, ok = fct.addressRequestList[remoteHost]
 	if ok {
 		lst, lastHour = _trimToLastDay(lst)
-		if len(lst) >= fct.cfg.maxRequestsPerDay || lastHour >= fct.cfg.maxRequestsPerHour {
+		if len(lst) >= int(fct.cfg.maxRequestsPerDay) || lastHour >= int(fct.cfg.maxRequestsPerHour) {
 			return false
 		}
 		lst = append(lst, time.Now())
 	} else {
 		lst = []time.Time{time.Now()}
 	}
-	fct.addressRequestList[addr] = lst
+	fct.addressRequestList[remoteHost] = lst
 	return true
 }
 
 const faucetLogName = "faucet_requests.log"
 
-func logRequest(account string, ipAddress string, funds uint64, err error) {
+func logRequest(account string, remote string, funds uint64, err error) {
 	// Open the log file in append mode, creating it if it doesn't exist
 	file, err := os.OpenFile(faucetLogName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	glb.AssertNoError(err)
@@ -279,11 +280,15 @@ func logRequest(account string, ipAddress string, funds uint64, err error) {
 	// Create a logger
 	logger := log.New(file, "", log.LstdFlags)
 
+	remoteHost, _, err := net.SplitHostPort(remote)
+	if err != nil {
+		remoteHost = remote
+	}
 	// Log the request
 	if err == nil {
-		logger.Printf("time: %s, to: %s, funds: %d, IP: %s, \n", time.Now().Format(time.RFC3339), account, funds, ipAddress)
+		logger.Printf("time: %s, to: %s, funds: %d, IP: %s, host: %s\n", time.Now().Format(time.RFC3339), account, funds, remote, remoteHost)
 	} else {
-		logger.Printf("time: %s, to: %s, funds: %d, IP: %s, , err: %v\n", time.Now().Format(time.RFC3339), account, funds, ipAddress, err)
+		logger.Printf("time: %s, to: %s, funds: %d, IP: %s, host: %s, err: %v\n", time.Now().Format(time.RFC3339), account, funds, remote, remoteHost, err)
 	}
 }
 
@@ -306,6 +311,6 @@ func writeResponse(w http.ResponseWriter, respStr string) {
 func (fct *faucetServer) run() {
 	http.HandleFunc(getFundsPath, fct.handler) // Route for the handler function
 	sport := fmt.Sprintf(":%d", fct.cfg.port)
-	glb.Infof("running proxi faucet server on %s. Press Ctrl-C to stop..", sport)
+	glb.Infof("\nrunning proxi faucet server on %s. Press Ctrl-C to stop..\n", sport)
 	glb.AssertNoError(http.ListenAndServe(sport, nil))
 }
