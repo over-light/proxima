@@ -276,7 +276,7 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if sum < uint64(amount) {
-		writeErr(w, "not enough tokens")
+		writeErr(w, fmt.Sprintf("not enough tokens: < than requested %s", util.Th(amount)))
 		return
 	}
 

@@ -145,7 +145,7 @@ func GetTagAlongSequencerID() *ledger.ChainID {
 		Infof("using tag_along sequencer: %s", seqIDStr)
 	}
 	if seqIDStr == "" {
-		return nil
+		return GetOwnSequencerID()
 	}
 	ret, err := ledger.ChainIDFromHexString(seqIDStr)
 	AssertNoError(err)
