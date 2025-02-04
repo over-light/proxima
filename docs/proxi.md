@@ -142,7 +142,7 @@ by all the current healthy ledger states, i.e. it is the **consensus ledger stat
   ```yaml
   faucet:
       port:  9500
-      addr:  http://5.180.181.103
+      addr:  113.30.191.219
   ```
 
 ### 2. Run spammer from the wallet
@@ -162,29 +162,3 @@ This way it pulls the whole bundle of transactions into the ledger state with on
 As per current ledger constraints one spammer can achieve maximum 1 TPS of the transfer transactions. 
 In Proxima rate is limited per address (per user) and it is 1 TPS for non-sequencers (assuming no conflicting transactions are issued).
 Higher TPS can be reached only by multiple users. 
-
-### 3. Setup a faucet server
-
-To start a faucet server use the command `proxi node faucet`
-
-Configure a faucet server with the following settings in your `proxi.yaml`:
-
-```yaml
-faucet:
-    output_amount: 1000000
-    port: 9500
-    account: a(0xe141252fd0ff04d12f9d485abfee4976e81aa1cde436e8b9afde5b859d121e3e)
-    priv_key: aba821559e43cb665cda00cf544c4de6f1ca331056c7af3c2f483d3096476c5de3922e3138fb163af608a5f4feada96495c038f6e179850efa30e81ea8ec1604
-    time_between_requests: 30
-```
-
-`faucet.output_amount` contains the amount that is returned upon a request. 
-
-`faucet.port` specifies the port on which the faucet server will listen for requests. 
-
-`faucet.account` specifies the account from which the server will redraw the funds. 
-
-`faucet.priv_key` specifies the private key for the account to withdraw. If no private key is specified, the funds will be withdrawn from the sequencer chain.
-
-`faucet.time_between_requests` specifies the minimal allowed time between requests from the same account/address. 
-

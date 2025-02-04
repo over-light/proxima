@@ -69,12 +69,12 @@ tag_along:
     # In the bootstrap phase it often is the pre-defined bootstrap chain ID: {{.BootstrapSeqID}}
     # Later it is up to the wallet owner to set the preferred tag-along sequencer
     sequencer_id: {{.BootstrapSeqID}}
-    fee: 500
+    fee: 200
 
 # provides parameters for 'proxi node getfunds' command
 faucet:
     port:  9500
-    addr:  http://5.180.181.103
+    host:  113.30.191.219
 
 # provides parameters for 'proxi node spam' command
 # The spammer in a loop sends bundles of transactions to the target address by using specified tag-along sequencer
