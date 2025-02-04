@@ -57,14 +57,7 @@ func (srv *ws_server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	srv.Tracef(TraceTag, "Client connected")
 
 	srv.ListenToTransactions(func(tx *transaction.Transaction) {
-		//srv.Tracef(TraceTag, "TX ID: %s", vid.IDShortString())
-
-		// var tx *transaction.Transaction
-		// vid.RUnwrap(vertex.UnwrapOptions{
-		// 	Vertex: func(v *vertex.Vertex) {
-		// 		tx = v.Tx
-		// 	},
-		// })
+		srv.Tracef(TraceTag, "TX ID: %s", tx.IDShortString())
 
 		if tx != nil {
 			vidDep := api.VertexWithDependenciesFromTransaction(tx)
