@@ -60,6 +60,8 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetAccountSimpleSiglockedOutputs, srv.getAccountSimpleSigLockedOutputs)
 	// GET request format: '/api/v1/get_outputs_for_amount?addr=<a(0x....)>&amount=<amount>'
 	srv.addHandler(api.PathGetOutputsForAmount, srv.getOutputsForAmount)
+	// GET request format: '/api/v1/get_nonchain_balance?addr=<a(0x....)>'
+	srv.addHandler(api.PathGetNonChainBalance, srv.getNonChainBalance)
 	// GET request format: '/api/v1/get_chained_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetChainedOutputs, srv.getChainedOutputs)
 	// GET request format: '/api/v1/get_chain_output?chainid=<hex-encoded chain ID>'
@@ -228,6 +230,46 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 	})
 }
 
+func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {
+	lst, ok := r.URL.Query()["addr"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'addr' in request 'get_balance_addr25519'")
+		return
+	}
+	targetAddr, err := ledger.AddressED25519FromSource(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	var resp api.Balance
+
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
+		lrbid := rdr.GetStemOutput().ID.TransactionID()
+		resp.LRBID = lrbid.StringHex()
+		err1 := rdr.IterateOutputsForAccount(targetAddr, func(_ ledger.OutputID, o *ledger.Output) bool {
+			if o.Lock().Name() != ledger.AddressED25519Name {
+				return true
+			}
+			if _, idx := o.ChainConstraint(); idx != 0xff {
+				return true
+			}
+			resp.Amount += o.Amount()
+			return true
+		})
+		if err1 != nil {
+			return err1
+		}
+		return nil
+	})
+	respBin, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	_, err = w.Write(respBin)
+	util.AssertNoError(err)
+}
+
 func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	lst, ok := r.URL.Query()["addr"]
 	if !ok || len(lst) != 1 {
@@ -287,7 +329,6 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = w.Write(respBin)
 	util.AssertNoError(err)
-
 }
 
 func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {

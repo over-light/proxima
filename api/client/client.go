@@ -270,6 +270,29 @@ func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint6
 	return ret, &retLRBID, sum, nil
 }
 
+// GetNonChainBalance total of outputs locked in the account but without chain constraint
+func (c *APIClient) GetNonChainBalance(addr ledger.Accountable) (uint64, *ledger.TransactionID, error) {
+	path := fmt.Sprintf(api.PathGetNonChainBalance+"?addr=%s", addr.Source())
+	body, err := c.getBody(path)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var res api.Balance
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, nil, err
+	}
+	if res.Error.Error != "" {
+		return 0, nil, fmt.Errorf("from server: %s", res.Error.Error)
+	}
+	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return 0, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+	}
+	return res.Amount, &retLRBID, nil
+}
+
 // GetChainedOutputs fetches all outputs of the account. Optionally sorts them on the server
 func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger.OutputWithChainID, *ledger.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetChainedOutputs+"?accountable=%s", accountable.String())

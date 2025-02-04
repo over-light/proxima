@@ -19,6 +19,7 @@ const (
 	PathGetAccountOutputs                = PrefixAPIV1 + "/get_account_outputs"
 	PathGetAccountSimpleSiglockedOutputs = PrefixAPIV1 + "/get_account_simple_siglocked"
 	PathGetOutputsForAmount              = PrefixAPIV1 + "/get_outputs_for_amount"
+	PathGetNonChainBalance               = PrefixAPIV1 + "/get_nonchain_balance"
 	PathGetChainedOutputs                = PrefixAPIV1 + "/get_chain_outputs"
 	PathGetChainOutput                   = PrefixAPIV1 + "/get_chain_output"
 	PathGetOutput                        = PrefixAPIV1 + "/get_output"
@@ -64,7 +65,7 @@ type (
 		// value is hex-encoded raw output data
 		Outputs map[string]string `json:"outputs,omitempty"`
 		// latest reliable branch used to extract outputs
-		LRBID string `json:"lrb_id"`
+		LRBID string `json:"lrbid"`
 	}
 
 	OutputDataWithID struct {
@@ -78,13 +79,13 @@ type (
 		Error
 		OutputDataWithID
 		// latest reliable branch used to extract chain ID
-		LRBID string `json:"lrb_id"`
+		LRBID string `json:"lrbid"`
 	}
 
 	Chains struct {
 		Error
 		Chains map[string]OutputDataWithID `json:"chains"`
-		LRBID  string                      `json:"lrb_id"`
+		LRBID  string                      `json:"lrbid"`
 	}
 
 	// OutputData is returned by 'get_output'
@@ -93,13 +94,13 @@ type (
 		// hex-encoded output data
 		OutputData string `json:"output_data,omitempty"`
 		// latest reliable branch used to extract output
-		LRBID string `json:"lrb_id"`
+		LRBID string `json:"lrbid"`
 	}
 
 	ChainedOutputs struct {
 		Error
 		Outputs map[string]string `json:"outputs,omitempty"`
-		LRBID   string            `json:"lrb_id"`
+		LRBID   string            `json:"lrbid"`
 	}
 
 	SyncInfo struct {
@@ -241,6 +242,12 @@ type (
 	MainChain struct {
 		Error
 		Branches []BranchData `json:"branches"`
+	}
+
+	Balance struct {
+		Error
+		Amount uint64 `json:"amount"`
+		LRBID  string `json:"lrbid"`
 	}
 )
 
