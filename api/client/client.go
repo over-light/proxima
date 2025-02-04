@@ -224,6 +224,75 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 	return ret, &retLRBID, nil
 }
 
+func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint64) ([]*ledger.OutputWithID, *ledger.TransactionID, uint64, error) {
+	path := fmt.Sprintf(api.PathGetOutputsForAmount+"?addr=%s&amount=%d", addr.Source(), amount)
+	body, err := c.getBody(path)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	var res api.OutputList
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	if res.Error.Error != "" {
+		return nil, nil, 0, fmt.Errorf("from server: %s", res.Error.Error)
+	}
+
+	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+	}
+
+	ret := make([]*ledger.OutputWithID, 0, len(res.Outputs))
+
+	sum := uint64(0)
+	for idStr, dataStr := range res.Outputs {
+		id, err := ledger.OutputIDFromHexString(idStr)
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("wrong output ID data from server: %s: '%w'", idStr, err)
+		}
+		o, err := ledger.OutputFromHexString(dataStr)
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("wrong output data from server: %s: '%w'", dataStr, err)
+		}
+		ret = append(ret, &ledger.OutputWithID{
+			ID:     id,
+			Output: o,
+		})
+		sum += o.Amount()
+	}
+	if sum < amount {
+		// double check
+		return nil, nil, 0, fmt.Errorf("inconsistency: server returned not enough tokens")
+	}
+	return ret, &retLRBID, sum, nil
+}
+
+// GetNonChainBalance total of outputs locked in the account but without chain constraint
+func (c *APIClient) GetNonChainBalance(addr ledger.Accountable) (uint64, *ledger.TransactionID, error) {
+	path := fmt.Sprintf(api.PathGetNonChainBalance+"?addr=%s", addr.Source())
+	body, err := c.getBody(path)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var res api.Balance
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return 0, nil, err
+	}
+	if res.Error.Error != "" {
+		return 0, nil, fmt.Errorf("from server: %s", res.Error.Error)
+	}
+	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return 0, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+	}
+	return res.Amount, &retLRBID, nil
+}
+
 // GetChainedOutputs fetches all outputs of the account. Optionally sorts them on the server
 func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger.OutputWithChainID, *ledger.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetChainedOutputs+"?accountable=%s", accountable.String())
@@ -595,10 +664,10 @@ func (c *APIClient) TransferFromED25519Wallet(par TransferFromED25519WalletParam
 		return nil, fmt.Errorf("minimum transfer amount is %d", minimumTransferAmount)
 	}
 	walletAccount := ledger.AddressED25519FromPrivateKey(par.WalletPrivateKey)
-	nowisTs := ledger.TimeNow()
-
-	walletOutputs, _, _, err := c.GetTransferableOutputs(walletAccount, par.MaxOutputs)
-
+	walletOutputs, _, _, err := c.GetOutputsForAmount(walletAccount, par.Amount+par.TagAlongFee)
+	if err != nil {
+		return nil, err
+	}
 	txBytes, err := MakeTransferTransaction(MakeTransferTransactionParams{
 		Inputs:        walletOutputs,
 		Target:        par.Target,
@@ -606,7 +675,7 @@ func (c *APIClient) TransferFromED25519Wallet(par TransferFromED25519WalletParam
 		PrivateKey:    par.WalletPrivateKey,
 		TagAlongSeqID: par.TagAlongSeqID,
 		TagAlongFee:   par.TagAlongFee,
-		Timestamp:     nowisTs,
+		Timestamp:     ledger.TimeNow(),
 	})
 	if err != nil {
 		return nil, err

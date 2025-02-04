@@ -58,6 +58,10 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetAccountOutputs, srv.getAccountOutputs)
 	// GET request format: '/api/v1/get_account_simple_siglocked?addr=<a(0x....)>'
 	srv.addHandler(api.PathGetAccountSimpleSiglockedOutputs, srv.getAccountSimpleSigLockedOutputs)
+	// GET request format: '/api/v1/get_outputs_for_amount?addr=<a(0x....)>&amount=<amount>'
+	srv.addHandler(api.PathGetOutputsForAmount, srv.getOutputsForAmount)
+	// GET request format: '/api/v1/get_nonchain_balance?addr=<a(0x....)>'
+	srv.addHandler(api.PathGetNonChainBalance, srv.getNonChainBalance)
 	// GET request format: '/api/v1/get_chained_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetChainedOutputs, srv.getChainedOutputs)
 	// GET request format: '/api/v1/get_chain_output?chainid=<hex-encoded chain ID>'
@@ -224,6 +228,107 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 	srv._getAccountOutputsWithFilter(w, r, addr, func(_ ledger.OutputID, o *ledger.Output) bool {
 		return o.Lock().Name() == ledger.AddressED25519Name
 	})
+}
+
+func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {
+	lst, ok := r.URL.Query()["addr"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'addr' in request 'get_balance_addr25519'")
+		return
+	}
+	targetAddr, err := ledger.AddressED25519FromSource(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	var resp api.Balance
+
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
+		lrbid := rdr.GetStemOutput().ID.TransactionID()
+		resp.LRBID = lrbid.StringHex()
+		err1 := rdr.IterateOutputsForAccount(targetAddr, func(_ ledger.OutputID, o *ledger.Output) bool {
+			if o.Lock().Name() != ledger.AddressED25519Name {
+				return true
+			}
+			if _, idx := o.ChainConstraint(); idx != 0xff {
+				return true
+			}
+			resp.Amount += o.Amount()
+			return true
+		})
+		if err1 != nil {
+			return err1
+		}
+		return nil
+	})
+	respBin, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	_, err = w.Write(respBin)
+	util.AssertNoError(err)
+}
+
+func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
+	lst, ok := r.URL.Query()["addr"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'addr' in request 'get_outputs_for_amount'")
+		return
+	}
+	targetAddr, err := ledger.AddressED25519FromSource(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+
+	lst, ok = r.URL.Query()["amount"]
+	if !ok || len(lst) != 1 {
+		writeErr(w, "wrong parameter 'amount' in request 'get_outputs_for_amount'")
+		return
+	}
+	amount, err := strconv.Atoi(lst[0])
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+
+	resp := &api.OutputList{
+		Outputs: make(map[string]string),
+	}
+	sum := uint64(0)
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
+		lrbid := rdr.GetStemOutput().ID.TransactionID()
+		resp.LRBID = lrbid.StringHex()
+		err1 := rdr.IterateOutputsForAccount(targetAddr, func(oid ledger.OutputID, o *ledger.Output) bool {
+			if o.Lock().Name() != ledger.AddressED25519Name {
+				return true
+			}
+			if !ledger.EqualAccountables(targetAddr, o.Lock().(ledger.AddressED25519)) {
+				return true
+			}
+			resp.Outputs[oid.StringHex()] = o.Hex()
+			sum += o.Amount()
+			return sum < uint64(amount)
+		})
+		if err1 != nil {
+			return err1
+		}
+		return nil
+	})
+
+	if sum < uint64(amount) {
+		writeErr(w, fmt.Sprintf("not enough tokens: < than requested %s", util.Th(amount)))
+		return
+	}
+
+	respBin, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
+	_, err = w.Write(respBin)
+	util.AssertNoError(err)
 }
 
 func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {

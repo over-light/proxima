@@ -93,10 +93,6 @@ func (p *workflowDummyEnvironment) GetSyncInfo() *api.SyncInfo {
 	return nil
 }
 
-func (p *workflowDummyEnvironment) GetTxInclusion(txid *ledger.TransactionID, slotsBack int) *multistate.TxInclusion {
-	return nil
-}
-
 func (p *workflowDummyEnvironment) LatestReliableState() (multistate.SugaredStateReader, error) {
 	return multistate.MakeSugared(multistate.MustNewReadable(p.stateStore, p.root, 0)), nil
 }

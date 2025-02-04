@@ -9,6 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/atomic"
 )
 
 const LedgerIDFileName = "proxima.genesis.id.yaml"
@@ -134,28 +135,42 @@ func GetTagAlongFee() uint64 {
 	return viper.GetUint64("tag_along.fee")
 }
 
+var tagAlongSequencerID atomic.Pointer[ledger.ChainID]
+
 func GetTagAlongSequencerID() *ledger.ChainID {
+	ret := tagAlongSequencerID.Load()
+	if ret != nil {
+		return ret
+	}
+
 	var seqIDStr string
 
 	if UseAlternativeTagAlongSequencer {
 		seqIDStr = viper.GetString("tag_along.alt_sequencer_id")
-		Infof("using alternative tag_along sequencer: %s", seqIDStr)
+		Infof("using alternative tag-along sequencer: %s", seqIDStr)
 	} else {
 		seqIDStr = viper.GetString("tag_along.sequencer_id")
-		Infof("using tag_along sequencer: %s", seqIDStr)
+		if seqIDStr != "" {
+			Infof("using tag-along sequencer: %s", seqIDStr)
+		} else {
+			own := GetOwnSequencerID()
+			if own == nil {
+				return nil
+			}
+			Infof("using own sequencer for tag-along: %s", seqIDStr)
+			seqIDStr = own.StringHex()
+		}
 	}
-	if seqIDStr == "" {
-		return nil
-	}
-	ret, err := ledger.ChainIDFromHexString(seqIDStr)
+	seqID, err := ledger.ChainIDFromHexString(seqIDStr)
 	AssertNoError(err)
 
-	o, _, err := GetClient().GetChainOutputData(ret)
-	Assertf(err == nil, "can't get tag-along sequencer: %v", err)
+	o, _, err := GetClient().GetChainOutputData(seqID)
+	Assertf(err == nil, "can't find tag-along sequencer: %v", err)
 	Assertf(o.ID.IsSequencerTransaction(), "can't get tag-along sequencer %s: chain output %s is not a sequencer output",
-		ret.StringShort(), o.ID.StringShort())
+		seqID.StringShort(), o.ID.StringShort())
 
-	return &ret
+	tagAlongSequencerID.Store(&seqID)
+	return &seqID
 }
 
 func GetTargetInclusionDepth() int {
