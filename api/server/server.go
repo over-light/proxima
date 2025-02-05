@@ -226,7 +226,13 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 	}
 
 	srv._getAccountOutputsWithFilter(w, r, addr, func(_ ledger.OutputID, o *ledger.Output) bool {
-		return o.Lock().Name() == ledger.AddressED25519Name
+		if o.Lock().Name() != ledger.AddressED25519Name {
+			return false
+		}
+		if _, idx := o.ChainConstraint(); idx != 0xff {
+			return false
+		}
+		return true
 	})
 }
 
@@ -506,7 +512,7 @@ func (srv *server) submitTx(w http.ResponseWriter, r *http.Request) {
 	writeOk(w)
 }
 
-func (srv *server) getSyncInfo(w http.ResponseWriter, r *http.Request) {
+func (srv *server) getSyncInfo(w http.ResponseWriter, _ *http.Request) {
 	setHeader(w)
 
 	syncInfo := srv.GetSyncInfo()
@@ -519,7 +525,7 @@ func (srv *server) getSyncInfo(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 }
 
-func (srv *server) getPeersInfo(w http.ResponseWriter, r *http.Request) {
+func (srv *server) getPeersInfo(w http.ResponseWriter, _ *http.Request) {
 	setHeader(w)
 
 	peersInfo := srv.GetPeersInfo()
@@ -532,7 +538,7 @@ func (srv *server) getPeersInfo(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 }
 
-func (srv *server) getNodeInfo(w http.ResponseWriter, r *http.Request) {
+func (srv *server) getNodeInfo(w http.ResponseWriter, _ *http.Request) {
 	setHeader(w)
 
 	nodeInfo := srv.GetNodeInfo()
@@ -545,7 +551,7 @@ func (srv *server) getNodeInfo(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 }
 
-func (srv *server) getMilestoneList(w http.ResponseWriter, r *http.Request) {
+func (srv *server) getMilestoneList(w http.ResponseWriter, _ *http.Request) {
 	setHeader(w)
 
 	resp := api.KnownLatestMilestones{
@@ -604,7 +610,7 @@ func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 }
 
-func (srv *server) getAllChains(w http.ResponseWriter, r *http.Request) {
+func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
 	setHeader(w)
 
 	var lst map[ledger.ChainID]multistate.ChainRecordInfo
@@ -639,7 +645,7 @@ func (srv *server) getAllChains(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 }
 
-func (srv *server) getLatestReliableBranch(w http.ResponseWriter, r *http.Request) {
+func (srv *server) getLatestReliableBranch(w http.ResponseWriter, _ *http.Request) {
 	setHeader(w)
 
 	bd := srv.GetLatestReliableBranch()
@@ -728,10 +734,6 @@ func writeOk(w http.ResponseWriter) {
 	}
 	_, err = w.Write(respBytes)
 	util.AssertNoError(err)
-}
-
-func writeNotImplemented(w http.ResponseWriter) {
-	writeErr(w, "not implemented")
 }
 
 func setHeader(w http.ResponseWriter) {
