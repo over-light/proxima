@@ -31,6 +31,7 @@ type (
 		port               uint64
 		maxRequestsPerHour uint
 		maxRequestsPerDay  uint
+		bottom             uint64
 	}
 
 	faucetServer struct {
@@ -39,6 +40,7 @@ type (
 		mutex              sync.Mutex
 		accountRequestList map[string][]time.Time
 		addressRequestList map[string][]time.Time
+		client             *client.APIClient
 	}
 )
 
@@ -50,7 +52,7 @@ const (
 func initFaucetServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "faucet",
-		Short: `starts a faucet server on the current wallet`,
+		Short: `starts a faucet server on the wallet`,
 		Args:  cobra.NoArgs,
 		Run:   runFaucetServerCmd,
 	}
@@ -65,50 +67,87 @@ func runFaucetServerCmd(_ *cobra.Command, _ []string) {
 	glb.Assertf(glb.GetTagAlongFee() > 0, "tag-along amount not specified")
 	glb.Assertf(glb.GetTagAlongSequencerID() != nil, "tag-along sequencer not specified")
 
-	cfg := readFaucetServerConfigIn(viper.Sub("faucet"))
-
 	fct := &faucetServer{
-		cfg:                cfg,
 		walletData:         walletData,
 		accountRequestList: make(map[string][]time.Time),
 		addressRequestList: make(map[string][]time.Time),
+		client:             glb.GetClient(),
 	}
+	fct.readFaucetServerConfigIn()
 
-	clnt := glb.GetClient()
-	fct.displayFaucetConfig(clnt)
+	fct.displayFaucetConfig()
 
-	if cfg.fromChain {
-		o, _, _, err := clnt.GetChainOutput(*glb.GetOwnSequencerID())
+	if fct.cfg.fromChain {
+		o, _, _, err := fct.client.GetChainOutput(*glb.GetOwnSequencerID())
 		glb.AssertNoError(err)
-		glb.Assertf(o.Output.Amount() > ledger.L().ID.MinimumAmountOnSequencer+cfg.amount,
+		glb.Assertf(o.Output.Amount() > ledger.L().ID.MinimumAmountOnSequencer+fct.cfg.amount,
 			"not enough balance on own sequencer %s", fct.walletData.Sequencer.String())
 	} else {
-		_, _, _, err := clnt.GetOutputsForAmount(walletData.Account, cfg.amount+glb.GetTagAlongFee())
+		_, _, _, err := fct.client.GetOutputsForAmount(walletData.Account, fct.cfg.amount+glb.GetTagAlongFee())
 		glb.AssertNoError(err)
 	}
 	fct.run()
 }
 
-func readFaucetServerConfigIn(sub *viper.Viper) (ret faucetServerConfig) {
-	glb.Assertf(sub != nil, "faucet server configuration has not found")
-	ret.fromChain = !sub.GetBool("use_wallet")
-	ret.port = sub.GetUint64("port")
-	if ret.port == 0 {
-		ret.port = defaultFaucetPort
+func (fct *faucetServer) readFaucetServerConfigIn() {
+	sub := viper.Sub("faucet")
+	glb.Assertf(sub != nil, "faucet server configuration is missing")
+	fct.cfg.fromChain = !sub.GetBool("use_wallet_as_source")
+	fct.cfg.port = sub.GetUint64("port")
+	if fct.cfg.port == 0 {
+		fct.cfg.port = defaultFaucetPort
 	}
-	ret.amount = sub.GetUint64("amount")
-	glb.Assertf(ret.amount >= minAmount, "amount must be greater than %s", util.Th(minAmount))
-	if ret.maxRequestsPerHour = sub.GetUint("max_requests_per_hour"); ret.maxRequestsPerHour == 0 {
-		ret.maxRequestsPerHour = 1
+	fct.cfg.amount = sub.GetUint64("amount")
+	glb.Assertf(fct.cfg.amount >= minAmount, "amount must be greater than %s", util.Th(minAmount))
+	if fct.cfg.maxRequestsPerHour = sub.GetUint("max_requests_per_hour"); fct.cfg.maxRequestsPerHour == 0 {
+		fct.cfg.maxRequestsPerHour = 1
 	}
-	if ret.maxRequestsPerDay = sub.GetUint("max_requests_per_day"); ret.maxRequestsPerDay == 0 {
-		ret.maxRequestsPerDay = 1
+	if fct.cfg.maxRequestsPerDay = sub.GetUint("max_requests_per_day"); fct.cfg.maxRequestsPerDay == 0 {
+		fct.cfg.maxRequestsPerDay = 1
 	}
+	fct.cfg.bottom = sub.GetUint64("bottom")
+	if fct.cfg.bottom < fct.absoluteBottom() {
+		fct.cfg.bottom = fct.absoluteBottom()
+	}
+
+	err := fct.checkBottom()
+	glb.AssertNoError(err)
 	return
 }
 
-func (fct *faucetServer) displayFaucetConfig(clnt *client.APIClient) {
-	walletbalance, lrbid, err := clnt.GetNonChainBalance(fct.walletData.Account)
+func (fct *faucetServer) absoluteBottom() uint64 {
+	if fct.cfg.fromChain {
+		return ledger.L().ID.MinimumAmountOnSequencer + fct.cfg.amount
+	}
+	return fct.cfg.amount + glb.GetTagAlongFee()
+}
+
+func (fct *faucetServer) checkBottom() error {
+	abs := fct.absoluteBottom()
+	if fct.cfg.fromChain {
+		o, _, _, err := fct.client.GetChainOutput(*glb.GetOwnSequencerID())
+		if err != nil {
+			return err
+		}
+		if o.Output.Amount() < abs {
+			return fmt.Errorf("not enough balance on own sequencer %s. Must be at least %s, got %s",
+				fct.walletData.Sequencer.String(), util.Th(abs), util.Th(o.Output.Amount()))
+		}
+	} else {
+		balance, _, err := fct.client.GetNonChainBalance(fct.walletData.Account)
+		if err != nil {
+			return err
+		}
+		if balance < abs {
+			return fmt.Errorf("not enough balance on source address %s. Must be at least %s, got %s",
+				fct.walletData.Account.String(), util.Th(abs), util.Th(balance))
+		}
+	}
+	return nil
+}
+
+func (fct *faucetServer) displayFaucetConfig() {
+	walletBalance, lrbid, err := fct.client.GetNonChainBalance(fct.walletData.Account)
 	glb.AssertNoError(err)
 	glb.PrintLRB(lrbid)
 
@@ -116,21 +155,29 @@ func (fct *faucetServer) displayFaucetConfig(clnt *client.APIClient) {
 	glb.Infof("     amount per request:       %s", util.Th(fct.cfg.amount))
 	glb.Infof("     port:                     %d", fct.cfg.port)
 	glb.Infof("     wallet address:           %s", fct.walletData.Account.String())
-	glb.Infof("     wallet balance:           %s", util.Th(walletbalance))
+	glb.Infof("     wallet balance:           %s", util.Th(walletBalance))
 	glb.Infof("     tag-along amount:         %d", glb.GetTagAlongFee())
 	glb.Infof("     tag-along sequencer:      %s", glb.GetTagAlongSequencerID().String())
+	glb.Infof("     bottom:                   %s", util.Th(fct.cfg.bottom))
 	if fct.cfg.fromChain {
-		chainOut, _, _, err := clnt.GetChainOutput(*fct.walletData.Sequencer)
+		chainOut, _, _, err := fct.client.GetChainOutput(*fct.walletData.Sequencer)
 		glb.AssertNoError(err)
 		glb.Infof("     funds will be drawn from: %s (balance %s)", fct.walletData.Sequencer.String(), util.Th(chainOut.Output.Amount()))
 
 	} else {
-		glb.Infof("     funds will be drawn from: %s (balance %s)", fct.walletData.Account.String(), util.Th(walletbalance))
+		glb.Infof("     funds will be drawn from: %s (balance %s)", fct.walletData.Account.String(), util.Th(walletBalance))
 	}
 	glb.Infof("     maximum number of requests per hour: %d, per day: %d", fct.cfg.maxRequestsPerHour, fct.cfg.maxRequestsPerDay)
 }
 
 func (fct *faucetServer) handler(w http.ResponseWriter, r *http.Request) {
+	err := fct.checkBottom()
+	if err != nil {
+		glb.Infof("error from checkBottom: %s", err.Error())
+		writeResponse(w, err.Error())
+		return
+	}
+
 	targetStr, ok := r.URL.Query()["addr"]
 	if !ok || len(targetStr) != 1 {
 		writeResponse(w, "wrong parameter 'addr' in request 'get_funds'")
