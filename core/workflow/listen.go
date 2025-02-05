@@ -36,9 +36,3 @@ func (w *Workflow) ListenToTransactions(fun func(tx *transaction.Transaction)) {
 		}})
 	})
 }
-
-func (w *Workflow) ListenToVids(fun func(vid *vertex.WrappedTx)) {
-	w.events.OnEvent(EventNewTx, func(vid *vertex.WrappedTx) {
-		fun(vid)
-	})
-}

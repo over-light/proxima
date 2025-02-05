@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -337,10 +336,6 @@ func (p *ProximaNode) SnapshotBranchID() *ledger.TransactionID {
 
 func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 	return p.peers.DurationSinceLastMessageFromPeer()
-}
-
-func (p *ProximaNode) ListenToVids(fun func(vid *vertex.WrappedTx)) {
-	p.workflow.ListenToVids(fun)
 }
 
 func (p *ProximaNode) ListenToTransactions(fun func(tx *transaction.Transaction)) {

@@ -8,6 +8,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dominikbraun/graph v0.23.0
 	github.com/gammazero/deque v0.2.1
+	github.com/gorilla/websocket v1.5.1
 	github.com/libp2p/go-libp2p v0.35.1
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/lunfardo314/easyfl v0.0.0-20241220192652-d6fac839a94a
@@ -28,12 +29,6 @@ require (
 )
 
 require (
-	github.com/golang/mock v1.6.0 // indirect
-	github.com/rs/xid v1.4.0 // indirect
-)
-
-require (
-	github.com/DrmagicE/gmqtt v0.5.0
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -61,7 +56,6 @@ require (
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20240207164012-fb44976bdcd5 // indirect
 	github.com/google/uuid v1.4.0 // indirect
-	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -100,7 +94,6 @@ require (
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/mochi-mqtt/server/v2 v2.6.6
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
