@@ -38,7 +38,7 @@ func Run(addr string, env environment) {
 	http.HandleFunc("/ws", srv.wsHandler)
 	srv.Tracef(TraceTag, "WebSocket server starting on :8080")
 	go func() {
-		err := http.ListenAndServe(":8080", nil)
+		err := http.ListenAndServe(addr, nil)
 		util.AssertNoError(err)
 	}()
 }

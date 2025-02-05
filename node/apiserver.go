@@ -28,7 +28,12 @@ func (p *ProximaNode) startAPIServer() {
 	p.Log().Infof("starting API server on %s", addr)
 
 	go server.Run(addr, p)
-	go streaming.Run(addr, p)
+	if viper.GetBool("streaming.enable") {
+		port = viper.GetInt("streaming.port")
+		addr = fmt.Sprintf(":%d", port)
+		p.Log().Infof("starting streaming server on %s", addr)
+		go streaming.Run(addr, p)
+	}
 	go func() {
 		<-p.Ctx().Done()
 		p.stopAPIServer()
