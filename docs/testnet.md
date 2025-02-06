@@ -2,12 +2,14 @@
 
 Proxima testnet is an experimental network, intended for testing node software and various aspects of the Proxima concept.
 
-We have been running several of them, each with at least 9 nodes and 5 sequencers among them. The testnets are
+We have been running several of them, each with at least 9 nodes and 5 sequencers among them. Normally we aim to control testnets
+by owning a majority of token supply. This is due to the experimental nature of the networks and frequent breaking changes. 
+After each breaking change we have to reset ledger state from genesis.
 
-Starting from version `v0.1.2` it is an open testnet. It means, everybody can join the network with the access node,
+Starting from version `v0.1.2` the testnet is open. It means, everybody can join the network with the access node,
 everybody with enough tokens can run a sequencer and earn inflation.
 
-Starting from version `v0.1.3-testnet` network has faucet.
+Starting from version `v0.1.3-testnet` network has faucet. You can receive tokens to your address by calling node API. 
 
 Starting from version `v0.1.4-testnet`, the node has _delegation_ function implemented. It allows any token holder participate
 in the consensus and earn inflation by delegating their holding to a sequencer of choice. (note, that minimum token amount
