@@ -7,7 +7,7 @@ import (
 
 // Version is the version of the Proxima node
 const (
-	Version        = "v0.1.4-testnet"
+	Version        = "v0.1.4.1-testnet"
 	bannerTemplate = "starting Proxima node version %s, commit hash: %s, commit time: %s"
 )
 
