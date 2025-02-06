@@ -12,7 +12,7 @@ everybody with enough tokens can run a sequencer and earn inflation.
 Starting from version `v0.1.3-testnet` network has faucet. You can receive tokens to your address by calling node API. 
 
 Starting from version `v0.1.4-testnet`, the node has _delegation_ function implemented. It allows any token holder participate
-in the consensus and earn inflation by delegating their holding to a sequencer of choice. (note, that minimum token amount
+in the consensus and earn inflation by delegating their holdings to a sequencer **without the need to run a sequencer**. (note, that minimum token amount
 limits are applied). So, the network is more or less functionally complete, in a sense that node provides all core functions
 needed to demonstrate full decentralization, as intended.
 
