@@ -1,13 +1,15 @@
 *Warning! This repository contains an ongoing development. Currently, it is in an alpha version. It definitely contains bugs.
 The code should not be used in production!*
 
-*For up-to-date information see `develop` branch*
-
 # Proxima: a DAG-based cooperative distributed ledger
 Proxima is as decentralized and permissionless as Bitcoin (*proof-of-work*, PoW). 
 <br>It is similar to *proof-of stake* (PoS), especially because of its energy-efficiency and throughput.
 <br>Yet it is neither PoW, nor a PoS system. It is based on **cooperative consensus**. See [whitepaper](https://arxiv.org/abs/2411.16456) and 
 [simplified presentation of Proxima concepts](https://hackmd.io/@Evaldas/Sy4Gka1DC).
+
+## Testnet 
+
+Please read instructions [how to join open testnet](docs/testnet.md).
 
 ## Introduction
 Proxima presents a novel architecture for a distributed ledger, commonly referred to as a "blockchain". 
@@ -78,6 +80,7 @@ much simpler than most PoS systems, which are usually complex in their consensus
   * [Running node with sequencer](docs/run_sequencer.md)
   * [Running small testnet in Docker](tests/docker/docker-network.md)
   * [Delegation in `proxi`](docs/delegate.md)
+  * [How to join testnet?](docs/testnet.md)
 * Introductory videos:
   * [1. Introduction. Principles of Nakamoto consensus](https://youtu.be/qDnjnrOJK_g)
   * [2. UTXO tangle. Ledger coverage](https://youtu.be/CT0_FlW-ObM)

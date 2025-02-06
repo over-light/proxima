@@ -37,11 +37,6 @@ api:
 tag_along:
   sequencer_id: 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
   fee: 500
-finality:
-  inclusion_threshold:
-    numerator: 2
-    denominator: 3
-  weak: false
 spammer:
   bundle_size: 5
   output_amount: 1000
@@ -52,7 +47,7 @@ spammer:
   target: <target address in EasyFL format>
 ```
 
-Usually some adjustments are needed to complete the profile. 
+**Usually some adjustments are needed to complete the profile**. 
 
 `wallet.private_key` contains hex encoded raw data of the ED25519 private key. The file must be kept secret 
 because of this private key. 
@@ -63,7 +58,7 @@ _EasyFL_ script fro the ED25519 lock.
 `sequencer_id` is an optional field. It is irrelevant if you do not run sequencer. It contains `sequencer ID` of the sequencer controlled by this wallet. 
 It is necessary in order to access sequencer controlled by this private key with the `proxi node seq withdraw ..` command. 
 
-`api.endpoint` must contain URL for the node's API in the form of `http://<ip>:<port>`
+`api.endpoint` must contain URL for the node's API in the form of `http://<ip>:<port>`. **It must be set to the address of some public access point**
 
 `tag_along.sequencer_id` is a mandatory field for any commands which create transactions, such as `proxi node transfer`.
 It must contain sequencer which is used as tag-along sequencer. Each issued transaction will contain so-called _tag-along output_.
@@ -120,7 +115,7 @@ by all the current healthy ledger states, i.e. it is the **consensus ledger stat
 * `proxi node balance` displays token balance on the usual (ED25519) address and on chains, controlled by the wallet's account in the LRB branch.  
    Token balance is sum of tokens contained in non-chain outputs plus sum of balances contained in chain outputs. 
 
-* `proxi node chains` displays all chain outputs controlled by the account on LRB state
+* `proxi node mychains` displays all chain outputs controlled by the account on the LRB state
 
 * `proxi node transfer <amount> -t "<target address>"` sends tokens from the wallet's account to the target address.
   For example command `proxi node transfer 1000 -t "a(0x370563b1f08fcc06fa250c59034acfd4ab5a29b60640f751d644e9c3b84004d0)"`
