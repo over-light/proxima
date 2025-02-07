@@ -52,6 +52,8 @@ type (
 		txInputQueue *txinput_queue.TxInputQueue
 		tippool      *tippool.SequencerTips
 		pruner       *pruner.Pruner
+		// particular event handlers
+		txListener *txListener
 		//
 		enableTrace    atomic.Bool
 		traceTagsMutex sync.RWMutex
@@ -88,6 +90,7 @@ func Start(env environment, peers *peering.Peers, opts ...ConfigOption) *Workflo
 	ret.txInputQueue = txinput_queue.New(ret)
 	ret.pruner = pruner.New(ret)
 	snapshot.Start(ret)
+	ret.startListeningTransactions()
 
 	ret.peers.OnReceiveTxBytes(func(from peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata, txData []byte) {
 		ret.TxBytesInFromPeerQueued(txBytes, metadata, from, txData)

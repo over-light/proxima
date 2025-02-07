@@ -1,6 +1,8 @@
 package workflow
 
 import (
+	"sync"
+
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/transaction"
@@ -28,11 +30,43 @@ func (w *Workflow) ListenToAccount(account ledger.Accountable, fun func(wOut ver
 	})
 }
 
-// ListenToTransactions provide stream of bew incoming transactions which are successfully parsed but before solidification
-func (w *Workflow) ListenToTransactions(fun func(tx *transaction.Transaction)) {
+type txListener struct {
+	mutex          sync.Mutex
+	handlerCounter int
+	handlers       map[int]func(tx *transaction.Transaction) bool
+}
+
+func (w *Workflow) startListeningTransactions() {
+	w.txListener = &txListener{
+		handlers: make(map[int]func(tx *transaction.Transaction) bool),
+	}
 	w.events.OnEvent(EventNewTx, func(vid *vertex.WrappedTx) {
+		var tx *transaction.Transaction
+
 		vid.RUnwrap(vertex.UnwrapOptions{Vertex: func(v *vertex.Vertex) {
-			fun(v.Tx)
+			tx = v.Tx
 		}})
+		if tx != nil {
+			go w.txListener.runFor(tx)
+		}
 	})
+}
+
+func (tl *txListener) runFor(tx *transaction.Transaction) {
+	tl.mutex.Lock()
+	defer tl.mutex.Unlock()
+
+	for id, fun := range tl.handlers {
+		if !fun(tx) {
+			delete(tl.handlers, id)
+		}
+	}
+}
+
+func (w *Workflow) OnTransaction(fun func(tx *transaction.Transaction) bool) {
+	w.txListener.mutex.Lock()
+	defer w.txListener.mutex.Unlock()
+
+	w.txListener.handlers[w.txListener.handlerCounter] = fun
+	w.txListener.handlerCounter++
 }

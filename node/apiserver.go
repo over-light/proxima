@@ -44,6 +44,7 @@ func (p *ProximaNode) startStreamingServer() {
 	if viper.GetBool("streaming.enable") {
 		port := viper.GetInt("streaming.port")
 		addr := fmt.Sprintf(":%d", port)
+
 		p.Log().Infof("starting streaming server on %s", addr)
 		go streaming.Run(addr, p)
 		go func() {
@@ -80,16 +81,19 @@ func (p *ProximaNode) GetSyncInfo() *api.SyncInfo {
 	lrb := p.GetLatestReliableBranch()
 	lrbSlot := uint32(0)
 	curSlot := uint32(ledger.TimeNow().Slot())
+	var cov uint64
 	if lrb == nil {
 		p.Log().Warnf("[sync] can't find latest reliable branch")
 	} else {
+		cov = lrb.LedgerCoverage
 		lrbSlot = uint32(lrb.Stem.ID.Slot())
 	}
+
 	ret := &api.SyncInfo{
 		Synced:         synced,
 		CurrentSlot:    curSlot,
 		LrbSlot:        lrbSlot,
-		LedgerCoverage: util.Th(lrb.LedgerCoverage),
+		LedgerCoverage: util.Th(cov),
 		PerSequencer:   make(map[string]api.SequencerSyncInfo),
 	}
 	if p.sequencer != nil {

@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	PrefixAPIV1   = "/api/v1"
-	PrefixTxAPIV1 = "/txapi/v1"
+	PrefixAPIV1       = "/api/v1"
+	PrefixTxAPIV1     = "/txapi/v1"
+	PrefixWebSocketV1 = "/wsapi/v1"
 
 	PathGetLedgerID                      = PrefixAPIV1 + "/get_ledger_id"
 	PathGetAccountOutputs                = PrefixAPIV1 + "/get_account_outputs"
@@ -45,6 +46,9 @@ const (
 	PathGetTxBytes                = PrefixTxAPIV1 + "/get_txbytes"
 	PathGetParsedTransaction      = PrefixTxAPIV1 + "/get_parsed_transaction"
 	PathGetVertexWithDependencies = PrefixTxAPIV1 + "/get_vertex_dep"
+
+	// WebSocket API
+	PathDAGVertexStream = PrefixWebSocketV1 + "/dag_vertex_stream"
 )
 
 type (

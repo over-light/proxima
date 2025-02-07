@@ -338,6 +338,6 @@ func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 	return p.peers.DurationSinceLastMessageFromPeer()
 }
 
-func (p *ProximaNode) ListenToTransactions(fun func(tx *transaction.Transaction)) {
-	p.workflow.ListenToTransactions(fun)
+func (p *ProximaNode) OnTransaction(fun func(tx *transaction.Transaction) bool) {
+	p.workflow.OnTransaction(fun)
 }
