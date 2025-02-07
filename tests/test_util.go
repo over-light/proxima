@@ -97,6 +97,10 @@ func (p *workflowDummyEnvironment) LatestReliableState() (multistate.SugaredStat
 	return multistate.MakeSugared(multistate.MustNewReadable(p.stateStore, p.root, 0)), nil
 }
 
+func (p *workflowDummyEnvironment) CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int) {
+	panic("not implemented")
+}
+
 func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble {
 	return vertex.TxIDStatusJSONAble{}
 }

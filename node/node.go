@@ -11,6 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/sequencer"
 	"github.com/lunfardo314/proxima/util"
@@ -134,6 +135,7 @@ func (p *ProximaNode) Start() {
 		p.startSequencer()
 		initStep = "startAPIServer"
 		p.startAPIServer()
+		p.startStreamingServer()
 		initStep = "startPProfIfEnabled"
 		p.startPProfIfEnabled()
 		return nil
@@ -334,4 +336,8 @@ func (p *ProximaNode) SnapshotBranchID() *ledger.TransactionID {
 
 func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 	return p.peers.DurationSinceLastMessageFromPeer()
+}
+
+func (p *ProximaNode) ListenToTransactions(fun func(tx *transaction.Transaction)) {
+	p.workflow.ListenToTransactions(fun)
 }

@@ -17,6 +17,8 @@ func initBalanceCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Run:     runBalanceCmd,
 	}
+	glb.AddFlagTarget(getBalanceCmd)
+	getBalanceCmd.InitDefaultHelpCmd()
 	return getBalanceCmd
 }
 

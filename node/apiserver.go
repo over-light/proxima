@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/api/server"
+	"github.com/lunfardo314/proxima/api/streaming"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -31,11 +32,30 @@ func (p *ProximaNode) startAPIServer() {
 		<-p.Ctx().Done()
 		p.stopAPIServer()
 	}()
+
 }
 
 func (p *ProximaNode) stopAPIServer() {
 	// do we need to do something else here?
 	p.Log().Debugf("API server has been stopped")
+}
+
+func (p *ProximaNode) startStreamingServer() {
+	if viper.GetBool("streaming.enable") {
+		port := viper.GetInt("streaming.port")
+		addr := fmt.Sprintf(":%d", port)
+		p.Log().Infof("starting streaming server on %s", addr)
+		go streaming.Run(addr, p)
+		go func() {
+			<-p.Ctx().Done()
+			p.stopStreamingServer()
+		}()
+	}
+}
+
+func (p *ProximaNode) stopStreamingServer() {
+	// do we need to do something else here?
+	p.Log().Debugf("Streaming server has been stopped")
 }
 
 // GetNodeInfo TODO not finished
