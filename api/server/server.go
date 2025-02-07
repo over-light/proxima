@@ -94,7 +94,7 @@ func (srv *server) registerHandlers() {
 }
 
 func (srv *server) getLedgerID(w http.ResponseWriter, _ *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	srv.Tracef(TraceTag, "getLedgerID invoked")
 
@@ -103,7 +103,7 @@ func (srv *server) getLedgerID(w http.ResponseWriter, _ *http.Request) {
 	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -118,12 +118,12 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 	lst, ok := r.URL.Query()["max_outputs"]
 	if ok {
 		if len(lst) != 1 {
-			writeErr(w, "wrong parameter 'max_outputs'")
+			api.WriteErr(w, "wrong parameter 'max_outputs'")
 			return
 		}
 		maxOutputs, err = strconv.Atoi(lst[0])
 		if err != nil {
-			writeErr(w, err.Error())
+			api.WriteErr(w, err.Error())
 			return
 		}
 		if maxOutputs > absoluteMaximumOfReturnedOutputs {
@@ -136,7 +136,7 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 	lst, ok = r.URL.Query()["sort"]
 	if ok {
 		if len(lst) != 1 || (lst[0] != "asc" && lst[0] != "desc") {
-			writeErr(w, "wrong parameter 'sort'")
+			api.WriteErr(w, "wrong parameter 'sort'")
 			return
 		}
 		doSorting = true
@@ -166,7 +166,7 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 		return
 	})
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	if doSorting {
@@ -185,7 +185,7 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -195,16 +195,16 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 // getAccountOutputs returns all outputs from the account because of random ordering and limits
 // Lock can be of any type
 func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	lst, ok := r.URL.Query()["accountable"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter 'accountable' in request 'get_account_outputs'")
+		api.WriteErr(w, "wrong parameter 'accountable' in request 'get_account_outputs'")
 		return
 	}
 	accountable, err := ledger.AccountableFromSource(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	srv._getAccountOutputsWithFilter(w, r, accountable, func(oid ledger.OutputID, o *ledger.Output) bool {
@@ -216,12 +216,12 @@ func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *http.Request) {
 	lst, ok := r.URL.Query()["addr"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter 'addr' in request 'get_account_simple_siglocked_outputs'")
+		api.WriteErr(w, "wrong parameter 'addr' in request 'get_account_simple_siglocked_outputs'")
 		return
 	}
 	addr, err := ledger.AddressED25519FromSource(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -239,12 +239,12 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {
 	lst, ok := r.URL.Query()["addr"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter 'addr' in request 'get_balance_addr25519'")
+		api.WriteErr(w, "wrong parameter 'addr' in request 'get_balance_addr25519'")
 		return
 	}
 	targetAddr, err := ledger.AddressED25519FromSource(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	var resp api.Balance
@@ -269,7 +269,7 @@ func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {
 	})
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -279,23 +279,23 @@ func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {
 func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	lst, ok := r.URL.Query()["addr"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter 'addr' in request 'get_outputs_for_amount'")
+		api.WriteErr(w, "wrong parameter 'addr' in request 'get_outputs_for_amount'")
 		return
 	}
 	targetAddr, err := ledger.AddressED25519FromSource(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
 	lst, ok = r.URL.Query()["amount"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter 'amount' in request 'get_outputs_for_amount'")
+		api.WriteErr(w, "wrong parameter 'amount' in request 'get_outputs_for_amount'")
 		return
 	}
 	amount, err := strconv.Atoi(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -324,13 +324,13 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if sum < uint64(amount) {
-		writeErr(w, fmt.Sprintf("not enough tokens: < than requested %s", util.Th(amount)))
+		api.WriteErr(w, fmt.Sprintf("not enough tokens: < than requested %s", util.Th(amount)))
 		return
 	}
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -338,16 +338,16 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	lst, ok := r.URL.Query()["chainid"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameters in request 'get_chain_output'")
+		api.WriteErr(w, "wrong parameters in request 'get_chain_output'")
 		return
 	}
 	chainID, err := ledger.ChainIDFromHexString(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -364,13 +364,13 @@ func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -378,16 +378,16 @@ func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *server) getChainedOutputs(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	lst, ok := r.URL.Query()["accountable"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter 'accountable' in request 'get_chained_outputs'")
+		api.WriteErr(w, "wrong parameter 'accountable' in request 'get_chained_outputs'")
 		return
 	}
 	accountable, err := ledger.AccountableFromSource(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -409,13 +409,13 @@ func (srv *server) getChainedOutputs(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -423,16 +423,16 @@ func (srv *server) getChainedOutputs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *server) getOutput(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	lst, ok := r.URL.Query()["id"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "wrong parameter in request 'get_output'")
+		api.WriteErr(w, "wrong parameter in request 'get_output'")
 		return
 	}
 	oid, err := ledger.OutputIDFromHexString(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -448,13 +448,13 @@ func (srv *server) getOutput(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeErr(w, api.ErrGetOutputNotFound)
+		api.WriteErr(w, api.ErrGetOutputNotFound)
 		return
 	}
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -468,7 +468,7 @@ const (
 )
 
 func (srv *server) submitTx(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	if r.Method != "POST" {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -485,7 +485,7 @@ func (srv *server) submitTx(w http.ResponseWriter, r *http.Request) {
 			wrong = err != nil || timeoutSec < 0
 		}
 		if wrong {
-			writeErr(w, "wrong 'timeout' parameter in request 'submit_wait'")
+			api.WriteErr(w, "wrong 'timeout' parameter in request 'submit_wait'")
 			return
 		}
 		timeout = time.Duration(timeoutSec) * time.Second
@@ -505,20 +505,20 @@ func (srv *server) submitTx(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeErr(w, fmt.Sprintf("submit_tx: %v", err))
+		api.WriteErr(w, fmt.Sprintf("submit_tx: %v", err))
 		srv.Tracef(TraceTag, "submit transaction: '%v'", err)
 		return
 	}
-	writeOk(w)
+	api.WriteOk(w)
 }
 
 func (srv *server) getSyncInfo(w http.ResponseWriter, _ *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	syncInfo := srv.GetSyncInfo()
 	respBin, err := json.MarshalIndent(syncInfo, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -526,12 +526,12 @@ func (srv *server) getSyncInfo(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (srv *server) getPeersInfo(w http.ResponseWriter, _ *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	peersInfo := srv.GetPeersInfo()
 	respBin, err := json.MarshalIndent(peersInfo, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -539,12 +539,12 @@ func (srv *server) getPeersInfo(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (srv *server) getNodeInfo(w http.ResponseWriter, _ *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	nodeInfo := srv.GetNodeInfo()
 	respBin, err := json.MarshalIndent(nodeInfo, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -552,14 +552,14 @@ func (srv *server) getNodeInfo(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (srv *server) getMilestoneList(w http.ResponseWriter, _ *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	resp := api.KnownLatestMilestones{
 		Sequencers: srv.GetKnownLatestMilestonesJSONAble(),
 	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -569,14 +569,14 @@ func (srv *server) getMilestoneList(w http.ResponseWriter, _ *http.Request) {
 const defaultMaxMainChainDepth = 20
 
 func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	var err error
 	maxDepth := defaultMaxMainChainDepth
 	lst, ok := r.URL.Query()["max"]
 	if ok || len(lst) == 1 {
 		if maxDepth, err = strconv.Atoi(lst[0]); err != nil {
-			writeErr(w, "wrong parameter 'max'")
+			api.WriteErr(w, "wrong parameter 'max'")
 			return
 		}
 	}
@@ -585,7 +585,7 @@ func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
 	}
 	main, err := multistate.GetMainChain(srv.StateStore(), global.FractionHealthyBranch, maxDepth)
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -603,7 +603,7 @@ func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -611,7 +611,7 @@ func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	var lst map[ledger.ChainID]multistate.ChainRecordInfo
 	resp := api.Chains{
@@ -626,7 +626,7 @@ func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
 		return err1
 	})
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -638,7 +638,7 @@ func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
 	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -646,11 +646,11 @@ func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (srv *server) getLatestReliableBranch(w http.ResponseWriter, _ *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	bd := srv.GetLatestReliableBranch()
 	if bd == nil {
-		writeErr(w, "latest reliable branch (LRB) has not been found")
+		api.WriteErr(w, "latest reliable branch (LRB) has not been found")
 		return
 	}
 
@@ -660,7 +660,7 @@ func (srv *server) getLatestReliableBranch(w http.ResponseWriter, _ *http.Reques
 	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
@@ -668,7 +668,7 @@ func (srv *server) getLatestReliableBranch(w http.ResponseWriter, _ *http.Reques
 }
 
 func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request) {
-	setHeader(w)
+	api.SetHeader(w)
 
 	var txid ledger.TransactionID
 	var err error
@@ -676,12 +676,12 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 	// mandatory parameter txid
 	lst, ok := r.URL.Query()["txid"]
 	if !ok || len(lst) != 1 {
-		writeErr(w, "txid expected")
+		api.WriteErr(w, "txid expected")
 		return
 	}
 	txid, err = ledger.TransactionIDFromHexString(lst[0])
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 
@@ -691,7 +691,7 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 	if ok && len(lst) == 1 {
 		maxDepth, err = strconv.Atoi(lst[0])
 		if err != nil {
-			writeErr(w, err.Error())
+			api.WriteErr(w, err.Error())
 			return
 		}
 		if maxDepth < 0 {
@@ -709,36 +709,11 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 		return
 	}
 	_, err = w.Write(respBin)
 	util.AssertNoError(err)
-}
-
-func writeErr(w http.ResponseWriter, errStr string) {
-	respBytes, err := json.Marshal(&api.Error{Error: errStr})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(respBytes)
-	util.AssertNoError(err)
-}
-
-func writeOk(w http.ResponseWriter) {
-	respBytes, err := json.Marshal(&api.Error{})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(respBytes)
-	util.AssertNoError(err)
-}
-
-func setHeader(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 }
 
 func (srv *server) withLRB(fun func(rdr multistate.SugaredStateReader) error) error {

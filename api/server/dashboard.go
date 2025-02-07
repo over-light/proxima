@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 	"text/template"
+
+	"github.com/lunfardo314/proxima/api"
 )
 
 func (srv *server) getDashboard(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +27,7 @@ func (srv *server) getDashboard(w http.ResponseWriter, r *http.Request) {
 	// Execute the template
 	err := tmpl.Execute(w, data)
 	if err != nil {
-		writeErr(w, err.Error())
+		api.WriteErr(w, err.Error())
 	}
 }
 

@@ -220,14 +220,14 @@ type (
 
 	// VertexWithDependencies primary purpose is streaming vertices for DAG visualization
 	VertexWithDependencies struct {
-		ID                  string   `json:"id"`                // transaction ID in hex form
-		TotalAmount         uint64   `json:"a"`                 // total produced amount on transaction
-		TotalInflation      uint64   `json:"i,omitempty"`       // total inflation on transaction
-		SequencerID         string   `json:"seqid,omitempty"`   // "" (omitted) for non-seq. Useful for coloring
-		SequencerInputIndex *byte    `json:"seqidx,omitempty"`  // sequencer predecessor index for sequencer tx, otherwise nil
-		StemInputIndex      *byte    `json:"stemidx,omitempty"` // step predecessor index for branches, otherwise nil
-		Inputs              []string `json:"in"`                // list of input IDs (not empty)
-		Endorsements        []string `json:"endorse,omitempty"` // list of endorsements (can be nil)
+		ID                    string   `json:"id"`                // transaction ID in hex form
+		TotalAmount           uint64   `json:"a"`                 // total produced amount on transaction
+		TotalInflation        uint64   `json:"i,omitempty"`       // total inflation on transaction
+		SequencerID           string   `json:"seqid,omitempty"`   // "" (omitted) for non-seq. Useful for coloring
+		SequencerInputTxIndex *byte    `json:"seqidx,omitempty"`  // sequencer predecessor tx index for sequencer predecessor tx in the Inputs list, otherwise nil
+		StemInputTxIndex      *byte    `json:"stemidx,omitempty"` // stem predecessor (branch) tx index for stem predecessor tx in the Inputs list, otherwise nil
+		Inputs                []string `json:"in"`                // list of input IDs (not empty)
+		Endorsements          []string `json:"endorse,omitempty"` // list of endorsements (can be nil)
 	}
 
 	KnownLatestMilestones struct {
@@ -328,20 +328,41 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 	}
 	seqInputIdx, stemInputIdx, seqID := tx.SequencerAndStemInputData()
 
-	ret.SequencerInputIndex = seqInputIdx
-	ret.StemInputIndex = stemInputIdx
 	if seqID != nil {
 		ret.SequencerID = seqID.StringHex()
 	}
 
+	var stemTxID, seqTxID ledger.TransactionID
+
 	inputTxIDs := set.New[ledger.TransactionID]()
 	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
 		inputTxIDs.Insert(oid.TransactionID())
+		if tx.IsSequencerMilestone() {
+			if *seqInputIdx == i {
+				seqTxID = oid.TransactionID()
+			}
+			if tx.IsBranchTransaction() {
+				if *stemInputIdx == i {
+					stemTxID = oid.TransactionID()
+				}
+			}
+		}
 		return true
 	})
 	sorted := util.KeysSorted(inputTxIDs, func(txid1, txid2 ledger.TransactionID) bool {
 		return ledger.LessTxID(txid1, txid2)
 	})
+
+	if tx.IsSequencerMilestone() {
+		for i, txid := range sorted {
+			if txid == seqTxID {
+				ret.SequencerInputTxIndex = util.Ref(byte(i))
+			}
+			if tx.IsBranchTransaction() && txid == stemTxID {
+				ret.StemInputTxIndex = util.Ref(byte(i))
+			}
+		}
+	}
 
 	for _, txid := range sorted {
 		ret.Inputs = append(ret.Inputs, txid.StringHex())

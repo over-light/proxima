@@ -47,14 +47,18 @@ func Run(addr string, env environment) {
 func streamData(conn *websocket.Conn, data []byte) error {
 
 	// Send message to client
-	return conn.WriteMessage(websocket.TextMessage, []byte(data))
+	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
 // WebSocket handler
 func (srv *ws_server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
-	util.AssertNoError(err)
-	srv.Tracef(TraceTag, "Client connected")
+	if err != nil {
+		api.WriteErr(w, "failed to upgrade to websocket connection")
+		return
+	}
+
+	srv.Log().Infof("web socket client connected. Remote = %s", r.RemoteAddr)
 
 	srv.ListenToTransactions(func(tx *transaction.Transaction) {
 		srv.Tracef(TraceTag, "TX ID: %s", tx.IDShortString())
@@ -66,10 +70,9 @@ func (srv *ws_server) wsHandler(w http.ResponseWriter, r *http.Request) {
 				srv.Tracef(TraceTag, "Error in MarshalIndent: %s", err.Error())
 			}
 
-			//log.Printf("Sending JSON-encoded vid: %s", string(respBin))
 			err = streamData(conn, respBin)
 			if err != nil {
-				srv.Tracef(TraceTag, "Client disconnected")
+				srv.Log().Infof("web socket client disconnected. Remote = %s", r.RemoteAddr)
 				return
 			}
 		} else {
