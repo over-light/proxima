@@ -40,23 +40,10 @@ func (p *ProximaNode) stopAPIServer() {
 	p.Log().Debugf("API server has been stopped")
 }
 
-func (p *ProximaNode) startStreamingServer() {
+func (p *ProximaNode) startStreaming() {
 	if viper.GetBool("streaming.enable") {
-		port := viper.GetInt("streaming.port")
-		addr := fmt.Sprintf(":%d", port)
-
-		p.Log().Infof("starting streaming server on %s", addr)
-		go streaming.Run(addr, p)
-		go func() {
-			<-p.Ctx().Done()
-			p.stopStreamingServer()
-		}()
+		streaming.Run(p)
 	}
-}
-
-func (p *ProximaNode) stopStreamingServer() {
-	// do we need to do something else here?
-	p.Log().Debugf("Streaming server has been stopped")
 }
 
 // GetNodeInfo TODO not finished

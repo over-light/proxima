@@ -23,18 +23,11 @@ type (
 
 const TraceTag = "streaming"
 
-func Run(addr string, env environment) {
+func Run(env environment) {
 	srv := &wsServer{
 		environment: env,
 	}
-
 	http.HandleFunc(api.PathDAGVertexStream, srv.dagVertexStreamHandler)
-
-	srv.Tracef(TraceTag, "WebSocket server starting")
-	go func() {
-		err := http.ListenAndServe(addr, nil)
-		util.AssertNoError(err)
-	}()
 }
 
 // WebSocket handler

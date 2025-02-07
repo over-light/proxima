@@ -135,7 +135,7 @@ func (p *ProximaNode) Start() {
 		p.startSequencer()
 		initStep = "startAPIServer"
 		p.startAPIServer()
-		p.startStreamingServer()
+		p.startStreaming()
 		initStep = "startPProfIfEnabled"
 		p.startPProfIfEnabled()
 		return nil
