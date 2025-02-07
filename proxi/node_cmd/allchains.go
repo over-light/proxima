@@ -3,6 +3,7 @@ package node_cmd
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -139,6 +140,7 @@ func listGrouped(chains []*ledger.OutputWithChainID) {
 }
 
 type _seqDelegationInfo struct {
+	name            string
 	numDelegations  int
 	delegatedAmount uint64
 	lastActive      ledger.Slot
@@ -148,14 +150,20 @@ func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID) {
 	m := make(map[ledger.ChainID]_seqDelegationInfo)
 	// collect all sequencers
 	for _, o := range chains {
-		seqData, _ := o.Output.SequencerOutputData()
-		if seqData == nil {
+		sd, _ := o.Output.SequencerOutputData()
+		if sd == nil {
 			continue
 		}
-		m[seqData.ChainConstraint.ID] = _seqDelegationInfo{
+		var name string
+		if md := sd.MilestoneData; md != nil {
+			name, _, _ = strings.Cut(md.Name, ".")
+		}
+		m[sd.ChainConstraint.ID] = _seqDelegationInfo{
 			lastActive: o.ID.Slot(),
+			name:       name,
 		}
 	}
+
 	// collect all sequencers with active delegations
 	for _, o := range chains {
 		dl := o.Output.DelegationLock()
@@ -169,6 +177,7 @@ func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID) {
 		glb.Assertf(ok, "target lock %s is not a chain lock:\n%s", dl.TargetLock.String(), o.String())
 
 		chainID := cl.ChainID()
+
 		seqData := m[chainID]
 		seqData.numDelegations++
 		seqData.delegatedAmount += o.Output.Amount()
@@ -186,8 +195,8 @@ func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID) {
 	totalDelegated := uint64(0)
 	for _, seqID := range keys {
 		seqData := m[seqID]
-		glb.Infof("   %s   # delegations: %3d,    total delegated amount: %20s,    last active: %d slots ago",
-			seqID.String(), seqData.numDelegations, util.Th(seqData.delegatedAmount), ledger.TimeNow().Slot()-seqData.lastActive)
+		glb.Infof("   %s %8s   # delegations: %3d,    total delegated amount: %20s,    last active: %d slots ago",
+			seqID.String(), seqData.name, seqData.numDelegations, util.Th(seqData.delegatedAmount), ledger.TimeNow().Slot()-seqData.lastActive)
 		totalDelegated += seqData.delegatedAmount
 	}
 	glb.Infof("---------------\nTOTAL DELEGATED AMOUNT: %s", util.Th(totalDelegated))
