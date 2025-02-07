@@ -20,7 +20,7 @@ Reasonable amount for the real network would be 1/1000 of the initial supply in 
 - make your access node running and synced. See instructions in [Running access node](run_access.md)
 - create a new chain origin with `proxi node mkchain <amount>`. Make sure you don't use the whole amount balance for the chain.
 It is recommended to leave at least 1 mil or so tokens for tag-along fees, spamming and other purposes.
-- once you created chain origin, you can check it with `proxi node chains`
+- once you created chain origin, you can check it with `proxi node mychains`
 - configure `sequencer` section in the node configuration profile `proxima.yaml` of your access node the following way:
 
 ```yaml
