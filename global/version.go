@@ -5,15 +5,19 @@ import (
 	"runtime/debug"
 )
 
-// Version is the version of the Proxima node
 const (
-	Version        = "v0.1.4-testnet"
+	// Version has the following structure: vA.B.C[-<label>]
+	// A is major version. It is 0 until beta. All alpha testnets are '0.n...'. Beta starts at 1
+	// B is minor version. Change of the version means breaking change
+	// C is subversion. Change usually means non-breaking change
+	// <label is arbitrary label>
+	Version        = "v0.4.2-testnet"
 	bannerTemplate = "starting Proxima node version %s, commit hash: %s, commit time: %s"
 )
 
 var (
 	CommitHash = "N/A"
-	CommitTime = "N?A"
+	CommitTime = "N/A"
 )
 
 func init() {
