@@ -21,17 +21,12 @@ finality:
 # Before sending next bundle, the spammer waits for the finality of the previous according to the provided criterion
 spammer:
     bundle_size: 5
-    max_duration_minutes: 0
-    max_transactions: 0
     output_amount: 1000
     pace: 25
-    scenario: standard
-    submit_nowait: false
     tag_along:
         fee: 500
         # <sequencer ID hex encoded> is tag-along sequencer ID for the tip transaction in the bundle
-        # For example the bootstrap sequencer 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
-        sequencer: 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
+        # For example the bootstrap sequencer af7bedde1fea222230b82d63d5b665ac75afbe4ad3f75999bb3386cf994a6963
+        sequencer_id: 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc
     # target address
-    target: a(0x3faf090d38f18ea211936b8bcf19b7b30cdcb8e224394a5c30f9ba644f8bb2fb)
-    trace_on_node: false
+    target: a(0x24db3c3d477f29d558fbe6f215b0c9d198dcc878866fb60cba023ba3c3d74a03)

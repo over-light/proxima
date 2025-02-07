@@ -77,13 +77,15 @@ if [ ! -f "$INITIALIZED_FILE" ]; then
     touch "$INITIALIZED_FILE"
 fi
 
+
+./proxima $boot_param &
+
 if [ "$NODE_NAME" = "boot" ]; then
     # 
+    sleep 10  # let process die
     echo "start faucet server"
     ./proxi node faucet &
 fi
-
-./proxima $boot_param
 
 # do not let the script end
 while true; do
