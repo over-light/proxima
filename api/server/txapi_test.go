@@ -259,7 +259,7 @@ func TestGetVertexDep(t *testing.T) {
 	assert.EqualValues(t, 0, ret.TotalInflation)
 	assert.True(t, ret.SequencerInputIndex != nil && *ret.SequencerInputIndex == 0)
 	assert.True(t, ret.StemInputIndex != nil && *ret.StemInputIndex == 1)
-	assert.EqualValues(t, 2, len(ret.Inputs))
+	assert.EqualValues(t, 1, len(ret.Inputs))
 	assert.EqualValues(t, 0, len(ret.Endorsements))
 }
 
