@@ -195,10 +195,10 @@ func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID) {
 	totalDelegated := uint64(0)
 	totalDelegations := 0
 
-	for _, seqID := range keys {
+	for i, seqID := range keys {
 		seqData := m[seqID]
-		glb.Infof("   %s %8s   # delegations: %3d,    total delegated amount: %20s,    last active: %d slots ago",
-			seqID.String(), seqData.name, seqData.numDelegations, util.Th(seqData.delegatedAmount), ledger.TimeNow().Slot()-seqData.lastActive)
+		glb.Infof("%2d.   %s %8s   # delegations: %3d,    total delegated amount: %20s,    last active: %d slots ago",
+			i, seqID.String(), seqData.name, seqData.numDelegations, util.Th(seqData.delegatedAmount), ledger.TimeNow().Slot()-seqData.lastActive)
 		totalDelegated += seqData.delegatedAmount
 		totalDelegations += seqData.numDelegations
 	}
