@@ -492,7 +492,7 @@ func (o *OutputWithID) Clone() *OutputWithID {
 
 func (o *OutputWithID) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
-	ret.Add("ID: %s", o.ID.String())
+	ret.Add("ID: %s, hex: %s", o.ID.String(), o.ID.StringHex())
 	if cc, idx := o.Output.ChainConstraint(); idx != 0xff {
 		var chainID ChainID
 		if cc.IsOrigin() {
