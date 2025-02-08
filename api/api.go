@@ -113,7 +113,7 @@ type (
 		Synced         bool                         `json:"synced"`
 		CurrentSlot    uint32                       `json:"current_slot"`
 		LrbSlot        uint32                       `json:"lrb_slot"`
-		LedgerCoverage string                       `json:"ledger_coverage"`
+		LedgerCoverage uint64                       `json:"ledger_coverage"`
 		PerSequencer   map[string]SequencerSyncInfo `json:"per_sequencer,omitempty"`
 	}
 

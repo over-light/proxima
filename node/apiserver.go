@@ -80,7 +80,7 @@ func (p *ProximaNode) GetSyncInfo() *api.SyncInfo {
 		Synced:         synced,
 		CurrentSlot:    curSlot,
 		LrbSlot:        lrbSlot,
-		LedgerCoverage: util.Th(cov),
+		LedgerCoverage: cov,
 		PerSequencer:   make(map[string]api.SequencerSyncInfo),
 	}
 	if p.sequencer != nil {
