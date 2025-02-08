@@ -38,4 +38,5 @@ func InitLedgerFromNode() {
 	AssertNoError(err)
 	ledger.Init(ledgerID)
 	Infof("successfully connected to the node at %s", viper.GetString("api.endpoint"))
+	Infof("verbose = %v", IsVerbose())
 }

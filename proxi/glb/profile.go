@@ -114,11 +114,15 @@ func TrackTxInclusion(txid ledger.TransactionID, poll time.Duration) {
 		AssertNoError(err)
 
 		if time.Since(last) > poll*4 || !lrbids.Contains(lrbid) {
+			lrbidStr := lrbid.StringShort()
+			if IsVerbose() {
+				lrbidStr += ", hex=" + lrbid.StringHex()
+			}
 			since := time.Since(start) / time.Second
 			if foundAtDepth < 0 {
-				Infof("%2d sec. Transaction is NOT included in the latest reliable branch (LRB) %s", since, lrbid.String())
+				Infof("%2d sec. Transaction is NOT included in the latest reliable branch (LRB) %s", since, lrbidStr)
 			} else {
-				Infof("%2d sec. Transaction INCLUDED in the latest reliable branch (LRB) %s at depth %d", since, lrbid.String(), foundAtDepth)
+				Infof("%2d sec. Transaction INCLUDED in the latest reliable branch (LRB) at depth %d: %s", since, foundAtDepth, lrbidStr)
 				if foundAtDepth == inclusionDepth {
 					Infof("target inclusion depth %d has been reached", inclusionDepth)
 					return

@@ -81,5 +81,10 @@ func YesNoPrompt(label string, def bool, force ...bool) bool {
 }
 
 func PrintLRB(lrbid *ledger.TransactionID) {
-	Infof("Latest reliable branch (LRB) ID: %s, %d slot(s) from now. Now is %s", lrbid.String(), ledger.TimeNow().Slot()-lrbid.Slot(), ledger.TimeNow().String())
+	if IsVerbose() {
+		Infof("Latest reliable branch:\n     LRB TXID:        %s\n     TX ID HEX:       %s\n     ledger time now: %s, %d slot(s) from now\n",
+			lrbid.String(), lrbid.StringHex(), ledger.TimeNow().String(), ledger.TimeNow().Slot()-lrbid.Slot())
+	} else {
+		Infof("Latest reliable branch (LRB) TX ID: %s\n", lrbid.String())
+	}
 }
