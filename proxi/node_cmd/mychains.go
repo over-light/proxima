@@ -76,7 +76,7 @@ func listChainedOutputs(addr ledger.AddressED25519, outs []*ledger.OutputWithCha
 				continue
 			}
 		}
-		glb.Infof("\n%2d: %s -- %s, sequencer: "+seq, i, o.ChainID.String(), o.ID.StringShort())
+		glb.Infof("\n%2d: %s -- %s, hex: %s, sequencer: "+seq, i, o.ChainID.String(), o.ID.StringShort(), o.ID.StringHex())
 		glb.Infof("      balance     : %s", util.Th(o.Output.Amount()))
 		glb.Infof("      lock        : %s", lock.String())
 		thisControls := ""
@@ -121,9 +121,12 @@ func listDelegations(addr ledger.AddressED25519, outs []*ledger.OutputWithChainI
 		perSlot := earned / uint64(slots)
 		annualExtrapolationEarnings := uint64(ledger.L().ID.SlotsPerYear()) * perSlot
 		annualRate := 100 * float64(annualExtrapolationEarnings) / float64(dlock.StartAmount)
-		glb.Verbosef("        inflation +%s since %s (%d slots), avg %s per slot, start amount %s, annual rate: ~%.02f%%, last active %d slots back\n",
+		glb.Verbosef("        inflation +%s since %s (%d slots), avg %s per slot, start amount %s,"+
+			" annual rate: ~%.02f%%, last active %d slots back\n        output ID: %s\n        hex output ID: %s",
 			util.Th(earned), dlock.StartTime.String(), slots, util.Th(perSlot),
-			util.Th(dlock.StartAmount), annualRate, nowis.Slot()-o.ID.Slot())
+			util.Th(dlock.StartAmount), annualRate, nowis.Slot()-o.ID.Slot(),
+			o.ID.String(), o.ID.StringHex(),
+		)
 
 		total += o.Output.Amount()
 	}
