@@ -11,7 +11,7 @@ const (
 	// B is minor version. Change of the version means breaking change
 	// C is subversion. Change usually means non-breaking change
 	// <label is arbitrary label>
-	Version        = "v0.4.2-testnet"
+	Version        = "v0.4.3-testnet"
 	bannerTemplate = "starting Proxima node version %s, commit hash: %s, commit time: %s"
 )
 
