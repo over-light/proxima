@@ -56,6 +56,8 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetLedgerID, srv.getLedgerID)
 	// GET request format: '/api/v1/get_account_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetAccountOutputs, srv.getAccountOutputs)
+	// GET request format: '/api/v1/get_account_parsed_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
+	srv.addHandler(api.PathGetAccountParsedOutputs, srv.getAccountParsedOutputs)
 	// GET request format: '/api/v1/get_account_simple_siglocked?addr=<a(0x....)>'
 	srv.addHandler(api.PathGetAccountSimpleSiglockedOutputs, srv.getAccountSimpleSigLockedOutputs)
 	// GET request format: '/api/v1/get_outputs_for_amount?addr=<a(0x....)>&amount=<amount>'
@@ -110,20 +112,20 @@ func (srv *server) getLedgerID(w http.ResponseWriter, _ *http.Request) {
 	util.AssertNoError(err)
 }
 
-const absoluteMaximumOfReturnedOutputs = 2000
-
-func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.Request, addr ledger.Accountable, filter func(oid ledger.OutputID, o *ledger.Output) bool) {
-	var err error
+func (srv *server) _getAccountOutputsWithFilter(r *http.Request, addr ledger.Accountable, filter func(oid ledger.OutputID, o *ledger.Output) bool) (
+	outs []*ledger.OutputWithID, lrbid ledger.TransactionID, err error) {
+	if filter == nil {
+		filter = func(_ ledger.OutputID, _ *ledger.Output) bool { return true }
+	}
 	maxOutputs := absoluteMaximumOfReturnedOutputs
 	lst, ok := r.URL.Query()["max_outputs"]
 	if ok {
 		if len(lst) != 1 {
-			api.WriteErr(w, "wrong parameter 'max_outputs'")
+			err = fmt.Errorf("wrong parameter 'max_outputs'")
 			return
 		}
 		maxOutputs, err = strconv.Atoi(lst[0])
 		if err != nil {
-			api.WriteErr(w, err.Error())
 			return
 		}
 		if maxOutputs > absoluteMaximumOfReturnedOutputs {
@@ -136,21 +138,17 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 	lst, ok = r.URL.Query()["sort"]
 	if ok {
 		if len(lst) != 1 || (lst[0] != "asc" && lst[0] != "desc") {
-			api.WriteErr(w, "wrong parameter 'sort'")
+			err = fmt.Errorf("wrong parameter 'sort'")
 			return
 		}
 		doSorting = true
 		sortDesc = lst[0] == "desc"
 	}
 
-	outs := make([]*ledger.OutputWithID, 0)
-	resp := &api.OutputList{
-		Outputs: make(map[string]string),
-	}
+	outs = make([]*ledger.OutputWithID, 0)
 
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) (errRet error) {
-		lrbid := rdr.GetStemOutput().ID.TransactionID()
-		resp.LRBID = lrbid.StringHex()
+		lrbid = rdr.GetStemOutput().ID.TransactionID()
 		err1 := rdr.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
 			if filter(oid, o) {
 				outs = append(outs, &ledger.OutputWithID{
@@ -166,7 +164,6 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 		return
 	})
 	if err != nil {
-		api.WriteErr(w, err.Error())
 		return
 	}
 	if doSorting {
@@ -179,6 +176,17 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 		})
 	}
 	outs = util.TrimSlice(outs, maxOutputs)
+	return
+}
+
+const absoluteMaximumOfReturnedOutputs = 2000
+
+func _writeOutputs(w http.ResponseWriter, outs []*ledger.OutputWithID, lrbid ledger.TransactionID) {
+	resp := &api.OutputList{
+		Outputs: make(map[string]string),
+		LRBID:   lrbid.StringHex(),
+	}
+
 	for _, o := range outs {
 		resp.Outputs[o.ID.StringHex()] = o.Output.Hex()
 	}
@@ -192,7 +200,36 @@ func (srv *server) _getAccountOutputsWithFilter(w http.ResponseWriter, r *http.R
 	util.AssertNoError(err)
 }
 
-// getAccountOutputs returns all outputs from the account because of random ordering and limits
+func _writeParsedOutputs(w http.ResponseWriter, outs []*ledger.OutputWithID, lrbid ledger.TransactionID) {
+	resp := &api.ParsedOutputList{
+		Outputs: make(map[string]api.ParsedOutput),
+		LRBID:   lrbid.StringHex(),
+	}
+
+	for _, o := range outs {
+		po := api.ParsedOutput{
+			Data:        o.Output.Hex(),
+			Constraints: o.Output.LinesPlain().Slice(),
+			Amount:      o.Output.Amount(),
+			LockName:    o.Output.Lock().Name(),
+			ChainID:     "",
+		}
+		if chainID, _, ok := o.ExtractChainID(); ok {
+			po.ChainID = chainID.StringHex()
+		}
+		resp.Outputs[o.ID.StringHex()] = po
+	}
+
+	respBin, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		api.WriteErr(w, err.Error())
+		return
+	}
+	_, err = w.Write(respBin)
+	util.AssertNoError(err)
+}
+
+// getAccountOutputs returns all outputs from the account
 // Lock can be of any type
 func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 	api.SetHeader(w)
@@ -207,13 +244,41 @@ func (srv *server) getAccountOutputs(w http.ResponseWriter, r *http.Request) {
 		api.WriteErr(w, err.Error())
 		return
 	}
-	srv._getAccountOutputsWithFilter(w, r, accountable, func(oid ledger.OutputID, o *ledger.Output) bool {
-		return true
-	})
+	outs, lrbid, err := srv._getAccountOutputsWithFilter(r, accountable, nil)
+	if err != nil {
+		api.WriteErr(w, err.Error())
+		return
+	}
+	_writeOutputs(w, outs, lrbid)
+}
+
+// getAccountOutputs returns all outputs from the account
+// Lock can be of any type
+func (srv *server) getAccountParsedOutputs(w http.ResponseWriter, r *http.Request) {
+	api.SetHeader(w)
+
+	lst, ok := r.URL.Query()["accountable"]
+	if !ok || len(lst) != 1 {
+		api.WriteErr(w, "wrong parameter 'accountable' in request 'get_account_outputs'")
+		return
+	}
+	accountable, err := ledger.AccountableFromSource(lst[0])
+	if err != nil {
+		api.WriteErr(w, err.Error())
+		return
+	}
+	outs, lrbid, err := srv._getAccountOutputsWithFilter(r, accountable, nil)
+	if err != nil {
+		api.WriteErr(w, err.Error())
+		return
+	}
+	_writeParsedOutputs(w, outs, lrbid)
 }
 
 // getAccountSimpleSigLockedOutputs returns outputs locked with simple AddressED25519 lock
 func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *http.Request) {
+	api.SetHeader(w)
+
 	lst, ok := r.URL.Query()["addr"]
 	if !ok || len(lst) != 1 {
 		api.WriteErr(w, "wrong parameter 'addr' in request 'get_account_simple_siglocked_outputs'")
@@ -224,8 +289,7 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 		api.WriteErr(w, err.Error())
 		return
 	}
-
-	srv._getAccountOutputsWithFilter(w, r, addr, func(_ ledger.OutputID, o *ledger.Output) bool {
+	outs, lrbid, err := srv._getAccountOutputsWithFilter(r, addr, func(_ ledger.OutputID, o *ledger.Output) bool {
 		if o.Lock().Name() != ledger.AddressED25519Name {
 			return false
 		}
@@ -234,6 +298,11 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 		}
 		return true
 	})
+	if err != nil {
+		api.WriteErr(w, err.Error())
+		return
+	}
+	_writeOutputs(w, outs, lrbid)
 }
 
 func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {

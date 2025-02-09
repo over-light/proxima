@@ -19,6 +19,7 @@ const (
 
 	PathGetLedgerID                      = PrefixAPIV1 + "/get_ledger_id"
 	PathGetAccountOutputs                = PrefixAPIV1 + "/get_account_outputs"
+	PathGetAccountParsedOutputs          = PrefixAPIV1 + "/get_account_parsed_outputs"
 	PathGetAccountSimpleSiglockedOutputs = PrefixAPIV1 + "/get_account_simple_siglocked"
 	PathGetOutputsForAmount              = PrefixAPIV1 + "/get_outputs_for_amount"
 	PathGetNonChainBalance               = PrefixAPIV1 + "/get_nonchain_balance"
@@ -182,8 +183,19 @@ type (
 		Constraints []string `json:"constraints"`
 		// amount
 		Amount uint64 `json:"amount"`
+		// name of the lock constraint
+		LockName string `json:"lock_name"`
 		// Chain ID for chain outputs
 		ChainID string `json:"chain_id,omitempty"`
+	}
+	// ParsedOutputList is returned by 'get_account_parsed_outputs'
+	ParsedOutputList struct {
+		Error
+		// key is hex-encoded outputID bytes
+		// value is hex-encoded raw output data
+		Outputs map[string]ParsedOutput `json:"outputs,omitempty"`
+		// latest reliable branch used to extract outputs
+		LRBID string `json:"lrbid"`
 	}
 
 	Input struct {
@@ -305,6 +317,7 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 			Data:        hex.EncodeToString(o.Bytes()),
 			Constraints: o.LinesPlain().Slice(),
 			Amount:      o.Amount(),
+			LockName:    o.Lock().Name(),
 		}
 		if cc, idx := o.ChainConstraint(); idx != 0xff {
 			var chainID ledger.ChainID
