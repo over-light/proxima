@@ -35,6 +35,7 @@ const (
 	PathGetLastKnownSequencerMilestones  = PrefixAPIV1 + "/last_known_milestones"
 	PathGetMainChain                     = PrefixAPIV1 + "/get_mainchain"
 	PathGetAllChains                     = PrefixAPIV1 + "/get_all_chains"
+	PathGetDelegationsBySequencer        = PrefixAPIV1 + "/get_delegations_by_sequencer"
 	// PathGetDashboard returns dashboard
 	PathGetDashboard = "/dashboard"
 
@@ -265,6 +266,23 @@ type (
 		Error
 		Amount uint64 `json:"amount"`
 		LRBID  string `json:"lrbid"`
+	}
+
+	DelegationData struct {
+		Amount      uint64 `json:"amount"`
+		SinceSlot   uint32 `json:"since_slot"`
+		StartAmount uint64 `json:"start_amount"`
+	}
+	DelegationsOnSequencer struct {
+		SequencerOutputID string                    `json:"seq_output_id"`
+		Balance           uint64                    `json:"balance"`
+		Delegations       map[string]DelegationData `json:"delegations"`
+	}
+
+	DelegationsBySequencer struct {
+		Error
+		LRBID      string                            `json:"lrbid"`
+		Sequencers map[string]DelegationsOnSequencer `json:"sequencers"`
 	}
 )
 

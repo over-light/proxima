@@ -88,6 +88,8 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetMainChain, srv.getMainChain)
 	// GET all chains in the LRB /get_all_chains
 	srv.addHandler(api.PathGetAllChains, srv.getAllChains)
+	// GET all chains in the LRB /get_delegations_by_sequencer
+	srv.addHandler(api.PathGetDelegationsBySequencer, srv.getDelegationsBySequencer)
 	// GET dashboard for node
 	srv.addHandler(api.PathGetDashboard, srv.getDashboard)
 
@@ -703,6 +705,55 @@ func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
 		resp.Chains[chainID.StringHex()] = api.OutputDataWithID{
 			ID:   ri.Output.ID.StringHex(),
 			Data: hex.EncodeToString(ri.Output.Data),
+		}
+	}
+	respBin, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		api.WriteErr(w, err.Error())
+		return
+	}
+	_, err = w.Write(respBin)
+	util.AssertNoError(err)
+}
+
+func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Request) {
+	api.SetHeader(w)
+
+	resp := api.DelegationsBySequencer{
+		Sequencers: make(map[string]api.DelegationsOnSequencer),
+	}
+
+	var err error
+	var bySeq map[ledger.ChainID]multistate.DelegationsOnSequencer
+
+	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
+		var err1 error
+		bySeq, err = rdr.GetDelegationsBySequencer()
+		lrbid := rdr.GetStemOutput().ID.TransactionID()
+		resp.LRBID = lrbid.StringHex()
+		return err1
+	})
+	if err != nil {
+		api.WriteErr(w, err.Error())
+		return
+	}
+
+	for chainID, di := range bySeq {
+		dlg := make(map[string]api.DelegationData)
+		resp.Sequencers[chainID.StringHex()] = api.DelegationsOnSequencer{
+			SequencerOutputID: di.SequencerOutput.ID.StringHex(),
+			Balance:           di.SequencerOutput.Output.Amount(),
+			Delegations:       dlg,
+		}
+		for delegationID, delegationOut := range di.Delegations {
+			dl := delegationOut.Output.DelegationLock()
+			util.Assertf(dl != nil, "dl != nil")
+
+			dlg[delegationID.StringHex()] = api.DelegationData{
+				Amount:      delegationOut.Output.Amount(),
+				SinceSlot:   uint32(dl.StartTime.Slot()),
+				StartAmount: dl.StartAmount,
+			}
 		}
 	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")

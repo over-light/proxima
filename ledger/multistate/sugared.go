@@ -286,8 +286,16 @@ func (s SugaredStateReader) IterateChains(fun func(out ledger.OutputWithChainID)
 			err1 = fmt.Errorf("IterateChains: inconsistency: cannot get chain output: %s, oid: %s", chainID.String(), oid.String())
 			return false
 		}
-
-		return true
+		cc, idx := o.ChainConstraint()
+		util.Assertf(idx != 0xff, "inconsistency: chain constraint expected")
+		return fun(ledger.OutputWithChainID{
+			OutputWithID: ledger.OutputWithID{
+				ID:     oid,
+				Output: o,
+			},
+			ChainID:                    chainID,
+			PredecessorConstraintIndex: cc.PredecessorInputIndex,
+		})
 	})
 	if err != nil {
 		return err
@@ -296,4 +304,54 @@ func (s SugaredStateReader) IterateChains(fun func(out ledger.OutputWithChainID)
 		return err1
 	}
 	return nil
+}
+
+type DelegationsOnSequencer struct {
+	SequencerOutput ledger.OutputWithID
+	Delegations     map[ledger.ChainID]ledger.OutputWithID
+}
+
+func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]DelegationsOnSequencer, error) {
+	allOuts := make([]ledger.OutputWithChainID, 0)
+	err := s.IterateChains(func(out ledger.OutputWithChainID) bool {
+		allOuts = append(allOuts, out)
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	ret := make(map[ledger.ChainID]DelegationsOnSequencer)
+	nonSeq := make([]*ledger.OutputWithChainID, 0)
+	// collect all sequencers
+	for i := range allOuts {
+		if allOuts[i].OutputWithID.ID.IsSequencerTransaction() {
+			ret[allOuts[i].ChainID] = DelegationsOnSequencer{
+				SequencerOutput: allOuts[i].OutputWithID,
+			}
+		} else {
+			nonSeq = append(nonSeq, &allOuts[i])
+		}
+	}
+
+	for _, delegation := range nonSeq {
+		dl := delegation.OutputWithID.Output.DelegationLock()
+		if dl == nil {
+			// chain but not delegation
+			continue
+		}
+		if dl.TargetLock.Name() == ledger.ChainLockName {
+			cl := dl.TargetLock.(*ledger.ChainLock)
+			seq, ok := ret[cl.ChainID()]
+			if !ok {
+				// delegated to nonexistent sequencer
+				continue
+			}
+			if len(seq.Delegations) == 0 {
+				seq.Delegations = make(map[ledger.ChainID]ledger.OutputWithID)
+			}
+			seq.Delegations[delegation.ChainID] = delegation.OutputWithID
+			ret[cl.ChainID()] = seq
+		}
+	}
+	return ret, nil
 }
