@@ -689,7 +689,7 @@ func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
 
 	err := srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		var err1 error
-		lst, err1 = rdr.GetAllChains()
+		lst, err1 = rdr.GetAllChainsOld()
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
 		return err1

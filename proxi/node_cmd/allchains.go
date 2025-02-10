@@ -44,10 +44,15 @@ func initAllChainsCmd() *cobra.Command {
 
 func runAllChainsCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromNode()
-	chains, lrbid, err := glb.GetClient().GetAllChains()
+	clnt := glb.GetClient()
+	chains, _, err := clnt.GetAllChains()
 	glb.AssertNoError(err)
 
-	glb.PrintLRB(lrbid)
+	rr, lrbid, err := clnt.GetLatestReliableBranch()
+	glb.AssertNoError(err)
+
+	glb.PrintLRB(&lrbid)
+
 	sort.Slice(chains, func(i, j int) bool {
 		return chains[i].ID.Timestamp().After(chains[j].ID.Timestamp())
 	})
@@ -60,7 +65,7 @@ func runAllChainsCmd(_ *cobra.Command, _ []string) {
 	case groupByDelegationTarget:
 		listGrouped(chains)
 	case showDelegationsOnly && showSequencersOnly:
-		listSequencerDelegationInfo(chains)
+		listSequencerDelegationInfo(chains, rr.Supply)
 	default:
 		listChains(chains)
 	}
@@ -146,7 +151,7 @@ type _seqDelegationInfo struct {
 	lastActive      ledger.Slot
 }
 
-func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID) {
+func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID, supply uint64) {
 	m := make(map[ledger.ChainID]_seqDelegationInfo)
 	// collect all sequencers
 	for _, o := range chains {
@@ -197,11 +202,14 @@ func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID) {
 
 	for i, seqID := range keys {
 		seqData := m[seqID]
-		glb.Infof("%2d.   %s %8s   # delegations: %3d,    total delegated amount: %20s,    last active: %d slots ago",
-			i, seqID.String(), seqData.name, seqData.numDelegations, util.Th(seqData.delegatedAmount), ledger.TimeNow().Slot()-seqData.lastActive)
+		glb.Infof("%2d.   %s %8s   delegated: %20s (%2d outputs),    last active: %d slots ago",
+			i, seqID.String(), seqData.name, util.Th(seqData.delegatedAmount), seqData.numDelegations, ledger.TimeNow().Slot()-seqData.lastActive)
 		totalDelegated += seqData.delegatedAmount
 		totalDelegations += seqData.numDelegations
 	}
-	glb.Infof("---------------\nTOTAL DELEGATIONS     :  %d", totalDelegations)
-	glb.Infof("TOTAL DELEGATED AMOUNT:  %s", util.Th(totalDelegated))
+
+	glb.Infof("---------------")
+	glb.Infof("TOTAL SUPPLY          :  %s", util.Th(supply))
+	glb.Infof("TOTAL DELEGATIONS     :  %d", totalDelegations)
+	glb.Infof("TOTAL DELEGATED AMOUNT:  %s (%.2f%% of supply)", util.Th(totalDelegated), 100*float64(totalDelegated)/float64(supply))
 }

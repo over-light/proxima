@@ -27,6 +27,7 @@ func Run(env environment) {
 	srv := &wsServer{
 		environment: env,
 	}
+	srv.Log().Infof("[%s] web socket steraming is running", TraceTag)
 	http.HandleFunc(api.PathDAGVertexStream, srv.dagVertexStreamHandler)
 }
 

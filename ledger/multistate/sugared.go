@@ -249,7 +249,7 @@ func (s SugaredStateReader) IterateChainsInAccount(addr ledger.Accountable, fun 
 	})
 }
 
-func (s SugaredStateReader) GetAllChains() (map[ledger.ChainID]ChainRecordInfo, error) {
+func (s SugaredStateReader) GetAllChainsOld() (map[ledger.ChainID]ChainRecordInfo, error) {
 	var err error
 
 	ids := make(map[ledger.ChainID]ledger.OutputID)
@@ -276,4 +276,24 @@ func (s SugaredStateReader) GetAllChains() (map[ledger.ChainID]ChainRecordInfo, 
 		}
 	}
 	return ret, nil
+}
+
+func (s SugaredStateReader) IterateChains(fun func(out ledger.OutputWithChainID) bool) error {
+	var err1 error
+	err := s.IterateChainTips(func(chainID ledger.ChainID, oid ledger.OutputID) bool {
+		o := s.GetOutput(&oid)
+		if o == nil {
+			err1 = fmt.Errorf("IterateChains: inconsistency: cannot get chain output: %s, oid: %s", chainID.String(), oid.String())
+			return false
+		}
+
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	if err1 != nil {
+		return err1
+	}
+	return nil
 }
