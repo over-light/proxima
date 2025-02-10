@@ -11,6 +11,9 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
+// TODO refactor (breaking change!) to 127 ticks per slot and sequencer flag in transaction ID paced as lowest bit in timestamp ticks
+//  The purpose would be to have more consistent sorting and lookup by transaction ID
+
 const (
 	TransactionIDShortLength     = 27
 	TransactionIDLength          = TimeByteLength + TransactionIDShortLength
@@ -138,17 +141,13 @@ func (txid *TransactionID) Bytes() []byte {
 }
 
 func timestampPrefixString(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
-	isBranch := seqMilestoneFlag && ts.Tick() == 0
 	var s string
-	switch {
-	case seqMilestoneFlag && isBranch:
-		s = "br"
-	case seqMilestoneFlag && !isBranch:
-		s = "sq"
-	case !seqMilestoneFlag && isBranch:
-		s = "??"
-	case !seqMilestoneFlag && !isBranch:
-		s = ""
+	if seqMilestoneFlag {
+		if ts.Tick() == 0 {
+			s = "br"
+		} else {
+			s = "sq"
+		}
 	}
 	if len(shortTimeSlot) > 0 && shortTimeSlot[0] {
 		return fmt.Sprintf("%s%s", ts.Short(), s)
@@ -156,17 +155,14 @@ func timestampPrefixString(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool
 	return fmt.Sprintf("%s%s", ts.String(), s)
 }
 
-func timestampPrefixStringAsFileName(ts Time, seqMilestoneFlag, branchFlag bool, shortTimeSlot ...bool) string {
+func timestampPrefixStringAsFileName(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
 	var s string
-	switch {
-	case seqMilestoneFlag && branchFlag:
-		s = "br"
-	case seqMilestoneFlag && !branchFlag:
-		s = "sq"
-	case !seqMilestoneFlag && branchFlag:
-		s = "??"
-	case !seqMilestoneFlag && !branchFlag:
-		s = ""
+	if seqMilestoneFlag {
+		if ts.Tick() == 0 {
+			s = "br"
+		} else {
+			s = "sq"
+		}
 	}
 	if len(shortTimeSlot) > 0 && shortTimeSlot[0] {
 		return fmt.Sprintf("%s%s", ts.AsFileName(), s)
