@@ -35,11 +35,12 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 	u := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	conn, err := u.Upgrade(w, r, nil)
 	if err != nil {
+		srv.Log().Warnf("[%s] web socket client connected, remote: %s", TraceTag, r.RemoteAddr)
 		api.WriteErr(w, "failed to upgrade to websocket connection")
 		return
 	}
 
-	srv.Log().Infof("web socket client connected. Remote = %s", r.RemoteAddr)
+	srv.Log().Infof("[%s] web socket client connected, remote: %s", TraceTag, r.RemoteAddr)
 
 	var respBin []byte
 	srv.OnTransaction(func(tx *transaction.Transaction) bool {
@@ -50,7 +51,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 		util.AssertNoError(err)
 
 		if err = conn.WriteMessage(websocket.TextMessage, respBin); err != nil {
-			srv.Log().Infof("web socket client disconnected. Remote = %s", r.RemoteAddr)
+			srv.Log().Infof("[%s] web socket client disconnected, remote: %s, err = %v", TraceTag, r.RemoteAddr, err)
 		}
 		return err == nil // returns false to remove callback
 	})
