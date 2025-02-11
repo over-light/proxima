@@ -342,7 +342,7 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 	nonSeq := make([]*ledger.OutputWithChainID, 0)
 	// collect all sequencers
 	for i := range allOuts {
-		if allOuts[i].OutputWithID.ID.IsSequencerTransaction() {
+		if allOuts[i].OutputWithID.Output.IsSequencerOutput() {
 			ret[allOuts[i].ChainID] = DelegationsOnSequencer{
 				SequencerOutput: allOuts[i].OutputWithID,
 			}
