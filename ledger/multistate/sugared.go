@@ -312,6 +312,7 @@ type DelegationsOnSequencer struct {
 }
 
 func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]DelegationsOnSequencer, error) {
+	fmt.Printf(">>>>> GetDelegationsBySequencer 1\n")
 	allOuts := make([]ledger.OutputWithChainID, 0)
 	err := s.IterateChains(func(out ledger.OutputWithChainID) bool {
 		allOuts = append(allOuts, out)
@@ -320,6 +321,7 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf(">>>>> GetDelegationsBySequencer 2\n")
 	ret := make(map[ledger.ChainID]DelegationsOnSequencer)
 	nonSeq := make([]*ledger.OutputWithChainID, 0)
 	// collect all sequencers
@@ -332,6 +334,7 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 			nonSeq = append(nonSeq, &allOuts[i])
 		}
 	}
+	fmt.Printf(">>>>> GetDelegationsBySequencer 3\n")
 
 	for _, delegation := range nonSeq {
 		dl := delegation.OutputWithID.Output.DelegationLock()
@@ -353,5 +356,6 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 			ret[cl.ChainID()] = seq
 		}
 	}
+	fmt.Printf(">>>>> GetDelegationsBySequencer 4\n")
 	return ret, nil
 }
