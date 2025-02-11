@@ -728,10 +728,13 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		var err1 error
-		bySeq, err = rdr.GetDelegationsBySequencer()
+		bySeq, err1 = rdr.GetDelegationsBySequencer()
+		if err1 != nil {
+			return err1
+		}
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
-		return err1
+		return nil
 	})
 	if err != nil {
 		api.WriteErr(w, err.Error())
