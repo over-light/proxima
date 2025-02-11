@@ -317,7 +317,7 @@ func (s SugaredStateReader) IterateChainedOutputs(fun func(out ledger.OutputWith
 			ChainID:                    tip.chainID,
 			PredecessorConstraintIndex: cc.PredecessorInputIndex,
 		})
-		if !exit {
+		if exit {
 			return nil
 		}
 	}

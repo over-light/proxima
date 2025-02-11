@@ -741,8 +741,6 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 		return
 	}
 
-	srv.Tracef(TraceTag, "getDelegationsBySequencer len(bySeq) = %d", len(bySeq))
-
 	for chainID, di := range bySeq {
 		dlg := make(map[string]api.DelegationData)
 		resp.Sequencers[chainID.StringHex()] = api.DelegationsOnSequencer{
