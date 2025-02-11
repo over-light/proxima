@@ -729,6 +729,7 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 	srv.Tracef(TraceTag, "getDelegationsBySequencer 1")
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		var err1 error
+		srv.Tracef(TraceTag, "getDelegationsBySequencer before 2")
 		bySeq, err1 = rdr.GetDelegationsBySequencer()
 		srv.Tracef(TraceTag, "getDelegationsBySequencer 2")
 		if err1 != nil {
