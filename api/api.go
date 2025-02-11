@@ -35,7 +35,8 @@ const (
 	PathGetLastKnownSequencerMilestones  = PrefixAPIV1 + "/last_known_milestones"
 	PathGetMainChain                     = PrefixAPIV1 + "/get_mainchain"
 	PathGetAllChains                     = PrefixAPIV1 + "/get_all_chains"
-	PathGetDelegationsBySequencer        = PrefixAPIV1 + "/get_delegations_by_sequencer"
+	// PathGetDelegationsBySequencer returns summarized delegation data in the form of DelegationsBySequencer
+	PathGetDelegationsBySequencer = PrefixAPIV1 + "/get_delegations_by_sequencer"
 	// PathGetDashboard returns dashboard
 	PathGetDashboard = "/dashboard"
 
