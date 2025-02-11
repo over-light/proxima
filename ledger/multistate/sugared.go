@@ -358,7 +358,7 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 			continue
 		}
 		if dl.TargetLock.Name() == ledger.ChainLockName {
-			cl := dl.TargetLock.(*ledger.ChainLock)
+			cl := dl.TargetLock.(ledger.ChainLock)
 			seq, ok := ret[cl.ChainID()]
 			if !ok {
 				// delegated to nonexistent sequencer
