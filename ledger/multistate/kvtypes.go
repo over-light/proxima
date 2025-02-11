@@ -7,6 +7,8 @@ import (
 
 // access to the state
 
+// TODO also GetUTXONoLock or GetUTXOMulti are needed. See iteration use cases
+
 type (
 	StateReader interface {
 		GetUTXO(id *ledger.OutputID) ([]byte, bool)

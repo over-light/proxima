@@ -62,6 +62,8 @@ func (s SugaredStateReader) GetOutputErr(oid *ledger.OutputID) (*ledger.Output, 
 	return ret, nil
 }
 
+// GetOutput retrieves and parses output.
+// Warning: do not use in iteration bodies because of mutex lock
 func (s SugaredStateReader) GetOutput(oid *ledger.OutputID) *ledger.Output {
 	ret, err := s.GetOutputErr(oid)
 	if err == nil {
@@ -278,33 +280,46 @@ func (s SugaredStateReader) GetAllChainsOld() (map[ledger.ChainID]ChainRecordInf
 	return ret, nil
 }
 
-func (s SugaredStateReader) IterateChains(fun func(out ledger.OutputWithChainID) bool) error {
-	var err1 error
-	fmt.Printf(">>>>> IterateChains IN\n")
-	err := s.IterateChainTips(func(chainID ledger.ChainID, oid ledger.OutputID) bool {
-		o := s.GetOutput(&oid)
-		if o == nil {
-			err1 = fmt.Errorf("IterateChains: inconsistency: cannot get chain output: %s, oid: %s", chainID.String(), oid.String())
-			return false
-		}
-		fmt.Printf(">>>>> IterateChains %s -- %s\n", chainID.StringShort(), oid.StringShort())
+// IterateChainedOutputs iterates chained outputs and parses them
+func (s SugaredStateReader) IterateChainedOutputs(fun func(out ledger.OutputWithChainID) bool) error {
+	type _chainOutputIDPair struct {
+		chainID ledger.ChainID
+		oid     ledger.OutputID
+	}
+	// first collect all chain tips to avoid deadlock
+	// TODO loading all chains into memory is suboptimal. Trick is only needed to avoid deadlock with GetOutput
 
-		cc, idx := o.ChainConstraint()
-		util.Assertf(idx != 0xff, "inconsistency: chain constraint expected")
-		return fun(ledger.OutputWithChainID{
-			OutputWithID: ledger.OutputWithID{
-				ID:     oid,
-				Output: o,
-			},
-			ChainID:                    chainID,
-			PredecessorConstraintIndex: cc.PredecessorInputIndex,
+	chainTips := make([]_chainOutputIDPair, 0)
+	err := s.IterateChainTips(func(chainID ledger.ChainID, oid ledger.OutputID) bool {
+		chainTips = append(chainTips, _chainOutputIDPair{
+			chainID: chainID,
+			oid:     oid,
 		})
+		return true
 	})
 	if err != nil {
 		return err
 	}
-	if err1 != nil {
-		return err1
+	var exit bool
+	for _, tip := range chainTips {
+		o := s.GetOutput(&tip.oid) // locks the reader each time
+		if o == nil {
+			return fmt.Errorf("IterateChainedOutputs: inconsistency: cannot get chain output: %s, oid: %s",
+				tip.chainID.String(), tip.oid.String())
+		}
+		cc, idx := o.ChainConstraint()
+		util.Assertf(idx != 0xff, "inconsistency: chain constraint expected")
+		exit = !fun(ledger.OutputWithChainID{
+			OutputWithID: ledger.OutputWithID{
+				ID:     tip.oid,
+				Output: o,
+			},
+			ChainID:                    tip.chainID,
+			PredecessorConstraintIndex: cc.PredecessorInputIndex,
+		})
+		if !exit {
+			return nil
+		}
 	}
 	return nil
 }
@@ -315,9 +330,8 @@ type DelegationsOnSequencer struct {
 }
 
 func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]DelegationsOnSequencer, error) {
-	fmt.Printf(">>>>> GetDelegationsBySequencer 1\n")
 	allOuts := make([]ledger.OutputWithChainID, 0)
-	err := s.IterateChains(func(out ledger.OutputWithChainID) bool {
+	err := s.IterateChainedOutputs(func(out ledger.OutputWithChainID) bool {
 		allOuts = append(allOuts, out)
 		return true
 	})

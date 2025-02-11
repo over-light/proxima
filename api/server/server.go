@@ -726,12 +726,9 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 	var err error
 	var bySeq map[ledger.ChainID]multistate.DelegationsOnSequencer
 
-	srv.Tracef(TraceTag, "getDelegationsBySequencer 1")
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		var err1 error
-		srv.Tracef(TraceTag, "getDelegationsBySequencer before 2")
 		bySeq, err1 = rdr.GetDelegationsBySequencer()
-		srv.Tracef(TraceTag, "getDelegationsBySequencer 2")
 		if err1 != nil {
 			return err1
 		}
@@ -739,12 +736,10 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 		resp.LRBID = lrbid.StringHex()
 		return nil
 	})
-	srv.Tracef(TraceTag, "getDelegationsBySequencer 3")
 	if err != nil {
 		api.WriteErr(w, err.Error())
 		return
 	}
-	srv.Tracef(TraceTag, "getDelegationsBySequencer 4: len(bySeq) = %d", len(bySeq))
 
 	for chainID, di := range bySeq {
 		dlg := make(map[string]api.DelegationData)
@@ -769,7 +764,6 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 		api.WriteErr(w, err.Error())
 		return
 	}
-	srv.Tracef(TraceTag, "getDelegationsBySequencer 5")
 	_, err = w.Write(respBin)
 	util.AssertNoError(err)
 }
