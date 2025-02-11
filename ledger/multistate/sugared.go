@@ -280,12 +280,15 @@ func (s SugaredStateReader) GetAllChainsOld() (map[ledger.ChainID]ChainRecordInf
 
 func (s SugaredStateReader) IterateChains(fun func(out ledger.OutputWithChainID) bool) error {
 	var err1 error
+	fmt.Printf(">>>>> IterateChains IN\n")
 	err := s.IterateChainTips(func(chainID ledger.ChainID, oid ledger.OutputID) bool {
 		o := s.GetOutput(&oid)
 		if o == nil {
 			err1 = fmt.Errorf("IterateChains: inconsistency: cannot get chain output: %s, oid: %s", chainID.String(), oid.String())
 			return false
 		}
+		fmt.Printf(">>>>> IterateChains %s -- %s\n", chainID.StringShort(), oid.StringShort())
+
 		cc, idx := o.ChainConstraint()
 		util.Assertf(idx != 0xff, "inconsistency: chain constraint expected")
 		return fun(ledger.OutputWithChainID{
@@ -321,7 +324,6 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf(">>>>> GetDelegationsBySequencer 2\n")
 	ret := make(map[ledger.ChainID]DelegationsOnSequencer)
 	nonSeq := make([]*ledger.OutputWithChainID, 0)
 	// collect all sequencers
@@ -334,7 +336,6 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 			nonSeq = append(nonSeq, &allOuts[i])
 		}
 	}
-	fmt.Printf(">>>>> GetDelegationsBySequencer 3\n")
 
 	for _, delegation := range nonSeq {
 		dl := delegation.OutputWithID.Output.DelegationLock()
@@ -356,6 +357,5 @@ func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]Dele
 			ret[cl.ChainID()] = seq
 		}
 	}
-	fmt.Printf(">>>>> GetDelegationsBySequencer 4\n")
 	return ret, nil
 }
