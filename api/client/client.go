@@ -618,6 +618,28 @@ func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.Transac
 	return ret, &lrbid, nil
 }
 
+func (c *APIClient) GetDelegationsBySequencer() (map[string]api.DelegationsOnSequencer, *ledger.TransactionID, error) {
+	body, err := c.getBody(api.PathGetDelegationsBySequencer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var res api.DelegationsBySequencer
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+	if res.Error.Error != "" {
+		return nil, nil, fmt.Errorf("%s", res.Error.Error)
+	}
+
+	lrbid, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return res.Sequencers, &lrbid, nil
+}
+
 // GetTransferableOutputs returns reasonable maximum number of outputs owned by accountable with only 2 constraints and returns total
 func (c *APIClient) GetTransferableOutputs(account ledger.Accountable, maxOutputs ...int) ([]*ledger.OutputWithID, *ledger.TransactionID, uint64, error) {
 	maxO := 256

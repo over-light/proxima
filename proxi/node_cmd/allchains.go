@@ -2,8 +2,6 @@ package node_cmd
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -44,30 +42,23 @@ func initAllChainsCmd() *cobra.Command {
 
 func runAllChainsCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromNode()
-	clnt := glb.GetClient()
-	chains, _, err := clnt.GetAllChains()
-	glb.AssertNoError(err)
 
+	clnt := glb.GetClient()
 	rr, lrbid, err := clnt.GetLatestReliableBranch()
 	glb.AssertNoError(err)
 
 	glb.PrintLRB(&lrbid)
 
-	sort.Slice(chains, func(i, j int) bool {
-		return chains[i].ID.Timestamp().After(chains[j].ID.Timestamp())
-	})
-	if showSequencersOnly {
-		chains = util.PurgeSlice(chains, func(o *ledger.OutputWithChainID) bool {
-			return o.ID.IsSequencerTransaction()
-		})
-	}
-	switch {
-	case groupByDelegationTarget:
-		listGrouped(chains)
-	case showDelegationsOnly && showSequencersOnly:
-		listSequencerDelegationInfo(chains, rr.Supply)
-	default:
-		listChains(chains)
+	if showDelegationsOnly && showSequencersOnly {
+		listSequencerDelegationInfo(rr.Supply)
+	} else {
+		chains, _, err := clnt.GetAllChains()
+		glb.AssertNoError(err)
+		if groupByDelegationTarget {
+			listGrouped(chains)
+		} else {
+			listChains(chains)
+		}
 	}
 }
 
@@ -151,61 +142,37 @@ type _seqDelegationInfo struct {
 	lastActive      ledger.Slot
 }
 
-func listSequencerDelegationInfo(chains []*ledger.OutputWithChainID, supply uint64) {
-	m := make(map[ledger.ChainID]_seqDelegationInfo)
-	// collect all sequencers
-	for _, o := range chains {
-		sd, _ := o.Output.SequencerOutputData()
-		if sd == nil {
-			continue
-		}
-		var name string
-		if md := sd.MilestoneData; md != nil {
-			name, _, _ = strings.Cut(md.Name, ".")
-		}
-		m[sd.ChainConstraint.ID] = _seqDelegationInfo{
-			lastActive: o.ID.Slot(),
-			name:       name,
-		}
-	}
+func listSequencerDelegationInfo(supply uint64) {
+	bySeq, _, err := glb.GetClient().GetDelegationsBySequencer()
+	glb.AssertNoError(err)
 
-	// collect all sequencers with active delegations
-	for _, o := range chains {
-		dl := o.Output.DelegationLock()
-		if dl == nil {
-			continue
+	keys := util.KeysSorted(bySeq, func(k1, k2 string) bool {
+		switch {
+		case len(bySeq[k1].Delegations) > len(bySeq[k2].Delegations):
+			return true
+		case len(bySeq[k1].Delegations) == len(bySeq[k2].Delegations):
+			return bySeq[k1].SequencerName < bySeq[k2].SequencerName
 		}
-		if dl.TargetLock.Name() != ledger.ChainLockName {
-			continue
-		}
-		cl, ok := dl.TargetLock.(ledger.ChainLock)
-		glb.Assertf(ok, "target lock %s is not a chain lock:\n%s", dl.TargetLock.String(), o.String())
-
-		chainID := cl.ChainID()
-
-		seqData := m[chainID]
-		seqData.numDelegations++
-		seqData.delegatedAmount += o.Output.Amount()
-		if o.ID.Slot() > seqData.lastActive {
-			seqData.lastActive = o.ID.Slot()
-		}
-		m[chainID] = seqData
-	}
-
-	keys := util.KeysSorted(m, func(k1, k2 ledger.ChainID) bool {
-		return m[k1].numDelegations > m[k2].numDelegations
+		return false
 	})
 
 	glb.Infof("\nSequencers with delegation totals:")
 	totalDelegated := uint64(0)
 	totalDelegations := 0
 
-	for i, seqID := range keys {
-		seqData := m[seqID]
+	for i, seqIDHex := range keys {
+		seqData := bySeq[seqIDHex]
+
+		delegatedAmount := uint64(0)
+		for _, dd := range seqData.Delegations {
+			delegatedAmount += dd.Amount
+		}
+		doid, err := ledger.OutputIDFromHexString(seqData.SequencerOutputID)
+		glb.AssertNoError(err)
 		glb.Infof("%2d.   %s %8s   delegated: %20s (%2d outputs),    last active: %d slots ago",
-			i, seqID.String(), seqData.name, util.Th(seqData.delegatedAmount), seqData.numDelegations, ledger.TimeNow().Slot()-seqData.lastActive)
-		totalDelegated += seqData.delegatedAmount
-		totalDelegations += seqData.numDelegations
+			i, seqIDHex, seqData.SequencerName, util.Th(delegatedAmount), len(seqData.Delegations), ledger.TimeNow().Slot()-doid.Slot())
+		totalDelegated += delegatedAmount
+		totalDelegations += len(seqData.Delegations)
 	}
 
 	glb.Infof("---------------")

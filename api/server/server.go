@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/lunfardo314/proxima/api"
@@ -743,14 +744,21 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 
 	for chainID, di := range bySeq {
 		dlg := make(map[string]api.DelegationData)
+		sd, ok := di.SequencerOutput.Output.SequencerOutputData()
+		srv.Assertf(ok, "inconsistency")
+		name := ""
+		if sd.MilestoneData != nil {
+			name, _, _ = strings.Cut(sd.MilestoneData.Name, ".")
+		}
 		resp.Sequencers[chainID.StringHex()] = api.DelegationsOnSequencer{
 			SequencerOutputID: di.SequencerOutput.ID.StringHex(),
 			Balance:           di.SequencerOutput.Output.Amount(),
+			SequencerName:     name,
 			Delegations:       dlg,
 		}
 		for delegationID, delegationOut := range di.Delegations {
 			dl := delegationOut.Output.DelegationLock()
-			util.Assertf(dl != nil, "dl != nil")
+			srv.Assertf(dl != nil, "dl != nil")
 
 			dlg[delegationID.StringHex()] = api.DelegationData{
 				Amount:      delegationOut.Output.Amount(),
@@ -765,7 +773,7 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 		return
 	}
 	_, err = w.Write(respBin)
-	util.AssertNoError(err)
+	srv.AssertNoError(err)
 }
 
 func (srv *server) getLatestReliableBranch(w http.ResponseWriter, _ *http.Request) {

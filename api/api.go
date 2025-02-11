@@ -275,6 +275,7 @@ type (
 	}
 	DelegationsOnSequencer struct {
 		SequencerOutputID string                    `json:"seq_output_id"`
+		SequencerName     string                    `json:"seq_name"`
 		Balance           uint64                    `json:"balance"`
 		Delegations       map[string]DelegationData `json:"delegations"`
 	}
