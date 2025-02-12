@@ -409,5 +409,8 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ret.Endorsements[i] = txid.StringHex()
 		return true
 	})
+
+	util.Assertf(!tx.IsSequencerMilestone() || ret.SequencerInputTxIndex != nil, "!tx.IsSequencerMilestone() || ret.SequencerInputTxIndex != nil")
+	util.Assertf(!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil, "!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil")
 	return ret
 }
