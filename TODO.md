@@ -44,11 +44,6 @@ General status: the Proxima ledger definitions are based on standard _EasyFL_ sc
 [EasyFL](https://github.com/lunfardo314/easyfl) itself is essentially completed, however its extension in the Proxima ledger requires improvement in several areas, 
 mostly related to the soft upgrade-ability of the ledger definitions.
 
-* **PRIORITY** Delegation implementation
-  * Concept: (a) enable token holders delegate capital to sequencer with possibility to revoke it. It would be a lock to the chain-constrained output.
-    (b) implement sequencer part. In head 50%
-  * Implementation: 0% <- high priority
-
 * **PRIORITY** Tag-along lock implementation
   * Concept: modification of the _chain lock_, which conditionally bypass storage deposit constraints. In head: 80%
   * Implementation: 0%
