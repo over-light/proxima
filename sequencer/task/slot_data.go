@@ -37,8 +37,8 @@ type (
 		lastTimeBacklogCheckedE2 time.Time
 		lastTimeBacklogCheckedR2 time.Time
 		alreadyCheckedTriplets   set.Set[extendEndorseTriplet] //shared by e2 and r2
-		// extend proposers optimization
-		alreadyCheckedExtendEndorseCombination set.Set[combinationHash]
+		// extend proposers optimization. If combination was already checked, flag indicates if it was consistent
+		alreadyCheckedExtendEndorseCombination map[combinationHash]bool
 	}
 
 	combinationHash   [8]byte
@@ -61,7 +61,7 @@ func NewSlotData(slot ledger.Slot) *SlotData {
 		proposalsByProposer:                    make(map[string]int),
 		alreadyCheckedE1:                       set.New[extendEndorsePair](),
 		alreadyCheckedTriplets:                 set.New[extendEndorseTriplet](),
-		alreadyCheckedExtendEndorseCombination: set.New[combinationHash](),
+		alreadyCheckedExtendEndorseCombination: make(map[combinationHash]bool),
 	}
 }
 
@@ -138,29 +138,29 @@ func extendEndorseCombinationHash(extend vertex.WrappedOutput, endorse ...*verte
 	})
 
 	var buf bytes.Buffer
-
 	for i := range endorseSorted {
 		buf.Write(endorseSorted[i].ID[:])
 	}
 	buf.Write(extend.VID.ID[:])
 	buf.WriteByte(extend.Index)
-	buf.WriteByte(byte(len(endorse))) // need this to distinguish between target extend-endorse combinations
 
 	retSlice := blake2b.Sum256(buf.Bytes())
 	copy(ret[:], retSlice[:])
 	return
 }
 
-// checkIfCombinationIsNew checks combination and inserts into the list. Returns true if it is new combination
-func (s *SlotData) checkIfCombinationIsNew(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) bool {
-	combHash := extendEndorseCombinationHash(extend, endorse...)
+// wasCombinationChecked checks combination and inserts into the list. Returns true if it is new combination
+func (s *SlotData) wasCombinationChecked(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (checked bool, consistent bool) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 
+	checked, consistent = s.alreadyCheckedExtendEndorseCombination[extendEndorseCombinationHash(extend, endorse...)]
+	return
+}
+
+func (s *SlotData) markCombinationChecked(consistent bool, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.alreadyCheckedExtendEndorseCombination.Contains(combHash) {
-		return false
-	}
-	s.alreadyCheckedExtendEndorseCombination.Insert(combHash)
-	return true
+	s.alreadyCheckedExtendEndorseCombination[extendEndorseCombinationHash(extend, endorse...)] = consistent
 }

@@ -55,10 +55,10 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			continue
 		}
 		if !newOutputArrived {
-			continue
-		}
-		if !p.Task.slotData.checkIfCombinationIsNew(extending, endorsing, endorsementCandidate) {
-			continue
+			checked, _ := p.Task.slotData.wasCombinationChecked(extending, endorsing, endorsementCandidate)
+			if checked {
+				continue
+			}
 		}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {

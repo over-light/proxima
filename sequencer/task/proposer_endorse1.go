@@ -31,25 +31,8 @@ func endorse1ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			// use pair with new tag-along outputs
 			return true
 		}
-		return p.Task.slotData.checkIfCombinationIsNew(extend, endorse)
-
-		//combHash := extendEndorseCombinationHash(extend, endorse)
-		//if !p.Task.slotData.alreadyCheckedExtendEndorseCombination.Contains(combHash) {
-		//	// it is new pair. Use it and save it as already checked -> next time will be filtered out
-		//	p.Task.slotData.alreadyCheckedExtendEndorseCombination.Insert(combHash)
-		//	return true
-		//}
-		//
-		//pair := extendEndorsePair{
-		//	extend:  extend,
-		//	endorse: endorse,
-		//}
-		//if !p.Task.slotData.alreadyCheckedE1.Contains(pair) {
-		//	// it is new pair. Use it and save it as already checked -> next time will be filtered out
-		//	p.Task.slotData.alreadyCheckedE1.Insert(pair)
-		//	return true
-		//}
-		//return false
+		alreadyChecked, _ := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		return !alreadyChecked
 	})
 
 	if a == nil {

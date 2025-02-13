@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/core/attacher"
+	"github.com/lunfardo314/proxima/core/vertex"
 )
 
 const TraceTagEndorse2RndProposer = "propose-endorse2rnd"
@@ -23,7 +24,10 @@ func endorse2RndProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bo
 	}
 
 	// Check peers in RANDOM order
-	a := p.ChooseFirstExtendEndorsePair(true, nil)
+	a := p.ChooseFirstExtendEndorsePair(true, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
+		checked, consistent := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		return !checked || consistent
+	})
 	if a == nil {
 		p.Tracef(TraceTagEndorse2RndProposer, "propose: ChooseFirstExtendEndorsePair returned nil")
 		return nil, false
@@ -54,35 +58,11 @@ func endorse2RndProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bo
 			continue
 		}
 		if !newOutputArrived {
-			if !p.slotData.checkIfCombinationIsNew(extending, endorsing, endorsementCandidate) {
+			checked, _ := p.slotData.wasCombinationChecked(extending, endorsing, endorsementCandidate)
+			if checked {
 				continue
 			}
 		}
-		//
-		//triplet := extendEndorseTriplet{
-		//	extend:   extending,
-		//	endorse1: endorsing,
-		//	endorse2: endorsementCandidate,
-		//}
-		//if !newOutputArrived {
-		//	checkedInThePast := false
-		//	p.slotData.withWriteLock(func() {
-		//		// optimization: skipping repeating triplets if new outputs didn't arrive meanwhile
-		//		checkedInThePast = p.slotData.alreadyCheckedTriplets.Contains(triplet)
-		//		if !checkedInThePast {
-		//			// assume invariance wrt order of endorsements
-		//			// check triplet with swapped endorsements
-		//			checkedInThePast = p.slotData.alreadyCheckedTriplets.Contains(extendEndorseTriplet{
-		//				extend:   extending,
-		//				endorse1: endorsementCandidate,
-		//				endorse2: endorsing,
-		//			})
-		//		}
-		//	})
-		//	if checkedInThePast {
-		//		continue
-		//	}
-		//}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
 			// remember triplet for the next check, same list for e2 and r2
