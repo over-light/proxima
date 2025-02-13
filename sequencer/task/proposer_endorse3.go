@@ -34,20 +34,20 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 		p.Tracef(TraceTagEndorse3Proposer, "propose: ChooseFirstExtendEndorsePair returned nil")
 		return nil, false
 	}
-	endorsing := a.Endorsing()[0]
+	endorsing0 := a.Endorsing()[0]
 	extending := a.Extending()
 	if !a.Completed() {
 		a.Close()
-		p.Tracef(TraceTagEndorse3Proposer, "proposal [extend=%s, endorsing=%s] not complete 1", extending.IDShortString, endorsing.IDShortString)
+		p.Tracef(TraceTagEndorse3Proposer, "proposal [extend=%s, endorsing=%s] not complete 1", extending.IDShortString, endorsing0.IDShortString)
 		return nil, false
 	}
 
-	newOutputArrived := p.Backlog().ArrivedOutputsSince(p.slotData.lastTimeBacklogCheckedE2)
-	p.slotData.lastTimeBacklogCheckedE2 = time.Now()
+	newOutputArrived := p.Backlog().ArrivedOutputsSince(p.slotData.lastTimeBacklogCheckedE3)
+	p.slotData.lastTimeBacklogCheckedE3 = time.Now()
 
 	// then try to add one endorsement more
-	addedSecond := false
-	endorsing0 := a.Endorsing()[0]
+	var endorsement1 *vertex.WrappedTx
+
 	for _, endorsementCandidate := range p.Backlog().CandidatesToEndorseSorted(p.targetTs) {
 		select {
 		case <-p.ctx.Done():
@@ -59,31 +59,35 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			continue
 		}
 		if !newOutputArrived {
-			checked, _ := p.Task.slotData.wasCombinationChecked(extending, endorsing, endorsementCandidate)
+			checked, _ := p.Task.slotData.wasCombinationChecked(extending, endorsing0, endorsementCandidate)
 			if checked {
 				continue
 			}
 		}
-
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			addedSecond = true
-			break //>>>> return attacher
+			p.Task.slotData.markCombinationChecked(true, extending, endorsing0, endorsementCandidate)
+			endorsement1 = endorsementCandidate
+			break //>>>> second endorsement
+		} else {
+			p.Task.slotData.markCombinationChecked(false, extending, endorsing0, endorsementCandidate)
 		}
 		p.Tracef(TraceTagEndorse3Proposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
-	if !addedSecond {
+	if endorsement1 == nil {
 		// no need to repeat job of endorse1
 		a.Close()
 		return nil, false
 	}
+	// try to add 3rd endorsement
 
+	// insert tag along and delegation outputs
 	p.insertInputs(a)
 
 	if !a.Completed() {
 		a.Close()
-		endorsing = a.Endorsing()[0]
+		endorsing0 = a.Endorsing()[0]
 		extending = a.Extending()
-		p.Tracef(TraceTagEndorse3Proposer, "proposal [extend=%s, endorsing=%s] not complete 2", extending.IDShortString, endorsing.IDShortString)
+		p.Tracef(TraceTagEndorse3Proposer, "proposal [extend=%s, endorsing=%s] not complete 2", extending.IDShortString, endorsing0.IDShortString)
 		return nil, false
 	}
 

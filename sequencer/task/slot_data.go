@@ -11,7 +11,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
-	"github.com/lunfardo314/proxima/util/set"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -32,36 +31,23 @@ type (
 		lastTimeBacklogCheckedB0 time.Time
 		// e1 proposer optimization
 		lastTimeBacklogCheckedE1 time.Time
-		alreadyCheckedE1         set.Set[extendEndorsePair]
 		// e2, r2 proposer optimization
 		lastTimeBacklogCheckedE2 time.Time
 		lastTimeBacklogCheckedR2 time.Time
-		alreadyCheckedTriplets   set.Set[extendEndorseTriplet] //shared by e2 and r2
+		lastTimeBacklogCheckedE3 time.Time
 		// extend proposers optimization. If combination was already checked, flag indicates if it was consistent
-		alreadyCheckedExtendEndorseCombination map[combinationHash]bool
+		alreadyCheckedCombination map[combinationHash]bool
 	}
 
-	combinationHash   [8]byte
-	extendEndorsePair struct {
-		extend  vertex.WrappedOutput
-		endorse *vertex.WrappedTx
-	}
-
-	extendEndorseTriplet struct {
-		extend   vertex.WrappedOutput
-		endorse1 *vertex.WrappedTx
-		endorse2 *vertex.WrappedTx
-	}
+	combinationHash [8]byte
 )
 
 func NewSlotData(slot ledger.Slot) *SlotData {
 	return &SlotData{
-		slot:                                   slot,
-		seqTxSubmitted:                         make([]ledger.TransactionID, 0),
-		proposalsByProposer:                    make(map[string]int),
-		alreadyCheckedE1:                       set.New[extendEndorsePair](),
-		alreadyCheckedTriplets:                 set.New[extendEndorseTriplet](),
-		alreadyCheckedExtendEndorseCombination: make(map[combinationHash]bool),
+		slot:                      slot,
+		seqTxSubmitted:            make([]ledger.TransactionID, 0),
+		proposalsByProposer:       make(map[string]int),
+		alreadyCheckedCombination: make(map[combinationHash]bool),
 	}
 }
 
@@ -154,7 +140,7 @@ func (s *SlotData) wasCombinationChecked(extend vertex.WrappedOutput, endorse ..
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	checked, consistent = s.alreadyCheckedExtendEndorseCombination[extendEndorseCombinationHash(extend, endorse...)]
+	checked, consistent = s.alreadyCheckedCombination[extendEndorseCombinationHash(extend, endorse...)]
 	return
 }
 
@@ -162,5 +148,5 @@ func (s *SlotData) markCombinationChecked(consistent bool, extend vertex.Wrapped
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.alreadyCheckedExtendEndorseCombination[extendEndorseCombinationHash(extend, endorse...)] = consistent
+	s.alreadyCheckedCombination[extendEndorseCombinationHash(extend, endorse...)] = consistent
 }
