@@ -28,7 +28,7 @@ func endorse1ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 	p.Task.slotData.lastTimeBacklogCheckedE1 = time.Now()
 	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
 		if newOutputsArrived {
-			// use pair with new outputs
+			// use pair with new tag-along outputs
 			return true
 		}
 		return p.Task.slotData.checkCombination(extend, endorse)

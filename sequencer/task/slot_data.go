@@ -139,23 +139,28 @@ func extendEndorseCombinationHash(extend vertex.WrappedOutput, endorse ...*verte
 
 	var buf bytes.Buffer
 
-	buf.Write(extend.VID.ID[:])
-	buf.WriteByte(extend.Index)
 	for i := range endorseSorted {
 		buf.Write(endorseSorted[i].ID[:])
 	}
+	buf.Write(extend.VID.ID[:])
+	buf.WriteByte(extend.Index)
+	buf.WriteByte(byte(len(endorse))) // need this to distinguish between target extend-endorse combinations
+
 	retSlice := blake2b.Sum256(buf.Bytes())
 	copy(ret[:], retSlice[:])
 	return
 }
 
 // checkCombination checks combination and inserts into the list. Returns true if it is new combination
-func (s *SlotData) checkCombination(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (ret bool) {
+func (s *SlotData) checkCombination(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) bool {
 	combHash := extendEndorseCombinationHash(extend, endorse...)
-	s.withWriteLock(func() {
-		if ret = !s.alreadyCheckedExtendEndorseCombination.Contains(combHash); ret {
-			s.alreadyCheckedExtendEndorseCombination.Insert(combHash)
-		}
-	})
-	return
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if s.alreadyCheckedExtendEndorseCombination.Contains(combHash) {
+		return false
+	}
+	s.alreadyCheckedExtendEndorseCombination.Insert(combHash)
+	return true
 }
