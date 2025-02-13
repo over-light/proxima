@@ -40,8 +40,6 @@ api:
 # enable vid streaming
 streaming:
   enable: true
-    # websock port
-  port: 8080
 
 # logger config
 # logger.previous can be 'erase' or 'save'

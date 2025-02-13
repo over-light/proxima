@@ -32,4 +32,4 @@ spammer:
 
 faucet:
     port:	9500
-    addr:  http://172.16.238.10
+    host:  172.16.238.10
