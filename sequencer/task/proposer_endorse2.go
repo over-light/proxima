@@ -7,6 +7,8 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 )
 
+// e2 is a proposer strategy which proposes transactions with 2 endorsements chosen by selecting those with bigger coverage first
+
 const TraceTagEndorse2Proposer = "propose-endorse2"
 
 func init() {

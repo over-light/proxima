@@ -7,6 +7,8 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 )
 
+// r3 is a proposer strategy which proposes transactions with 3 endorsements chosen by selecting endorsement targets at random
+
 const TraceTagEndorse3RndProposer = "propose-endorse3rnd"
 
 func init() {

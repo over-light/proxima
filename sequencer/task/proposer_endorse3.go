@@ -7,6 +7,9 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 )
 
+// e3 is a proposer strategy which proposes transactions with 3 endorsements chosen by selecting
+// endorsement targets with the priority of bigger coverage
+
 const TraceTagEndorse3Proposer = "propose-endorse3"
 
 func init() {

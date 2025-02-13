@@ -7,6 +7,8 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 )
 
+// e1 is a proposer strategy which endorses one other sequencer
+
 const TraceTagEndorse1Proposer = "propose-endorse1"
 
 func init() {

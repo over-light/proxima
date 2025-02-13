@@ -7,6 +7,8 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 )
 
+// r2 is a proposer strategy which proposes transactions with 2 endorsements chosen by selecting endorsement targets at random
+
 const TraceTagEndorse2RndProposer = "propose-endorse2rnd"
 
 func init() {
