@@ -64,8 +64,11 @@ func endorse2ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 		}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
+			p.Task.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
 			addedSecond = true
 			break //>>>> return attacher
+		} else {
+			p.Task.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
 		}
 		p.Tracef(TraceTagEndorse2Proposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}

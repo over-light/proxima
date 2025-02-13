@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/core/attacher"
+	"github.com/lunfardo314/proxima/core/vertex"
 )
 
 const TraceTagEndorse3Proposer = "propose-endorse3"
@@ -25,7 +26,10 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 	}
 
 	// Check all pairs, in descending order
-	a := p.ChooseFirstExtendEndorsePair(false, nil)
+	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
+		checked, consistent := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		return !checked || consistent
+	})
 	if a == nil {
 		p.Tracef(TraceTagEndorse3Proposer, "propose: ChooseFirstExtendEndorsePair returned nil")
 		return nil, false

@@ -65,13 +65,13 @@ func endorse2RndProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bo
 		}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			// remember triplet for the next check, same list for e2 and r2
-			//p.slotData.withWriteLock(func() {
-			//	p.slotData.alreadyCheckedTriplets.Insert(triplet)
-			//})
+			p.Task.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
 			addedSecond = true
 			break //>>>> return attacher
+		} else {
+			p.Task.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
 		}
+
 		p.Tracef(TraceTagEndorse2RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
 	if !addedSecond {
