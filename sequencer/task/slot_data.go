@@ -1,6 +1,9 @@
 package task
 
 import (
+	"bytes"
+	"slices"
+	"sort"
 	"sync"
 	"time"
 
@@ -9,6 +12,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/set"
+	"golang.org/x/crypto/blake2b"
 )
 
 // SlotData collect values of sequencer during one slot
@@ -33,8 +37,11 @@ type (
 		lastTimeBacklogCheckedE2 time.Time
 		lastTimeBacklogCheckedR2 time.Time
 		alreadyCheckedTriplets   set.Set[extendEndorseTriplet] //shared by e2 and r2
+		// extend proposers optimization
+		alreadyCheckedExtendEndorseCombination set.Set[combinationHash]
 	}
 
+	combinationHash   [8]byte
 	extendEndorsePair struct {
 		extend  vertex.WrappedOutput
 		endorse *vertex.WrappedTx
@@ -49,11 +56,12 @@ type (
 
 func NewSlotData(slot ledger.Slot) *SlotData {
 	return &SlotData{
-		slot:                   slot,
-		seqTxSubmitted:         make([]ledger.TransactionID, 0),
-		proposalsByProposer:    make(map[string]int),
-		alreadyCheckedE1:       set.New[extendEndorsePair](),
-		alreadyCheckedTriplets: set.New[extendEndorseTriplet](),
+		slot:                                   slot,
+		seqTxSubmitted:                         make([]ledger.TransactionID, 0),
+		proposalsByProposer:                    make(map[string]int),
+		alreadyCheckedE1:                       set.New[extendEndorsePair](),
+		alreadyCheckedTriplets:                 set.New[extendEndorseTriplet](),
+		alreadyCheckedExtendEndorseCombination: set.New[combinationHash](),
 	}
 }
 
@@ -121,4 +129,33 @@ func (s *SlotData) withWriteLock(fun func()) {
 	s.mutex.Lock()
 	fun()
 	s.mutex.Unlock()
+}
+
+func extendEndorseCombinationHash(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (ret combinationHash) {
+	endorseSorted := slices.Clone(endorse)
+	sort.Slice(endorseSorted, func(i, j int) bool {
+		return ledger.LessTxID(endorseSorted[i].ID, endorseSorted[j].ID)
+	})
+
+	var buf bytes.Buffer
+
+	buf.Write(extend.VID.ID[:])
+	buf.WriteByte(extend.Index)
+	for i := range endorseSorted {
+		buf.Write(endorseSorted[i].ID[:])
+	}
+	retSlice := blake2b.Sum256(buf.Bytes())
+	copy(ret[:], retSlice[:])
+	return
+}
+
+// checkCombination checks combination and inserts into the list. Returns true if it is new combination
+func (s *SlotData) checkCombination(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (ret bool) {
+	combHash := extendEndorseCombinationHash(extend, endorse...)
+	s.withWriteLock(func() {
+		if ret = !s.alreadyCheckedExtendEndorseCombination.Contains(combHash); ret {
+			s.alreadyCheckedExtendEndorseCombination.Insert(combHash)
+		}
+	})
+	return
 }

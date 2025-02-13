@@ -31,16 +31,25 @@ func endorse1ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			// use pair with new outputs
 			return true
 		}
-		pair := extendEndorsePair{
-			extend:  extend,
-			endorse: endorse,
-		}
-		if !p.Task.slotData.alreadyCheckedE1.Contains(pair) {
-			// it is new pair. Use it and save it as already checked -> next time will be filtered out
-			p.Task.slotData.alreadyCheckedE1.Insert(pair)
-			return true
-		}
-		return false
+		return p.Task.slotData.checkCombination(extend, endorse)
+
+		//combHash := extendEndorseCombinationHash(extend, endorse)
+		//if !p.Task.slotData.alreadyCheckedExtendEndorseCombination.Contains(combHash) {
+		//	// it is new pair. Use it and save it as already checked -> next time will be filtered out
+		//	p.Task.slotData.alreadyCheckedExtendEndorseCombination.Insert(combHash)
+		//	return true
+		//}
+		//
+		//pair := extendEndorsePair{
+		//	extend:  extend,
+		//	endorse: endorse,
+		//}
+		//if !p.Task.slotData.alreadyCheckedE1.Contains(pair) {
+		//	// it is new pair. Use it and save it as already checked -> next time will be filtered out
+		//	p.Task.slotData.alreadyCheckedE1.Insert(pair)
+		//	return true
+		//}
+		//return false
 	})
 
 	if a == nil {

@@ -52,37 +52,39 @@ func endorse2ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 		if endorsementCandidate == endorsing0 {
 			continue
 		}
-
-		triplet := extendEndorseTriplet{
-			extend:   extending,
-			endorse1: endorsing,
-			endorse2: endorsementCandidate,
-		}
 		if !newOutputArrived {
-			checkedInThePast := false
-			p.slotData.withWriteLock(func() {
-				// optimization: skipping repeating triplets if new outputs didn't arrive meanwhile
-				checkedInThePast = p.slotData.alreadyCheckedTriplets.Contains(triplet)
-				if !checkedInThePast {
-					// assume invariance wrt order of endorsements
-					// check triplet with swapped endorsements
-					checkedInThePast = p.slotData.alreadyCheckedTriplets.Contains(extendEndorseTriplet{
-						extend:   extending,
-						endorse1: endorsementCandidate,
-						endorse2: endorsing,
-					})
-				}
-			})
-			if checkedInThePast {
-				continue
-			}
+			continue
 		}
+		if !p.Task.slotData.checkCombination(extending, endorsing, endorsementCandidate) {
+			continue
+		}
+
+		//triplet := extendEndorseTriplet{
+		//	extend:   extending,
+		//	endorse1: endorsing,
+		//	endorse2: endorsementCandidate,
+		//}
+		//if !newOutputArrived {
+		//	checkedInThePast := false
+		//	p.slotData.withWriteLock(func() {
+		//		// optimization: skipping repeating triplets if new outputs didn't arrive meanwhile
+		//		checkedInThePast = p.slotData.alreadyCheckedTriplets.Contains(triplet)
+		//		if !checkedInThePast {
+		//			// assume invariance wrt order of endorsements
+		//			// check triplet with swapped endorsements
+		//			checkedInThePast = p.slotData.alreadyCheckedTriplets.Contains(extendEndorseTriplet{
+		//				extend:   extending,
+		//				endorse1: endorsementCandidate,
+		//				endorse2: endorsing,
+		//			})
+		//		}
+		//	})
+		//	if checkedInThePast {
+		//		continue
+		//	}
+		//}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			// remember triplet for the next check, same list for e2 and r2
-			p.slotData.withWriteLock(func() {
-				p.slotData.alreadyCheckedTriplets.Insert(triplet)
-			})
 			addedSecond = true
 			break //>>>> return attacher
 		}
