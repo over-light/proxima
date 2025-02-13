@@ -151,8 +151,8 @@ func extendEndorseCombinationHash(extend vertex.WrappedOutput, endorse ...*verte
 	return
 }
 
-// checkCombination checks combination and inserts into the list. Returns true if it is new combination
-func (s *SlotData) checkCombination(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) bool {
+// checkIfCombinationIsNew checks combination and inserts into the list. Returns true if it is new combination
+func (s *SlotData) checkIfCombinationIsNew(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) bool {
 	combHash := extendEndorseCombinationHash(extend, endorse...)
 
 	s.mutex.Lock()

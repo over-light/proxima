@@ -57,7 +57,7 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 		if !newOutputArrived {
 			continue
 		}
-		if !p.Task.slotData.checkCombination(extending, endorsing, endorsementCandidate) {
+		if !p.Task.slotData.checkIfCombinationIsNew(extending, endorsing, endorsementCandidate) {
 			continue
 		}
 

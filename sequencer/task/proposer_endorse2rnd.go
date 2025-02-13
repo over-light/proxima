@@ -54,10 +54,9 @@ func endorse2RndProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bo
 			continue
 		}
 		if !newOutputArrived {
-			continue
-		}
-		if !p.slotData.checkCombination(extending, endorsing, endorsementCandidate) {
-			continue
+			if !p.slotData.checkIfCombinationIsNew(extending, endorsing, endorsementCandidate) {
+				continue
+			}
 		}
 		//
 		//triplet := extendEndorseTriplet{

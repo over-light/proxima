@@ -31,7 +31,7 @@ func endorse1ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			// use pair with new tag-along outputs
 			return true
 		}
-		return p.Task.slotData.checkCombination(extend, endorse)
+		return p.Task.slotData.checkIfCombinationIsNew(extend, endorse)
 
 		//combHash := extendEndorseCombinationHash(extend, endorse)
 		//if !p.Task.slotData.alreadyCheckedExtendEndorseCombination.Contains(combHash) {
