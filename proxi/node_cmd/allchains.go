@@ -140,13 +140,14 @@ func listSequencerDelegationInfo(supply uint64) {
 	glb.AssertNoError(err)
 
 	keys := util.KeysSorted(bySeq, func(k1, k2 string) bool {
-		switch {
-		case len(bySeq[k1].Delegations) > len(bySeq[k2].Delegations):
-			return true
-		case len(bySeq[k1].Delegations) == len(bySeq[k2].Delegations):
-			return bySeq[k1].SequencerName < bySeq[k2].SequencerName
-		}
-		return false
+		return bySeq[k1].Balance > bySeq[k2].Balance
+		//switch {
+		//case len(bySeq[k1].Delegations) > len(bySeq[k2].Delegations):
+		//	return true
+		//case len(bySeq[k1].Delegations) == len(bySeq[k2].Delegations):
+		//	return bySeq[k1].SequencerName < bySeq[k2].SequencerName
+		//}
+		//return false
 	})
 
 	if glb.IsVerbose() {
@@ -167,8 +168,8 @@ func listSequencerDelegationInfo(supply uint64) {
 		}
 		doid, err := ledger.OutputIDFromHexString(seqData.SequencerOutputID)
 		glb.AssertNoError(err)
-		glb.Infof("%2d.   %s %8s   delegated: %20s (%2d),    last active: %d slots ago",
-			i, seqIDHex, seqData.SequencerName, util.Th(delegatedAmount), len(seqData.Delegations), ledger.TimeNow().Slot()-doid.Slot())
+		glb.Infof("%2d. %s (%s)\t   chain balance: %20s,\ttotal delegated: %20s (%d),\tlast active: %d slots ago",
+			i, seqIDHex, seqData.SequencerName, util.Th(seqData.Balance), util.Th(delegatedAmount), len(seqData.Delegations), ledger.TimeNow().Slot()-doid.Slot())
 		totalDelegated += delegatedAmount
 		totalDelegations += len(seqData.Delegations)
 
