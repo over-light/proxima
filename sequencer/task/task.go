@@ -163,7 +163,14 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 
 	proposalsSlice := maps.Values(proposals)
 	best := util.Maximum(proposalsSlice, func(p1, p2 *proposal) bool {
-		return p1.coverage < p2.coverage
+		switch {
+		case p1.coverage < p2.coverage:
+			return true
+		case p1.coverage == p2.coverage:
+			// out of two with equal coverage we select the one with less size
+			return len(p1.tx.Bytes()) > len(p2.tx.Bytes())
+		}
+		return false
 	})
 
 	// check if newly generated non-branch transaction has coverage strongly bigger than previously generated
