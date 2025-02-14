@@ -129,11 +129,13 @@ func (p *Proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 	var ret *attacher.IncrementalAttacher
 	for _, endorse := range endorseCandidates {
 		p.Tracef(TraceTagChooseFirstExtendEndorsePair, "check endorse candidate: %s", endorse.IDShortString)
+
 		select {
 		case <-p.ctx.Done():
 			return nil
 		default:
 		}
+
 		if !ledger.ValidTransactionPace(endorse.Timestamp(), p.targetTs) {
 			// cannot endorse candidate because of ledger time constraint
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> !ledger.ValidTransactionPace")
@@ -178,6 +180,7 @@ func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 		}
 		a, err = attacher.NewIncrementalAttacher(p.Name, p, p.targetTs, extend, endorse)
 		if err != nil {
+			p.Task.slotData.markCombinationChecked(false, extend, endorse)
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: %v", p.targetTs.String, extend.IDShortString, endorse.IDShortString, err)
 			continue
 		}
@@ -205,6 +208,7 @@ func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 				p.targetTs.String, extend.IDShortString, endorse.IDShortString, util.Th(a.LedgerCoverage()))
 			a.Close()
 		}
+		p.Task.slotData.markCombinationChecked(true, extend, endorse)
 	}
 	return ret
 }

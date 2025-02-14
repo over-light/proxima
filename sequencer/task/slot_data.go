@@ -1,6 +1,9 @@
 package task
 
 import (
+	"bytes"
+	"slices"
+	"sort"
 	"sync"
 	"time"
 
@@ -8,7 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
-	"github.com/lunfardo314/proxima/util/set"
+	"golang.org/x/crypto/blake2b"
 )
 
 // SlotData collect values of sequencer during one slot
@@ -28,32 +31,23 @@ type (
 		lastTimeBacklogCheckedB0 time.Time
 		// e1 proposer optimization
 		lastTimeBacklogCheckedE1 time.Time
-		alreadyCheckedE1         set.Set[extendEndorsePair]
 		// e2, r2 proposer optimization
 		lastTimeBacklogCheckedE2 time.Time
 		lastTimeBacklogCheckedR2 time.Time
-		alreadyCheckedTriplets   set.Set[extendEndorseTriplet] //shared by e2 and r2
+		lastTimeBacklogCheckedE3 time.Time
+		// extend proposers optimization. If combination was already checked, flag indicates if it was consistent
+		alreadyCheckedCombination map[combinationHash]bool
 	}
 
-	extendEndorsePair struct {
-		extend  vertex.WrappedOutput
-		endorse *vertex.WrappedTx
-	}
-
-	extendEndorseTriplet struct {
-		extend   vertex.WrappedOutput
-		endorse1 *vertex.WrappedTx
-		endorse2 *vertex.WrappedTx
-	}
+	combinationHash [8]byte
 )
 
 func NewSlotData(slot ledger.Slot) *SlotData {
 	return &SlotData{
-		slot:                   slot,
-		seqTxSubmitted:         make([]ledger.TransactionID, 0),
-		proposalsByProposer:    make(map[string]int),
-		alreadyCheckedE1:       set.New[extendEndorsePair](),
-		alreadyCheckedTriplets: set.New[extendEndorseTriplet](),
+		slot:                      slot,
+		seqTxSubmitted:            make([]ledger.TransactionID, 0),
+		proposalsByProposer:       make(map[string]int),
+		alreadyCheckedCombination: make(map[combinationHash]bool),
 	}
 }
 
@@ -121,4 +115,38 @@ func (s *SlotData) withWriteLock(fun func()) {
 	s.mutex.Lock()
 	fun()
 	s.mutex.Unlock()
+}
+
+func extendEndorseCombinationHash(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (ret combinationHash) {
+	endorseSorted := slices.Clone(endorse)
+	sort.Slice(endorseSorted, func(i, j int) bool {
+		return ledger.LessTxID(endorseSorted[i].ID, endorseSorted[j].ID)
+	})
+
+	var buf bytes.Buffer
+	for i := range endorseSorted {
+		buf.Write(endorseSorted[i].ID[:])
+	}
+	buf.Write(extend.VID.ID[:])
+	buf.WriteByte(extend.Index)
+
+	retSlice := blake2b.Sum256(buf.Bytes())
+	copy(ret[:], retSlice[:])
+	return
+}
+
+// wasCombinationChecked checks combination and inserts into the list. Returns true if it is new combination
+func (s *SlotData) wasCombinationChecked(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (checked bool, consistent bool) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	checked, consistent = s.alreadyCheckedCombination[extendEndorseCombinationHash(extend, endorse...)]
+	return
+}
+
+func (s *SlotData) markCombinationChecked(consistent bool, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.alreadyCheckedCombination[extendEndorseCombinationHash(extend, endorse...)] = consistent
 }

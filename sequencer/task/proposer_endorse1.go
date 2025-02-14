@@ -7,6 +7,8 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 )
 
+// e1 is a proposer strategy which endorses one other sequencer
+
 const TraceTagEndorse1Proposer = "propose-endorse1"
 
 func init() {
@@ -28,19 +30,11 @@ func endorse1ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 	p.Task.slotData.lastTimeBacklogCheckedE1 = time.Now()
 	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
 		if newOutputsArrived {
-			// use pair with new outputs
+			// use pair with new tag-along outputs
 			return true
 		}
-		pair := extendEndorsePair{
-			extend:  extend,
-			endorse: endorse,
-		}
-		if !p.Task.slotData.alreadyCheckedE1.Contains(pair) {
-			// it is new pair. Use it and save it as already checked -> next time will be filtered out
-			p.Task.slotData.alreadyCheckedE1.Insert(pair)
-			return true
-		}
-		return false
+		alreadyChecked, _ := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		return !alreadyChecked
 	})
 
 	if a == nil {

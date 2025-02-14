@@ -19,6 +19,7 @@ const (
 
 	PathGetLedgerID                      = PrefixAPIV1 + "/get_ledger_id"
 	PathGetAccountOutputs                = PrefixAPIV1 + "/get_account_outputs"
+	PathGetAccountParsedOutputs          = PrefixAPIV1 + "/get_account_parsed_outputs"
 	PathGetAccountSimpleSiglockedOutputs = PrefixAPIV1 + "/get_account_simple_siglocked"
 	PathGetOutputsForAmount              = PrefixAPIV1 + "/get_outputs_for_amount"
 	PathGetNonChainBalance               = PrefixAPIV1 + "/get_nonchain_balance"
@@ -34,6 +35,8 @@ const (
 	PathGetLastKnownSequencerMilestones  = PrefixAPIV1 + "/last_known_milestones"
 	PathGetMainChain                     = PrefixAPIV1 + "/get_mainchain"
 	PathGetAllChains                     = PrefixAPIV1 + "/get_all_chains"
+	// PathGetDelegationsBySequencer returns summarized delegation data in the form of DelegationsBySequencer
+	PathGetDelegationsBySequencer = PrefixAPIV1 + "/get_delegations_by_sequencer"
 	// PathGetDashboard returns dashboard
 	PathGetDashboard = "/dashboard"
 
@@ -182,8 +185,19 @@ type (
 		Constraints []string `json:"constraints"`
 		// amount
 		Amount uint64 `json:"amount"`
+		// name of the lock constraint
+		LockName string `json:"lock_name"`
 		// Chain ID for chain outputs
 		ChainID string `json:"chain_id,omitempty"`
+	}
+	// ParsedOutputList is returned by 'get_account_parsed_outputs'
+	ParsedOutputList struct {
+		Error
+		// key is hex-encoded outputID bytes
+		// value is hex-encoded raw output data
+		Outputs map[string]ParsedOutput `json:"outputs,omitempty"`
+		// latest reliable branch used to extract outputs
+		LRBID string `json:"lrbid"`
 	}
 
 	Input struct {
@@ -254,6 +268,24 @@ type (
 		Amount uint64 `json:"amount"`
 		LRBID  string `json:"lrbid"`
 	}
+
+	DelegationData struct {
+		Amount      uint64 `json:"amount"`
+		SinceSlot   uint32 `json:"since_slot"`
+		StartAmount uint64 `json:"start_amount"`
+	}
+	DelegationsOnSequencer struct {
+		SequencerOutputID string                    `json:"seq_output_id"`
+		SequencerName     string                    `json:"seq_name"`
+		Balance           uint64                    `json:"balance"`
+		Delegations       map[string]DelegationData `json:"delegations"`
+	}
+
+	DelegationsBySequencer struct {
+		Error
+		LRBID      string                            `json:"lrbid"`
+		Sequencers map[string]DelegationsOnSequencer `json:"sequencers"`
+	}
 )
 
 const ErrGetOutputNotFound = "output not found"
@@ -305,6 +337,7 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 			Data:        hex.EncodeToString(o.Bytes()),
 			Constraints: o.LinesPlain().Slice(),
 			Amount:      o.Amount(),
+			LockName:    o.Lock().Name(),
 		}
 		if cc, idx := o.ChainConstraint(); idx != 0xff {
 			var chainID ledger.ChainID
@@ -376,5 +409,8 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ret.Endorsements[i] = txid.StringHex()
 		return true
 	})
+
+	util.Assertf(!tx.IsSequencerMilestone() || ret.SequencerInputTxIndex != nil, "!tx.IsSequencerMilestone() || ret.SequencerInputTxIndex != nil")
+	util.Assertf(!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil, "!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil")
 	return ret
 }

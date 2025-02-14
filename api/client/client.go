@@ -494,6 +494,38 @@ func (c *APIClient) GetAccountOutputsExt(account ledger.Accountable, maxOutputs 
 	return outs, lrbid, nil
 }
 
+func (c *APIClient) GetAccountParsedOutputs(account ledger.Accountable, maxOutputs int, sortOption ...string) (*api.ParsedOutputList, error) {
+	if maxOutputs < 0 {
+		maxOutputs = 0
+	}
+	path := fmt.Sprintf(api.PathGetAccountParsedOutputs+"?accountable=%s", account.String())
+	if maxOutputs > 0 {
+		path += fmt.Sprintf("&max_outputs=%d", maxOutputs)
+	}
+	if len(sortOption) > 0 {
+		switch {
+		case strings.HasPrefix(sortOption[0], "desc"):
+			path += "&sort=desc"
+		case strings.HasPrefix(sortOption[0], "asc"):
+			path += "&sort=asc"
+		}
+	}
+	body, err := c.getBody(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var res api.ParsedOutputList
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+	if res.Error.Error != "" {
+		return nil, fmt.Errorf("from server: %s", res.Error.Error)
+	}
+	return &res, nil
+}
+
 func (c *APIClient) GetNodeInfo() (*global.NodeInfo, error) {
 	body, err := c.getBody(api.PathGetNodeInfo)
 	if err != nil {
@@ -584,6 +616,28 @@ func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.Transac
 		})
 	}
 	return ret, &lrbid, nil
+}
+
+func (c *APIClient) GetDelegationsBySequencer() (map[string]api.DelegationsOnSequencer, *ledger.TransactionID, error) {
+	body, err := c.getBody(api.PathGetDelegationsBySequencer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var res api.DelegationsBySequencer
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+	if res.Error.Error != "" {
+		return nil, nil, fmt.Errorf("%s", res.Error.Error)
+	}
+
+	lrbid, err := ledger.TransactionIDFromHexString(res.LRBID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return res.Sequencers, &lrbid, nil
 }
 
 // GetTransferableOutputs returns reasonable maximum number of outputs owned by accountable with only 2 constraints and returns total

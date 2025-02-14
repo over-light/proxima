@@ -46,7 +46,7 @@ type (
 
 func MustCollectAccountInfo(store StateStore, root common.VCommitment) *AccountInfo {
 	rdr := MustNewReadable(store, root)
-	chainRecs, err := MakeSugared(rdr).GetAllChains() // TODO a bit ugly
+	chainRecs, err := MakeSugared(rdr).GetAllChainsOld() // TODO a bit ugly
 	util.AssertNoError(err)
 	return &AccountInfo{
 		LockedAccounts: rdr.AccountsByLocks(),

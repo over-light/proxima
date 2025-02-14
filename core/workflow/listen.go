@@ -47,7 +47,8 @@ func (w *Workflow) startListeningTransactions() {
 			tx = v.Tx
 		}})
 		if tx != nil {
-			go w.txListener.runFor(tx)
+			// no need for goroutine because events are on queue
+			w.txListener.runFor(tx)
 		}
 	})
 }

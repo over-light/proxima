@@ -62,6 +62,8 @@ func (s SugaredStateReader) GetOutputErr(oid *ledger.OutputID) (*ledger.Output, 
 	return ret, nil
 }
 
+// GetOutput retrieves and parses output.
+// Warning: do not use in iteration bodies because of mutex lock
 func (s SugaredStateReader) GetOutput(oid *ledger.OutputID) *ledger.Output {
 	ret, err := s.GetOutputErr(oid)
 	if err == nil {
@@ -249,7 +251,7 @@ func (s SugaredStateReader) IterateChainsInAccount(addr ledger.Accountable, fun 
 	})
 }
 
-func (s SugaredStateReader) GetAllChains() (map[ledger.ChainID]ChainRecordInfo, error) {
+func (s SugaredStateReader) GetAllChainsOld() (map[ledger.ChainID]ChainRecordInfo, error) {
 	var err error
 
 	ids := make(map[ledger.ChainID]ledger.OutputID)
@@ -273,6 +275,100 @@ func (s SugaredStateReader) GetAllChains() (map[ledger.ChainID]ChainRecordInfo, 
 				ID:   oid,
 				Data: o.Bytes(),
 			},
+		}
+	}
+	return ret, nil
+}
+
+// IterateChainedOutputs iterates chained outputs and parses them
+func (s SugaredStateReader) IterateChainedOutputs(fun func(out ledger.OutputWithChainID) bool) error {
+	type _chainOutputIDPair struct {
+		chainID ledger.ChainID
+		oid     ledger.OutputID
+	}
+	// first collect all chain tips to avoid deadlock
+	// TODO loading all chains into memory is suboptimal. Trick is only needed to avoid deadlock with GetOutput
+
+	chainTips := make([]_chainOutputIDPair, 0)
+	err := s.IterateChainTips(func(chainID ledger.ChainID, oid ledger.OutputID) bool {
+		chainTips = append(chainTips, _chainOutputIDPair{
+			chainID: chainID,
+			oid:     oid,
+		})
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	var exit bool
+	for _, tip := range chainTips {
+		o := s.GetOutput(&tip.oid) // locks the reader each time
+		if o == nil {
+			return fmt.Errorf("IterateChainedOutputs: inconsistency: cannot get chain output: %s, oid: %s",
+				tip.chainID.String(), tip.oid.String())
+		}
+		cc, idx := o.ChainConstraint()
+		util.Assertf(idx != 0xff, "inconsistency: chain constraint expected")
+		exit = !fun(ledger.OutputWithChainID{
+			OutputWithID: ledger.OutputWithID{
+				ID:     tip.oid,
+				Output: o,
+			},
+			ChainID:                    tip.chainID,
+			PredecessorConstraintIndex: cc.PredecessorInputIndex,
+		})
+		if exit {
+			return nil
+		}
+	}
+	return nil
+}
+
+type DelegationsOnSequencer struct {
+	SequencerOutput ledger.OutputWithID
+	Delegations     map[ledger.ChainID]ledger.OutputWithID
+}
+
+func (s SugaredStateReader) GetDelegationsBySequencer() (map[ledger.ChainID]DelegationsOnSequencer, error) {
+	allOuts := make([]ledger.OutputWithChainID, 0)
+	err := s.IterateChainedOutputs(func(out ledger.OutputWithChainID) bool {
+		allOuts = append(allOuts, out)
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	ret := make(map[ledger.ChainID]DelegationsOnSequencer)
+	nonSeq := make([]*ledger.OutputWithChainID, 0)
+	// collect all sequencers
+	for i := range allOuts {
+		if allOuts[i].OutputWithID.Output.IsSequencerOutput() {
+			ret[allOuts[i].ChainID] = DelegationsOnSequencer{
+				SequencerOutput: allOuts[i].OutputWithID,
+			}
+		} else {
+			nonSeq = append(nonSeq, &allOuts[i])
+		}
+	}
+
+	for _, delegation := range nonSeq {
+		dl := delegation.OutputWithID.Output.DelegationLock()
+		if dl == nil {
+			// chain but not delegation
+			continue
+		}
+		if dl.TargetLock.Name() == ledger.ChainLockName {
+			cl := dl.TargetLock.(ledger.ChainLock)
+			seq, ok := ret[cl.ChainID()]
+			if !ok {
+				// delegated to nonexistent sequencer
+				continue
+			}
+			if len(seq.Delegations) == 0 {
+				seq.Delegations = make(map[ledger.ChainID]ledger.OutputWithID)
+			}
+			seq.Delegations[delegation.ChainID] = delegation.OutputWithID
+			ret[cl.ChainID()] = seq
 		}
 	}
 	return ret, nil
