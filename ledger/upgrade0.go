@@ -155,44 +155,44 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 
 // embedded functions
 
-func evalPath(ctx *easyfl.CallParams) []byte {
-	return ctx.DataContext().(*DataContext).Path()
+func evalPath(par *easyfl.CallParams) []byte {
+	return par.AllocData([]byte(par.DataContext().(*DataContext).Path())...)
 }
 
-func evalAtPath(ctx *easyfl.CallParams) []byte {
-	return ctx.DataContext().(*DataContext).DataTree().BytesAtPath(ctx.Arg(0))
+func evalAtPath(par *easyfl.CallParams) []byte {
+	return par.AllocData(par.DataContext().(*DataContext).DataTree().BytesAtPath(par.Arg(0))...)
 }
 
-func evalAtArray8(ctx *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(ctx.Arg(0))
-	idx := ctx.Arg(1)
+func evalAtArray8(par *easyfl.CallParams) []byte {
+	arr := lazybytes.ArrayFromBytesReadOnly(par.Arg(0))
+	idx := par.Arg(1)
 	if len(idx) != 1 {
 		panic("evalAtArray8: 1-byte value expected")
 	}
 	return arr.At(int(idx[0]))
 }
 
-func evalNumElementsOfArray(ctx *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(ctx.Arg(0))
-	return []byte{byte(arr.NumElements())}
+func evalNumElementsOfArray(par *easyfl.CallParams) []byte {
+	arr := lazybytes.ArrayFromBytesReadOnly(par.Arg(0))
+	return par.AllocData(byte(arr.NumElements()))
 }
 
 // evalVRFVerify: embedded VRF verifier. Dependency on unverified external crypto library
 // arg 0 - pubkey
 // arg 1 - proof
 // arg 2 - msg
-func evalVRFVerify(glb *easyfl.CallParams) []byte {
+func evalVRFVerify(par *easyfl.CallParams) []byte {
 	var ok bool
 	err := util.CatchPanicOrError(func() error {
 		var err1 error
-		ok, err1 = vrf.Verify(glb.Arg(0), glb.Arg(1), glb.Arg(2))
+		ok, err1 = vrf.Verify(par.Arg(0), par.Arg(1), par.Arg(2))
 		return err1
 	})
 	if err != nil {
-		glb.Trace("'vrfVerify embedded' failed with: %v", err)
+		par.Trace("'vrfVerify embedded' failed with: %v", err)
 	}
 	if err == nil && ok {
-		return []byte{0xff}
+		return par.AllocData(0xff)
 	}
 	return nil
 }
@@ -226,24 +226,24 @@ func (lib *Library) evalCallLocalLibrary(ctx *easyfl.CallParams) []byte {
 // returns:
 // nil, if ts1 is before ts0
 // number of ticks between ts0 and ts1 otherwise, as big-endian uint64
-func evalTicksBefore64(ctx *easyfl.CallParams) []byte {
-	ts0bin, ts1bin := ctx.Arg(0), ctx.Arg(1)
+func evalTicksBefore64(par *easyfl.CallParams) []byte {
+	ts0bin, ts1bin := par.Arg(0), par.Arg(1)
 	ts0, err := TimeFromBytes(ts0bin)
 	if err != nil {
-		ctx.TracePanic("evalTicksBefore64: %v", err)
+		par.TracePanic("evalTicksBefore64: %v", err)
 	}
 	ts1, err := TimeFromBytes(ts1bin)
 	if err != nil {
-		ctx.TracePanic("evalTicksBefore64: %v", err)
+		par.TracePanic("evalTicksBefore64: %v", err)
 	}
 	diff := DiffTicks(ts1, ts0)
 	if diff < 0 {
 		// ts1 is before ts0
 		return nil
 	}
-	var ret [8]byte
-	binary.BigEndian.PutUint64(ret[:], uint64(diff))
-	return ret[:]
+	ret := par.Alloc(8)
+	binary.BigEndian.PutUint64(ret, uint64(diff))
+	return ret
 }
 
 //============================================ extensions
