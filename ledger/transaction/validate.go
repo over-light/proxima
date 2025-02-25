@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/slicepool"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
@@ -31,12 +32,12 @@ func (ctx *TxContext) evalContext(path []byte) easyfl.GlobalData {
 
 // checkConstraint checks the constraint at path. In-line and unlock scripts are ignored
 // for 'produces output' context
-func (ctx *TxContext) checkConstraint(constraintData []byte, constraintPath lazybytes.TreePath) ([]byte, string, error) {
+func (ctx *TxContext) checkConstraint(constraintData []byte, constraintPath lazybytes.TreePath, spool *slicepool.SlicePool) ([]byte, string, error) {
 	var ret []byte
 	var name string
 	err := util.CatchPanicOrError(func() error {
 		var err1 error
-		ret, name, err1 = ctx.evalConstraint(constraintData, constraintPath)
+		ret, name, err1 = ctx.evalConstraint(constraintData, constraintPath, spool)
 		return err1
 	})
 	if err != nil {
@@ -49,9 +50,12 @@ func (ctx *TxContext) Validate() error {
 	var inSum, outSum uint64
 	var err error
 
+	spool := slicepool.New()
+	defer spool.Dispose()
+
 	err = util.CatchPanicOrError(func() error {
 		var err1 error
-		inSum, err1 = ctx.validateOutputsFailFast(true)
+		inSum, err1 = ctx.validateOutputsFailFast(true, spool)
 		return err1
 	})
 	if err != nil {
@@ -59,7 +63,7 @@ func (ctx *TxContext) Validate() error {
 	}
 	err = util.CatchPanicOrError(func() error {
 		var err1 error
-		outSum, err1 = ctx.validateOutputsFailFast(false)
+		outSum, err1 = ctx.validateOutputsFailFast(false, spool)
 		return err1
 	})
 	if err != nil {
@@ -100,9 +104,12 @@ func (ctx *TxContext) ValidateWithReportOnConsumedOutputs() ([]byte, error) {
 	var err error
 	var retFailedConsumed []byte
 
+	spool := slicepool.New()
+	defer spool.Dispose()
+
 	err = util.CatchPanicOrError(func() error {
 		var err1 error
-		inSum, retFailedConsumed, err1 = ctx._validateOutputs(true, false)
+		inSum, retFailedConsumed, err1 = ctx._validateOutputs(true, false, spool)
 		return err1
 	})
 	if err != nil {
@@ -111,7 +118,7 @@ func (ctx *TxContext) ValidateWithReportOnConsumedOutputs() ([]byte, error) {
 	}
 	err = util.CatchPanicOrError(func() error {
 		var err1 error
-		outSum, _, err1 = ctx._validateOutputs(false, true)
+		outSum, _, err1 = ctx._validateOutputs(false, true, spool)
 		return err1
 	})
 	if err != nil {
@@ -131,8 +138,8 @@ func (ctx *TxContext) ValidateWithReportOnConsumedOutputs() ([]byte, error) {
 	return nil, nil
 }
 
-func (ctx *TxContext) validateOutputsFailFast(consumedBranch bool) (uint64, error) {
-	totalAmount, _, err := ctx._validateOutputs(consumedBranch, true)
+func (ctx *TxContext) validateOutputsFailFast(consumedBranch bool, spool *slicepool.SlicePool) (uint64, error) {
+	totalAmount, _, err := ctx._validateOutputs(consumedBranch, true, spool)
 	return totalAmount, err
 }
 
@@ -140,7 +147,7 @@ func (ctx *TxContext) validateOutputsFailFast(consumedBranch bool) (uint64, erro
 // or return the list of indices of failed outputs
 // If err != nil and failFast = false, returns list of failed consumed and produced output respectively
 // if failFast = true, returns (totalAmount, nil, nil, error)
-func (ctx *TxContext) _validateOutputs(consumedBranch bool, failFast bool) (uint64, []byte, error) {
+func (ctx *TxContext) _validateOutputs(consumedBranch bool, failFast bool, spool *slicepool.SlicePool) (uint64, []byte, error) {
 	var branch lazybytes.TreePath
 	if consumedBranch {
 		branch = Path(ledger.ConsumedBranch, ledger.ConsumedOutputsBranch)
@@ -165,7 +172,7 @@ func (ctx *TxContext) _validateOutputs(consumedBranch bool, failFast bool) (uint
 			return !failFast
 		}
 
-		if extraDepositWeight, err = ctx.runOutput(consumedBranch, o, path); err != nil {
+		if extraDepositWeight, err = ctx.runOutput(consumedBranch, o, path, spool); err != nil {
 			if !failFast {
 				failedOutputs.WriteByte(i)
 			}
@@ -204,7 +211,7 @@ func (ctx *TxContext) UnlockParams(consumedOutputIdx, constraintIdx byte) []byte
 }
 
 // runOutput checks constraints of the output one-by-one
-func (ctx *TxContext) runOutput(consumedBranch bool, output *ledger.Output, path lazybytes.TreePath) (uint32, error) {
+func (ctx *TxContext) runOutput(consumedBranch bool, output *ledger.Output, path lazybytes.TreePath, spool *slicepool.SlicePool) (uint32, error) {
 	blockPath := common.Concat(path, byte(0))
 	var err error
 	extraStorageDepositWeight := uint32(0)
@@ -224,7 +231,7 @@ func (ctx *TxContext) runOutput(consumedBranch bool, output *ledger.Output, path
 		var res []byte
 		var name string
 
-		res, name, err = ctx.checkConstraint(data, blockPath)
+		res, name, err = ctx.checkConstraint(data, blockPath, spool)
 		if err != nil {
 			err = fmt.Errorf("constraint '%s' failed with error '%v'. Path: %s", name, err, PathToString(blockPath))
 			return false
@@ -341,7 +348,7 @@ func constraintName(binCode []byte) string {
 	return fmt.Sprintf("constraint_call_prefix(%s)", easyfl.Fmt(prefix))
 }
 
-func (ctx *TxContext) evalConstraint(constr []byte, path lazybytes.TreePath) ([]byte, string, error) {
+func (ctx *TxContext) evalConstraint(constr []byte, path lazybytes.TreePath, spool *slicepool.SlicePool) ([]byte, string, error) {
 	if len(constr) == 0 {
 		return nil, "", fmt.Errorf("constraint can't be empty")
 	}
@@ -356,7 +363,7 @@ func (ctx *TxContext) evalConstraint(constr []byte, path lazybytes.TreePath) ([]
 	if constr[0] == 0 {
 		return nil, "", fmt.Errorf("binary code cannot begin with 0-byte")
 	}
-	ret, err = ledger.L().EvalFromBytecode(evalCtx, constr)
+	ret, err = ledger.L().EvalFromBytecodeWithSlicePool(evalCtx, spool, constr)
 
 	if evalCtx.Trace() {
 		if err != nil {
