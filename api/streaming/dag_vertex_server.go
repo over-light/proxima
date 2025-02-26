@@ -66,6 +66,8 @@ func vertexDepsForTx(srv *wsServer, txidstr string) []byte {
 }
 
 // WebSocket handler
+const keepMaxSlots = 10 // Keep only last 10 slots
+
 func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Request) {
 	u := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	conn, err := u.Upgrade(w, r, nil)
@@ -79,15 +81,15 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 
 	// Thread-safe storage for transactions per slot
 	var mu sync.Mutex
-	txSlots := make(map[int]set.Set[string]) // Slot -> Set of transaction IDs
-	var latestSlot int
+	txSlots := make(map[uint32]set.Set[string]) // Slot -> Set of transaction IDs
+	var latestSlot uint32
 
 	srv.OnTransaction(func(tx *transaction.Transaction) bool {
 		mu.Lock()
 		defer mu.Unlock()
 
 		txID := tx.IDShortString()
-		slot := int(tx.Timestamp().Slot())
+		slot := uint32(tx.Timestamp().Slot())
 
 		srv.Tracef(TraceTag, "Processing TX ID: %s (Slot: %d)", txID, slot)
 
@@ -100,7 +102,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 		if slot > latestSlot {
 			latestSlot = slot
 			for oldSlot := range txSlots {
-				if oldSlot < latestSlot-10 { // Keep only last 10 slots
+				if oldSlot < latestSlot-keepMaxSlots {
 					delete(txSlots, oldSlot)
 					srv.Log().Infof("Removed old slot: %d", oldSlot)
 				}
@@ -126,7 +128,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 				continue // Skip this input
 			}
 
-			depSlot := int(txid.Timestamp().Slot())
+			depSlot := uint32(txid.Timestamp().Slot())
 
 			// Ensure slot set exists
 			if _, exists := txSlots[depSlot]; !exists {
