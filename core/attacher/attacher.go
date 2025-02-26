@@ -156,6 +156,8 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 		baseline := baselineDirection.BaselineBranch()
 		// 'good' and referenced baseline direction must have not-nil baseline
 
+		a.Assertf(baseline != nil, "baseline is nil in %s. Baseline direction is virtual:\n%s",
+			a.name, func() string { return baselineDirection.Lines("    ").String() })
 		/* FIXME assertion sometimes fails
 		------------------------------------------------------------------------boot
 		02-26 00:33:06.744      FATAL   assertion failed:: baseline != nil
@@ -237,7 +239,8 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:47
 		github.com/lunfardo314/proxima/core/attacher.AttachTransaction.func1.2
 		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attach.go:130
-		-------------------------------------------------------------------------------------------------------- seq1
+		*/
+		/*-------------------------------------------------------------------------------------------------------- seq1
 		02-26 03:03:18.952      FATAL   assertion failed:: baseline != nil
 		    == virtual tx [207206|53sq]015a76b4493d..
 		    seq output indices: (0, 255)
@@ -278,7 +281,6 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 		github.com/lunfardo314/proxima/core/attacher.AttachTransaction.func1.2
 		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attach.go:130
 		*/
-		a.Assertf(baseline != nil, "baseline != nil\n%s", func() string { return baselineDirection.Lines("    ").String() })
 		a.Assertf(baseline.IsBranchTransaction(), "baseline.IsBranchTransaction()")
 
 		v.BaselineBranch = baseline
