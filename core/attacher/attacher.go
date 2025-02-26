@@ -155,6 +155,129 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 
 		baseline := baselineDirection.BaselineBranch()
 		// 'good' and referenced baseline direction must have not-nil baseline
+
+		/* FIXME assertion sometimes fails
+		------------------------------------------------------------------------boot
+		02-26 00:33:06.744      FATAL   assertion failed:: baseline != nil
+		    == virtual tx [206935|25sq]0215b9de5cfb..
+		    seq output indices: (0, 255)
+		        #0 :
+		     0: amount(u64/1067131664105) (11 bytes)
+		     1: a(0xd706c3e8eff219cec34817321ab967055a8425f5607f388cbed49beb888b8b1d) (35 bytes)
+		     2: chain(0x95ea9e9dcafd06ad0ed57de496b34180dc17d774d489b76496a6e163bfb5b942000200) (38 bytes)
+		     3: sequencer(2, u64/3075702752546) (13 bytes)
+		     4: or(0x70696f6e2e6531,0x00050ff2,0x00004008,0x0000000000000000) (29 bytes)
+		     5: inflation(u64/34976, 2) (13 bytes)
+		        #1 :
+		     0: amount(u64/1004142031265) (11 bytes)
+		     1: delegationLock(2, c(0x95ea9e9dcafd06ad0ed57de496b34180dc17d774d489b76496a6e163bfb5b942), a(0x6932360554b75b578ec18310c6fb2019955b1585e0ce24be34e3b596f41a55f9), 0x000109b66c, u64/999999000000) (89 bytes)
+		     2: chain(0x214103a588606be6266d6a3c6019a7b615f1f9096de75c6d401a33507ffbe1e8010200) (38 bytes)
+		     3: inflation(u64/98733, 2) (13 bytes)
+		        #2 :
+		     0: amount(u64/1004429057176) (11 bytes)
+		     1: delegationLock(2, c(0x95ea9e9dcafd06ad0ed57de496b34180dc17d774d489b76496a6e163bfb5b942), a(0xd706c3e8eff219cec34817321ab967055a8425f5607f388cbed49beb888b8b1d), 0x0000e7c51e, u64/999999000000) (89 bytes)
+		     2: chain(0x04e32b9daac50f6478d5a88fb2d825645e23eab673d49fa648302d5107687696020200) (38 bytes)
+		     3: inflation(u64/98763, 2) (13 bytes)
+		github.com/lunfardo314/proxima/global.(*Global).Assertf
+		        /home/lunfardo/go/src/github.com/proxima/global/global.go:250
+		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifySequencerBaseline
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher.go:158
+		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifyBaselineVertex
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher.go:56
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1.1
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:248
+		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx)._unwrap
+		        /home/lunfardo/go/src/github.com/proxima/core/vertex/vid.go:414
+		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx).Unwrap
+		        /home/lunfardo/go/src/github.com/proxima/core/vertex/vid.go:400
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:243
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).lazyRepeat
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:198
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).solidifyBaseline
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:237
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:105
+		github.com/lunfardo314/proxima/core/attacher.runMilestoneAttacher
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:47
+		github.com/lunfardo314/proxima/core/attacher.AttachTransaction.func1.2
+		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attach.go:130
+		------------------------------------------------------------------------------------------- loc0
+		02-26 02:03:01.752      FATAL   assertion failed:: baseline != nil
+		    == virtual tx [207206|37sq]00cd863aca78..
+		    seq output indices: (0, 255)
+		        #0 :
+		     0: amount(u64/598168406232) (11 bytes)
+		     1: a(0x887deb0b802a63e8084b477062c5c7c7d94d34402f57159576bbf8acef788f02) (35 bytes)
+		     2: chain(0x01bc22144d0f53e579be22f4c26eaa80b51a435279f405f0cc6ef75863d1472d000200) (38 bytes)
+		     3: sequencer(2, u64/598168406232) (13 bytes)
+		     4: or(0x65726e69652e6533,0x0003d3be,0x000068fc,0x0000000000000000) (30 bytes)
+		     5: inflation(u64/19605, 2) (13 bytes)
+		github.com/lunfardo314/proxima/global.(*Global).Assertf
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/global/global.go:250
+		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifySequencerBaseline
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher.go:158
+		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifyBaselineVertex
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher.go:56
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1.1
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:248
+		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx)._unwrap
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/vertex/vid.go:414
+		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx).Unwrap
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/vertex/vid.go:400
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:243
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).lazyRepeat
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:198
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).solidifyBaseline
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:237
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:105
+		github.com/lunfardo314/proxima/core/attacher.runMilestoneAttacher
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:47
+		github.com/lunfardo314/proxima/core/attacher.AttachTransaction.func1.2
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attach.go:130
+		-------------------------------------------------------------------------------------------------------- seq1
+		02-26 03:03:18.952      FATAL   assertion failed:: baseline != nil
+		    == virtual tx [207206|53sq]015a76b4493d..
+		    seq output indices: (0, 255)
+		        #0 :
+		     0: amount(u64/374388278056729) (11 bytes)
+		     1: a(0x370563b1f08fcc06fa250c59034acfd4ab5a29b60640f751d644e9c3b84004d0) (35 bytes)
+		     2: chain(0x6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc000200) (38 bytes)
+		     3: sequencer(2, u64/375393603059239) (13 bytes)
+		     4: or(0x626f6f742e6532,0x0006b49d,0x00004a43,0x0000000000000000) (29 bytes)
+		     5: inflation(u64/12270907, 2) (13 bytes)
+		        #1 :
+		     0: amount(u64/1005325002510) (11 bytes)
+		     1: delegationLock(2, c(0x6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc), a(0x370563b1f08fcc06fa250c59034acfd4ab5a29b60640f751d644e9c3b84004d0), 0x00007d66d9, u64/1000000000000) (89 bytes)
+		     2: chain(0x2c91c3d3f00e211d075f701ad36e962f333169a88c6aa9af28c07138a7c282e9010200) (38 bytes)
+		     3: inflation(u64/32950, 2) (13 bytes)
+		github.com/lunfardo314/proxima/global.(*Global).Assertf
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/global/global.go:250
+		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifySequencerBaseline
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher.go:158
+		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifyBaselineVertex
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher.go:56
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1.1
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:248
+		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx)._unwrap
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/vertex/vid.go:414
+		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx).Unwrap
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/vertex/vid.go:400
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:243
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).lazyRepeat
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:198
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).solidifyBaseline
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:237
+		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:105
+		github.com/lunfardo314/proxima/core/attacher.runMilestoneAttacher
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attacher_milestone.go:47
+		github.com/lunfardo314/proxima/core/attacher.AttachTransaction.func1.2
+		        /home/lunfardo/go/src/github.com/lunfardo314/proxima/core/attacher/attach.go:130
+		*/
 		a.Assertf(baseline != nil, "baseline != nil\n%s", func() string { return baselineDirection.Lines("    ").String() })
 		a.Assertf(baseline.IsBranchTransaction(), "baseline.IsBranchTransaction()")
 
