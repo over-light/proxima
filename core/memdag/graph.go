@@ -323,7 +323,7 @@ func (d *MemDAG) loadPastConeFromTxStore(txid ledger.TransactionID, txStore glob
 	if txid.Slot() < oldestSlot {
 		return nil
 	}
-	if vid, already := d.vertices[txid]; already {
+	if vid := d.GetVertexNoLock(&txid); vid != nil {
 		return vid
 	}
 	txBytesWithMetadata := txStore.GetTxBytesWithMetadata(&txid)

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"weak"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
@@ -33,7 +34,7 @@ type (
 		// in most other data structures, such as attachers, transactions are represented as *vertex.WrappedTx
 		// MemDAG is constantly garbage-collected by the pruner
 		mutex    sync.RWMutex
-		vertices map[ledger.TransactionID]*vertex.WrappedTx
+		vertices map[ledger.TransactionID]weak.Pointer[vertex.WrappedTx] // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 		// latestBranchSlot maintained by EvidenceBranchSlot
 		latestBranchSlot        ledger.Slot
 		latestHealthyBranchSlot ledger.Slot
@@ -57,7 +58,7 @@ type (
 func New(env environment) *MemDAG {
 	return &MemDAG{
 		environment:  env,
-		vertices:     make(map[ledger.TransactionID]*vertex.WrappedTx),
+		vertices:     make(map[ledger.TransactionID]weak.Pointer[vertex.WrappedTx]),
 		stateReaders: make(map[ledger.TransactionID]*cachedStateReader),
 	}
 }
@@ -72,7 +73,10 @@ func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 }
 
 func (d *MemDAG) GetVertexNoLock(txid *ledger.TransactionID) *vertex.WrappedTx {
-	return d.vertices[*txid]
+	if weakp, found := d.vertices[*txid]; found {
+		return weakp.Value()
+	}
+	return nil
 }
 
 func (d *MemDAG) GetVertex(txid *ledger.TransactionID) *vertex.WrappedTx {
@@ -99,14 +103,16 @@ func (d *MemDAG) NumStateReaders() int {
 
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	util.Assertf(d.GetVertexNoLock(&vid.ID) == nil, "d.GetVertexNoLock(vid.ID())==nil")
-	d.vertices[vid.ID] = vid
+	d.vertices[vid.ID] = weak.Make(vid)
 }
 
 // PurgeDeletedVertices with global lock
-func (d *MemDAG) PurgeDeletedVertices(deleted []*vertex.WrappedTx) {
+func (d *MemDAG) PurgeDeletedVertices() {
 	d.WithGlobalWriteLock(func() {
-		for _, vid := range deleted {
-			delete(d.vertices, vid.ID)
+		for txid, weakp := range d.vertices {
+			if weakp.Value() == nil {
+				delete(d.vertices, txid)
+			}
 		}
 	})
 }
@@ -288,14 +294,17 @@ func (d *MemDAG) Vertices() []*vertex.WrappedTx {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	return maps.Values(d.vertices)
+	ret := make([]*vertex.WrappedTx, 0, len(d.vertices))
+	for _, weakp := range d.vertices {
+		if strongP := weakp.Value(); strongP != nil {
+			ret = append(ret, strongP)
+		}
+	}
+	return ret
 }
 
 func (d *MemDAG) VerticesFiltered(filterByID func(txid *ledger.TransactionID) bool) []*vertex.WrappedTx {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-
-	return util.ValuesFiltered(d.vertices, func(vid *vertex.WrappedTx) bool {
+	return util.PurgeSlice(d.Vertices(), func(vid *vertex.WrappedTx) bool {
 		return filterByID(&vid.ID)
 	})
 }

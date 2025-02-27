@@ -22,8 +22,10 @@ func (d *MemDAG) InfoLines(verbose ...bool) *lines.Lines {
 
 	slots := d._timeSlotsOrdered()
 
+	d.mutex.RLock()
 	ln.Add("MemDAG:: vertices: %d, stateReaders: %d, slots: %d",
 		len(d.vertices), len(d.stateReaders), len(slots))
+	d.mutex.RUnlock()
 
 	if len(verbose) > 0 && verbose[0] {
 		vertices := d.Vertices()

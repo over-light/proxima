@@ -5,7 +5,6 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -40,11 +39,11 @@ func New(env environment) *Pruner {
 	ret := &Pruner{environment: env}
 	ret.registerMetrics()
 
-	ret.RepeatInBackground(Name, ledger.SlotDuration(), func() bool {
-		ret.doPrune()
-		ret.updateMetrics()
-		return true
-	}, true)
+	//ret.RepeatInBackground(Name, ledger.SlotDuration(), func() bool {
+	//	ret.doPrune()
+	//	ret.updateMetrics()
+	//	return true
+	//}, true)
 
 	return ret
 }
