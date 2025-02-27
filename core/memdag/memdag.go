@@ -18,23 +18,30 @@ import (
 
 type (
 	environment interface {
+		global.StartStop
 		StateStore() multistate.StateStore
 		MetricsRegistry() *prometheus.Registry
+	}
+
+	keepVertexData struct {
+		*vertex.WrappedTx
+		keepUntil time.Time
 	}
 
 	// MemDAG is a global map of all in-memory vertices of the transaction DAG
 	MemDAG struct {
 		environment
 
-		// cache of vertices. Key of the map is transaction ID. Value of the map is *vertex.WrappedTx.
+		// cache of vertices as weak pointers. Key of the map is transaction ID. Value of the map is *vertex.WrappedTx.
 		// The pointer value *vertex.WrappedTx is used as a unique identifier of the transaction while being
 		// loaded into the memory.
 		// The vertices map may be seen as encoding table between transaction ID and
 		// more economic (memory-wise) yet transient in-memory ID *vertex.WrappedTx
 		// in most other data structures, such as attachers, transactions are represented as *vertex.WrappedTx
-		// MemDAG is constantly garbage-collected by the pruner
 		mutex    sync.RWMutex
 		vertices map[ledger.TransactionID]weak.Pointer[vertex.WrappedTx] // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		keep     []keepVertexData
+
 		// latestBranchSlot maintained by EvidenceBranchSlot
 		latestBranchSlot        ledger.Slot
 		latestHealthyBranchSlot ledger.Slot
@@ -56,14 +63,26 @@ type (
 )
 
 func New(env environment) *MemDAG {
-	return &MemDAG{
+	ret := &MemDAG{
 		environment:  env,
 		vertices:     make(map[ledger.TransactionID]weak.Pointer[vertex.WrappedTx]),
+		keep:         []keepVertexData{},
 		stateReaders: make(map[ledger.TransactionID]*cachedStateReader),
 	}
+	ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
+		ret.updateKeepList()
+		ret.purgeDeletedVertices()
+		ret.purgeCachedStateReaders()
+		return true
+	})
+	return ret
 }
 
-const sharedStateReaderCacheSize = 3000
+const (
+	sharedStateReaderCacheSize = 3000
+	vertexTTLSlots             = 6
+	stateReaderTTLSlots        = 2
+)
 
 func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 	d.mutex.Lock()
@@ -101,13 +120,24 @@ func (d *MemDAG) NumStateReaders() int {
 	return len(d.stateReaders)
 }
 
+var vertexTTL time.Duration
+
+func _vertexTTL() time.Duration {
+	if vertexTTL == 0 {
+		vertexTTL = vertexTTLSlots * ledger.SlotDuration()
+	}
+	return vertexTTL
+}
+
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	util.Assertf(d.GetVertexNoLock(&vid.ID) == nil, "d.GetVertexNoLock(vid.ID())==nil")
 	d.vertices[vid.ID] = weak.Make(vid)
+	// will keep vid from GC for TTL
+	d.keep = append(d.keep, keepVertexData{vid, time.Now().Add(_vertexTTL())})
 }
 
 // PurgeDeletedVertices with global lock
-func (d *MemDAG) PurgeDeletedVertices() {
+func (d *MemDAG) purgeDeletedVertices() {
 	d.WithGlobalWriteLock(func() {
 		for txid, weakp := range d.vertices {
 			if weakp.Value() == nil {
@@ -117,13 +147,25 @@ func (d *MemDAG) PurgeDeletedVertices() {
 	})
 }
 
-const stateReaderTTLSlots = 2
-
-func _stateReaderCacheTTL() time.Duration {
-	return stateReaderTTLSlots * ledger.SlotDuration()
+func (d *MemDAG) updateKeepList() {
+	d.WithGlobalWriteLock(func() {
+		nowis := time.Now()
+		d.keep = util.PurgeSlice(d.keep, func(keepData keepVertexData) bool {
+			return keepData.keepUntil.After(nowis)
+		})
+	})
 }
 
-func (d *MemDAG) PurgeCachedStateReaders() (int, int) {
+var stateReaderTTL time.Duration
+
+func _stateReaderCacheTTL() time.Duration {
+	if stateReaderTTL == 0 {
+		stateReaderTTL = stateReaderTTLSlots * ledger.SlotDuration()
+	}
+	return stateReaderTTL
+}
+
+func (d *MemDAG) purgeCachedStateReaders() (int, int) {
 	ttl := _stateReaderCacheTTL()
 	count := 0
 
