@@ -28,7 +28,8 @@ type (
 		outputs                map[byte]*ledger.Output
 		sequencerOutputIndices *[2]byte // if nil, it is unknown
 		inflation              uint64
-		//baselineBranch         *WrappedTx
+		// inherited from wrapped tx
+		baselineBranch *WrappedTx
 		// pull rules
 		pullRulesDefined bool
 		needsPull        bool
