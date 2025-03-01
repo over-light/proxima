@@ -26,9 +26,6 @@ func (d *MemDAG) QueryTxIDStatus(txid *ledger.TransactionID) (ret vertex.TxIDSta
 			ret.VirtualTx = true
 			ret.Err = vid.GetErrorNoLock()
 		},
-		Deleted: func() {
-			ret.Deleted = true
-		},
 	})
 	return
 }

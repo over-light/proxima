@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -15,9 +14,6 @@ import (
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/set"
 )
-
-// ErrDeletedVertexAccessed exception is raised by PanicAccessDeleted handler of RUnwrap vertex so that could be caught if necessary
-var ErrDeletedVertexAccessed = errors.New("deleted vertex should not be accessed")
 
 func (v _vertex) _outputAt(idx byte) (*ledger.Output, error) {
 	return v.Tx.ProducedOutputAt(idx)
@@ -34,8 +30,6 @@ func _newVID(g _genericVertex, txid ledger.TransactionID, seqID *ledger.ChainID)
 	ret := &WrappedTx{
 		ID:             txid,
 		_genericVertex: g,
-		numReferences:  1, // we always start with 1 reference, which is reference by the MemDAG itself. 0 references means it is deleted
-		dontPruneUntil: time.Now().Add(TTLDuration()),
 	}
 	ret.SequencerID.Store(seqID)
 	ret.onPoke.Store(func() {})
@@ -83,7 +77,6 @@ func (vid *WrappedTx) ConvertToVirtualTx() {
 }
 
 func (vid *WrappedTx) convertToVirtualTxUnlocked(v *Vertex) {
-	util.Assertf(vid.numReferences > 0, "convertToVirtualTxUnlocked: access deleted tx in %s", vid.IDShortString)
 	vid._put(_virtualTx{v.toVirtualTx()})
 	v.UnReferenceDependencies()
 	v.Dispose()
@@ -143,7 +136,6 @@ func (vid *WrappedTx) SetSequencerAttachmentFinished() {
 
 	util.Assertf(vid.flags.FlagsUp(FlagVertexTxAttachmentStarted), "vid.flags.FlagsUp(FlagVertexTxAttachmentStarted)")
 	vid.flags.SetFlagsUp(FlagVertexTxAttachmentFinished)
-	vid.dontPruneUntil = time.Now().Add(TTLDuration())
 }
 
 func (vid *WrappedTx) SetTxStatusBad(reason error) {
@@ -173,12 +165,12 @@ func (vid *WrappedTx) GetErrorNoLock() error {
 	return vid.err
 }
 
-// IsBadOrDeleted non-deterministic
-func (vid *WrappedTx) IsBadOrDeleted() bool {
+// IsBad non-deterministic
+func (vid *WrappedTx) IsBad() bool {
 	vid.mutex.RLock()
 	defer vid.mutex.RUnlock()
 
-	return vid.GetTxStatusNoLock() == Bad || vid.numReferences == 0
+	return vid.GetTxStatusNoLock() == Bad
 }
 
 func (vid *WrappedTx) OnPoke(fun func()) {
@@ -220,7 +212,6 @@ func (vid *WrappedTx) ShortString() string {
 				reason = fmt.Sprintf(" err: '%v'", vid.err)
 			}
 		},
-		Deleted: vid.PanicAccessDeleted,
 	})
 	return fmt.Sprintf("%22s %10s (%s%s) %s", vid.IDShortString(), mode, status, flagsStr, reason)
 }
@@ -383,7 +374,6 @@ func (vid *WrappedTx) _ofKindString() (ret string) {
 	vid._unwrap(UnwrapOptions{
 		Vertex:    func(_ *Vertex) { ret = "full vertex" },
 		VirtualTx: func(_ *VirtualTransaction) { ret = "virtualTx" },
-		Deleted:   func() { ret = "deleted" },
 	})
 	return
 }
@@ -417,10 +407,6 @@ func (vid *WrappedTx) _unwrap(opt UnwrapOptions) {
 		if opt.VirtualTx != nil {
 			opt.VirtualTx(v.VirtualTransaction)
 		}
-	default:
-		if vid.numReferences == 0 && opt.Deleted != nil {
-			opt.Deleted()
-		}
 	}
 }
 
@@ -446,9 +432,6 @@ func (vid *WrappedTx) Lines(prefix ...string) *lines.Lines {
 				ret.Append(v.outputs[i].Lines("     "))
 			}
 		},
-		Deleted: func() {
-			ret.Add("== deleted vertex")
-		},
 	})
 	return ret
 }
@@ -459,8 +442,7 @@ func (vid *WrappedTx) LinesNoLock(prefix ...string) *lines.Lines {
 		Add("Kind: %s", vid._ofKindString()).
 		Add("Status: %s", vid.GetTxStatusNoLock().String()).
 		Add("Flags: %s", vid.flags.String()).
-		Add("Err: %v", vid.err).
-		Add("Refs: %d", vid.numReferences)
+		Add("Err: %v", vid.err)
 	if seqID := vid.SequencerID.Load(); seqID == nil {
 		ret.Add("Seq ID: <nil>")
 	} else {
@@ -495,11 +477,6 @@ func (vid *WrappedTx) NumProducedOutputs() int {
 	return vid.ID.NumProducedOutputs()
 }
 
-func (vid *WrappedTx) PanicAccessDeleted() {
-	fmt.Printf(">>>>>>>>>>>>>>>>> PanicAccessDeleted:\n%s\n<<<<<<<<<<<<<<<<<<<<<<<\n", string(debug.Stack()))
-	util.Panicf("%w: %s", ErrDeletedVertexAccessed, vid.ID.StringShort())
-}
-
 // BaselineBranch baseline branch of the vertex
 // Will return nil for virtual transaction
 func (vid *WrappedTx) BaselineBranch() (baselineBranch *WrappedTx) {
@@ -532,7 +509,6 @@ func (vid *WrappedTx) EnsureOutputWithID(o *ledger.OutputWithID) (err error) {
 		VirtualTx: func(v *VirtualTransaction) {
 			err = v.addOutput(o.ID.Index(), o.Output)
 		},
-		Deleted: vid.PanicAccessDeleted,
 	})
 	return err
 }
@@ -640,14 +616,13 @@ func (vid *WrappedTx) String() (ret string) {
 				cov = *vid.coverage
 			}
 			t := "vertex (" + vid.GetTxStatusNoLock().String() + ")"
-			ret = fmt.Sprintf("%20s %s :: in: %d, out: %d, consumed: %d, conflicts: %d, ref: %d, Flags: %08b, err: '%v', cov: %s",
+			ret = fmt.Sprintf("%20s %s :: in: %d, out: %d, consumed: %d, conflicts: %d, Flags: %08b, err: '%v', cov: %s",
 				t,
 				vid.ID.StringShort(),
 				v.Tx.NumInputs(),
 				v.Tx.NumProducedOutputs(),
 				consumed,
 				doubleSpent,
-				vid.numReferences,
 				vid.flags,
 				reason,
 				util.Th(cov),
@@ -669,7 +644,6 @@ func (vid *WrappedTx) String() (ret string) {
 				reason,
 			)
 		},
-		Deleted: vid.PanicAccessDeleted,
 	})
 	return
 }
@@ -706,9 +680,6 @@ func (vid *WrappedTx) LinesTx(prefix ...string) *lines.Lines {
 		},
 		VirtualTx: func(v *VirtualTransaction) {
 			ret.Add("a virtual tx %s", vid.IDShortString())
-		},
-		Deleted: func() {
-			ret.Add("deleted tx %s", vid.IDShortString())
 		},
 	})
 	return ret
@@ -785,11 +756,6 @@ func (vid *WrappedTx) _traversePastCone(opt *_unwrapOptionsTraverse) bool {
 				ret = opt.VirtualTx(vid, v)
 			}
 		},
-		Deleted: func() {
-			if opt.Deleted != nil {
-				ret = opt.Deleted(vid)
-			}
-		},
 	})
 	return ret
 }
@@ -803,7 +769,6 @@ func (vid *WrappedTx) InflationAmount() (ret uint64) {
 		VirtualTx: func(v *VirtualTransaction) {
 			ret = v.inflation
 		},
-		Deleted: vid.PanicAccessDeleted,
 	})
 	return
 }

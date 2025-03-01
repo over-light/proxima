@@ -32,7 +32,7 @@ func (seq *Sequencer) FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOu
 	ret := []vertex.WrappedOutput{rootOutput}
 	for _, vid := range ordered {
 		switch {
-		case vid.IsBadOrDeleted():
+		case vid.IsBad():
 			continue
 		case !vid.IsSequencerMilestone():
 			continue
@@ -82,8 +82,6 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 		return
 	}
 
-	vid.MustReference()
-
 	withTime := outputsWithTime{
 		consumed: set.New[vertex.WrappedOutput](),
 		since:    time.Now(),
@@ -116,7 +114,6 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 	count := 0
 	for vid, withTime := range seq.ownMilestones {
 		if withTime.since.Before(horizon) {
-			vid.UnReference()
 			delete(seq.ownMilestones, vid)
 			count++
 		}

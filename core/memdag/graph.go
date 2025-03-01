@@ -39,13 +39,6 @@ var (
 		graph.VertexAttribute("color", "9"),
 		graph.VertexAttribute("fillcolor", "1"),
 	}
-	orphanedTxAttributes = []func(*graph.VertexProperties){
-		fontsizeAttribute,
-		graph.VertexAttribute("colorscheme", "bugn9"),
-		graph.VertexAttribute("style", "filled"),
-		graph.VertexAttribute("color", "9"),
-		graph.VertexAttribute("fillcolor", "1"),
-	}
 )
 
 func sequencerNodeAttributes(v *vertex.Vertex, coverage uint64, dict map[ledger.ChainID]int) []func(*graph.VertexProperties) {
@@ -95,9 +88,6 @@ func makeGraphNode(vid *vertex.WrappedTx, gr graph.Graph[string, string], seqDic
 		},
 		VirtualTx: func(v *vertex.VirtualTransaction) {
 			err = gr.AddVertex(id, finalTxAttributes...)
-		},
-		Deleted: func() {
-			err = gr.AddVertex(id, orphanedTxAttributes...)
 		},
 	})
 	util.AssertNoError(err)

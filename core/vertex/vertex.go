@@ -16,39 +16,27 @@ func (v *Vertex) TimeSlot() ledger.Slot {
 }
 
 // ReferenceInput puts new input and references it. If referencing fails, no change happens and returns false
-func (v *Vertex) ReferenceInput(i byte, vid *WrappedTx) bool {
-	util.Assertf(int(i) < len(v.Inputs), "PutNewInput: wrong input index")
-	util.Assertf(v.Inputs[i] == nil, "PutNewInput: repetitive")
-	referenced := vid.Reference()
-	if referenced {
-		v.Inputs[i] = vid
-	}
-	return referenced
+func (v *Vertex) ReferenceInput(i byte, vid *WrappedTx) {
+	util.Assertf(int(i) < len(v.Inputs), "ReferenceInput: wrong input index")
+	util.Assertf(v.Inputs[i] == nil, "ReferenceInput: repetitive")
+
+	v.Inputs[i] = vid
 }
 
-func (v *Vertex) ReferenceEndorsement(i byte, vid *WrappedTx) bool {
-	util.Assertf(int(i) < len(v.Endorsements), "PutNewEndorsement: wrong endorsement index")
-	util.Assertf(v.Endorsements[i] == nil, "PutNewEndorsement: repetitive")
-	referenced := vid.Reference()
-	if referenced {
-		v.Endorsements[i] = vid
-	}
-	return referenced
+func (v *Vertex) ReferenceEndorsement(i byte, vid *WrappedTx) {
+	util.Assertf(int(i) < len(v.Endorsements), "ReferenceEndorsement: wrong endorsement index")
+	util.Assertf(v.Endorsements[i] == nil, "ReferenceEndorsement: repetitive")
+
+	v.Endorsements[i] = vid
 }
 
 // UnReferenceDependencies un-references all not nil inputs and endorsements and invalidates vertex structure
 func (v *Vertex) UnReferenceDependencies() {
-	for i, vidInput := range v.Inputs {
-		if vidInput != nil {
-			vidInput.UnReference()
-			v.Inputs[i] = nil
-		}
+	for i := range v.Inputs {
+		v.Inputs[i] = nil
 	}
-	for i, vidEndorsement := range v.Endorsements {
-		if vidEndorsement != nil {
-			vidEndorsement.UnReference()
-			v.Endorsements[i] = nil
-		}
+	for i := range v.Endorsements {
+		v.Endorsements[i] = nil
 	}
 	v.BaselineBranch = nil
 }

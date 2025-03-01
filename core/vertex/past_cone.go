@@ -35,8 +35,7 @@ type (
 		savedCoverageDelta uint64
 
 		*PastConeBase
-		delta      *PastConeBase
-		refCounter int
+		delta *PastConeBase
 	}
 
 	PastConeBase struct {
@@ -206,22 +205,6 @@ func (pc *PastCone) SetBaseline(vid *WrappedTx) bool {
 	return true
 }
 
-func (pc *PastCone) UnReferenceAll() {
-	pc.Assertf(pc.delta == nil, "UnReferenceAll: pc.delta == nil")
-	unrefCounter := 0
-	//if pc.baseline != nil {
-	//	pc.baseline.UnReference()
-	//	unrefCounter++
-	//	pc.traceLines.Trace("UnReferenceAll: unref baseline: %s", pc.baseline.IDShortString)
-	//}
-	for vid := range pc.vertices {
-		vid.UnReference()
-		unrefCounter++
-	}
-	pc.Assertf(unrefCounter == pc.refCounter, "UnReferenceAll: unrefCounter(%d) not equal to pc.refCounter(%d) in %s",
-		unrefCounter, pc.refCounter, pc.name)
-}
-
 func (pc *PastCone) BeginDelta() {
 	util.Assertf(pc.delta == nil, "BeginDelta: pc.delta == nil")
 	pc.delta = NewPastConeBase(pc.baseline)
@@ -249,19 +232,6 @@ func (pc *PastCone) RollbackDelta() {
 	if pc.delta == nil {
 		return
 	}
-	unrefCounter := 0
-	for vid := range pc.delta.vertices {
-		if _, ok := pc.vertices[vid]; !ok {
-			vid.UnReference()
-			unrefCounter++
-		}
-	}
-	if pc.delta.baseline != nil && pc.baseline == nil {
-		pc.delta.baseline.UnReference()
-	}
-	pc.refCounter -= unrefCounter
-	expected := len(pc.vertices)
-	pc.Assertf(pc.refCounter == expected, "RollbackDelta: pc.refCounter(%d) not equal to expected(%d)", pc.refCounter, expected)
 	pc.delta.Dispose()
 	pc.delta = nil
 	pc.coverageDelta = pc.savedCoverageDelta
@@ -293,18 +263,6 @@ func (pc *PastCone) SetFlagsDown(vid *WrappedTx, f FlagsPastCone) {
 	}
 }
 
-func (pc *PastCone) mustReference(vid *WrappedTx) {
-	util.Assertf(pc.reference(vid), "pb.reference(vid): %s", vid.IDShortString)
-}
-
-func (pc *PastCone) reference(vid *WrappedTx) bool {
-	if !vid.Reference() {
-		return false
-	}
-	pc.refCounter++
-	return true
-}
-
 func (pc *PastCone) IsKnown(vid *WrappedTx) bool {
 	return pc.Flags(vid).FlagsUp(FlagPastConeVertexKnown)
 }
@@ -333,22 +291,11 @@ func (pc *PastCone) IsInTheState(vid *WrappedTx) (rooted bool) {
 }
 
 func (pc *PastCone) MarkVertexKnown(vid *WrappedTx) bool {
-	// prevent repeated referencing
-	if !pc.IsKnown(vid) {
-		if !pc.reference(vid) {
-			return false
-		}
-	}
 	pc.SetFlagsUp(vid, FlagPastConeVertexKnown)
 	return true
 }
 
 func (pc *PastCone) markVertexWithFlags(vid *WrappedTx, flags FlagsPastCone) bool {
-	if !pc.IsKnown(vid) {
-		if !pc.reference(vid) {
-			return false
-		}
-	}
 	pc.SetFlagsUp(vid, flags)
 	return true
 }
@@ -356,9 +303,6 @@ func (pc *PastCone) markVertexWithFlags(vid *WrappedTx, flags FlagsPastCone) boo
 // MustMarkVertexNotInTheState is marked definitely not rooted
 func (pc *PastCone) MustMarkVertexNotInTheState(vid *WrappedTx) {
 	pc.Assertf(!pc.IsInTheState(vid), "!pc.IsInTheState(vid)")
-	if !pc.IsKnown(vid) {
-		pc.mustReference(vid)
-	}
 	pc.SetFlagsUp(vid, FlagPastConeVertexKnown|FlagPastConeVertexCheckedInTheState)
 	pc.Assertf(pc.isNotInTheState(vid), "pc.isNotInTheState(vid)")
 }
@@ -850,8 +794,6 @@ func (pc *PastCone) CheckAndClean(stateReader multistate.IndexedStateReader) (co
 		}
 		if canBeRemoved {
 			delete(pc.vertices, vid)
-			vid.UnReference()
-			pc.refCounter--
 		} else {
 			pc.coverageDelta += coverageDelta
 		}

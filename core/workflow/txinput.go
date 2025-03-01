@@ -193,7 +193,7 @@ func (w *Workflow) _attach(tx *transaction.Transaction, opts ...attacher.AttachT
 	util.Assertf(nowis.After(tsTime), "nowis(%d).After(tsTime(%d))", nowis.UnixNano(), tsTime.UnixNano())
 
 	w.Tracef(TraceTagTxInput, "-> attach tx %s", tx.IDShortString)
-	if vid := attacher.AttachTransaction(tx, w, opts...); vid.IsBadOrDeleted() {
+	if vid := attacher.AttachTransaction(tx, w, opts...); vid.IsBad() {
 		// rare event. If tx is already purged, this was an unlucky try.
 		// Transaction will be erased from the dag and pulled again, if necessary
 		w.Tracef(TraceTagTxInput, "-> failed to attach tx %s: it is bad or deleted: err = %v", vid.IDShortString, vid.GetError)

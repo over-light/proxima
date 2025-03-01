@@ -70,7 +70,7 @@ func New(env Environment) (*TagAlongBacklog, error) {
 			return
 		}
 		// reference it
-		if !ret.checkAndReferenceCandidate(wOut) {
+		if !ret.checkCandidate(wOut) {
 			// failed to reference -> ignore
 			return
 		}
@@ -100,22 +100,17 @@ func (b *TagAlongBacklog) ArrivedOutputsSince(t time.Time) bool {
 	return b.lastOutputArrived.After(t)
 }
 
-// checkAndReferenceCandidate if returns false, it is unreferenced, otherwise referenced
-func (b *TagAlongBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) bool {
+// checkCandidate if returns false, it is unreferenced, otherwise referenced
+func (b *TagAlongBacklog) checkCandidate(wOut vertex.WrappedOutput) bool {
 	if wOut.VID.IsBranchTransaction() {
 		// outputs of branch transactions are filtered out
 		return false
 	}
-	if !wOut.VID.Reference() {
-		return false
-	}
 	if wOut.VID.GetTxStatus() == vertex.Bad {
-		wOut.VID.UnReference()
 		return false
 	}
 	o, err := wOut.VID.OutputAt(wOut.Index)
 	if err != nil {
-		wOut.VID.UnReference()
 		return false
 	}
 	if o == nil {
@@ -124,19 +119,16 @@ func (b *TagAlongBacklog) checkAndReferenceCandidate(wOut vertex.WrappedOutput) 
 	lock := wOut.Lock()
 	if _, idx := o.ChainConstraint(); idx != 0xff {
 		// filter out all chain constrained outputs
-		wOut.VID.UnReference()
 		return false
 	}
 	if lock.Name() != ledger.ChainLockName {
 		// filter out all which cannot be consumed by the sequencer
-		wOut.VID.UnReference()
 		return false
 	}
 	if dl, ok := lock.(*ledger.DelegationLock); ok {
 		seqID := b.SequencerID()
 		if !ledger.EqualAccountables(seqID.AsChainLock(), dl.TargetLock) {
 			// filter out delegation locks is delegation target cannot be consumed
-			wOut.VID.UnReference()
 			return false
 		}
 	}
@@ -230,7 +222,6 @@ func (b *TagAlongBacklog) purgeBacklog() int {
 			del = whenAdded.Before(horizonDelegation)
 		}
 		if del {
-			wOut.VID.UnReference()
 			delete(b.outputs, wOut)
 			count++
 		}

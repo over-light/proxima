@@ -105,26 +105,21 @@ func (t *SequencerTips) consume(inp Input) {
 				old.IDShortString(), inp.VID.IDShortString(), seqID.StringShort())
 		}
 		if t.replaceOldWithNew(old.WrappedTx, inp.VID) {
-			if inp.VID.Reference() {
-				old.UnReference()
-				old.WrappedTx = inp.VID
-				old.lastActivity = time.Now()
-				t.latestMilestones[*seqID] = old
-				t.latestMilestoneAddedWhen = time.Now()
-				storedNew = true
-			}
+			old.WrappedTx = inp.VID
+			old.lastActivity = time.Now()
+			t.latestMilestones[*seqID] = old
+			t.latestMilestoneAddedWhen = time.Now()
+			storedNew = true
 		} else {
 			t.Tracef(TraceTag, "incoming milestone %s didn't replace existing %s", inp.VID.IDShortString, old.IDShortString)
 		}
 	} else {
-		if inp.VID.Reference() {
-			t.latestMilestones[*seqID] = _activeMilestoneData{
-				WrappedTx:    inp.VID,
-				lastActivity: time.Now(),
-			}
-			t.latestMilestoneAddedWhen = time.Now()
-			storedNew = true
+		t.latestMilestones[*seqID] = _activeMilestoneData{
+			WrappedTx:    inp.VID,
+			lastActivity: time.Now(),
 		}
+		t.latestMilestoneAddedWhen = time.Now()
+		storedNew = true
 	}
 	prevStr := "<none>"
 	if prevExists {
@@ -249,7 +244,6 @@ func (t *SequencerTips) purgeAndLog() {
 			}
 		}
 		if md.BaselineBranch() == nil {
-			md.UnReference()
 			delete(t.latestMilestones, chainID)
 			t.Log().Infof("[tippool] chainID %s has been removed from the sequencer tippool", chainID.StringShort())
 		}

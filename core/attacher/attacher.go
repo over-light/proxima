@@ -516,11 +516,7 @@ func (a *attacher) attachEndorsement(v *vertex.Vertex, vidUnwrapped *vertex.Wrap
 			WithInvokedBy(a.name),
 			WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
 		)
-
-		if !v.ReferenceEndorsement(index, vidEndorsed) {
-			// does not matter if referenced successfully, it can remain nil
-			return true
-		}
+		v.ReferenceEndorsement(index, vidEndorsed)
 	}
 	a.Assertf(vidEndorsed != nil, "vidEndorsed!=nil")
 
@@ -552,10 +548,7 @@ func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx,
 			WithInvokedBy(a.name),
 			WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
 		)
-		if !v.ReferenceInput(inputIdx, vidDep) {
-			// remains nil but it is ok
-			return true
-		}
+		v.ReferenceInput(inputIdx, vidDep)
 	}
 	a.Assertf(vidDep != nil, "vidDep!=nil")
 

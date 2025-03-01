@@ -69,12 +69,14 @@ func New(env environment) *MemDAG {
 		keep:         []keepVertexData{},
 		stateReaders: make(map[ledger.TransactionID]*cachedStateReader),
 	}
-	ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
-		ret.updateKeepList()
-		ret.purgeDeletedVertices()
-		ret.purgeCachedStateReaders()
-		return true
-	})
+	if env != nil {
+		ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
+			ret.updateKeepList()
+			ret.purgeDeletedVertices()
+			ret.purgeCachedStateReaders()
+			return true
+		})
+	}
 	return ret
 }
 

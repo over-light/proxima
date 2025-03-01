@@ -93,7 +93,6 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 		VirtualTx: func(_ *vertex.VirtualTransaction) {
 			env.Log().Fatalf("unexpected virtual Tx: %s", vid.IDShortString())
 		},
-		Deleted: vid.PanicAccessDeleted,
 	})
 	ret.pastCone.MustMarkVertexNotInTheState(vid)
 	return ret
@@ -220,7 +219,6 @@ func (a *milestoneAttacher) lazyRepeat(loopName string, fun func() vertex.Status
 
 func (a *milestoneAttacher) close() {
 	a.closeOnce.Do(func() {
-		a.pastCone.UnReferenceAll()
 		a.pastCone.DisposeAll()
 		a.pastCone = nil
 
