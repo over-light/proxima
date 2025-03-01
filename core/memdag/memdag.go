@@ -18,9 +18,8 @@ import (
 
 type (
 	environment interface {
-		global.StartStop
+		global.NodeGlobal
 		StateStore() multistate.StateStore
-		MetricsRegistry() *prometheus.Registry
 	}
 
 	keepVertexData struct {
@@ -53,12 +52,19 @@ type (
 		// Inactive cached readers with their trie caches are constantly cleaned up by the pruner
 		stateReadersMutex sync.RWMutex
 		stateReaders      map[ledger.TransactionID]*cachedStateReader
+
+		metrics
 	}
 
 	cachedStateReader struct {
 		multistate.IndexedStateReader
 		rootRecord   *multistate.RootRecord
 		lastActivity time.Time
+	}
+
+	metrics struct {
+		numVerticesGauge  prometheus.Gauge
+		stateReadersGauge prometheus.Gauge
 	}
 )
 
@@ -70,17 +76,24 @@ func New(env environment) *MemDAG {
 		stateReaders: make(map[ledger.TransactionID]*cachedStateReader),
 	}
 	if env != nil {
-		ret.RepeatInBackground("memdag-doMaintenance", 5*time.Second, func() bool {
+		ret.registerMetrics()
+		ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
 			ret.doMaintenance() // GC-ing, pruning etc
+			nVertices, nKeep := ret.NumVertices()
+			env.Log().Infof("[memdag] vertices: %d, keepList: %d, stateReaders: %d",
+				nVertices, nKeep, ret.NumStateReaders())
+			ret.numVerticesGauge.Set(float64(nVertices))
 			return true
 		})
 	}
+
 	return ret
 }
 
 const (
 	sharedStateReaderCacheSize = 3000
-	vertexTTLSlots             = 6
+	vertexTTLSlots             = 10
+	vertexTTLMinimum           = time.Minute
 	stateReaderTTLSlots        = 2
 )
 
@@ -106,11 +119,11 @@ func (d *MemDAG) GetVertex(txid *ledger.TransactionID) *vertex.WrappedTx {
 }
 
 // NumVertices number of vertices
-func (d *MemDAG) NumVertices() int {
+func (d *MemDAG) NumVertices() (int, int) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	return len(d.vertices)
+	return len(d.vertices), len(d.keep)
 }
 
 func (d *MemDAG) NumStateReaders() int {
@@ -125,6 +138,9 @@ var vertexTTL time.Duration
 func _vertexTTL() time.Duration {
 	if vertexTTL == 0 {
 		vertexTTL = vertexTTLSlots * ledger.SlotDuration()
+	}
+	if vertexTTL < vertexTTLMinimum {
+		vertexTTL = vertexTTLMinimum // we need it for tests where slot is 1s
 	}
 	return vertexTTL
 }
@@ -380,4 +396,16 @@ func (d *MemDAG) RecreateVertexMap() {
 	defer d.mutex.Unlock()
 
 	d.vertices = maps.Clone(d.vertices)
+}
+
+func (d *MemDAG) registerMetrics() {
+	d.numVerticesGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "proxima_memDAG_numVerticesGauge",
+		Help: "number of vertices in the memDAG",
+	})
+	d.stateReadersGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "proxima_memDAG_numStateReaders",
+		Help: "number of cached state readers in the memDAG",
+	})
+	d.MetricsRegistry().MustRegister(d.numVerticesGauge, d.stateReadersGauge)
 }
