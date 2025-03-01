@@ -144,6 +144,28 @@ func PurgeSlice[T any](slice []T, filter func(el T) bool) []T {
 	return ret
 }
 
+// PurgeSliceExtended sane as PurgeSlice but in addition returns all elements with were filtered out
+func PurgeSliceExtended[T any](slice []T, filter func(el T) bool) ([]T, []T) {
+	if len(slice) == 0 {
+		return slice, nil
+	}
+	ret := slice[:0]
+	retDeleted := make([]T, 0)
+	for _, el := range slice {
+		if filter(el) {
+			ret = append(ret, el)
+		} else {
+			retDeleted = append(retDeleted, el)
+		}
+	}
+	// please the GC
+	var nul T
+	for i := len(ret); i < len(slice); i++ {
+		slice[i] = nul
+	}
+	return ret, retDeleted
+}
+
 // TrimSlice trims slice on the same underlying array. Nullifies trimmed elements
 func TrimSlice[T any](slice []T, maxLen int) []T {
 	if len(slice) <= maxLen {

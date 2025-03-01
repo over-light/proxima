@@ -70,10 +70,8 @@ func New(env environment) *MemDAG {
 		stateReaders: make(map[ledger.TransactionID]*cachedStateReader),
 	}
 	if env != nil {
-		ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
-			ret.updateKeepList()
-			ret.purgeDeletedVertices()
-			ret.purgeCachedStateReaders()
+		ret.RepeatInBackground("memdag-doMaintenance", 5*time.Second, func() bool {
+			ret.doMaintenance() // GC-ing, pruning etc
 			return true
 		})
 	}
@@ -138,8 +136,8 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	d.keep = append(d.keep, keepVertexData{vid, time.Now().Add(_vertexTTL())})
 }
 
-// PurgeDeletedVertices with global lock
-func (d *MemDAG) purgeDeletedVertices() {
+// purgeGarbageCollectedVertices with global lock
+func (d *MemDAG) purgeGarbageCollectedVertices() {
 	d.WithGlobalWriteLock(func() {
 		for txid, weakp := range d.vertices {
 			if weakp.Value() == nil {
@@ -149,13 +147,28 @@ func (d *MemDAG) purgeDeletedVertices() {
 	})
 }
 
-func (d *MemDAG) updateKeepList() {
+func (d *MemDAG) doMaintenance() {
+	deleted := d.updateKeepList()
+	detachDeleted(deleted)
+	d.purgeGarbageCollectedVertices()
+	d.purgeCachedStateReaders()
+}
+
+func (d *MemDAG) updateKeepList() []keepVertexData {
+	var deleted []keepVertexData
 	d.WithGlobalWriteLock(func() {
 		nowis := time.Now()
-		d.keep = util.PurgeSlice(d.keep, func(keepData keepVertexData) bool {
+		d.keep, deleted = util.PurgeSliceExtended(d.keep, func(keepData keepVertexData) bool {
 			return keepData.keepUntil.After(nowis)
 		})
 	})
+	return deleted
+}
+
+func detachDeleted(lst []keepVertexData) {
+	for i := range lst {
+		lst[i].ConvertToVirtualTx()
+	}
 }
 
 var stateReaderTTL time.Duration
