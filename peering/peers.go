@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -258,9 +257,19 @@ func (ps *Peers) Stop() {
 	})
 }
 
+// _findMultiaddr has been introduced because libp2p multiaddr.Multiaddr is no longer comparable ans slices.Index cannot be used
+func _findMultiaddr(lst []multiaddr.Multiaddr, maddr multiaddr.Multiaddr) int {
+	for i := range lst {
+		if maddr.Equal(lst[i]) {
+			return i
+		}
+	}
+	return -1
+}
+
 // addStaticPeer adds preconfigured peer to the list. It will never be deleted
 func (ps *Peers) addStaticPeer(maddr multiaddr.Multiaddr, name, addrString string) error {
-	if slices.Index(ps.host.Addrs(), maddr) > 0 {
+	if _findMultiaddr(ps.host.Addrs(), maddr) > 0 {
 		ps.Log().Warnf("[peering] ignore static peer with the multiaddress of the host")
 		return nil
 	}
@@ -303,7 +312,7 @@ func (ps *Peers) NewStream(peerID peer.ID, pID protocol.ID, timeout time.Duratio
 		// force the start of the streamHandler on the peer to avoid the stream reset error
 		err = writeFrame(stream, []byte("Start"))
 		if err != nil {
-			stream.Close()
+			_ = stream.Close()
 			return nil, err
 		}
 	}
@@ -311,7 +320,7 @@ func (ps *Peers) NewStream(peerID peer.ID, pID protocol.ID, timeout time.Duratio
 	return stream, err
 }
 
-func (ps *Peers) dialPeer(peerID peer.ID, peer *Peer, static bool) error {
+func (ps *Peers) dialPeer(peerID peer.ID, peer *Peer) error {
 	timeout := 15 * time.Second
 
 	peer.streams = make(map[protocol.ID]*peerStream)
@@ -328,7 +337,7 @@ func (ps *Peers) dialPeer(peerID peer.ID, peer *Peer, static bool) error {
 	if err != nil {
 		for _, s := range peer.streams {
 			if s.stream != nil {
-				s.stream.Close()
+				_ = s.stream.Close()
 			}
 		}
 		return err
@@ -340,7 +349,7 @@ func (ps *Peers) dialPeer(peerID peer.ID, peer *Peer, static bool) error {
 	if err != nil {
 		for _, s := range peer.streams {
 			if s.stream != nil {
-				s.stream.Close()
+				_ = s.stream.Close()
 			}
 		}
 		return err
@@ -367,7 +376,7 @@ func (ps *Peers) _addPeer(addrInfo *peer.AddrInfo, name string, static bool) *Pe
 
 	go func() {
 		time.Sleep(100 * time.Millisecond) //?? Delay
-		err := ps.dialPeer(addrInfo.ID, p, static)
+		err := ps.dialPeer(addrInfo.ID, p)
 		if err != nil {
 			ps.Log().Warnf("[peering] dialPeer err %s", err.Error())
 			ps.host.Peerstore().RemovePeer(addrInfo.ID)
@@ -410,7 +419,7 @@ func (ps *Peers) _dropPeer(p *Peer, reason string, blacklist bool) {
 
 	for _, s := range p.streams {
 		if s.stream != nil {
-			s.stream.Close()
+			_ = s.stream.Close()
 		}
 	}
 	ps.host.Peerstore().RemovePeer(p.id)
@@ -593,7 +602,7 @@ func (ps *Peers) cleanCoolofflist() {
 	for _, id := range toDelete {
 		p, static := ps.staticPeers[id]
 		if static {
-			ps.addStaticPeer(p.maddr, p.name, p.addrString)
+			_ = ps.addStaticPeer(p.maddr, p.name, p.addrString)
 		}
 	}
 }
