@@ -29,7 +29,7 @@ type (
 		sequencerOutputIndices *[2]byte // if nil, it is unknown
 		inflation              uint64
 		// inherited from wrapped tx
-		baselineBranch *WrappedTx
+		//baselineBranch *WrappedTx
 		// pull rules
 		pullRulesDefined bool
 		needsPull        bool
