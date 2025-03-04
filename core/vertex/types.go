@@ -21,6 +21,11 @@ type (
 		BaselineBranch *WrappedTx
 	}
 
+	DetachedVertex struct {
+		Tx       *transaction.Transaction
+		BranchID ledger.TransactionID
+	}
+
 	// VirtualTransaction is a collection of produced outputs
 	VirtualTransaction struct {
 		Created                time.Time
@@ -76,13 +81,18 @@ type (
 		*Vertex
 	}
 
+	_detachedVertex struct {
+		*DetachedVertex
+	}
+
 	_virtualTx struct {
 		*VirtualTransaction
 	}
 
 	UnwrapOptions struct {
-		Vertex    func(v *Vertex)
-		VirtualTx func(v *VirtualTransaction)
+		Vertex         func(v *Vertex)
+		DetachedVertex func(d *DetachedVertex)
+		VirtualTx      func(v *VirtualTransaction)
 	}
 
 	UnwrapOptionsForTraverse struct {

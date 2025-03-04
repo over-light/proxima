@@ -31,6 +31,7 @@ func (v *Vertex) ReferenceEndorsement(i byte, vid *WrappedTx) {
 }
 
 // UnReferenceDependencies un-references all not nil inputs and endorsements and invalidates vertex structure
+// TODO revisit usages
 func (v *Vertex) UnReferenceDependencies() {
 	for i := range v.Inputs {
 		v.Inputs[i] = nil

@@ -19,6 +19,10 @@ func (v _vertex) _outputAt(idx byte) (*ledger.Output, error) {
 	return v.Tx.ProducedOutputAt(idx)
 }
 
+func (v _detachedVertex) _outputAt(idx byte) (*ledger.Output, error) {
+	return v.Tx.ProducedOutputAt(idx)
+}
+
 func (v _virtualTx) _outputAt(idx byte) (*ledger.Output, error) {
 	if o, available := v.OutputAt(idx); available {
 		return o, nil
@@ -69,15 +73,15 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 	}
 }
 
-// ConvertToVirtualTx detaches past cone and leaves only a collection of produced outputs
-func (vid *WrappedTx) ConvertToVirtualTx() {
+// Detach detaches past cone and leaves only a collection of produced outputs
+func (vid *WrappedTx) Detach() {
 	vid.Unwrap(UnwrapOptions{Vertex: func(v *Vertex) {
-		vid.convertToVirtualTxUnlocked(v)
+		vid.convertToDetachedTxUnlocked(v)
 	}})
 }
 
-func (vid *WrappedTx) convertToVirtualTxUnlocked(v *Vertex) {
-	vid._put(_virtualTx{v.toVirtualTx()})
+func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
+	vid._put(_detachedVertex{v.toDetachedVertex()})
 	v.UnReferenceDependencies()
 	v.Dispose()
 	vid.pastCone.Dispose()
@@ -402,6 +406,10 @@ func (vid *WrappedTx) _unwrap(opt UnwrapOptions) {
 	case _vertex:
 		if opt.Vertex != nil {
 			opt.Vertex(v.Vertex)
+		}
+	case _detachedVertex:
+		if opt.DetachedVertex != nil {
+			opt.DetachedVertex(v.DetachedVertex)
 		}
 	case _virtualTx:
 		if opt.VirtualTx != nil {

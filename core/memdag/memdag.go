@@ -183,7 +183,7 @@ func (d *MemDAG) updateKeepList() []keepVertexData {
 
 func detachDeleted(lst []keepVertexData) {
 	for i := range lst {
-		lst[i].ConvertToVirtualTx()
+		lst[i].Detach()
 	}
 }
 

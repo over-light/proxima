@@ -30,22 +30,12 @@ func newVirtualBranchTx(br *multistate.BranchData) *VirtualTransaction {
 	return v
 }
 
-// toVirtualTx preserves information about all outputs and baseline in the virtualTx
-func (v *Vertex) toVirtualTx() *VirtualTransaction {
-	ret := &VirtualTransaction{
-		outputs:   make(map[byte]*ledger.Output, v.Tx.NumProducedOutputs()),
-		inflation: v.Tx.InflationAmount(),
-		//baselineBranch: v.BaselineBranch, // <<<<<<<<<<<<<<<<<<<< !!!
+// toDetachedVertex preserves information about all outputs and baseline in the virtualTx
+func (v *Vertex) toDetachedVertex() *DetachedVertex {
+	ret := &DetachedVertex{
+		Tx:       v.Tx,
+		BranchID: v.BaselineBranch.ID,
 	}
-	if v.Tx.IsSequencerMilestone() {
-		seqIdx, stemIdx := v.Tx.SequencerAndStemOutputIndices()
-		ret.sequencerOutputIndices = &[2]byte{seqIdx, stemIdx}
-	}
-
-	v.Tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, _ *ledger.OutputID) bool {
-		ret.outputs[idx] = o.Clone()
-		return true
-	})
 	return ret
 }
 
