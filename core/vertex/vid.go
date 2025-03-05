@@ -734,7 +734,7 @@ func (vid *WrappedTx) String() (ret string) {
 	return
 }
 
-func (vid *WrappedTx) SequencerPredecessor() (ret *WrappedTx) {
+func (vid *WrappedTx) SequencerPredecessor(reattachBranch func(txid ledger.TransactionID) *WrappedTx) (ret *WrappedTx) {
 	vid.Unwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
 			if seqData := v.Tx.SequencerTransactionData(); seqData != nil {
@@ -742,7 +742,11 @@ func (vid *WrappedTx) SequencerPredecessor() (ret *WrappedTx) {
 			}
 		},
 		DetachedVertex: func(v *DetachedVertex) {
-			util.Panicf("SequencerPredecessor: can't get predecessor vertex in detached tx %s", vid.IDShortString())
+			if vid.IsBranchTransaction() {
+				ret = reattachBranch(v.BranchID)
+			} else {
+				util.Panicf("SequencerPredecessor: can't get predecessor vertex in detached tx %s", vid.IDShortString())
+			}
 		},
 	})
 	return

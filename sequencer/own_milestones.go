@@ -36,7 +36,9 @@ func (seq *Sequencer) FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOu
 			continue
 		case !vid.IsSequencerMilestone():
 			continue
-		case !visited.Contains(vid.SequencerPredecessor()):
+		case !visited.Contains(vid.SequencerPredecessor(func(txid ledger.TransactionID) *vertex.WrappedTx {
+			return attacher.AttachTxID(txid, seq)
+		})):
 			continue
 		case !ledger.ValidTransactionPace(vid.Timestamp(), targetTs):
 			continue
@@ -87,7 +89,10 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 		since:    time.Now(),
 	}
 	if vid.IsSequencerMilestone() {
-		if prev := vid.SequencerPredecessor(); prev != nil {
+		prev := vid.SequencerPredecessor(func(txid ledger.TransactionID) *vertex.WrappedTx {
+			return attacher.AttachTxID(txid, seq)
+		})
+		if prev != nil {
 			if prevConsumed, found := seq.ownMilestones[prev]; found {
 				withTime.consumed.AddAll(prevConsumed.consumed)
 			}

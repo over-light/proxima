@@ -152,21 +152,24 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	d.keep = append(d.keep, keepVertexData{vid, time.Now().Add(_vertexTTL())})
 }
 
-// purgeGarbageCollectedVertices with global lock
-func (d *MemDAG) purgeGarbageCollectedVertices() {
+// garbageCollectVertices with global lock
+func (d *MemDAG) garbageCollectVertices() (num int) {
 	d.WithGlobalWriteLock(func() {
 		for txid, weakp := range d.vertices {
 			if weakp.Value() == nil {
 				delete(d.vertices, txid)
+				num++
 			}
 		}
 	})
+	return
 }
 
 func (d *MemDAG) doMaintenance() {
 	deleted := d.updateKeepList()
 	detachDeleted(deleted)
-	d.purgeGarbageCollectedVertices()
+	numPurged := d.garbageCollectVertices()
+	d.Log().Infof("[memdag] removed empty entries: %d, reached TTL: %d", numPurged, len(deleted))
 	d.purgeCachedStateReaders()
 }
 

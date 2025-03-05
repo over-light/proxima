@@ -19,7 +19,7 @@ import (
 func Test1SequencerPruner(t *testing.T) {
 	t.Run("idle", func(t *testing.T) {
 		const (
-			maxSlots = 20
+			maxSlots = 100 // 20
 		)
 		testData := initWorkflowTest(t, 1, true)
 		t.Logf("%s", testData.wrk.Info())
@@ -168,9 +168,9 @@ func TestNSequencersIdlePruner(t *testing.T) {
 
 func Test5SequencersIdlePruner(t *testing.T) {
 	const (
-		maxSlots    = 500              // 1000
-		nSequencers = 4                // in addition to bootstrap
-		runTime     = 60 * time.Second // 120 * time.Second
+		maxSlots    = 1000
+		nSequencers = 4 // in addition to bootstrap
+		runTime     = 120 * time.Second
 	)
 	testData := initMultiSequencerTest(t, nSequencers, true)
 
