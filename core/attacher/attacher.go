@@ -153,64 +153,13 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 	case vertex.Good:
 		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is GOOD", baselineDirection.IDShortString)
 
-		baseline := baselineDirection.BaselineBranch()
-		// 'good' and referenced baseline direction must have not-nil baseline
-		// Unless it is virtual !!!!
-
-		//if baseline == nil{
-		//	// for some reason baseline direction is virtual -> pull it
-		//	a.pullIfNeeded(baselineDirection, "baseline-dir")
-		//	return true
-		//}
-		a.Assertf(baseline != nil, "baseline is nil in %s. Baseline direction is virtual:\n%s",
+		// 'good' baseline direction must have not-nil baseline.
+		// In case it was already detached, we provide reattach function for the branch
+		baseline := baselineDirection.BaselineBranch(func(txid ledger.TransactionID) *vertex.WrappedTx {
+			return AttachTxID(txid, a, WithInvokedBy(a.name))
+		})
+		a.Assertf(baseline != nil, "baseline is nil in %s. Baseline direction:\n%s",
 			a.name, func() string { return baselineDirection.Lines("    ").String() })
-		/* FIXME assertion sometimes fails
-		------------------------------------------------------------------------boot
-		02-26 00:33:06.744      FATAL   assertion failed:: baseline != nil
-		    == virtual tx [206935|25sq]0215b9de5cfb..
-		    seq output indices: (0, 255)
-		        #0 :
-		     0: amount(u64/1067131664105) (11 bytes)
-		     1: a(0xd706c3e8eff219cec34817321ab967055a8425f5607f388cbed49beb888b8b1d) (35 bytes)
-		     2: chain(0x95ea9e9dcafd06ad0ed57de496b34180dc17d774d489b76496a6e163bfb5b942000200) (38 bytes)
-		     3: sequencer(2, u64/3075702752546) (13 bytes)
-		     4: or(0x70696f6e2e6531,0x00050ff2,0x00004008,0x0000000000000000) (29 bytes)
-		     5: inflation(u64/34976, 2) (13 bytes)
-		        #1 :
-		     0: amount(u64/1004142031265) (11 bytes)
-		     1: delegationLock(2, c(0x95ea9e9dcafd06ad0ed57de496b34180dc17d774d489b76496a6e163bfb5b942), a(0x6932360554b75b578ec18310c6fb2019955b1585e0ce24be34e3b596f41a55f9), 0x000109b66c, u64/999999000000) (89 bytes)
-		     2: chain(0x214103a588606be6266d6a3c6019a7b615f1f9096de75c6d401a33507ffbe1e8010200) (38 bytes)
-		     3: inflation(u64/98733, 2) (13 bytes)
-		        #2 :
-		     0: amount(u64/1004429057176) (11 bytes)
-		     1: delegationLock(2, c(0x95ea9e9dcafd06ad0ed57de496b34180dc17d774d489b76496a6e163bfb5b942), a(0xd706c3e8eff219cec34817321ab967055a8425f5607f388cbed49beb888b8b1d), 0x0000e7c51e, u64/999999000000) (89 bytes)
-		     2: chain(0x04e32b9daac50f6478d5a88fb2d825645e23eab673d49fa648302d5107687696020200) (38 bytes)
-		     3: inflation(u64/98763, 2) (13 bytes)
-		github.com/lunfardo314/proxima/global.(*Global).Assertf
-		        /home/lunfardo/go/src/github.com/proxima/global/global.go:250
-		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifySequencerBaseline
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher.go:158
-		github.com/lunfardo314/proxima/core/attacher.(*attacher).solidifyBaselineVertex
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher.go:56
-		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1.1
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:248
-		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx)._unwrap
-		        /home/lunfardo/go/src/github.com/proxima/core/vertex/vid.go:414
-		github.com/lunfardo314/proxima/core/vertex.(*WrappedTx).Unwrap
-		        /home/lunfardo/go/src/github.com/proxima/core/vertex/vid.go:400
-		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run.(*milestoneAttacher).solidifyBaseline.func1
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:243
-		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).lazyRepeat
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:198
-		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).solidifyBaseline
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:237
-		github.com/lunfardo314/proxima/core/attacher.(*milestoneAttacher).run
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:105
-		github.com/lunfardo314/proxima/core/attacher.runMilestoneAttacher
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attacher_milestone.go:47
-		github.com/lunfardo314/proxima/core/attacher.AttachTransaction.func1.2
-		        /home/lunfardo/go/src/github.com/proxima/core/attacher/attach.go:130
-		*/
 		a.Assertf(baseline.IsBranchTransaction(), "baseline.IsBranchTransaction()")
 
 		v.BaselineBranch = baseline
@@ -275,7 +224,10 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 				a.Log().Fatalf("inconsistency: wrong tx status")
 			}
 		},
-		VirtualTx: func(v *vertex.VirtualTransaction) {
+		DetachedVertex: func(_ *vertex.DetachedVertex) {
+			ok = true //<<<<<< ??
+		},
+		VirtualTx: func(_ *vertex.VirtualTransaction) {
 			ok = true
 		},
 	})

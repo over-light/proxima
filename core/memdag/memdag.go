@@ -354,6 +354,9 @@ func (d *MemDAG) ParseMilestoneData(msVID *vertex.WrappedTx) (ret *ledger.Milest
 		Vertex: func(v *vertex.Vertex) {
 			ret = ledger.ParseMilestoneData(v.Tx.SequencerOutput().Output)
 		},
+		DetachedVertex: func(v *vertex.DetachedVertex) {
+			ret = ledger.ParseMilestoneData(v.Tx.SequencerOutput().Output)
+		},
 		VirtualTx: func(v *vertex.VirtualTransaction) {
 			seqOut, _ := v.SequencerOutputs()
 			ret = ledger.ParseMilestoneData(seqOut)

@@ -91,42 +91,43 @@ type (
 
 	UnwrapOptions struct {
 		Vertex         func(v *Vertex)
-		DetachedVertex func(d *DetachedVertex)
+		DetachedVertex func(v *DetachedVertex)
 		VirtualTx      func(v *VirtualTransaction)
 	}
 
 	UnwrapOptionsForTraverse struct {
-		Vertex    func(vidCur *WrappedTx, v *Vertex) bool
-		VirtualTx func(vidCur *WrappedTx, v *VirtualTransaction) bool
-		TxID      func(txid *ledger.TransactionID)
-		Deleted   func(vidCur *WrappedTx) bool
+		Vertex         func(vidCur *WrappedTx, v *Vertex) bool
+		DetachedVertex func(vidCur *WrappedTx, v *DetachedVertex) bool
+		VirtualTx      func(vidCur *WrappedTx, v *VirtualTransaction) bool
+		TxID           func(txid *ledger.TransactionID)
+		Deleted        func(vidCur *WrappedTx) bool
 	}
 
 	Status byte
 	Flags  uint8
 
 	TxIDStatus struct {
-		ID        ledger.TransactionID
-		OnDAG     bool
-		InStorage bool
-		VirtualTx bool
-		Deleted   bool
-		Status    Status
-		Flags     Flags
-		Coverage  *uint64
-		Err       error
+		ID                ledger.TransactionID
+		OnDAG             bool
+		InStorage         bool
+		VirtualOrDetached bool
+		Deleted           bool
+		Status            Status
+		Flags             Flags
+		Coverage          *uint64
+		Err               error
 	}
 
 	TxIDStatusJSONAble struct {
-		ID        string `json:"id"`
-		OnDAG     bool   `json:"on_dag"`
-		InStorage bool   `json:"in_storage"`
-		VirtualTx bool   `json:"virtual_tx"`
-		Deleted   bool   `json:"deleted"`
-		Status    string `json:"status"`
-		Flags     byte   `json:"flags"`
-		Coverage  uint64 `json:"coverage,omitempty"`
-		Err       error  `json:"err"`
+		ID                string `json:"id"`
+		OnDAG             bool   `json:"on_dag"`
+		InStorage         bool   `json:"in_storage"`
+		VirtualOrDetached bool   `json:"virtual_or_detached"`
+		Deleted           bool   `json:"deleted"`
+		Status            string `json:"status"`
+		Flags             byte   `json:"flags"`
+		Coverage          uint64 `json:"coverage,omitempty"`
+		Err               error  `json:"err"`
 	}
 )
 
@@ -195,7 +196,7 @@ func (s *TxIDStatus) Lines(prefix ...string) *lines.Lines {
 			ret.Add("BAD(%v)", s.Err)
 		}
 		ret.Add("flags: %s", s.Flags.String())
-		if s.VirtualTx {
+		if s.VirtualOrDetached {
 			ret.Add("virtualTx: true")
 		}
 		if s.Deleted {
@@ -209,14 +210,14 @@ func (s *TxIDStatus) Lines(prefix ...string) *lines.Lines {
 
 func (s *TxIDStatus) JSONAble() (ret TxIDStatusJSONAble) {
 	ret = TxIDStatusJSONAble{
-		ID:        s.ID.StringHex(),
-		OnDAG:     s.OnDAG,
-		InStorage: s.InStorage,
-		VirtualTx: s.VirtualTx,
-		Deleted:   s.Deleted,
-		Status:    s.Status.String(),
-		Flags:     byte(s.Flags),
-		Err:       s.Err,
+		ID:                s.ID.StringHex(),
+		OnDAG:             s.OnDAG,
+		InStorage:         s.InStorage,
+		VirtualOrDetached: s.VirtualOrDetached,
+		Deleted:           s.Deleted,
+		Status:            s.Status.String(),
+		Flags:             byte(s.Flags),
+		Err:               s.Err,
 	}
 	if s.Coverage != nil {
 		ret.Coverage = *s.Coverage
@@ -226,14 +227,14 @@ func (s *TxIDStatus) JSONAble() (ret TxIDStatusJSONAble) {
 
 func (s *TxIDStatusJSONAble) Parse() (*TxIDStatus, error) {
 	ret := &TxIDStatus{
-		OnDAG:     s.OnDAG,
-		InStorage: s.InStorage,
-		VirtualTx: s.VirtualTx,
-		Deleted:   s.Deleted,
-		Status:    StatusFromString(s.Status),
-		Flags:     Flags(s.Flags),
-		Coverage:  nil,
-		Err:       s.Err,
+		OnDAG:             s.OnDAG,
+		InStorage:         s.InStorage,
+		VirtualOrDetached: s.VirtualOrDetached,
+		Deleted:           s.Deleted,
+		Status:            StatusFromString(s.Status),
+		Flags:             Flags(s.Flags),
+		Coverage:          nil,
+		Err:               s.Err,
 	}
 	var err error
 	ret.ID, err = ledger.TransactionIDFromHexString(s.ID)

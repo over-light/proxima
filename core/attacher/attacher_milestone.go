@@ -90,6 +90,9 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 			ret.finals.numInputs = v.Tx.NumInputs()
 			ret.finals.numOutputs = v.Tx.NumProducedOutputs()
 		},
+		DetachedVertex: func(_ *vertex.DetachedVertex) {
+			env.Log().Fatalf("unexpected detached Tx: %s", vid.IDShortString())
+		},
 		VirtualTx: func(_ *vertex.VirtualTransaction) {
 			env.Log().Fatalf("unexpected virtual Tx: %s", vid.IDShortString())
 		},
@@ -248,6 +251,9 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 					finalSuccess = a.setBaseline(v.BaselineBranch, a.vid.Timestamp())
 				}
 			},
+			DetachedVertex: func(v *vertex.DetachedVertex) {
+				a.Log().Fatalf("solidifyBaseline: unexpected detached tx %s", a.vid.StringNoLock())
+			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyBaseline: unexpected virtual tx %s", a.vid.StringNoLock())
 			},
@@ -291,6 +297,9 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 					a.Assertf(conflict == nil, "unexpected conflict %s in %s", conflict.IDShortString(), a.name)
 					a.Assertf(lc == a.LedgerCoverage(), "lc == a.LedgerCoverage()")
 				}
+			},
+			DetachedVertex: func(v *vertex.DetachedVertex) {
+				a.Log().Fatalf("solidifyPastCone: unexpected detached tx %s", a.vid.StringNoLock())
 			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyPastCone: unexpected virtual tx %s", a.vid.StringNoLock())

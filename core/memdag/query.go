@@ -20,10 +20,16 @@ func (d *MemDAG) QueryTxIDStatus(txid *ledger.TransactionID) (ret vertex.TxIDSta
 			ret.Coverage = vid.GetLedgerCoverageNoLock()
 			ret.Err = vid.GetErrorNoLock()
 		},
+		DetachedVertex: func(v *vertex.DetachedVertex) {
+			ret.Status = vid.GetTxStatusNoLock()
+			ret.Flags = vid.FlagsNoLock()
+			ret.VirtualOrDetached = true
+			ret.Err = vid.GetErrorNoLock()
+		},
 		VirtualTx: func(v *vertex.VirtualTransaction) {
 			ret.Status = vid.GetTxStatusNoLock()
 			ret.Flags = vid.FlagsNoLock()
-			ret.VirtualTx = true
+			ret.VirtualOrDetached = true
 			ret.Err = vid.GetErrorNoLock()
 		},
 	})

@@ -159,11 +159,9 @@ func (pc *PastCone) makeConsumerEdges(vid *WrappedTx, gr graph.Graph[string, str
 
 func (pc *PastCone) makeEndorsementEdges(vid *WrappedTx, gr graph.Graph[string, string]) {
 	var endorsements []*WrappedTx
-	vid.RUnwrap(UnwrapOptions{
-		Vertex: func(v *Vertex) {
-			endorsements = v.Endorsements
-		},
-	})
+	vid.RUnwrap(UnwrapOptions{Vertex: func(v *Vertex) {
+		endorsements = v.Endorsements
+	}})
 	for _, vidEndorsed := range endorsements {
 		edgeAttributes := []func(_ *graph.EdgeProperties){
 			graph.EdgeAttribute("color", "red"),

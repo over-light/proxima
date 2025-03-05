@@ -32,8 +32,11 @@ func (o *WrappedOutput) Slot() ledger.Slot {
 }
 
 func (o *WrappedOutput) IsAvailable() (available bool) {
-	o.VID.Unwrap(UnwrapOptions{
+	o.VID.RUnwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
+			available = int(o.Index) < v.Tx.NumProducedOutputs()
+		},
+		DetachedVertex: func(v *DetachedVertex) {
 			available = int(o.Index) < v.Tx.NumProducedOutputs()
 		},
 		VirtualTx: func(v *VirtualTransaction) {
@@ -46,6 +49,12 @@ func (o *WrappedOutput) IsAvailable() (available bool) {
 func (o *WrappedOutput) Output() (ret *ledger.Output) {
 	o.VID.Unwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
+			var err error
+			if ret, err = v.Tx.ProducedOutputAt(o.Index); err != nil {
+				ret = nil
+			}
+		},
+		DetachedVertex: func(v *DetachedVertex) {
 			var err error
 			if ret, err = v.Tx.ProducedOutputAt(o.Index); err != nil {
 				ret = nil

@@ -61,6 +61,9 @@ func (v *Vertex) GetConsumedOutput(i byte) (ret *ledger.Output) {
 		Vertex: func(vCons *Vertex) {
 			ret = vCons.Tx.MustProducedOutputAt(v.Tx.MustOutputIndexOfTheInput(i))
 		},
+		DetachedVertex: func(v *DetachedVertex) {
+			ret = v.Tx.MustProducedOutputAt(v.Tx.MustOutputIndexOfTheInput(i))
+		},
 		VirtualTx: func(vCons *VirtualTransaction) {
 			ret, _ = vCons.OutputAt(v.Tx.MustOutputIndexOfTheInput(i))
 		},
@@ -201,6 +204,10 @@ func (v *Vertex) Lines(prefix ...string) *lines.Lines {
 		}
 		return v.Inputs[i].OutputAt(inpOid.Index())
 	}, prefix...)
+}
+
+func (v *DetachedVertex) Lines(prefix ...string) *lines.Lines {
+	return v.Tx.LinesShort(prefix...)
 }
 
 func (v *Vertex) Wrap() *WrappedTx {
