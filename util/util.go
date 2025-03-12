@@ -144,7 +144,7 @@ func PurgeSlice[T any](slice []T, filter func(el T) bool) []T {
 	return ret
 }
 
-// PurgeSliceExtended sane as PurgeSlice but in addition returns all elements with were filtered out
+// PurgeSliceExtended same as PurgeSlice but in addition returns all elements with were filtered out
 func PurgeSliceExtended[T any](slice []T, filter func(el T) bool) ([]T, []T) {
 	if len(slice) == 0 {
 		return slice, nil

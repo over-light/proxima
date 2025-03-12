@@ -33,8 +33,6 @@ type (
 		outputs                map[byte]*ledger.Output
 		sequencerOutputIndices *[2]byte // if nil, it is unknown
 		inflation              uint64
-		// inherited from wrapped tx
-		//baselineBranch *WrappedTx
 		// pull rules
 		pullRulesDefined bool
 		needsPull        bool
@@ -53,7 +51,7 @@ type (
 		mutex       sync.RWMutex // *sema.Sema // sync.RWMutex // protects _genericVertex
 		flags       Flags
 		err         error
-		coverage    *uint64 // nil for non-sequencer or if not set yet
+		coverage    *uint64 // nil for non-sequencer or not set yet
 
 		// notification callback. Must be func(vid *WrappedTx)
 		onPoke atomic.Value
@@ -100,7 +98,6 @@ type (
 		DetachedVertex func(vidCur *WrappedTx, v *DetachedVertex) bool
 		VirtualTx      func(vidCur *WrappedTx, v *VirtualTransaction) bool
 		TxID           func(txid *ledger.TransactionID)
-		Deleted        func(vidCur *WrappedTx) bool
 	}
 
 	Status byte
@@ -230,7 +227,6 @@ func (s *TxIDStatusJSONAble) Parse() (*TxIDStatus, error) {
 		OnDAG:             s.OnDAG,
 		InStorage:         s.InStorage,
 		VirtualOrDetached: s.VirtualOrDetached,
-		Deleted:           s.Deleted,
 		Status:            StatusFromString(s.Status),
 		Flags:             Flags(s.Flags),
 		Coverage:          nil,

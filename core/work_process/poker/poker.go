@@ -41,8 +41,8 @@ const (
 )
 
 const (
-	cleanupLoopPeriod = 1 * time.Second
-	ttlWanted         = 5 * time.Minute
+	cleanupLoopPeriod = 5 * time.Second
+	ttlWanted         = time.Minute
 	Name              = "poker"
 	TraceTag          = Name
 )
@@ -106,6 +106,8 @@ func (d *Poker) pokeAllCmd(wanted *vertex.WrappedTx) {
 }
 
 func (d *Poker) periodicCleanup() {
+	d.Infof1("[poker] total %d entries", len(d.m))
+
 	nowis := time.Now()
 	count := 0
 	for wanted, lst := range d.m {
@@ -115,9 +117,9 @@ func (d *Poker) periodicCleanup() {
 		}
 	}
 	if count > 0 {
-		d.Infof1("[poker] purged %d entries", count)
+		d.Infof1("[poker] purged %d entries, remain %d", count, len(d.m))
 	}
-	d.Tracef(TraceTag, "wanted list size: %d", len(d.m))
+	//d.Tracef(TraceTag, "wanted list size: %d", len(d.m))
 }
 
 func (d *Poker) PokeMe(me, waitingFor *vertex.WrappedTx) {
@@ -134,27 +136,3 @@ func (d *Poker) PokeAllWith(vid *vertex.WrappedTx) {
 		Cmd:    CommandPokeAll,
 	})
 }
-
-//func (d *Poker) saveDependencyDAG(fname string, max int) {
-//	nodes := make([]depdag.Node, 0, len(d.m))
-//
-//	vids := util.KeysSorted(d.m, func(vid1, vid2 *vertex.WrappedTx) bool {
-//		return vid1.ID.Timestamp().Before(vid2.ID.Timestamp())
-//	})
-//
-//	for _, vid := range vids {
-//		lst := d.m[vid].waiting
-//		n := depdag.Node{
-//			ID:           vid.IDVeryShortString(),
-//			Dependencies: make([]string, 0, len(lst)),
-//		}
-//		for _, vidWaiting := range lst {
-//			n.Dependencies = append(n.Dependencies, vidWaiting.IDVeryShortString())
-//		}
-//		nodes = append(nodes, n)
-//		if len(nodes) >= max {
-//			break
-//		}
-//	}
-//	depdag.SaveDAG(nodes, fname)
-//}

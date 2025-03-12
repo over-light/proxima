@@ -200,9 +200,6 @@ func MakeGraphPastCone(vid *vertex.WrappedTx, maxVertices ...int) graph.Graph[st
 		VirtualTx: func(vidCur *vertex.WrappedTx, vCur *vertex.VirtualTransaction) bool {
 			return mkNode(vidCur)
 		},
-		Deleted: func(vidCur *vertex.WrappedTx) bool {
-			return mkNode(vidCur)
-		},
 	})
 	count = 0
 	vid.TraversePastConeDepthFirst(vertex.UnwrapOptionsForTraverse{

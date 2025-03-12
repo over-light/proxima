@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
@@ -173,6 +174,11 @@ func Test5SequencersIdlePruner(t *testing.T) {
 		runTime     = 120 * time.Second
 	)
 	testData := initMultiSequencerTest(t, nSequencers, true)
+
+	testData.env.RepeatInBackground("GC", 3*time.Second, func() bool {
+		runtime.GC()
+		return true
+	})
 
 	testData.startSequencersWithTimeout(maxSlots)
 	t.Logf("after start sequencers")
