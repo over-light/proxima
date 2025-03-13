@@ -103,10 +103,12 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 					VID:   vidInput,
 					Index: v.Tx.MustOutputIndexOfTheInput(i),
 				})
+				seq.ReferenceVID(vidInput)
 				return true
 			})
 		}})
 	}
+	seq.ReferenceVID(vid)
 	seq.ownMilestones[vid] = withTime
 }
 
@@ -119,7 +121,11 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 	count := 0
 	for vid, withTime := range seq.ownMilestones {
 		if withTime.since.Before(horizon) {
+			for out := range withTime.consumed {
+				seq.UnReferenceVID(out.VID)
+			}
 			delete(seq.ownMilestones, vid)
+			seq.UnReferenceVID(vid)
 			count++
 		}
 	}

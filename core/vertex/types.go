@@ -129,11 +129,12 @@ type (
 )
 
 const (
-	FlagVertexDefined                 = Flags(0b00000001)
-	FlagVertexConstraintsValid        = Flags(0b00000010)
-	FlagVertexTxAttachmentStarted     = Flags(0b00000100)
-	FlagVertexTxAttachmentFinished    = Flags(0b00001000)
-	FlagVertexIgnoreAbsenceOfPastCone = Flags(0b00010000)
+	FlagVertexDefined                   = Flags(0b00000001)
+	FlagVertexConstraintsValid          = Flags(0b00000010)
+	FlagVertexTxAttachmentStarted       = Flags(0b00000100)
+	FlagVertexTxAttachmentFinished      = Flags(0b00001000)
+	FlagVertexIgnoreAbsenceOfPastCone   = Flags(0b00010000)
+	FlagVertexIsReferencedFromSequencer = Flags(0b00100000)
 )
 
 const (

@@ -53,6 +53,10 @@ func (vid *WrappedTx) SetFlagsUpNoLock(f Flags) {
 	vid.flags = vid.flags | f
 }
 
+func (vid *WrappedTx) SetFlagsDownNoLock(f Flags) {
+	vid.flags = vid.flags & ^f
+}
+
 func (vid *WrappedTx) FlagsUp(f Flags) bool {
 	vid.mutex.RLock()
 	defer vid.mutex.RUnlock()
@@ -158,6 +162,17 @@ func (vid *WrappedTx) SetTxStatusBadNoLock(reason error) {
 		"vid.GetTxStatusNoLock() != Good. SetTxStatusBadNoLock err = %v", reason)
 	vid.flags.SetFlagsUp(FlagVertexDefined)
 	vid.err = reason
+}
+
+func (vid *WrappedTx) SetFlagIsReferencedFromSequencer(isReferenced bool) {
+	vid.mutex.Lock()
+	defer vid.mutex.Unlock()
+
+	if isReferenced {
+		vid.SetFlagsUpNoLock(FlagVertexIsReferencedFromSequencer)
+	} else {
+		vid.SetFlagsDownNoLock(FlagVertexIsReferencedFromSequencer)
+	}
 }
 
 func (vid *WrappedTx) GetError() error {

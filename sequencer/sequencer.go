@@ -54,6 +54,10 @@ type (
 		ownMilestonesMutex sync.RWMutex
 		ownMilestones      map[*vertex.WrappedTx]outputsWithTime // map ms -> consumed outputs in the past
 
+		// keeping counters for each referenced vid. When counter reaches 0, vid is deleted from the map
+		mutexReferenceCounters sync.Mutex
+		referenceCounters      map[*vertex.WrappedTx]int
+
 		milestoneCount  int
 		branchCount     int
 		lastSubmittedTs ledger.Time
@@ -92,13 +96,14 @@ func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey
 	cfg := configOptions(opts...)
 	logName := fmt.Sprintf("[%s-%s]", cfg.SequencerName, seqID.StringVeryShort())
 	ret := &Sequencer{
-		Environment:   env,
-		sequencerID:   seqID,
-		controllerKey: controllerKey,
-		ownMilestones: make(map[*vertex.WrappedTx]outputsWithTime),
-		config:        cfg,
-		logName:       logName,
-		log:           env.Log().Named(logName),
+		Environment:       env,
+		sequencerID:       seqID,
+		controllerKey:     controllerKey,
+		ownMilestones:     make(map[*vertex.WrappedTx]outputsWithTime),
+		referenceCounters: make(map[*vertex.WrappedTx]int),
+		config:            cfg,
+		logName:           logName,
+		log:               env.Log().Named(logName),
 	}
 	if cfg.SingleSequencerEnforced {
 		ret.metrics = &sequencerMetrics{}
