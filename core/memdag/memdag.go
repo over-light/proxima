@@ -24,7 +24,7 @@ type (
 
 	keepVertexData struct {
 		*vertex.WrappedTx
-		keepUntil time.Time
+		addedInSlot ledger.Slot
 	}
 
 	// MemDAG is a global map of all in-memory vertices of the transaction DAG
@@ -93,9 +93,13 @@ func New(env environment) *MemDAG {
 const (
 	sharedStateReaderCacheSize = 3000
 	vertexTTLSlots             = 10
-	vertexTTLMinimum           = time.Minute
+	_vertexTTLSlotsMinimum     = 6
 	stateReaderTTLSlots        = 2
 )
+
+func init() {
+	util.Assertf(vertexTTLSlots >= _vertexTTLSlotsMinimum, "constant vertexTTLSlots must be at least %d", _vertexTTLSlotsMinimum)
+}
 
 func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 	d.mutex.Lock()
@@ -133,23 +137,11 @@ func (d *MemDAG) NumStateReaders() int {
 	return len(d.stateReaders)
 }
 
-var vertexTTL time.Duration
-
-func _vertexTTL() time.Duration {
-	if vertexTTL == 0 {
-		vertexTTL = vertexTTLSlots * ledger.SlotDuration()
-	}
-	if vertexTTL < vertexTTLMinimum {
-		vertexTTL = vertexTTLMinimum // we need it for tests where slot is 1s
-	}
-	return vertexTTL
-}
-
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	util.Assertf(d.GetVertexNoLock(&vid.ID) == nil, "d.GetVertexNoLock(vid.ID())==nil")
 	d.vertices[vid.ID] = weak.Make(vid)
 	// will keep vid from GC for TTL
-	d.keep = append(d.keep, keepVertexData{vid, time.Now().Add(_vertexTTL())})
+	d.keep = append(d.keep, keepVertexData{vid, ledger.TimeNow().Slot()})
 }
 
 // garbageCollectVertices with global lock
@@ -176,9 +168,9 @@ func (d *MemDAG) doMaintenance() {
 func (d *MemDAG) updateKeepList() []keepVertexData {
 	var deleted []keepVertexData
 	d.WithGlobalWriteLock(func() {
-		nowis := time.Now()
+		slotNow := ledger.TimeNow().Slot()
 		d.keep, deleted = util.PurgeSliceExtended(d.keep, func(keepData keepVertexData) bool {
-			return keepData.keepUntil.After(nowis)
+			return slotNow-keepData.addedInSlot <= vertexTTLSlots
 		})
 	})
 	return deleted

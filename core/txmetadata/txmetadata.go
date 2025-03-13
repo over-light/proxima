@@ -216,7 +216,7 @@ func (m *TransactionMetadata) Lines(prefix ...string) *lines.Lines {
 		ret.Add("root: %s", m.StateRoot.String())
 	}
 	if m.SlotInflation != nil {
-		ret.Add("slot inflation: %s", *m.SlotInflation)
+		ret.Add("slot inflation: %s", util.Th(*m.SlotInflation))
 	}
 	ret.Add("source type: %s", m.SourceTypeNonPersistent.String())
 	return ret

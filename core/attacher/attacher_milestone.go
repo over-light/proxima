@@ -137,9 +137,8 @@ func (a *milestoneAttacher) run() error {
 	a.wrapUpAttacher()
 
 	if a.vid.IsBranchTransaction() {
-		// branch transaction vertex is immediately converted to the virtual transaction.
-		// Thus branch transaction does not reference past cone
-		a.Tracef(TraceTagAttachMilestone, ">>>>>>>>>>>>>>> ConvertVertexToVirtualTx: %s", a.vid.IDShortString())
+		// branch transaction vertex is immediately detached. Thus branch transaction does not reference past cone
+		a.Tracef(TraceTagAttachMilestone, ">>>>>>>>>>>>>>> Detach branch immediately after attachement: %s", a.vid.IDShortString())
 
 		a.vid.Detach()
 	}

@@ -144,7 +144,12 @@ func PurgeSlice[T any](slice []T, filter func(el T) bool) []T {
 	return ret
 }
 
-// PurgeSliceExtended same as PurgeSlice but in addition returns all elements with were filtered out
+// PurgeSliceExtended filters elements on the same underlying array
+// Element remains in the array only if 'filter' function returns true
+// The elements of the array which are not covered by slice are nullified.
+// This may be important when slice contains pointers, which, in turn, may lead to hidden
+// memory leak because GC can't remove them
+// Different from PurgeSlice in the way that in addition returns all elements that were filtered out
 func PurgeSliceExtended[T any](slice []T, filter func(el T) bool) ([]T, []T) {
 	if len(slice) == 0 {
 		return slice, nil
@@ -277,15 +282,6 @@ func MakeErrFuncForPrefix(prefix string) func(err interface{}, args ...interface
 			s = fmt.Sprintf("wrong error argument type: '%T'", err)
 		}
 		return fmt.Errorf("%s: '%s'", prefix, s)
-	}
-}
-
-func DoUntil(bodyFun func(), cond func() bool) {
-	for {
-		bodyFun()
-		if cond() {
-			break
-		}
 	}
 }
 
