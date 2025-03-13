@@ -39,7 +39,7 @@ type (
 		// in most other data structures, such as attachers, transactions are represented as *vertex.WrappedTx
 		mutex    sync.RWMutex
 		vertices map[ledger.TransactionID]weak.Pointer[vertex.WrappedTx] // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-		keep     []keepVertexData
+		keep     map[*vertex.WrappedTx]ledger.Slot
 
 		// latestBranchSlot maintained by EvidenceBranchSlot
 		latestBranchSlot        ledger.Slot
@@ -72,7 +72,7 @@ func New(env environment) *MemDAG {
 	ret := &MemDAG{
 		environment:  env,
 		vertices:     make(map[ledger.TransactionID]weak.Pointer[vertex.WrappedTx]),
-		keep:         []keepVertexData{},
+		keep:         make(map[*vertex.WrappedTx]ledger.Slot),
 		stateReaders: make(map[ledger.TransactionID]*cachedStateReader),
 	}
 	if env != nil {
@@ -141,7 +141,7 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	util.Assertf(d.GetVertexNoLock(&vid.ID) == nil, "d.GetVertexNoLock(vid.ID())==nil")
 	d.vertices[vid.ID] = weak.Make(vid)
 	// will keep vid from GC for TTL
-	d.keep = append(d.keep, keepVertexData{vid, ledger.TimeNow().Slot()})
+	d.keep[vid] = ledger.TimeNow().Slot()
 }
 
 // garbageCollectVertices with global lock
@@ -158,28 +158,34 @@ func (d *MemDAG) garbageCollectVertices() (num int) {
 }
 
 func (d *MemDAG) doMaintenance() {
-	deleted := d.updateKeepList()
-	detachDeleted(deleted)
-	numPurged := d.garbageCollectVertices()
-	d.Log().Infof("[memdag] removed empty entries: %d, reached TTL: %d", numPurged, len(deleted))
+	nDetached := d.detachUnreferenced()
+	nPurged := d.garbageCollectVertices()
+	d.Log().Infof("[memdag] removed empty entries: %d, detached: %d", nPurged, nDetached)
 	d.purgeCachedStateReaders()
 }
 
-func (d *MemDAG) updateKeepList() []keepVertexData {
-	var deleted []keepVertexData
+func (d *MemDAG) detachUnreferenced() (count int) {
+	expired := make([]*vertex.WrappedTx, 0)
+	// collect those expired
 	d.WithGlobalWriteLock(func() {
 		slotNow := ledger.TimeNow().Slot()
-		d.keep, deleted = util.PurgeSliceExtended(d.keep, func(keepData keepVertexData) bool {
-			return slotNow-keepData.addedInSlot <= vertexTTLSlots
-		})
+		for vid, addedInSlot := range d.keep {
+			if slotNow-addedInSlot > vertexTTLSlots {
+				expired = append(expired, vid)
+			}
+		}
 	})
-	return deleted
-}
-
-func detachDeleted(lst []keepVertexData) {
-	for i := range lst {
-		lst[i].Detach()
-	}
+	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
+		return !vid.IsReferenced()
+	})
+	d.WithGlobalWriteLock(func() {
+		for _, vid := range expired {
+			delete(d.keep, vid)
+			vid.Detach()
+			count++
+		}
+	})
+	return
 }
 
 var stateReaderTTL time.Duration
