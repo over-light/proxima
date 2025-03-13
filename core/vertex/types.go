@@ -135,6 +135,7 @@ const (
 	FlagVertexTxAttachmentFinished      = Flags(0b00001000)
 	FlagVertexIgnoreAbsenceOfPastCone   = Flags(0b00010000)
 	FlagVertexIsReferencedFromSequencer = Flags(0b00100000)
+	FlagVertexIsReferencedFromTippool   = Flags(0b01000000)
 )
 
 const (
@@ -175,11 +176,13 @@ func (f *Flags) SetFlagsUp(fl Flags) {
 }
 
 func (f *Flags) String() string {
-	return fmt.Sprintf("defined=%v, validated=%v, attachStarted=%v, attachFinished=%v",
+	return fmt.Sprintf("defined=%v, validated=%v, attachStarted=%v, attachFinished=%v, refSeq=%v, refTips=%v",
 		f.FlagsUp(FlagVertexDefined),
 		f.FlagsUp(FlagVertexConstraintsValid),
 		f.FlagsUp(FlagVertexTxAttachmentStarted),
 		f.FlagsUp(FlagVertexTxAttachmentFinished),
+		f.FlagsUp(FlagVertexIsReferencedFromSequencer),
+		f.FlagsUp(FlagVertexIsReferencedFromTippool),
 	)
 }
 

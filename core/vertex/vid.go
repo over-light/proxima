@@ -175,6 +175,17 @@ func (vid *WrappedTx) SetFlagIsReferencedFromSequencer(isReferenced bool) {
 	}
 }
 
+func (vid *WrappedTx) SetFlagIsReferencedFromTippool(isReferenced bool) {
+	vid.mutex.Lock()
+	defer vid.mutex.Unlock()
+
+	if isReferenced {
+		vid.SetFlagsUpNoLock(FlagVertexIsReferencedFromTippool)
+	} else {
+		vid.SetFlagsDownNoLock(FlagVertexIsReferencedFromTippool)
+	}
+}
+
 func (vid *WrappedTx) GetError() error {
 	vid.mutex.RLock()
 	defer vid.mutex.RUnlock()

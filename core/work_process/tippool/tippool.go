@@ -105,6 +105,9 @@ func (t *SequencerTips) consume(inp Input) {
 				old.IDShortString(), inp.VID.IDShortString(), seqID.StringShort())
 		}
 		if t.replaceOldWithNew(old.WrappedTx, inp.VID) {
+			old.WrappedTx.SetFlagIsReferencedFromTippool(false)
+			inp.VID.SetFlagIsReferencedFromTippool(true)
+
 			old.WrappedTx = inp.VID
 			old.lastActivity = time.Now()
 			t.latestMilestones[*seqID] = old
@@ -114,6 +117,7 @@ func (t *SequencerTips) consume(inp Input) {
 			t.Tracef(TraceTag, "incoming milestone %s didn't replace existing %s", inp.VID.IDShortString, old.IDShortString)
 		}
 	} else {
+		inp.VID.SetFlagIsReferencedFromTippool(true)
 		t.latestMilestones[*seqID] = _activeMilestoneData{
 			WrappedTx:    inp.VID,
 			lastActivity: time.Now(),

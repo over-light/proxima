@@ -29,6 +29,8 @@ type (
 		BacklogTTLSlots() (int, int)
 		MustEnsureBranch(txid ledger.TransactionID) *vertex.WrappedTx
 		EvidenceBacklogSize(size int)
+		ReferenceVID(vid *vertex.WrappedTx)
+		UnReferenceVID(vid *vertex.WrappedTx)
 	}
 
 	TagAlongBacklog struct {
@@ -69,16 +71,15 @@ func New(env Environment) (*TagAlongBacklog, error) {
 			env.Tracef(TraceTag, "repeating output %s", wOut.IDShortString)
 			return
 		}
-		// reference it
 		if !ret.checkCandidate(wOut) {
-			// failed to reference -> ignore
 			return
 		}
-		// new referenced output -> put it into the map
+		// new output -> put it into the map
 		nowis := time.Now()
 		ret.outputs[wOut] = nowis
 		ret.lastOutputArrived = nowis
 		ret.outputCount++
+		ret.ReferenceVID(wOut.VID)
 		env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDShortString, len(ret.outputs))
 	})
 
@@ -132,7 +133,6 @@ func (b *TagAlongBacklog) checkCandidate(wOut vertex.WrappedOutput) bool {
 			return false
 		}
 	}
-	// it is referenced
 	return true
 }
 
@@ -224,6 +224,7 @@ func (b *TagAlongBacklog) purgeBacklog() int {
 		if del {
 			delete(b.outputs, wOut)
 			count++
+			b.UnReferenceVID(wOut.VID)
 		}
 	}
 	b.EvidenceBacklogSize(len(b.outputs))
