@@ -84,6 +84,20 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 	txSlots := make(map[uint32]set.Set[string]) // Slot -> Set of transaction IDs
 	var latestSlot uint32
 
+	// Goroutine to handle closing message from the client
+	go func() {
+		//defer wg.Done()
+		for {
+			_, _, err := conn.ReadMessage()
+			if err != nil {
+				srv.Log().Infof("[%s] WebSocket client disconnected, remote: %s, err: %v", TraceTag, r.RemoteAddr, err)
+				conn.Close() // explicitly close the connection
+				return
+			}
+
+		}
+	}()
+
 	srv.OnTransaction(func(tx *transaction.Transaction) bool {
 		mu.Lock()
 		defer mu.Unlock()
@@ -104,7 +118,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 			for oldSlot := range txSlots {
 				if oldSlot < latestSlot-keepMaxSlots {
 					delete(txSlots, oldSlot)
-					srv.Log().Infof("Removed old slot: %d", oldSlot)
+					srv.Tracef(TraceTag, "Removed old slot: %d", oldSlot)
 				}
 			}
 		}
@@ -138,10 +152,11 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 			if !txSlots[depSlot].Contains(i) {
 				respBin := vertexDepsForTx(srv, i)
 				if respBin != nil {
-					srv.Log().Infof("Send tx not seen yet %s", i)
+					srv.Tracef(TraceTag, "Send tx not seen yet %s", i)
 					txSlots[depSlot].Insert(i)
 					if err = conn.WriteMessage(websocket.TextMessage, respBin); err != nil {
 						srv.Log().Infof("[%s] WebSocket client disconnected, remote: %s, err = %v", TraceTag, r.RemoteAddr, err)
+						break
 					}
 				}
 			}
