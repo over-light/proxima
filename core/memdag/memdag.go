@@ -32,11 +32,11 @@ type (
 	MemDAG struct {
 		environment
 
-		// cache of vertices as weak pointers. Key of the map is transaction ID. Value of the map is *vertex.WrappedTx.
+		// cache of vertices as weak pointers. Key of the map is transaction id. Value of the map is *vertex.WrappedTx.
 		// The pointer value *vertex.WrappedTx is used as a unique identifier of the transaction while being
 		// loaded into the memory.
-		// The vertices map may be seen as encoding table between transaction ID and
-		// more economic (memory-wise) yet transient in-memory ID *vertex.WrappedTx
+		// The vertices map may be seen as encoding table between transaction id and
+		// more economic (memory-wise) yet transient in-memory id *vertex.WrappedTx
 		// in most other data structures, such as attachers, transactions are represented as *vertex.WrappedTx
 		mutex    sync.RWMutex
 		vertices map[ledger.TransactionID]_vertexRecord
@@ -111,14 +111,14 @@ func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 	fun()
 }
 
-func (d *MemDAG) GetVertexNoLock(txid *ledger.TransactionID) *vertex.WrappedTx {
-	if rec, found := d.vertices[*txid]; found {
+func (d *MemDAG) GetVertexNoLock(txid ledger.TransactionID) *vertex.WrappedTx {
+	if rec, found := d.vertices[txid]; found {
 		return rec.Value()
 	}
 	return nil
 }
 
-func (d *MemDAG) GetVertex(txid *ledger.TransactionID) *vertex.WrappedTx {
+func (d *MemDAG) GetVertex(txid ledger.TransactionID) *vertex.WrappedTx {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -141,8 +141,8 @@ func (d *MemDAG) NumStateReaders() int {
 }
 
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
-	util.Assertf(d.GetVertexNoLock(&vid.ID) == nil, "d.GetVertexNoLock(vid.ID())==nil")
-	d.vertices[vid.ID] = _vertexRecord{
+	util.Assertf(d.GetVertexNoLock(vid.ID()) == nil, "d.GetVertexNoLock(vid.id())==nil")
+	d.vertices[vid.ID()] = _vertexRecord{
 		Pointer:   weak.Make(vid),
 		WrappedTx: vid,
 		Slot:      ledger.TimeNow().Slot(),
@@ -230,7 +230,7 @@ func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) multi
 	return d.stateReaders[branchID]
 }
 
-func (d *MemDAG) GetStemWrappedOutput(branch *ledger.TransactionID) (ret vertex.WrappedOutput) {
+func (d *MemDAG) GetStemWrappedOutput(branch ledger.TransactionID) (ret vertex.WrappedOutput) {
 	if vid := d.GetVertex(branch); vid != nil {
 		ret = vid.StemWrappedOutput()
 	}
@@ -374,9 +374,9 @@ func (d *MemDAG) Vertices() []*vertex.WrappedTx {
 	return ret
 }
 
-func (d *MemDAG) VerticesFiltered(filterByID func(txid *ledger.TransactionID) bool) []*vertex.WrappedTx {
+func (d *MemDAG) VerticesFiltered(filterByID func(txid ledger.TransactionID) bool) []*vertex.WrappedTx {
 	return util.PurgeSlice(d.Vertices(), func(vid *vertex.WrappedTx) bool {
-		return filterByID(&vid.ID)
+		return filterByID(vid.ID())
 	})
 }
 

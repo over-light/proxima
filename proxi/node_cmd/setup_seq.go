@@ -52,7 +52,7 @@ func runSeqSetupCmd(_ *cobra.Command, args []string) {
 	// proxi node mkchain 1000000000000
 	txCtx, chainID, err := MakeChain(amount)
 	glb.AssertNoError(err)
-	glb.Infof("new chain ID is %s", chainID.String())
+	glb.Infof("new chain id is %s", chainID.String())
 	if !glb.NoWait() {
 		glb.TrackTxInclusion(*txCtx.TransactionID(), time.Second)
 	}

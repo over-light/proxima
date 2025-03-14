@@ -15,7 +15,7 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 
 	a.slotInflation = a.pastCone.CalculateSlotInflation()
 
-	a.finals.baseline = &a.baseline.ID
+	a.finals.baseline = a.baseline.ID()
 	a.finals.numVertices = a.pastCone.NumVertices()
 
 	a.finals.coverage = a.LedgerCoverage()
@@ -77,7 +77,7 @@ func (a *milestoneAttacher) commitBranch() {
 	})
 	if err != nil {
 		err = fmt.Errorf("%w:\n-------- past cone of %s --------\n%s", err, a.Name(), a.pastCone.Lines("     ").Join("\n"))
-		a.pastCone.SaveGraph(a.vid.ID.AsFileNameShort())
+		a.pastCone.SaveGraph(util.Ref(a.vid.ID()).AsFileNameShort())
 		a.SaveFullDAG("full_dag_failed_upd")
 		time.Sleep(2 * time.Second)
 	}

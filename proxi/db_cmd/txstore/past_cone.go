@@ -11,7 +11,7 @@ import (
 
 func initPastConeCmd() *cobra.Command {
 	pastConeCmd := &cobra.Command{
-		Use:   "past_cone <transaction ID hex> <number of slots back>",
+		Use:   "past_cone <transaction id hex> <number of slots back>",
 		Short: "creates .DOT file with dag representation of the past cone of the transaction",
 		Args:  cobra.ExactArgs(2),
 		Run:   runPastConeCmd,
@@ -27,7 +27,7 @@ func runPastConeCmd(_ *cobra.Command, args []string) {
 
 	txid, err := ledger.TransactionIDFromHexString(args[0])
 	glb.AssertNoError(err)
-	glb.Infof("transaction ID: %s", txid.String())
+	glb.Infof("transaction id: %s", txid.String())
 	slotsBack, err := strconv.Atoi(args[1])
 	glb.AssertNoError(err)
 	glb.Assertf(slotsBack >= 1 && int(txid.Slot()) >= slotsBack, "wrong second parameter '%s'", args[1])

@@ -568,8 +568,8 @@ func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, sta
 				}
 			}
 		} else {
-			// TODO no need to store number of outputs: now all is contained in the ID
-			muts.InsertAddTxMutation(vid.ID, slot, byte(vid.ID.NumProducedOutputs()-1))
+			// TODO no need to store number of outputs: now all is contained in the id
+			muts.InsertAddTxMutation(vid.id, slot, byte(vid.id.NumProducedOutputs()-1))
 			stats.NumTransactions++
 
 			// ADD OUTPUT mutations only for not consumed outputs
@@ -648,7 +648,7 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, getStateReader func() mult
 		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
 			// if vertex is in the state of the appended past cone, it will be in the state of the new baseline
 			// When vertex not in appended baseline, check if it didn't become known in the new one
-			if baselineStateReader.KnowsCommittedTransaction(&vid.ID) {
+			if baselineStateReader.KnowsCommittedTransaction(&vid.id) {
 				flags |= FlagPastConeVertexCheckedInTheState | FlagPastConeVertexInTheState
 			}
 		}

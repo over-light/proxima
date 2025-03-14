@@ -50,7 +50,7 @@ const (
 	defaultBatchSize = 4_000
 )
 
-func runRestoreCmd(_ *cobra.Command, args []string) {
+func runRestoreCmd(_ *cobra.Command, _ []string) {
 	if fname == "" {
 		var ok bool
 		fname, ok = findLatestSnapshotFile()
@@ -66,7 +66,7 @@ func runRestoreCmd(_ *cobra.Command, args []string) {
 	glb.Infof("Verbosity level: %d", glb.VerbosityLevel())
 	glb.Infof("snapshot file: %s", fname)
 	glb.Infof("format version: %s", kvStream.Header.Version)
-	glb.Infof("branch ID: %s", kvStream.BranchID.String())
+	glb.Infof("branch id: %s", kvStream.BranchID.String())
 	glb.Infof("root record:\n%s", kvStream.RootRecord.Lines("    ").String())
 	glb.Infof("ledger id:\n%s", kvStream.LedgerID.Lines("    ").String())
 

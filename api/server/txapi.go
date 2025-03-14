@@ -20,25 +20,25 @@ func (srv *server) registerTxAPIHandlers() {
 	// Decompiles bytecode in the context of the ledger of the node to EasyFL script
 	// '/txapi/v1/decompile_bytecode?bytecode=<hex-encoded bytecode>'
 	srv.addHandler(api.PathDecompileBytecode, srv.decompileBytecode)
-	// By given output ID, finds raw output data on LRB state, parses the it as lazyarray
+	// By given output id, finds raw output data on LRB state, parses the it as lazyarray
 	// and decompiles each of constraint scripts. Returns list of decompiled constraint scripts
-	// '/txapi/v1/parse_output?output_id=<hex-encoded output ID>'
+	// '/txapi/v1/parse_output?output_id=<hex-encoded output id>'
 	srv.addHandler(api.PathParseOutput, srv.parseOutput)
 	// By given raw data of the output, parses it as lazyarray
 	// and decompiles each of constraint scripts. Returns list of decompiled constraint scripts
 	// Essential difference with the parse-output is that it does not need to assume particular LRB
 	// '/txapi/v1/parse_output_data?output_data=<hex-encoded output binary>'
 	srv.addHandler(api.PathParseOutputData, srv.parseOutputData)
-	// By given transaction ID, returns raw transaction bytes (canonical form of tx) and metadata (if it exists)
-	// '/txapi/v1/get_txbytes?txid=<hex-encoded transaction ID>'
+	// By given transaction id, returns raw transaction bytes (canonical form of tx) and metadata (if it exists)
+	// '/txapi/v1/get_txbytes?txid=<hex-encoded transaction id>'
 	srv.addHandler(api.PathGetTxBytes, srv.getTxBytes)
-	// By the given transaction ID, returns parsed transaction in JSON form. The JSON form contains all elements
+	// By the given transaction id, returns parsed transaction in JSON form. The JSON form contains all elements
 	// of the transaction except signature, but it is not a canonical form. Primary purpose of JSON form of the transaction
 	// is to use it in frontends, like explorers and visualizers.
-	// '/txapi/v1/get_parsed_transaction?txid=<hex-encoded transaction ID>'
+	// '/txapi/v1/get_parsed_transaction?txid=<hex-encoded transaction id>'
 	srv.addHandler(api.PathGetParsedTransaction, srv.getParsedTransaction)
-	// By the given transaction ID, returns compressed for of the DAG vertex. Its primary use is DAG visualizers
-	// '/txapi/v1/get_vertex_dep?txid=<hex-encoded transaction ID>'
+	// By the given transaction id, returns compressed for of the DAG vertex. Its primary use is DAG visualizers
+	// '/txapi/v1/get_vertex_dep?txid=<hex-encoded transaction id>'
 	srv.addHandler(api.PathGetVertexWithDependencies, srv.getVertexWithDependencies)
 }
 
@@ -109,7 +109,7 @@ func (srv *server) parseOutput(w http.ResponseWriter, r *http.Request) {
 
 	oid, err := ledger.OutputIDFromHexString(lst[0])
 	if err != nil {
-		api.WriteErr(w, fmt.Sprintf("can't parse output ID: %v", err))
+		api.WriteErr(w, fmt.Sprintf("can't parse output id: %v", err))
 		return
 	}
 
@@ -197,12 +197,12 @@ func (srv *server) getTxBytes(w http.ResponseWriter, r *http.Request) {
 
 	lst, ok := r.URL.Query()["txid"]
 	if !ok || len(lst) != 1 {
-		api.WriteErr(w, "hex encoded transaction ID expected")
+		api.WriteErr(w, "hex encoded transaction id expected")
 		return
 	}
 	txid, err = ledger.TransactionIDFromHexString(lst[0])
 	if err != nil {
-		api.WriteErr(w, fmt.Sprintf("failed to parse transaction ID from hex encoded string: '%v'", err))
+		api.WriteErr(w, fmt.Sprintf("failed to parse transaction id from hex encoded string: '%v'", err))
 		return
 	}
 
@@ -240,12 +240,12 @@ func (srv *server) getParsedTransaction(w http.ResponseWriter, r *http.Request) 
 
 	lst, ok := r.URL.Query()["txid"]
 	if !ok || len(lst) != 1 {
-		api.WriteErr(w, "hex encoded transaction ID expected")
+		api.WriteErr(w, "hex encoded transaction id expected")
 		return
 	}
 	txid, err = ledger.TransactionIDFromHexString(lst[0])
 	if err != nil {
-		api.WriteErr(w, fmt.Sprintf("failed to parse transaction ID from hex encoded string: '%v'", err))
+		api.WriteErr(w, fmt.Sprintf("failed to parse transaction id from hex encoded string: '%v'", err))
 		return
 	}
 
@@ -287,12 +287,12 @@ func (srv *server) getVertexWithDependencies(w http.ResponseWriter, r *http.Requ
 
 	lst, ok := r.URL.Query()["txid"]
 	if !ok || len(lst) != 1 {
-		api.WriteErr(w, "hex encoded transaction ID expected")
+		api.WriteErr(w, "hex encoded transaction id expected")
 		return
 	}
 	txid, err = ledger.TransactionIDFromHexString(lst[0])
 	if err != nil {
-		api.WriteErr(w, fmt.Sprintf("failed to parse transaction ID from hex encoded string: '%v'", err))
+		api.WriteErr(w, fmt.Sprintf("failed to parse transaction id from hex encoded string: '%v'", err))
 		return
 	}
 

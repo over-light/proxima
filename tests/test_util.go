@@ -48,7 +48,7 @@ func (w *workflowDummyEnvironment) TxBytesStore() global.TxBytesStore {
 	return w.txBytesStore
 }
 
-func (w *workflowDummyEnvironment) PullFromNPeers(nPeers int, txid *ledger.TransactionID) int {
+func (w *workflowDummyEnvironment) PullFromNPeers(nPeers int, txid ledger.TransactionID) int {
 	w.Log().Warnf(">>>>>> PullFromNPeers not implemented: %s", txid.StringShort())
 	return 0
 }
@@ -163,7 +163,7 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 	util.Assertf(nChains > 0, "nChains > 0")
 	genesisPrivKey := testutil.GetTestingPrivateKey()
 	stateID := ledger.DefaultIdentityData(genesisPrivKey)
-	t.Logf("genesis state ID: %s", stateID.String())
+	t.Logf("genesis state id: %s", stateID.String())
 
 	distrib, privKeys, addrs := inittest.GenesisParamsWithPreDistribution(initBalance, uint64(nChains*initBalance+tagAlongFee), initBalance)
 	ret := &workflowTestData{
@@ -238,7 +238,7 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 
 	td.auxOutput, err = oDatas[0].Parse()
 	require.NoError(td.t, err)
-	td.t.Logf("auxiliary output ID: %s", td.auxOutput.IDShort())
+	td.t.Logf("auxiliary output id: %s", td.auxOutput.IDShort())
 
 	txb := txbuilder.New()
 	_, _ = txb.ConsumeOutputWithID(td.auxOutput)
@@ -313,7 +313,7 @@ func initWorkflowTestWithConflicts(t *testing.T, nConflicts int, nChains int, ta
 	ret.forkOutput, err = oDatas[0].Parse()
 	require.NoError(t, err)
 	require.EqualValues(t, initBalance, int(ret.forkOutput.Output.Amount()))
-	t.Logf("forked output ID: %s", ret.forkOutput.IDShort())
+	t.Logf("forked output id: %s", ret.forkOutput.IDShort())
 
 	oDatas, err = rdr.GetUTXOsInAccount(ret.addrAux.AccountID())
 	require.NoError(t, err)
@@ -322,7 +322,7 @@ func initWorkflowTestWithConflicts(t *testing.T, nConflicts int, nChains int, ta
 	ret.auxOutput, err = oDatas[0].Parse()
 	require.NoError(t, err)
 	require.EqualValues(t, initBalance, int(ret.forkOutput.Output.Amount()))
-	t.Logf("auxiliary output ID: %s", ret.forkOutput.IDShort())
+	t.Logf("auxiliary output id: %s", ret.forkOutput.IDShort())
 
 	ret.txBytesConflicting = make([][]byte, nConflicts)
 
@@ -388,7 +388,7 @@ func (td *longConflictTestData) makeSeqBeginnings(withConflictingFees bool) {
 			SeqName:          "1",
 			ChainInput:       chainOrigin,
 			Timestamp:        ledger.L().ID.EnsurePostBranchConsolidationConstraintTimestamp(ts),
-			Endorsements:     []*ledger.TransactionID{&td.distributionBranchTxID},
+			Endorsements:     []ledger.TransactionID{td.distributionBranchTxID},
 			PrivateKey:       td.privKeyAux,
 			AdditionalInputs: additionalIn,
 		})
@@ -403,7 +403,7 @@ func (td *longConflictTestData) makeSeqChains(howLong int) {
 	for i := 0; i < howLong; i++ {
 		for seqNr := range td.seqChain {
 			endorsedSeqNr := (seqNr + 1) % len(td.seqChain)
-			endorse := td.seqChain[endorsedSeqNr][i].IDRef()
+			endorse := td.seqChain[endorsedSeqNr][i].ID()
 			txBytesSeq, err := txbuilder.MakeSequencerTransaction(txbuilder.MakeSequencerTransactionParams{
 				SeqName:      fmt.Sprintf("seq%d", seqNr),
 				ChainInput:   td.seqChain[seqNr][i].SequencerOutput().MustAsChainOutput(),
@@ -422,7 +422,7 @@ func (td *longConflictTestData) makeSeqChains(howLong int) {
 func (td *longConflictTestData) makeSlotTransactions(howLongChain int, extendBegin []*transaction.Transaction) [][]*transaction.Transaction {
 	ret := make([][]*transaction.Transaction, len(extendBegin))
 	var extend *ledger.OutputWithChainID
-	var endorse *ledger.TransactionID
+	var endorse ledger.TransactionID
 	var ts ledger.Time
 
 	for i := 0; i < howLongChain; i++ {
@@ -431,11 +431,11 @@ func (td *longConflictTestData) makeSlotTransactions(howLongChain int, extendBeg
 				ret[seqNr] = make([]*transaction.Transaction, 0)
 				extend = extendBegin[seqNr].SequencerOutput().MustAsChainOutput()
 				endorseIdx := (seqNr + 1) % len(extendBegin)
-				endorse = extendBegin[endorseIdx].IDRef()
+				endorse = extendBegin[endorseIdx].ID()
 			} else {
 				extend = ret[seqNr][i-1].SequencerOutput().MustAsChainOutput()
 				endorseIdx := (seqNr + 1) % len(extendBegin)
-				endorse = ret[endorseIdx][i-1].IDRef()
+				endorse = ret[endorseIdx][i-1].ID()
 			}
 			ts = ledger.MaximumTime(endorse.Timestamp(), extend.Timestamp()).AddTicks(ledger.TransactionPaceSequencer())
 
@@ -460,7 +460,7 @@ func (td *longConflictTestData) makeSlotTransactions(howLongChain int, extendBeg
 func (td *longConflictTestData) makeSlotTransactionsWithTagAlong(howLongChain int, extendBegin []*transaction.Transaction, inflate ...bool) [][]*transaction.Transaction {
 	ret := make([][]*transaction.Transaction, len(extendBegin))
 	var extend *ledger.OutputWithChainID
-	var endorse *ledger.TransactionID
+	var endorse ledger.TransactionID
 	var ts ledger.Time
 
 	if td.remainderOutput == nil {
@@ -482,11 +482,11 @@ func (td *longConflictTestData) makeSlotTransactionsWithTagAlong(howLongChain in
 				ret[seqNr] = make([]*transaction.Transaction, 0)
 				extend = extendBegin[seqNr].SequencerOutput().MustAsChainOutput()
 				endorseIdx := (seqNr + 1) % len(extendBegin)
-				endorse = extendBegin[endorseIdx].IDRef()
+				endorse = extendBegin[endorseIdx].ID()
 			} else {
 				extend = ret[seqNr][i-1].SequencerOutput().MustAsChainOutput()
 				endorseIdx := (seqNr + 1) % len(extendBegin)
-				endorse = ret[endorseIdx][i-1].IDRef()
+				endorse = ret[endorseIdx][i-1].ID()
 			}
 			ts = ledger.MaximumTime(endorse.Timestamp(), extend.Timestamp(), transferOut.Timestamp()).AddTicks(ledger.TransactionPaceSequencer())
 
@@ -528,7 +528,7 @@ func (td *longConflictTestData) makeBranch(extend *ledger.OutputWithChainID, pre
 func (td *longConflictTestData) extendToNextSlot(prevSlot [][]*transaction.Transaction, branch *transaction.Transaction) []*transaction.Transaction {
 	ret := make([]*transaction.Transaction, len(prevSlot))
 	var extendOut *ledger.OutputWithChainID
-	var endorse []*ledger.TransactionID
+	var endorse []ledger.TransactionID
 
 	branchChainID, _, ok := branch.SequencerOutput().ExtractChainID()
 	require.True(td.t, ok)
@@ -536,7 +536,7 @@ func (td *longConflictTestData) extendToNextSlot(prevSlot [][]*transaction.Trans
 	for i := range prevSlot {
 		// FIXME
 		extendOut = prevSlot[i][len(prevSlot[i])-1].SequencerOutput().MustAsChainOutput()
-		endorse = []*ledger.TransactionID{branch.IDRef()}
+		endorse = []ledger.TransactionID{branch.ID()}
 		if extendOut.ChainID == branchChainID {
 			extendOut = branch.SequencerOutput().MustAsChainOutput()
 			endorse = nil

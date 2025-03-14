@@ -311,7 +311,7 @@ func (id *IdentityData) Lines(prefix ...string) *lines.Lines {
 		Add("Sequencer pace: %d", id.TransactionPaceSequencer).
 		Add("VB cost: %d", id.VBCost).
 		Add("Max number of endorsements: %d", id.MaxNumberOfEndorsements).
-		Add("Origin chain ID (calculated): %s", originChainID.String())
+		Add("Origin chain id (calculated): %s", originChainID.String())
 }
 
 func (id *IdentityData) YAMLAble() *IdentityDataYAMLAble {
@@ -421,7 +421,7 @@ func (id *IdentityDataYAMLAble) stateIdentityData() (*IdentityData, error) {
 	}
 	chainID := ret.OriginChainID()
 	if id.BootstrapChainID != chainID.StringHex() {
-		return nil, fmt.Errorf("YAML data inconsistency: bootstrap chain ID does not match")
+		return nil, fmt.Errorf("YAML data inconsistency: bootstrap chain id does not match")
 	}
 	return ret, nil
 }
@@ -447,7 +447,7 @@ func GenesisTransactionID() *TransactionID {
 
 // GenesisOutputID independent on ledger constants, except GenesisOutputIndex which is byte(0)
 func GenesisOutputID() (ret OutputID) {
-	// we are placing sequencer flag = true into the genesis tx ID to please sequencer constraint
+	// we are placing sequencer flag = true into the genesis tx id to please sequencer constraint
 	// of the origin branch transaction. It is the only exception
 	ret = MustNewOutputID(GenesisTransactionID(), GenesisOutputIndex)
 	return

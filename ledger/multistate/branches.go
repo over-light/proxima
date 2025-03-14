@@ -101,7 +101,7 @@ func (r *RootRecord) StringShort() string {
 
 func (r *RootRecord) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
-	ret.Add("sequencer ID: %s", r.SequencerID.String()).
+	ret.Add("sequencer id: %s", r.SequencerID.String()).
 		Add("supply: %s", util.Th(r.Supply)).
 		Add("coverage: %s", util.Th(r.LedgerCoverage)).
 		Add("healthy(%s): %v", global.FractionHealthyBranch.String(), global.IsHealthyCoverage(r.LedgerCoverage, r.Supply, global.FractionHealthyBranch))
@@ -127,8 +127,8 @@ func (br *BranchData) LinesVerbose(prefix ...string) *lines.Lines {
 
 func (br *BranchData) Lines(prefix ...string) *lines.Lines {
 	return br.RootRecord.Lines(prefix...).
-		Add("Stem output ID: %s", br.Stem.ID.String()).
-		Add("Sequencer output ID: %s", br.SequencerOutput.ID.String())
+		Add("Stem output id: %s", br.Stem.ID.String()).
+		Add("Sequencer output id: %s", br.SequencerOutput.ID.String())
 }
 
 func RootRecordFromBytes(data []byte) (RootRecord, error) {
@@ -172,10 +172,9 @@ func (r *RootRecord) IsCoverageAboveThreshold(numerator, denominator int) bool {
 	return r.LedgerCoverage > AbsoluteStrongFinalityCoverageThreshold(r.Supply, numerator, denominator)
 }
 
-// TxID transaction ID of the branch, as taken from the stem output ID
-func (br *BranchData) TxID() *ledger.TransactionID {
-	ret := br.Stem.ID.TransactionID()
-	return &ret
+// TxID transaction id of the branch, as taken from the stem output id
+func (br *BranchData) TxID() ledger.TransactionID {
+	return br.Stem.ID.TransactionID()
 }
 
 func iterateAllRootRecords(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool) {
@@ -282,7 +281,7 @@ func FetchRootRecords(store common.Traversable, slots ...ledger.Slot) []RootReco
 	return ret
 }
 
-// FetchBranchData returns branch data by the branch transaction ID
+// FetchBranchData returns branch data by the branch transaction id
 func FetchBranchData(store common.KVReader, branchTxID ledger.TransactionID) (BranchData, bool) {
 	if rd, found := FetchRootRecord(store, branchTxID); found {
 		return FetchBranchDataByRoot(store, rd), true
@@ -381,7 +380,7 @@ func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*Br
 		if bd.SequencerOutput.ID.Slot() == lastInTheChain.Stem.ID.Slot() {
 			continue
 		}
-		util.Assertf(bd.SequencerOutput.ID.Slot() < lastInTheChain.Stem.ID.Slot(), "bd.SequencerOutput.ID.Slot() < lastInTheChain.Slot()")
+		util.Assertf(bd.SequencerOutput.ID.Slot() < lastInTheChain.Stem.ID.Slot(), "bd.SequencerOutput.id.Slot() < lastInTheChain.Slot()")
 
 		stemLock, ok := lastInTheChain.Stem.Output.StemLock()
 		util.Assertf(ok, "stem output expected")
@@ -396,17 +395,17 @@ func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*Br
 }
 
 // BranchKnowsTransaction returns true if predecessor txid is known in the descendents state
-func BranchKnowsTransaction(branchID, txid *ledger.TransactionID, getStore func() common.KVReader) bool {
+func BranchKnowsTransaction(branchID, txid ledger.TransactionID, getStore func() common.KVReader) bool {
 	util.Assertf(branchID.IsBranchTransaction(), "must be a branch tx: %s", branchID.StringShort)
 
-	if ledger.EqualTransactionIDs(branchID, txid) {
+	if branchID == txid {
 		return true
 	}
 	if branchID.Timestamp().Before(txid.Timestamp()) {
 		return false
 	}
 	store := getStore()
-	rr, found := FetchRootRecord(store, *branchID)
+	rr, found := FetchRootRecord(store, branchID)
 	if !found {
 		return false
 	}
@@ -415,7 +414,7 @@ func BranchKnowsTransaction(branchID, txid *ledger.TransactionID, getStore func(
 		return false
 	}
 
-	return rdr.KnowsCommittedTransaction(txid)
+	return rdr.KnowsCommittedTransaction(&txid)
 }
 
 func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) bool) *BranchData {

@@ -100,7 +100,7 @@ func vertexID(vid *WrappedTx) string {
 	if vid == nil {
 		return virtualConsumerName
 	}
-	return vid.ID.AsFileNameShort()
+	return vid.id.AsFileNameShort()
 }
 
 func (pc *PastCone) nodeAttributes(vid *WrappedTx, seqMap map[ledger.ChainID]int) (ret []func(*graph.VertexProperties)) {

@@ -43,7 +43,7 @@ func runListCmd(_ *cobra.Command, args []string) {
 	nTx := 0
 	rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, slot ledger.Slot) bool {
 		hasBytes := glb.TxBytesStore().HasTxBytes(txid)
-		glb.Infof("%s, hex ID = %s, has txBytes = %v ", txid.StringShort(), txid.StringHex(), hasBytes)
+		glb.Infof("%s, hex id = %s, has txBytes = %v ", txid.StringShort(), txid.StringHex(), hasBytes)
 		nTx++
 		return true
 	}, slot)

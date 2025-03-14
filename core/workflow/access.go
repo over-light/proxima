@@ -83,13 +83,13 @@ func (w *Workflow) PeerName(id peer.ID) string {
 	return w.peers.PeerName(id)
 }
 
-func (w *Workflow) QueryTxIDStatus(txid *ledger.TransactionID) (ret vertex.TxIDStatus) {
+func (w *Workflow) QueryTxIDStatus(txid ledger.TransactionID) (ret vertex.TxIDStatus) {
 	ret = w.MemDAG.QueryTxIDStatus(txid)
-	ret.InStorage = w.TxBytesStore().HasTxBytes(txid)
+	ret.InStorage = w.TxBytesStore().HasTxBytes(&txid)
 	return
 }
 
-func (w *Workflow) WaitTxIDDefined(txid *ledger.TransactionID, pollPeriod, timeout time.Duration) (vertex.Status, error) {
+func (w *Workflow) WaitTxIDDefined(txid ledger.TransactionID, pollPeriod, timeout time.Duration) (vertex.Status, error) {
 	deadline := time.Now().Add(timeout)
 	for {
 		status := w.QueryTxIDStatus(txid)
@@ -103,7 +103,7 @@ func (w *Workflow) WaitTxIDDefined(txid *ledger.TransactionID, pollPeriod, timeo
 	}
 }
 
-func (w *Workflow) AddWantedTransaction(txid *ledger.TransactionID) {
+func (w *Workflow) AddWantedTransaction(txid ledger.TransactionID) {
 	w.txInputQueue.AddWantedTransaction(txid)
 }
 

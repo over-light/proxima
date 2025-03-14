@@ -63,7 +63,7 @@ func runFaucetServerCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromNode()
 	glb.Infof("\nstarting Proxima faucet server..\n")
 	walletData := glb.GetWalletData()
-	glb.Assertf(walletData.Sequencer != nil, "can't get own sequencer ID")
+	glb.Assertf(walletData.Sequencer != nil, "can't get own sequencer id")
 	glb.Assertf(glb.GetTagAlongFee() > 0, "tag-along amount not specified")
 	glb.Assertf(glb.GetTagAlongSequencerID() != nil, "tag-along sequencer not specified")
 

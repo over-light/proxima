@@ -32,7 +32,7 @@ type MakeSequencerTransactionParams struct {
 	// delegation inflation margin
 	DelegationInflationMarginPromille int
 	// Endorsements
-	Endorsements []*ledger.TransactionID
+	Endorsements []ledger.TransactionID
 	// chain controller
 	PrivateKey ed25519.PrivateKey
 	// InflateMainChain if true, calculates maximum inflation possible on main chain transition

@@ -105,7 +105,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 		txID := tx.IDShortString()
 		slot := uint32(tx.Timestamp().Slot())
 
-		srv.Tracef(TraceTag, "Processing TX ID: %s (Slot: %d)", txID, slot)
+		srv.Tracef(TraceTag, "Processing TX id: %s (Slot: %d)", txID, slot)
 
 		// Initialize latestSlot dynamically
 		if latestSlot == 0 {
@@ -131,7 +131,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 		// Convert transaction to vertex
 		vertexWD := api.VertexWithDependenciesFromTransaction(tx)
 
-		// Store transaction ID in its slot
+		// Store transaction id in its slot
 		txSlots[slot].Insert(vertexWD.ID)
 
 		// Process dependencies

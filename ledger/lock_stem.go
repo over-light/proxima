@@ -111,7 +111,7 @@ func _predVRFProof : evalArgumentBytecode(
     1
 )
 
-// $0 - predecessor output ID
+// $0 - predecessor output id
 // $1 - VRF proof (signed data is concatenation of VRF proof from stem predecessor and slot of the transaction)
 // does not require unlock parameters
 func stemLock: and(

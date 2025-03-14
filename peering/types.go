@@ -215,7 +215,7 @@ func readPeeringConfig() (*Config, error) {
 	encodedHostID := viper.GetString("peering.host.id")
 	cfg.HostID, err = peer.Decode(encodedHostID)
 	if err != nil {
-		return nil, fmt.Errorf("can't decode host ID: %v", err)
+		return nil, fmt.Errorf("can't decode host id: %v", err)
 	}
 	privKey, err := p2pcrypto.UnmarshalEd25519PrivateKey(cfg.HostIDPrivateKey)
 	if err != nil {

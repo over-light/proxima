@@ -152,7 +152,7 @@ func SaveSnapshot(state StateStoreReader, branch *BranchData, ctx context.Contex
 	if err != nil {
 		return makeErr(err.Error())
 	}
-	_, _ = fmt.Fprintf(console, "[SaveSnapshot] ledger ID:\n%s\n", ledgerID.Lines("     ").String())
+	_, _ = fmt.Fprintf(console, "[SaveSnapshot] ledger id:\n%s\n", ledgerID.Lines("     ").String())
 
 	// write trie
 	var stats *SnapshotStats

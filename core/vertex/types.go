@@ -43,9 +43,9 @@ type (
 	// WrappedTx value of *WrappedTx is used as transaction identity on the UTXO tangle, a vertex
 	// Behind this identity can be wrapped usual vertex or virtual transactions
 	WrappedTx struct {
-		// immutable ID. It does not change with the change of the underlying wrapped vertex type
-		ID ledger.TransactionID
-		// sequencer ID not nil for sequencer transactions only. Once it is set not nil, it is immutable since.
+		// immutable id. It does not change with the change of the underlying wrapped vertex type
+		id ledger.TransactionID
+		// sequencer id not nil for sequencer transactions only. Once it is set not nil, it is immutable since.
 		// It is set whenever transaction becomes available
 		SequencerID atomic.Pointer[ledger.ChainID]
 		mutex       sync.RWMutex // *sema.Sema // sync.RWMutex // protects _genericVertex

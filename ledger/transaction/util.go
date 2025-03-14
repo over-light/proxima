@@ -36,7 +36,7 @@ func (ctx *TxContext) String() string {
 func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 	txid := ctx.TransactionID()
 	ret := lines.New(prefix...)
-	ret.Add("Transaction ID: %s, size: %d", txid.String(), len(ctx.TransactionBytes()))
+	ret.Add("Transaction id: %s, size: %d", txid.String(), len(ctx.TransactionBytes()))
 	tsBin, ts := ctx.MustTimestampData()
 	ret.Add("Timestamp: %s %s", easyfl.Fmt(tsBin), ts)
 

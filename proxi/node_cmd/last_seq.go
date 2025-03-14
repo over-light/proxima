@@ -27,7 +27,7 @@ func runLastMilestonesCmd(_ *cobra.Command, _ []string) {
 	lastSeq, err := glb.GetClient().GetLastKnownSequencerData()
 	glb.AssertNoError(err)
 
-	glb.Infof("    Sequencer ID                                                          " +
+	glb.Infof("    Sequencer id                                                          " +
 		"TxID                                                                   Count" +
 		"  Seen sec ago" + "   Last branchID")
 

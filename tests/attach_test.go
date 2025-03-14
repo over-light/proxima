@@ -47,7 +47,7 @@ func TestAttachBasic(t *testing.T) {
 		vidGenesis, err := wrk.EnsureBranch(genesisOut.ID.TransactionID())
 		require.NoError(t, err)
 
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidGenesis.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidGenesis.ID()))
 		genesisOut1 := rdr.GetStemOutput()
 		require.EqualValues(t, genesisOut.ID, genesisOut1.ID)
 		require.EqualValues(t, genesisOut.Output.Bytes(), genesisOut1.Output.Bytes())
@@ -95,15 +95,15 @@ func TestAttachBasic(t *testing.T) {
 		t.Logf("genesis branch txid: %s", vidDistrib.IDShortString())
 		t.Logf("%s", wrk.Info())
 
-		distribVID := wrk.GetVertex(&vidDistrib.ID)
+		distribVID := wrk.GetVertex(vidDistrib.ID())
 		require.True(t, distribVID != nil)
 
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID()))
 		stemOut := rdr.GetStemOutput()
 		require.EqualValues(t, distribTxID, stemOut.ID.TransactionID())
 		require.EqualValues(t, 0, stemOut.Output.Amount())
 
-		rr, ok := multistate.FetchRootRecord(wrk.StateStore(), distribVID.ID)
+		rr, ok := multistate.FetchRootRecord(wrk.StateStore(), distribVID.ID())
 		require.True(t, ok)
 		require.EqualValues(t, ledger.DefaultInitialSupply, int(rr.Supply))
 		require.EqualValues(t, 0, int(rr.SlotInflation))
@@ -169,7 +169,7 @@ func TestAttachBasic(t *testing.T) {
 		env.Stop()
 		env.WaitAllWorkProcessesStop()
 
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidDistrib.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidDistrib.ID()))
 		stemOut := rdr.GetStemOutput()
 
 		require.EqualValues(t, distribTxID, stemOut.ID.TransactionID())
@@ -236,9 +236,9 @@ func TestAttachBasic(t *testing.T) {
 		env.Stop()
 		env.WaitAllWorkProcessesStop()
 
-		distribVID := wrk.GetVertex(&vidDistrib.ID)
+		distribVID := wrk.GetVertex(vidDistrib.ID())
 		require.True(t, distribVID != nil)
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID))
+		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID()))
 		stemOut := rdr.GetStemOutput()
 
 		distribTxID, _, err := transaction.IDAndTimestampFromTransactionBytes(txBytes)
@@ -643,7 +643,7 @@ func TestAttachConflictsNAttachersOneFork(t *testing.T) {
 		SeqName:      "seq",
 		ChainInput:   chainIn[0],
 		Timestamp:    ts,
-		Endorsements: util.List(util.Ref(chainIn[1].ID.TransactionID())),
+		Endorsements: util.List(chainIn[1].ID.TransactionID()),
 		PrivateKey:   testData.privKeyAux,
 	})
 	require.NoError(t, err)
@@ -819,7 +819,7 @@ func TestAttachConflictsNAttachersOneForkBranchesConflict(t *testing.T) {
 		SeqName:      "dummy",
 		ChainInput:   tx0.SequencerOutput().MustAsChainOutput(),
 		Timestamp:    ledger.L().ID.EnsurePostBranchConsolidationConstraintTimestamp(ts.AddTicks(ledger.TransactionPaceSequencer())),
-		Endorsements: util.List(tx1.IDRef()),
+		Endorsements: util.List(tx1.ID()),
 		PrivateKey:   testData.privKeyAux,
 	})
 	require.NoError(t, err)
@@ -827,7 +827,7 @@ func TestAttachConflictsNAttachersOneForkBranchesConflict(t *testing.T) {
 	vid, err := attacher.AttachTransactionFromBytes(txBytesConflicting, testData.wrk)
 	require.NoError(t, err)
 
-	status, err := testData.wrk.WaitTxIDDefined(&vid.ID, time.Millisecond, 5*time.Second)
+	status, err := testData.wrk.WaitTxIDDefined(vid.ID(), time.Millisecond, 5*time.Second)
 	require.NoError(t, err)
 	require.EqualValues(t, status, vertex.Bad)
 	testData.stopAndWait()

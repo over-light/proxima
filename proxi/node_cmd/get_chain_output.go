@@ -8,8 +8,8 @@ import (
 
 func initGetChainOutputCmd() *cobra.Command {
 	getUTXOCmd := &cobra.Command{
-		Use:   "get_chain_output <chain ID hex-encoded>",
-		Short: `returns chain output by chain ID`,
+		Use:   "get_chain_output <chain id hex-encoded>",
+		Short: `returns chain output by chain id`,
 		Args:  cobra.ExactArgs(1),
 		Run:   runGetChainOutputCmd,
 	}

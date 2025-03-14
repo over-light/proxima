@@ -66,7 +66,7 @@ func runMainChainCmd(_ *cobra.Command, args []string) {
 	sorted := util.KeysSorted(bySeqID, func(k1, k2 ledger.ChainID) bool {
 		return bySeqID[k1].onChainBalance > bySeqID[k2].onChainBalance
 	})
-	glb.Infof("stats by sequencer ID:")
+	glb.Infof("stats by sequencer id:")
 	for _, k := range sorted {
 		sd := bySeqID[k]
 		glb.Infof("%10s %s  %8d (%2d%%)       %s", sd.name, k.StringShort(),

@@ -41,10 +41,10 @@ func runGetOutputsCmd(_ *cobra.Command, _ []string) {
 		count++
 		oid, err := ledger.OutputIDFromHexString(id)
 		glb.AssertNoError(err)
-		glb.Infof("   ID %s, hex = %s", oid.String(), id)
+		glb.Infof("   id %s, hex = %s", oid.String(), id)
 		glb.Infof("   amount: %s, lock name: '%s'", util.Th(o.Amount), o.LockName)
 		if o.ChainID != "" {
-			glb.Verbosef("   chain ID: %s", o.ChainID)
+			glb.Verbosef("   chain id: %s", o.ChainID)
 		}
 		glb.Verbosef("   raw data: %s (%d bytes) ", o.Data, len(o.Data)/2)
 		glb.Verbosef("   parsed constraints:")

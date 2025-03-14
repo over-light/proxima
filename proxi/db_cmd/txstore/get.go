@@ -17,7 +17,7 @@ var (
 
 func initGetCmd() *cobra.Command {
 	getCmd := &cobra.Command{
-		Use:   "get <transaction ID hex>",
+		Use:   "get <transaction id hex>",
 		Short: "retrieves transaction from the txStore, optionally parses and saves it",
 		Args:  cobra.ExactArgs(1),
 		Run:   runGetCmd,

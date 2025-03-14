@@ -40,7 +40,7 @@ func (ni *NodeInfo) Lines(prefix ...string) *lines.Lines {
 	if ni.Sequencer != nil {
 		seqStr = ni.Sequencer.String()
 	}
-	ret.Add("lpp host ID: %s", ni.ID.String()).
+	ret.Add("lpp host id: %s", ni.ID.String()).
 		Add("static peers alive: %d", ni.NumStaticAlive).
 		Add("dynamic peers alive: %d", ni.NumDynamicAlive).
 		Add("sequencer: %s", seqStr).

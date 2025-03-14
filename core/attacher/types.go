@@ -18,22 +18,22 @@ import (
 type (
 	memDAGAccessEnvironment interface {
 		WithGlobalWriteLock(fun func())
-		GetVertexNoLock(txid *ledger.TransactionID) *vertex.WrappedTx
+		GetVertexNoLock(txid ledger.TransactionID) *vertex.WrappedTx
 		AddVertexNoLock(vid *vertex.WrappedTx)
 		StateStore() multistate.StateStore
 		GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate.IndexedStateReader
-		GetStemWrappedOutput(branch *ledger.TransactionID) vertex.WrappedOutput
+		GetStemWrappedOutput(branch ledger.TransactionID) vertex.WrappedOutput
 		SendToTippool(vid *vertex.WrappedTx)
 		EvidenceBranchSlot(s ledger.Slot, healthy bool)
 		TxBytesStore() global.TxBytesStore
 		TxBytesFromStoreIn(txBytesWithMetadata []byte) (*ledger.TransactionID, error)
-		AddWantedTransaction(txid *ledger.TransactionID)
+		AddWantedTransaction(txid ledger.TransactionID)
 	}
 
 	pullEnvironment interface {
 		PokeMe(me, with *vertex.WrappedTx)
 		PokeAllWith(wanted *vertex.WrappedTx)
-		PullFromNPeers(nPeers int, txid *ledger.TransactionID) int
+		PullFromNPeers(nPeers int, txid ledger.TransactionID) int
 	}
 
 	postEventEnvironment interface {
@@ -111,7 +111,7 @@ type (
 		slotInflation      uint64
 		supply             uint64
 		root               common.VCommitment
-		baseline           *ledger.TransactionID
+		baseline           ledger.TransactionID
 		numVertices        int
 		numNewTransactions uint32
 		numCreatedOutputs  int

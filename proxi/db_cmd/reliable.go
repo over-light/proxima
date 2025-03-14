@@ -38,7 +38,7 @@ func runReliableBranchCmd(_ *cobra.Command, _ []string) {
 	lrbID := lrb.Stem.ID.TransactionID()
 	glb.Infof("latest reliable branch (LRB) is %s (hex = %s)",
 		lrbID.String(), lrbID.StringHex())
-	glb.Infof("%d slots back from now. Relative to LRB, by sequencer ID:", nowSlot-lrbID.Slot())
+	glb.Infof("%d slots back from now. Relative to LRB, by sequencer id:", nowSlot-lrbID.Slot())
 
 	byChainID := set.New[ledger.ChainID]()
 	counter := 0

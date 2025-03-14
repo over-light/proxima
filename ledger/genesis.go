@@ -28,7 +28,7 @@ func init() {
 	zero33[0] = 0b10000000
 	genesisOutputID := GenesisOutputID()
 	bootSeqIDDirect := blake2b.Sum256(genesisOutputID[:])
-	util.Assertf(BoostrapSequencerID == bootSeqIDDirect, "BoostrapSequencerID must be equal to the blake2b hash of genesis output ID, got %s", hex.EncodeToString(bootSeqIDDirect[:]))
+	util.Assertf(BoostrapSequencerID == bootSeqIDDirect, "BoostrapSequencerID must be equal to the blake2b hash of genesis output id, got %s", hex.EncodeToString(bootSeqIDDirect[:]))
 	// more checks
 	oid := GenesisOutputID()
 	util.Assertf(MakeOriginChainID(&oid) == BoostrapSequencerID, "MakeOriginChainID(&oid) == BoostrapSequencerID")

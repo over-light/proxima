@@ -38,7 +38,7 @@ func (a *attacher) BaselineSugaredStateReader() multistate.SugaredStateReader {
 }
 
 func (a *attacher) baselineStateReader() multistate.IndexedStateReader {
-	return a.GetStateReaderForTheBranch(a.baseline.ID)
+	return a.GetStateReaderForTheBranch(a.baseline.ID())
 }
 
 func (a *attacher) setError(err error) {
@@ -367,7 +367,7 @@ func (a *attacher) defineInTheStateStatus(vid *vertex.WrappedTx) {
 		return
 	}
 
-	if a.BaselineSugaredStateReader().KnowsCommittedTransaction(&vid.ID) {
+	if a.BaselineSugaredStateReader().KnowsCommittedTransaction(util.Ref(vid.ID())) {
 		a.pastCone.SetFlagsUp(vid, vertex.FlagPastConeVertexCheckedInTheState|vertex.FlagPastConeVertexInTheState|vertex.FlagPastConeVertexDefined)
 	} else {
 		// not on the state, so it is not defined
@@ -525,9 +525,9 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 		// two different branches on the same slot conflicts
 		return false
 	case vidBranch1.Slot() < vidBranch2.Slot():
-		return multistate.BranchKnowsTransaction(&vidBranch2.ID, &vidBranch1.ID, func() common.KVReader { return a.StateStore() })
+		return multistate.BranchKnowsTransaction(vidBranch2.ID(), vidBranch1.ID(), func() common.KVReader { return a.StateStore() })
 	default:
-		return multistate.BranchKnowsTransaction(&vidBranch1.ID, &vidBranch2.ID, func() common.KVReader { return a.StateStore() })
+		return multistate.BranchKnowsTransaction(vidBranch1.ID(), vidBranch2.ID(), func() common.KVReader { return a.StateStore() })
 	}
 }
 
@@ -543,7 +543,7 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, currentTS ledger.T
 
 	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
 
-	rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID)
+	rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID())
 	a.Assertf(found, "setBaseline: can't fetch root record for %s", baselineVID.IDShortString)
 
 	a.baseline = baselineVID

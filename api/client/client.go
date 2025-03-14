@@ -87,7 +87,7 @@ func NewWithGoogleDNS(serverURL string, timeout ...time.Duration) *APIClient {
 	}
 }
 
-// GetLedgerID retrieves ledger ID from server
+// GetLedgerID retrieves ledger id from server
 func (c *APIClient) GetLedgerID() (*ledger.IdentityData, error) {
 	body, err := c.getBody(api.PathGetLedgerID)
 	if err != nil {
@@ -151,7 +151,7 @@ func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs
 
 	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+		return nil, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
 
 	ret := make([]*ledger.OutputDataWithID, 0, len(res.Outputs))
@@ -159,7 +159,7 @@ func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs
 	for idStr, dataStr := range res.Outputs {
 		id, err := ledger.OutputIDFromHexString(idStr)
 		if err != nil {
-			return nil, nil, fmt.Errorf("wrong output ID data from server: %s: '%v'", idStr, err)
+			return nil, nil, fmt.Errorf("wrong output id data from server: %s: '%v'", idStr, err)
 		}
 		oData, err := hex.DecodeString(dataStr)
 		if err != nil {
@@ -202,7 +202,7 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 
 	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+		return nil, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
 
 	ret := make([]*ledger.OutputWithID, 0, len(res.Outputs))
@@ -210,7 +210,7 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 	for idStr, dataStr := range res.Outputs {
 		id, err := ledger.OutputIDFromHexString(idStr)
 		if err != nil {
-			return nil, nil, fmt.Errorf("wrong output ID data from server: %s: '%w'", idStr, err)
+			return nil, nil, fmt.Errorf("wrong output id data from server: %s: '%w'", idStr, err)
 		}
 		o, err := ledger.OutputFromHexString(dataStr)
 		if err != nil {
@@ -242,7 +242,7 @@ func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint6
 
 	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+		return nil, nil, 0, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
 
 	ret := make([]*ledger.OutputWithID, 0, len(res.Outputs))
@@ -251,7 +251,7 @@ func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint6
 	for idStr, dataStr := range res.Outputs {
 		id, err := ledger.OutputIDFromHexString(idStr)
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("wrong output ID data from server: %s: '%w'", idStr, err)
+			return nil, nil, 0, fmt.Errorf("wrong output id data from server: %s: '%w'", idStr, err)
 		}
 		o, err := ledger.OutputFromHexString(dataStr)
 		if err != nil {
@@ -288,7 +288,7 @@ func (c *APIClient) GetNonChainBalance(addr ledger.Accountable) (uint64, *ledger
 	}
 	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
-		return 0, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+		return 0, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
 	return res.Amount, &retLRBID, nil
 }
@@ -312,7 +312,7 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 
 	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("while parsing transaction ID: %s", res.Error.Error)
+		return nil, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
 
 	ret := make([]*ledger.OutputWithChainID, 0, len(res.Outputs))
@@ -320,7 +320,7 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 	for idStr, dataStr := range res.Outputs {
 		oid, err := ledger.OutputIDFromHexString(idStr)
 		if err != nil {
-			return nil, nil, fmt.Errorf("wrong output ID data from server: %s: '%v'", idStr, err)
+			return nil, nil, fmt.Errorf("wrong output id data from server: %s: '%v'", idStr, err)
 		}
 		oData, err := hex.DecodeString(dataStr)
 		if err != nil {
@@ -372,7 +372,7 @@ func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDa
 
 	oid, err := ledger.OutputIDFromHexString(res.ID)
 	if err != nil {
-		return nil, ledger.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: wrong output ID data received from server: %s: '%v",
+		return nil, ledger.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: wrong output id data received from server: %s: '%v",
 			chainID.StringShort(), res.ID, err)
 	}
 	oData, err := hex.DecodeString(res.Data)
@@ -391,7 +391,7 @@ func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDa
 	}, lrb, nil
 }
 
-// GetChainOutput returns parsed output for the chain ID and index of the chain constraint in it
+// GetChainOutput returns parsed output for the chain id and index of the chain constraint in it
 func (c *APIClient) GetChainOutput(chainID ledger.ChainID) (*ledger.OutputWithChainID, byte, ledger.TransactionID, error) {
 	oData, lrbid, err := c.GetChainOutputData(chainID)
 	if err != nil {

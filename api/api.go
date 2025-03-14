@@ -86,7 +86,7 @@ type (
 	ChainOutput struct {
 		Error
 		OutputDataWithID
-		// latest reliable branch used to extract chain ID
+		// latest reliable branch used to extract chain id
 		LRBID string `json:"lrbid"`
 	}
 
@@ -187,7 +187,7 @@ type (
 		Amount uint64 `json:"amount"`
 		// name of the lock constraint
 		LockName string `json:"lock_name"`
-		// Chain ID for chain outputs
+		// Chain id for chain outputs
 		ChainID string `json:"chain_id,omitempty"`
 	}
 	// ParsedOutputList is returned by 'get_account_parsed_outputs'

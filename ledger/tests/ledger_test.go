@@ -394,7 +394,7 @@ func TestChain1(t *testing.T) {
 		chains := initTest2()
 		require.EqualValues(t, 1, len(chains))
 		chainID := chains[0].ChainID
-		// find chain output by chain ID. It must be exactly one in the state
+		// find chain output by chain id. It must be exactly one in the state
 		// chs is unparsed data
 		chs, err := u.StateReader().GetUTXOForChainID(&chainID)
 		require.NoError(t, err)

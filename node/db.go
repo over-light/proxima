@@ -24,7 +24,7 @@ func (p *ProximaNode) initMultiStateLedger() {
 	p.multiStateDB = badger_adaptor.New(bdb)
 	p.Log().Infof("opened multi-state DB '%s'", dbname)
 
-	// initialize global ledger object with the ledger ID data from DB
+	// initialize global ledger object with the ledger id data from DB
 	multistate.InitLedgerFromStore(p.multiStateDB)
 	p.Log().Infof("ledger identity:\n%s", ledger.L().ID.Lines("       ").String())
 	h := ledger.L().LibraryHash()
@@ -32,7 +32,7 @@ func (p *ProximaNode) initMultiStateLedger() {
 
 	p.snapshotBranchID = multistate.FetchSnapshotBranchID(p.multiStateDB)
 	p.Log().Infof("current slot: %d", ledger.TimeNow().Slot())
-	p.Log().Infof("snapshot branch ID: %s", p.snapshotBranchID.String())
+	p.Log().Infof("snapshot branch id: %s", p.snapshotBranchID.String())
 
 	p.RepeatInBackground("Badger_DB_GC_loop", 5*time.Minute, func() bool {
 		p.databaseGC()

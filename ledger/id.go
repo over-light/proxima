@@ -11,8 +11,8 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-// TODO refactor (breaking change!) to 127 ticks per slot and sequencer flag in transaction ID paced as lowest bit in timestamp ticks
-//  The purpose would be to have more consistent sorting and lookup by transaction ID
+// TODO refactor (breaking change!) to 127 ticks per slot and sequencer flag in transaction id paced as lowest bit in timestamp ticks
+//  The purpose would be to have more consistent sorting and lookup by transaction id
 
 const (
 	TransactionIDShortLength     = 27
@@ -98,7 +98,7 @@ func (txid *TransactionID) NumProducedOutputs() int {
 	return int(txid[MaxOutputIndexPositionInTxID]) + 1
 }
 
-// ShortID return hash part of ID
+// ShortID return hash part of id
 func (txid *TransactionID) ShortID() (ret TransactionIDShort) {
 	copy(ret[:], txid[TimeByteLength:])
 	return
@@ -225,14 +225,14 @@ func LessTxID(txid1, txid2 TransactionID) bool {
 	return bytes.Compare(h1[:], h2[:]) < 0
 }
 
-func TooCloseOnTimeAxis(txid1, txid2 *TransactionID) bool {
+func TooCloseOnTimeAxis(txid1, txid2 TransactionID) bool {
 	if txid1.Timestamp().After(txid2.Timestamp()) {
 		txid1, txid2 = txid2, txid1
 	}
 	if txid1.IsSequencerMilestone() && txid2.IsSequencerMilestone() {
-		return !ValidSequencerPace(txid1.Timestamp(), txid2.Timestamp()) && *txid1 != *txid2
+		return !ValidSequencerPace(txid1.Timestamp(), txid2.Timestamp()) && txid1 != txid2
 	}
-	return !ValidTransactionPace(txid1.Timestamp(), txid2.Timestamp()) && *txid1 != *txid2
+	return !ValidTransactionPace(txid1.Timestamp(), txid2.Timestamp()) && txid1 != txid2
 }
 
 func NewOutputID(id *TransactionID, idx byte) (ret OutputID, err error) {
@@ -349,16 +349,6 @@ func (oid *OutputID) Valid() bool {
 
 func (oid *OutputID) Bytes() []byte {
 	return oid[:]
-}
-
-func EqualTransactionIDs(txid1, txid2 *TransactionID) bool {
-	if txid1 == txid2 {
-		return true
-	}
-	if txid1 == nil || txid2 == nil {
-		return false
-	}
-	return *txid1 == *txid2
 }
 
 // ChainID

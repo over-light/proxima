@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
+	"github.com/lunfardo314/proxima/util"
 )
 
 const TraceTagPull = "pull"
@@ -33,7 +34,7 @@ func (a *attacher) pullIfNeededUnwrapped(virtualTx *vertex.VirtualTransaction, d
 		if virtualTx.PullPatienceExpired(maxPullAttempts) {
 			// solidification deadline
 			a.Log().Errorf("SOLIDIFICATION FAILURE %s at depth %d, hex: %s attacher: %s ",
-				deptVID.IDShortString(), deptVID.GetAttachmentDepthNoLock(), deptVID.ID.StringHex(), a.Name())
+				deptVID.IDShortString(), deptVID.GetAttachmentDepthNoLock(), util.Ref(deptVID.ID()).StringHex(), a.Name())
 			a.setError(fmt.Errorf("%w(%d x %v): can't solidify %s",
 				ErrSolidificationDeadline, maxPullAttempts, repeatPullAfter, deptVID.IDShortString()))
 			return false
@@ -53,7 +54,7 @@ func (a *attacher) pullIfNeededUnwrapped(virtualTx *vertex.VirtualTransaction, d
 	// not in the state or not known 'inTheState status'
 
 	// try to find in the local txBytes store
-	txBytesWithMetadata := a.TxBytesStore().GetTxBytesWithMetadata(&deptVID.ID)
+	txBytesWithMetadata := a.TxBytesStore().GetTxBytesWithMetadata(util.Ref(deptVID.ID()))
 	if len(txBytesWithMetadata) > 0 {
 		go func() {
 			//a.IncCounter("store")
@@ -76,10 +77,10 @@ func (a *attacher) pull(virtualTx *vertex.VirtualTransaction, deptVID *vertex.Wr
 	// notify poker to poke add this attacher to notification list of the dependency
 	a.pokeMe(deptVID)
 	// add transaction to the wanted/expected list in the input queue
-	a.AddWantedTransaction(&deptVID.ID)
+	a.AddWantedTransaction(deptVID.ID())
 	// do not pull is node is not connected to any peer longer than 2 pull repeat periods
 	if a.DurationSinceLastMessageFromPeer() <= 2*repeatPullAfter {
-		a.PullFromNPeers(nPeers, &deptVID.ID)
+		a.PullFromNPeers(nPeers, deptVID.ID())
 		virtualTx.SetPullHappened(repeatPullAfter)
 
 		a.Tracef(TraceTagPull, "pull: %s", deptVID.IDShortString)

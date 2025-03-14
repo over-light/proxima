@@ -25,7 +25,7 @@ type (
 	}
 
 	// SequencerTips is a collection with input queue, which keeps all latest sequencer
-	// transactions for each sequencer ID. One transaction per sequencer
+	// transactions for each sequencer id. One transaction per sequencer
 	// TODO input queue is not very much needed because TPS of sequencer transactions is low
 	SequencerTips struct {
 		*work_process.WorkProcess[Input]
@@ -99,7 +99,7 @@ func (t *SequencerTips) consume(inp Input) {
 			// repeating, ignore
 			return
 		}
-		if ledger.TooCloseOnTimeAxis(&old.ID, &inp.ID) {
+		if ledger.TooCloseOnTimeAxis(old.ID(), inp.ID()) {
 			// this means there's a bug in the sequencer because it submits transactions too close in the ledger time window
 			t.Log().Warnf("[tippool] %s and %s: too close on time axis. seqID: %s",
 				old.IDShortString(), inp.IDShortString(), seqID.StringShort())
@@ -136,9 +136,9 @@ func (t *SequencerTips) consume(inp Input) {
 
 func (t *SequencerTips) updateLatestSequencerData(vid *vertex.WrappedTx, seqID ledger.ChainID) {
 	seqData := t.latestSequencerData[seqID]
-	seqData.LatestMilestoneTxID = vid.ID
+	seqData.LatestMilestoneTxID = vid.ID()
 	if vid.IsSequencerMilestone() {
-		seqData.LastBranchTxID = util.Ref(vid.ID)
+		seqData.LastBranchTxID = util.Ref(vid.ID())
 	}
 	seqData.MilestoneCount++
 	seqData.LastActivity = time.Now()

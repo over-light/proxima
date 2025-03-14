@@ -32,11 +32,11 @@ func runNodeInfoCmd(_ *cobra.Command, _ []string) {
 	glb.Infof("\nLatest reliable branch (LRB):")
 
 	ln := lines.New("    ")
-	ln.Add("branch ID: %s", branchID.String()).
+	ln.Add("branch id: %s", branchID.String()).
 		Add("root record:").
 		Append(rootRecord.Lines("    "))
 	glb.Infof(ln.String())
 
-	glb.Infof("\nLedger ID (ledger constants):")
+	glb.Infof("\nLedger id (ledger constants):")
 	glb.Infof(ledger.L().ID.Lines("    ").String())
 }

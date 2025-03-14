@@ -57,16 +57,16 @@ const walletProfileTemplate = `# Proxi wallet profile
 wallet:
     private_key: {{.PrivateKey}}
     account: {{.Account}}
-    # <own sequencer ID> must be own sequencer ID, i.e. controlled by the private key of the wallet.
+    # <own sequencer id> must be own sequencer id, i.e. controlled by the private key of the wallet.
     # The controller wallet can withdraw tokens from the sequencer chain with command 'proxi node seq withdraw'
-    sequencer_id: <own sequencer ID>
+    sequencer_id: <own sequencer id>
 api:
     # API endpoint of the node 
     endpoint: http://127.0.0.1:8000
 
 tag_along:
-    # ID of the tag-along sequencer. Currently only one is supported
-    # In the bootstrap phase it often is the pre-defined bootstrap chain ID: {{.BootstrapSeqID}}
+    # id of the tag-along sequencer. Currently only one is supported
+    # In the bootstrap phase it often is the pre-defined bootstrap chain id: {{.BootstrapSeqID}}
     # Later it is up to the wallet owner to set the preferred tag-along sequencer
     sequencer_id: {{.BootstrapSeqID}}
     fee: 200
@@ -85,9 +85,9 @@ spammer:
     pace: 25
     tag_along:
         fee: 50
-        # <sequencer ID hex encoded> is tag-along sequencer ID for the tip transaction in the bundle
+        # <sequencer id hex encoded> is tag-along sequencer id for the tip transaction in the bundle
         # For example the bootstrap sequencer {{.BootstrapSeqID}}
-        sequencer_id: <sequencer ID hex encoded>
+        sequencer_id: <sequencer id hex encoded>
     # target address
     target: <target lock in EasyFL format>
 `

@@ -43,7 +43,7 @@ Constants which define validation context data tree branches. Structure of the d
        -- ConsumedOutputsBranch = 0x00 (path 0x0100) -- all consumed outputs, up to 256
 
 All consumed outputs ar contained in the tree element under path 0x0100
-A input ID is at path 0x0001ii, where (ii) is 1-byte index of the consumed input in the transaction
+A input id is at path 0x0001ii, where (ii) is 1-byte index of the consumed input in the transaction
 This way:
 	- the corresponding consumed output is located at path 0x0100ii (replacing 2 byte path prefix with 0x0100)
 	- the corresponding unlock-parameters is located at path 0x0000ii (replacing 2 byte path prefix with 0x0000)

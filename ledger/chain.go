@@ -169,7 +169,7 @@ func validPredecessorData : and(
 	if(
 		isZero(chainID($1)), 
 		and(
-			// case 1: predecessor is origin. ChainID must be blake2b hash of the corresponding input ID 
+			// case 1: predecessor is origin. ChainID must be blake2b hash of the corresponding input id 
 			equal($1, originChainData),
 			equal(chainID($0), blake2b(inputIDByIndex(byte($0,32))))
 		),

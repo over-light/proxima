@@ -67,9 +67,9 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetNonChainBalance, srv.getNonChainBalance)
 	// GET request format: '/api/v1/get_chained_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetChainedOutputs, srv.getChainedOutputs)
-	// GET request format: '/api/v1/get_chain_output?chainid=<hex-encoded chain ID>'
+	// GET request format: '/api/v1/get_chain_output?chainid=<hex-encoded chain id>'
 	srv.addHandler(api.PathGetChainOutput, srv.getChainOutput)
-	// GET request format: '/api/v1/get_output?id=<hex-encoded output ID>'
+	// GET request format: '/api/v1/get_output?id=<hex-encoded output id>'
 	srv.addHandler(api.PathGetOutput, srv.getOutput)
 	// POST request format '/api/v1/submit_tx'. Feedback only on parsing error, otherwise async posting
 	srv.addHandler(api.PathSubmitTransaction, srv.submitTx)
@@ -81,7 +81,7 @@ func (srv *server) registerHandlers() {
 	srv.addHandler(api.PathGetPeersInfo, srv.getPeersInfo)
 	// GET latest reliable branch '/api/v1/get_latest_reliable_branch'
 	srv.addHandler(api.PathGetLatestReliableBranch, srv.getLatestReliableBranch)
-	// GET latest reliable branch and check if transaction ID is in it '/check_txid_in_lrb?txid=<hex-encoded transaction ID>[&max_depth=<max depth in LRB>]'
+	// GET latest reliable branch and check if transaction id is in it '/check_txid_in_lrb?txid=<hex-encoded transaction id>[&max_depth=<max depth in LRB>]'
 	srv.addHandler(api.PathCheckTxIDInLRB, srv.checkTxIDIncludedInLRB)
 	// GET last milestone list
 	srv.addHandler(api.PathGetLastKnownSequencerMilestones, srv.getMilestoneList)

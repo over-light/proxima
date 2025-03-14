@@ -155,7 +155,7 @@ func TestArithmetics(t *testing.T) {
 
 //func TestTmp(t *testing.T) {
 //	//un := int64(1725291829425303053)
-//	un := ledger.L().ID.GenesisTimeUnixNano()
+//	un := ledger.L().id.GenesisTimeUnixNano()
 //	t1 := time.Unix(0, un)
 //	for i := 0; i < 1000; i++ {
 //		//t.Logf("unix nano: %d", un)

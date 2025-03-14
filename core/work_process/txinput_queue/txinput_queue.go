@@ -218,8 +218,8 @@ func (q *TxInputQueue) registerMetrics() {
 
 // AddWantedTransaction adds transaction short id to the wanted filter.
 // It makes the transaction go directly for attachment without checking other filters and without gossiping
-func (q *TxInputQueue) AddWantedTransaction(txid *ledger.TransactionID) {
-	q.inGate.addWanted(*txid)
+func (q *TxInputQueue) AddWantedTransaction(txid ledger.TransactionID) {
+	q.inGate.addWanted(txid)
 }
 
 func (q *TxInputQueue) EvidenceNonSequencerTx() {

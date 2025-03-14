@@ -34,8 +34,8 @@ const ownSequencerCmdFee = 500
 func runSeqWithdrawCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromNode()
 	walletData := glb.GetWalletData()
-	glb.Assertf(walletData.Sequencer != nil, "can't get own sequencer ID")
-	glb.Infof("sequencer ID (source): %s", walletData.Sequencer.String())
+	glb.Assertf(walletData.Sequencer != nil, "can't get own sequencer id")
+	glb.Infof("sequencer id (source): %s", walletData.Sequencer.String())
 
 	glb.Infof("wallet account is: %s", walletData.Account.String())
 	targetLock := glb.MustGetTarget()

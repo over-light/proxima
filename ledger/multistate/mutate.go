@@ -232,7 +232,7 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid *ledger.OutputID, out *l
 				prevOutputID, err := ledger.OutputIDFromBytes(prevBin)
 				util.AssertNoError(err)
 				if !oid.Timestamp().After(prevOutputID.Timestamp()) {
-					return fmt.Errorf("addOutputToTrie: chain output ID violates time constraint:\n   previous: %s\n   next: %s",
+					return fmt.Errorf("addOutputToTrie: chain output id violates time constraint:\n   previous: %s\n   next: %s",
 						prevOutputID.StringShort(), oid.StringShort())
 				}
 			}
@@ -263,7 +263,7 @@ func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID ledger.ChainID) 
 
 	if existed := trie.Delete(stateKey[:]); !existed {
 		// only deleting existing chainIDs
-		return fmt.Errorf("deleteChainFromTrie: chain ID does not exist: %s", chainID.String())
+		return fmt.Errorf("deleteChainFromTrie: chain id does not exist: %s", chainID.String())
 	}
 	return nil
 }

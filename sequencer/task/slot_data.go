@@ -58,15 +58,15 @@ func (s *SlotData) NewTarget() {
 
 }
 
-func (s *SlotData) SequencerTxSubmitted(txid *ledger.TransactionID) {
+func (s *SlotData) SequencerTxSubmitted(txid ledger.TransactionID) {
 	s.withWriteLock(func() {
-		s.seqTxSubmitted = append(s.seqTxSubmitted, *txid)
+		s.seqTxSubmitted = append(s.seqTxSubmitted, txid)
 	})
 }
 
-func (s *SlotData) BranchTxSubmitted(txid *ledger.TransactionID) {
+func (s *SlotData) BranchTxSubmitted(txid ledger.TransactionID) {
 	s.withWriteLock(func() {
-		txidCopy := *txid
+		txidCopy := txid
 		s.branchSubmitted = &txidCopy
 	})
 }
@@ -120,14 +120,16 @@ func (s *SlotData) withWriteLock(fun func()) {
 func extendEndorseCombinationHash(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (ret combinationHash) {
 	endorseSorted := slices.Clone(endorse)
 	sort.Slice(endorseSorted, func(i, j int) bool {
-		return ledger.LessTxID(endorseSorted[i].ID, endorseSorted[j].ID)
+		return ledger.LessTxID(endorseSorted[i].ID(), endorseSorted[j].ID())
 	})
 
 	var buf bytes.Buffer
 	for i := range endorseSorted {
-		buf.Write(endorseSorted[i].ID[:])
+		id := endorseSorted[i].ID()
+		buf.Write(id[:])
 	}
-	buf.Write(extend.VID.ID[:])
+	id := extend.VID.ID()
+	buf.Write(id[:])
 	buf.WriteByte(extend.Index)
 
 	retSlice := blake2b.Sum256(buf.Bytes())

@@ -115,7 +115,7 @@ func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx
 		// stem input, if any, will be at index 1
 		// for branches, include stem input
 		a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). insertStemInput", a.name)
-		a.stemOutput = a.GetStemWrappedOutput(&baseline.ID)
+		a.stemOutput = a.GetStemWrappedOutput(baseline.ID())
 		if a.stemOutput.VID == nil {
 			return fmt.Errorf("NewIncrementalAttacher: stem output is not available for baseline %s", baseline.IDShortString())
 		}
@@ -249,16 +249,16 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		case ledger.StemLockName:
 			a.Assertf(a.targetTs.IsSlotBoundary(), "a.targetTs.IsSlotBoundary()")
 			stemIn = a.stemOutput.OutputWithID()
-			a.Assertf(stemIn != nil && stemIn.ID == o.ID, "stemIn != nil && stemIn.ID == o.ID")
+			a.Assertf(stemIn != nil && stemIn.ID == o.ID, "stemIn != nil && stemIn.id == o.id")
 			// skip
 		default:
 			a.Assertf(false, "unexpected output type %s", o.Output.Lock().Name())
 		}
 	}
 
-	endorsements := make([]*ledger.TransactionID, len(a.endorse))
+	endorsements := make([]ledger.TransactionID, len(a.endorse))
 	for i, vid := range a.endorse {
-		endorsements[i] = &vid.ID
+		endorsements[i] = vid.ID()
 	}
 	// create sequencer transaction
 	txBytes, inputLoader, err := txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{

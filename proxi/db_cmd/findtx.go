@@ -22,7 +22,7 @@ func initFindTxCmd() *cobra.Command {
 	findTxCmd.PersistentFlags().Uint32VarP(&findInSlot, "slot", "s", 0, "slot prefix")
 	findTxCmd.PersistentFlags().StringVarP(&findWithHexFragment, "hex_fragment", "x", "", "hex fragment")
 	findTxCmd.PersistentFlags().BoolVarP(&findFirst, "find_first", "1", false, "break when first found")
-	findTxCmd.PersistentFlags().StringVarP(&branchIDStr, "branch", "b", "", "tip branch ID hex")
+	findTxCmd.PersistentFlags().StringVarP(&branchIDStr, "branch", "b", "", "tip branch id hex")
 	findTxCmd.InitDefaultHelpCmd()
 
 	return findTxCmd
@@ -35,7 +35,7 @@ var (
 	branchIDStr         string
 )
 
-func runFindTxCmd(_ *cobra.Command, args []string) {
+func runFindTxCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromDB()
 	glb.InitTxStoreDB()
 	defer glb.CloseDatabases()

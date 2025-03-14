@@ -119,7 +119,7 @@ func (tx *Transaction) SignatureBytes() []byte {
 	return tx.tree.BytesAtPath(Path(ledger.TxSignature))
 }
 
-// BaseValidation is a checking of being able to extract ID. If not, bytes are not identifiable as a transaction
+// BaseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
 func BaseValidation() TxValidationOption {
 	return func(tx *Transaction) error {
 		var tsBin []byte
@@ -826,8 +826,8 @@ func (tx *Transaction) SequencerChainPredecessor() (*ledger.OutputID, byte) {
 	util.AssertNoError(err)
 	// The following is ensured by the 'chain' and 'sequencer' constraints on the transaction
 	// Returned predecessor outputID must be:
-	// - if the transaction is branch tx, then it returns tx ID which may or may not be a sequencer transaction ID
-	// - if the transaction is not a branch tx, it must always return sequencer tx ID (which may or may not be a branch)
+	// - if the transaction is branch tx, then it returns tx id which may or may not be a sequencer transaction id
+	// - if the transaction is not a branch tx, it must always return sequencer tx id (which may or may not be a branch)
 	return &ret, seqMeta.SequencerOutputData.ChainConstraint.PredecessorInputIndex
 }
 
@@ -922,7 +922,7 @@ func (tx *Transaction) ProducedOutputsWithTargetLock(lock ledger.Lock) []*ledger
 
 func (tx *Transaction) LinesShort(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
-	ret.Add("ID: %s", tx.IDString())
+	ret.Add("id: %s", tx.IDString())
 	ret.Add("Sender address: %s", tx.SenderAddress().String())
 	ret.Add("Total: %s", util.Th(tx.TotalAmount()))
 	ret.Add("Inflation: %s", util.Th(tx.InflationAmount()))

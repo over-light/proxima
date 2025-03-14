@@ -60,7 +60,7 @@ func runNodeConfigCommand(_ *cobra.Command, _ []string) {
 	glb.Assertf(!glb.FileExists(proximaNodeProfile), "file %s already exists", proximaNodeProfile)
 	var buf bytes.Buffer
 
-	privateKey := glb.AskEntropyGenEd25519PrivateKey("please enter at least 10 random seed symbols for the private key and ID of the peering host and press ENTER:", 10)
+	privateKey := glb.AskEntropyGenEd25519PrivateKey("please enter at least 10 random seed symbols for the private key and id of the peering host and press ENTER:", 10)
 	pklpp, err := p2pcrypto.UnmarshalEd25519PrivateKey(privateKey)
 	util.AssertNoError(err)
 	hid, err := peer.IDFromPrivateKey(pklpp)
@@ -92,9 +92,9 @@ const configFileTemplate = `# Configuration file for the Proxima node
 peering:
   # libp2p host data:
   host:
-    # host ID private key
+    # host id private key
     id_private_key: {{.HostPrivateKey}}
-    # host ID is derived from the host ID public key.
+    # host id is derived from the host id public key.
     id: {{.HostID}}
     # port to connect from other peers
     port: {{.HostPort}}
@@ -175,12 +175,12 @@ sequencer:
   name: <mandatory name>
     # start sequencer yes/no
   enable: false
-    # chain ID of the sequencer
-    # chain ID 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc is
-    # predefined chain ID of the genesis chain (the bootstrap sequencer)
+    # chain id of the sequencer
+    # chain id 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc is
+    # predefined chain id of the genesis chain (the bootstrap sequencer)
     # Sequencer chain is created by 'proxi node mkchain' command
     # All chains controlled by the wallet can be displayed by 'proxi node chains'
-  chain_id: <sequencer ID hex encoded>
+  chain_id: <sequencer id hex encoded>
   # sequencer chain controller's private key (hex-encoded)
   controller_key: <ED25519 private key of the controller>
   # sequencer pace. Distance in ticks between two subsequent sequencer transactions

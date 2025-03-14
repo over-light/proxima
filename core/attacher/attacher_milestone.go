@@ -400,11 +400,7 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 	if a.vid.GetTxStatus() == vertex.Bad {
 		msg += fmt.Sprintf("BAD: err = '%v'", a.vid.GetError())
 	} else {
-		bl := "<nil>"
-		if a.finals.baseline != nil {
-			bl = a.finals.baseline.StringShort()
-		}
-		msg += fmt.Sprintf(", base: %s, cov: %s", bl, util.Th(a.finals.coverage))
+		msg += fmt.Sprintf(", base: %s, cov: %s", a.finals.baseline.StringShort(), util.Th(a.finals.coverage))
 		if a.VerbosityLevel() > 0 {
 			if a.vid.IsBranchTransaction() {
 				msg += fmt.Sprintf(", slot inflation: %s, supply: %s", util.Th(a.finals.slotInflation), util.Th(a.finals.supply))
@@ -417,5 +413,5 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 }
 
 func (a *milestoneAttacher) logErrorStatusString(err error) string {
-	return fmt.Sprintf("ATTACH %s -> BAD(%v)", a.vid.ID.StringShort(), err)
+	return fmt.Sprintf("ATTACH %s -> BAD(%v)", a.vid.IDShortString(), err)
 }

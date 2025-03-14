@@ -18,7 +18,7 @@ func TestOriginBase(t *testing.T) {
 	gOut := ledger.GenesisOutput(supply, addr)
 	t.Logf("Genesis: suppy = %d, genesis slot = %d:\n", supply, genesisTimeSlot)
 	t.Logf("   Genesis outputID: %s", gOut.ID.String())
-	t.Logf("   Genesis chain ID: %s", gOut.ChainID.String())
+	t.Logf("   Genesis chain id: %s", gOut.ChainID.String())
 	t.Logf("   Genesis output constraints:\n%s", gOut.Output.ToString("        "))
 
 	sOut := ledger.GenesisStemOutput()
@@ -64,8 +64,8 @@ func TestInitOrigin(t *testing.T) {
 }
 
 func TestBoostrapSequencerID(t *testing.T) {
-	t.Logf("bootstrap sequencer ID: %s", ledger.BoostrapSequencerID.String())
-	t.Logf("bootstrap sequencer ID hex: %s", ledger.BoostrapSequencerIDHex)
+	t.Logf("bootstrap sequencer id: %s", ledger.BoostrapSequencerID.String())
+	t.Logf("bootstrap sequencer id hex: %s", ledger.BoostrapSequencerIDHex)
 }
 
 func TestLedgerIDSerDe(t *testing.T) {

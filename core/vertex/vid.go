@@ -33,7 +33,7 @@ func (v _virtualTx) _outputAt(idx byte) (*ledger.Output, error) {
 
 func _newVID(g _genericVertex, txid ledger.TransactionID, seqID *ledger.ChainID) *WrappedTx {
 	ret := &WrappedTx{
-		ID:             txid,
+		id:             txid,
 		_genericVertex: g,
 	}
 	ret.SequencerID.Store(seqID)
@@ -43,6 +43,10 @@ func _newVID(g _genericVertex, txid ledger.TransactionID, seqID *ledger.ChainID)
 
 func (vid *WrappedTx) _put(g _genericVertex) {
 	vid._genericVertex = g
+}
+
+func (vid *WrappedTx) ID() ledger.TransactionID {
+	return vid.id
 }
 
 func (vid *WrappedTx) FlagsNoLock() Flags {
@@ -69,9 +73,9 @@ func (vid *WrappedTx) FlagsUpNoLock(f Flags) bool {
 }
 
 func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
-	util.Assertf(vid.ID == v.Tx.ID(), "ConvertVirtualTxToVertexNoLock: txid-s do not match in: %s", vid.ID.StringShort)
+	util.Assertf(vid.id == v.Tx.ID(), "ConvertVirtualTxToVertexNoLock: txid-s do not match in: %s", vid.id.StringShort)
 	_, isVirtualTx := vid._genericVertex.(_virtualTx)
-	util.Assertf(isVirtualTx, "ConvertVirtualTxToVertexNoLock: virtual tx target expected %s", vid.ID.StringShort)
+	util.Assertf(isVirtualTx, "ConvertVirtualTxToVertexNoLock: virtual tx target expected %s", vid.id.StringShort)
 	vid._put(_vertex{Vertex: v})
 	if v.Tx.IsSequencerMilestone() {
 		vid.SequencerID.Store(util.Ref(v.Tx.SequencerTransactionData().SequencerID))
@@ -263,23 +267,23 @@ func (vid *WrappedTx) ShortString() string {
 }
 
 func (vid *WrappedTx) IDShortString() string {
-	return vid.ID.StringShort()
+	return vid.id.StringShort()
 }
 
 func (vid *WrappedTx) IDVeryShort() string {
-	return vid.ID.StringVeryShort()
+	return vid.id.StringVeryShort()
 }
 
 func (vid *WrappedTx) IsBranchTransaction() bool {
-	return vid.ID.IsBranchTransaction()
+	return vid.id.IsBranchTransaction()
 }
 
 func (vid *WrappedTx) IsSequencerMilestone() bool {
-	return vid.ID.IsSequencerMilestone()
+	return vid.id.IsSequencerMilestone()
 }
 
 func (vid *WrappedTx) Timestamp() ledger.Time {
-	return vid.ID.Timestamp()
+	return vid.id.Timestamp()
 }
 
 func (vid *WrappedTx) Before(vid1 *WrappedTx) bool {
@@ -287,7 +291,7 @@ func (vid *WrappedTx) Before(vid1 *WrappedTx) bool {
 }
 
 func (vid *WrappedTx) Slot() ledger.Slot {
-	return vid.ID.Slot()
+	return vid.id.Slot()
 }
 
 func (vid *WrappedTx) OutputWithIDAt(idx byte) (ledger.OutputWithID, error) {
@@ -296,7 +300,7 @@ func (vid *WrappedTx) OutputWithIDAt(idx byte) (ledger.OutputWithID, error) {
 		return ledger.OutputWithID{}, err
 	}
 	return ledger.OutputWithID{
-		ID:     ledger.MustNewOutputID(&vid.ID, idx),
+		ID:     ledger.MustNewOutputID(&vid.id, idx),
 		Output: ret,
 	}, nil
 }
@@ -393,7 +397,7 @@ func (vid *WrappedTx) FindChainOutput(chainID *ledger.ChainID) (ret *ledger.Outp
 			ret = v.Tx.FindChainOutput(*chainID)
 		},
 		VirtualTx: func(v *VirtualTransaction) {
-			ret = v.findChainOutput(&vid.ID, chainID)
+			ret = v.findChainOutput(&vid.id, chainID)
 		},
 	})
 	return
@@ -447,7 +451,7 @@ func (vid *WrappedTx) _ofKindString() (ret string) {
 }
 
 func (vid *WrappedTx) OutputID(idx byte) (ret ledger.OutputID) {
-	ret = ledger.MustNewOutputID(&vid.ID, idx)
+	ret = ledger.MustNewOutputID(&vid.id, idx)
 	return
 }
 
@@ -514,15 +518,15 @@ func (vid *WrappedTx) Lines(prefix ...string) *lines.Lines {
 
 func (vid *WrappedTx) LinesNoLock(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
-	ret.Add("ID: %s", vid.ID.StringShort()).
+	ret.Add("id: %s", vid.id.StringShort()).
 		Add("Kind: %s", vid._ofKindString()).
 		Add("Status: %s", vid.GetTxStatusNoLock().String()).
 		Add("Flags: %s", vid.flags.String()).
 		Add("Err: %v", vid.err)
 	if seqID := vid.SequencerID.Load(); seqID == nil {
-		ret.Add("Seq ID: <nil>")
+		ret.Add("Seq id: <nil>")
 	} else {
-		ret.Add("Seq ID: %s", seqID.StringShort())
+		ret.Add("Seq id: %s", seqID.StringShort())
 	}
 	switch v := vid._genericVertex.(type) {
 	case _vertex:
@@ -555,12 +559,12 @@ func (vid *WrappedTx) NumInputs() int {
 }
 
 func (vid *WrappedTx) NumProducedOutputs() int {
-	return vid.ID.NumProducedOutputs()
+	return vid.id.NumProducedOutputs()
 }
 
 // BaselineBranch baseline branch of the vertex
 func (vid *WrappedTx) BaselineBranch(reattachBranch ...func(txid ledger.TransactionID) *WrappedTx) (baselineBranch *WrappedTx) {
-	if vid.ID.IsBranchTransaction() {
+	if vid.id.IsBranchTransaction() {
 		return vid
 	}
 	vid.RUnwrap(UnwrapOptions{
@@ -720,7 +724,7 @@ func (vid *WrappedTx) String() (ret string) {
 			t := "vertex (" + vid.GetTxStatusNoLock().String() + ")"
 			ret = fmt.Sprintf("%20s %s :: in: %d, out: %d, consumed: %d, conflicts: %d, Flags: %08b, err: '%v', cov: %s",
 				t,
-				vid.ID.StringShort(),
+				vid.id.StringShort(),
 				v.Tx.NumInputs(),
 				v.Tx.NumProducedOutputs(),
 				consumed,
@@ -738,7 +742,7 @@ func (vid *WrappedTx) String() (ret string) {
 			t := "vertex (" + vid.GetTxStatusNoLock().String() + ")"
 			ret = fmt.Sprintf("%20s %s :: in: %d, out: %d, consumed: %d, conflicts: %d, Flags: %08b, err: '%v', cov: %s",
 				t,
-				vid.ID.StringShort(),
+				vid.id.StringShort(),
 				v.Tx.NumInputs(),
 				v.Tx.NumProducedOutputs(),
 				consumed,
@@ -756,7 +760,7 @@ func (vid *WrappedTx) String() (ret string) {
 
 			ret = fmt.Sprintf("%20s %s:: out: %d, consumed: %d, conflicts: %d, flags: %08b, err: %v",
 				t,
-				vid.ID.StringShort(),
+				vid.id.StringShort(),
 				len(v.outputs),
 				consumed,
 				doubleSpent,
@@ -928,12 +932,12 @@ func (vid *WrappedTx) IsContainingBranchOf(vid1 *WrappedTx, getStateReader func(
 	if base := vid.BaselineBranch(); base == vid1 || (base != nil && base.BaselineBranch() == vid1) {
 		return true
 	}
-	return getStateReader().KnowsCommittedTransaction(&vid1.ID)
+	return getStateReader().KnowsCommittedTransaction(&vid1.id)
 }
 
 func (vid *WrappedTx) IDHasFragment(frag ...string) bool {
 	for _, fr := range frag {
-		if strings.Contains(vid.ID.String(), fr) {
+		if strings.Contains(vid.id.String(), fr) {
 			return true
 		}
 	}

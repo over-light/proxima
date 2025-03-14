@@ -78,7 +78,7 @@ func paramsFromConfig() ([]ConfigOption, ledger.ChainID, ed25519.PrivateKey, err
 	}
 	seqID, err := ledger.ChainIDFromHexString(subViper.GetString("chain_id"))
 	if err != nil {
-		return nil, ledger.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse sequencer chain ID: %v", err)
+		return nil, ledger.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse sequencer chain id: %v", err)
 	}
 	controllerKey, err := util.ED25519PrivateKeyFromHexString(subViper.GetString("controller_key"))
 	if err != nil {
@@ -182,7 +182,7 @@ func WithForceInflator() ConfigOption {
 
 func (cfg *ConfigOptions) lines(seqID ledger.ChainID, controller ledger.AddressED25519, prefix ...string) *lines.Lines {
 	return lines.New(prefix...).
-		Add("ID: %s", seqID.String()).
+		Add("id: %s", seqID.String()).
 		Add("Controller: %s", controller.String()).
 		Add("Name: %s", cfg.SequencerName).
 		Add("Pace: %d ticks", cfg.Pace).

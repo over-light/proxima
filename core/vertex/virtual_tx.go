@@ -34,7 +34,7 @@ func newVirtualBranchTx(br *multistate.BranchData) *VirtualTransaction {
 func (v *Vertex) toDetachedVertex() *DetachedVertex {
 	ret := &DetachedVertex{Tx: v.Tx}
 	if v.BaselineBranch != nil {
-		ret.BranchID = v.BaselineBranch.ID
+		ret.BranchID = v.BaselineBranch.id
 	}
 	return ret
 }

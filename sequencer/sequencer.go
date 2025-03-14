@@ -229,7 +229,7 @@ func (seq *Sequencer) ensureFirstMilestone() bool {
 
 func (seq *Sequencer) checkSequencerStartOutput(wOut vertex.WrappedOutput) bool {
 	util.Assertf(wOut.VID != nil, "wOut.VID != nil")
-	if !wOut.VID.ID.IsSequencerMilestone() {
+	if !wOut.VID.IsSequencerMilestone() {
 		seq.log.Warnf("checkSequencerStartOutput: start output %s is not a sequencer output", wOut.IDStringShort())
 	}
 	oReal, err := wOut.VID.OutputAt(wOut.Index)
@@ -361,7 +361,7 @@ func (seq *Sequencer) doSequencerStep() bool {
 	meta.TxBytesReceived = util.Ref(time.Now())
 	msVID := seq.submitMilestone(msTx, meta)
 	if msVID != nil {
-		if saveLastSubmittedTs.IsSlotBoundary() && msVID.ID.Timestamp().IsSlotBoundary() {
+		if saveLastSubmittedTs.IsSlotBoundary() && msVID.Timestamp().IsSlotBoundary() {
 			seq.Log().Warnf("branch jumped over the slot: %s -> %s. Step started: %s, %d (%s), %v ago, nowis: %s",
 				saveLastSubmittedTs.String(), targetTs.String(),
 				timerStart.Format(time.StampNano), timerStart.UnixNano(), ledger.TimeFromClockTime(timerStart).String(), time.Since(timerStart),
@@ -372,9 +372,9 @@ func (seq *Sequencer) doSequencerStep() bool {
 		seq.milestoneCount++
 		if msVID.IsBranchTransaction() {
 			seq.branchCount++
-			seq.slotData.BranchTxSubmitted(&msVID.ID)
+			seq.slotData.BranchTxSubmitted(msVID.ID())
 		} else {
-			seq.slotData.SequencerTxSubmitted(&msVID.ID)
+			seq.slotData.SequencerTxSubmitted(msVID.ID())
 		}
 		seq.updateInfo(msVID)
 		seq.runOnMilestoneSubmitted(msVID)
@@ -473,7 +473,7 @@ func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetad
 
 	seq.Tracef(TraceTag, "new milestone %s submitted successfully", tx.IDShortString)
 
-	vid, err := seq.waitMilestoneInTippool(tx.IDRef(), time.Now().Add(submitTimeout))
+	vid, err := seq.waitMilestoneInTippool(tx.ID(), time.Now().Add(submitTimeout))
 
 	if err != nil {
 		seq.Log().Error(err)
@@ -483,7 +483,7 @@ func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetad
 	return vid
 }
 
-func (seq *Sequencer) waitMilestoneInTippool(txid *ledger.TransactionID, deadline time.Time) (*vertex.WrappedTx, error) {
+func (seq *Sequencer) waitMilestoneInTippool(txid ledger.TransactionID, deadline time.Time) (*vertex.WrappedTx, error) {
 	for {
 		select {
 		case <-seq.Ctx().Done():
@@ -494,7 +494,7 @@ func (seq *Sequencer) waitMilestoneInTippool(txid *ledger.TransactionID, deadlin
 			}
 		default:
 			vid := seq.GetLatestMilestone(seq.sequencerID)
-			if vid != nil && vid.ID == *txid {
+			if vid != nil && vid.ID() == txid {
 				return vid, nil
 			}
 		}
@@ -555,7 +555,7 @@ func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {
 		if baseline == nil {
 			continue
 		}
-		rdr := multistate.MakeSugared(seq.GetStateReaderForTheBranch(baseline.ID))
+		rdr := multistate.MakeSugared(seq.GetStateReaderForTheBranch(baseline.ID()))
 		chainOut, _, err := rdr.GetChainTips(&seq.sequencerID)
 		if errors.Is(err, multistate.ErrNotFound) {
 			continue

@@ -131,7 +131,7 @@ const dashboardHTML = `
         function updateNodeInfo(data) {
             const nodeInfoDiv = document.getElementById('node-info');
                     let htmlContent = "<h2>Node Info</h2>" +
-        "<div class='info-row'><span class='label'>Node ID:</span><span>" + data.id + "</span></div>" +
+        "<div class='info-row'><span class='label'>Node id:</span><span>" + data.id + "</span></div>" +
         "<div class='info-row'><span class='label'>Peers static alive:</span><span>" + data.num_static_peers + "</span></div>" +
         "<div class='info-row'><span class='label'>Peers dynamic alive:</span><span>" + data.num_dynamic_alive + "</span></div>";
             nodeInfoDiv.innerHTML = htmlContent;
@@ -150,13 +150,13 @@ const dashboardHTML = `
         function updatePeersInfo(data) {
             const peersInfoDiv = document.getElementById('peers-info');
             
-            // Sort the peers array by peer ID
+            // Sort the peers array by peer id
             data.peers.sort((a, b) => a.id.localeCompare(b.id));
 
             let htmlContent = "<h2>Peers Info</h2><ul>";
 
             data.peers.forEach(peer => {
-                htmlContent += "<li><div class='info-row'><span class='label'>Peer ID:</span><span>" + peer.id + "</span></div>" +
+                htmlContent += "<li><div class='info-row'><span class='label'>Peer id:</span><span>" + peer.id + "</span></div>" +
                     "<div class='info-row'><span class='label'>Multi Addresses:</span><span>" + peer.multiAddresses.join(', ') + "</span></div>" +
                     "<div class='info-row'><span class='label'>Is Alive:</span><span>" + peer.is_alive + "</span></div>" +
                     "<div class='info-row'><span class='label'>Is Static:</span><span>" + peer.is_static + "</span></div>" +

@@ -18,7 +18,7 @@ var targetChainIDStr string
 
 func initDelegateCmd() *cobra.Command {
 	delegateCmd := &cobra.Command{
-		Use:     "delegate <amount> -q <target sequencer ID hex encoded>",
+		Use:     "delegate <amount> -q <target sequencer id hex encoded>",
 		Aliases: util.List("send"),
 		Short:   `delegates amount to target sequencer by creating delegation chain output`,
 		Args:    cobra.ExactArgs(1),
@@ -27,7 +27,7 @@ func initDelegateCmd() *cobra.Command {
 
 	glb.AddFlagTarget(delegateCmd)
 
-	delegateCmd.PersistentFlags().StringVarP(&targetChainIDStr, "seq", "q", "", "target sequencer ID")
+	delegateCmd.PersistentFlags().StringVarP(&targetChainIDStr, "seq", "q", "", "target sequencer id")
 	err := viper.BindPFlag("seq", delegateCmd.PersistentFlags().Lookup("seq"))
 	glb.AssertNoError(err)
 
@@ -41,13 +41,13 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("wallet account is: %s", walletData.Account.String())
 
-	glb.Assertf(targetChainIDStr != "", "target sequencer ID not specified")
+	glb.Assertf(targetChainIDStr != "", "target sequencer id not specified")
 
 	targetSeqID, err := ledger.ChainIDFromHexString(targetChainIDStr)
 	glb.Assertf(err == nil, "failed parsing target chainID: %v", err)
 
 	seqOut, _, _, err := glb.GetClient().GetChainOutput(targetSeqID)
-	glb.Assertf(err == nil, "can't find sequencer ID %s: %v", targetSeqID.StringShort(), err)
+	glb.Assertf(err == nil, "can't find sequencer id %s: %v", targetSeqID.StringShort(), err)
 	glb.Assertf(seqOut.ID.IsSequencerTransaction(), "chainID %s does not represent a sequencer", targetSeqID.StringShort())
 
 	var tagAlongSeqID *ledger.ChainID
@@ -137,7 +137,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	glb.AssertNoError(err)
 
 	delegationID := ledger.MakeOriginChainID(&delegationOid)
-	glb.Infof("\ndelegation ID: %s\n", delegationID.String())
+	glb.Infof("\ndelegation id: %s\n", delegationID.String())
 
 	err = client.SubmitTransaction(txBytes)
 	glb.AssertNoError(err)

@@ -15,7 +15,7 @@ func genHostIDCmd() *cobra.Command {
 	genHostIdCommand := &cobra.Command{
 		Use:   "hostid",
 		Args:  cobra.NoArgs,
-		Short: fmt.Sprintf("generates private key and host ID for libp2p host"),
+		Short: fmt.Sprintf("generates private key and host id for libp2p host"),
 		PersistentPreRun: func(_ *cobra.Command, _ []string) {
 			glb.ReadInConfig()
 		},
@@ -34,5 +34,5 @@ func runGenHostIdCmd(_ *cobra.Command, _ []string) {
 	hid, err := peer.IDFromPrivateKey(pklpp)
 	glb.Infof("------>")
 	glb.Infof("libp2p host private key: %s", hex.EncodeToString(privateKey))
-	glb.Infof("libp2p host ID: %s", hid.String())
+	glb.Infof("libp2p host id: %s", hid.String())
 }

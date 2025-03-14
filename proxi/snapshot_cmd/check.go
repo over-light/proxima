@@ -41,11 +41,11 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 	glb.AssertNoError(err)
 
 	glb.Infof("snapshot format version: %s", ssData.fmtVersion)
-	glb.Infof("snapshot branch ID: %s", ssData.branchID.String())
+	glb.Infof("snapshot branch id: %s", ssData.branchID.String())
 	glb.Infof("snapshot root record:\n%s", ssData.rootRecord.Lines("    ").String())
 
 	if ssData.ledgerID.Hash() != ledger.L().ID.Hash() {
-		glb.Infof("ledger ID hash in snapshot file %s is not equal to the ledger ID hash on the node on '%s'.\nThe snapshot file CANNOT BE USED to start a node",
+		glb.Infof("ledger id hash in snapshot file %s is not equal to the ledger id hash on the node on '%s'.\nThe snapshot file CANNOT BE USED to start a node",
 			fname, viper.GetString("api.endpoint"))
 		return
 	}

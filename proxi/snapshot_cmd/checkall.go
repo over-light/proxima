@@ -41,7 +41,7 @@ func runSnapshotCheckAllCmd(_ *cobra.Command, _ []string) {
 			continue
 		}
 		if ssData.ledgerID.Hash() != ledger.L().ID.Hash() {
-			glb.Infof("#%d %20s: branchID: %s  ledger ID mismatch: CANNOT BE USED to start a node", i, fname)
+			glb.Infof("#%d %20s: branchID: %s  ledger id mismatch: CANNOT BE USED to start a node", i, fname)
 			continue
 		}
 

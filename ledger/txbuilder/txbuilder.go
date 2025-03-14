@@ -36,7 +36,7 @@ type (
 		StemOutputIndex      byte
 		Timestamp            ledger.Time
 		InputCommitment      [32]byte
-		Endorsements         []*ledger.TransactionID
+		Endorsements         []ledger.TransactionID
 		LocalLibraries       [][]byte
 	}
 
@@ -56,7 +56,7 @@ func New() *TransactionBuilder {
 			StemOutputIndex:      0xff,
 			Timestamp:            ledger.NilLedgerTime,
 			InputCommitment:      [32]byte{},
-			Endorsements:         make([]*ledger.TransactionID, 0),
+			Endorsements:         make([]ledger.TransactionID, 0),
 			LocalLibraries:       make([][]byte, 0),
 		},
 	}
@@ -135,7 +135,7 @@ func (txb *TransactionBuilder) PutStandardInputUnlocks(n int) error {
 	return nil
 }
 
-func (txb *TransactionBuilder) PushEndorsements(txid ...*ledger.TransactionID) {
+func (txb *TransactionBuilder) PushEndorsements(txid ...ledger.TransactionID) {
 	txb.TransactionData.Endorsements = append(txb.TransactionData.Endorsements, txid...)
 }
 
@@ -281,7 +281,7 @@ type (
 		AddConstraints    [][]byte
 		MarkAsSequencerTx bool
 		UnlockData        []*UnlockData
-		Endorsements      []*ledger.TransactionID
+		Endorsements      []ledger.TransactionID
 		TagAlong          *TagAlongData
 	}
 
@@ -326,7 +326,7 @@ func NewTransferData(senderKey ed25519.PrivateKey, sourceAccount ledger.Accounta
 		Timestamp:        ts,
 		AddConstraints:   make([][]byte, 0),
 		UnlockData:       make([]*UnlockData, 0),
-		Endorsements:     make([]*ledger.TransactionID, 0),
+		Endorsements:     make([]ledger.TransactionID, 0),
 	}
 }
 
@@ -393,7 +393,7 @@ func (t *TransferData) WithUnlockData(consumedOutputIndex, constraintIndex byte,
 	return t
 }
 
-func (t *TransferData) WithEndorsements(ids ...*ledger.TransactionID) *TransferData {
+func (t *TransferData) WithEndorsements(ids ...ledger.TransactionID) *TransferData {
 	t.Endorsements = ids
 	return t
 }
