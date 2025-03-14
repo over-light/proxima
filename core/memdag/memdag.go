@@ -22,11 +22,6 @@ type (
 		StateStore() multistate.StateStore
 	}
 
-	keepVertexData struct {
-		*vertex.WrappedTx
-		addedInSlot ledger.Slot
-	}
-
 	// MemDAG is a global map of all in-memory vertices of the transaction DAG
 	MemDAG struct {
 		environment
