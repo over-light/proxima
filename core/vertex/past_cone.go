@@ -698,7 +698,7 @@ func (pc *PastCone) CheckFinalPastCone(getStateReader func() multistate.IndexedS
 		}
 	}
 	if conflict := pc.Check(getStateReader()); conflict != nil {
-		return fmt.Errorf("past cone %s contains double-spent output %s", pc.name, conflict.IDShortString())
+		return fmt.Errorf("past cone %s contains double-spent output %s", pc.name, conflict.IDStringShort())
 	}
 	return nil
 }
@@ -832,7 +832,8 @@ func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedS
 		if !pc.IsInTheState(consumers[0]) {
 			allConsumersAreInTheState = false
 			if inTheState {
-				if !stateReader.HasUTXO(wOut.DecodeID()) {
+				oid := wOut.DecodeID()
+				if !stateReader.HasUTXO(&oid) {
 					return &wOut, false, 0
 				}
 				coverageDelta += vid.MustOutputAt(idx).Amount()

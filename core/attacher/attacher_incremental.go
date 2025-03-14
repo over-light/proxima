@@ -23,7 +23,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 		env.Assertf(ledger.ValidTransactionPace(endorseVID.Timestamp(), targetTs), "NewIncrementalAttacher: ledger.ValidTransactionPace(endorseVID.Timestamp(), targetTs)")
 	}
 	env.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). extend: %s, endorse: {%s}",
-		name, extend.IDShortString, func() string { return vertex.VerticesLines(endorse).Join(",") })
+		name, extend.IDStringShort, func() string { return vertex.VerticesLines(endorse).Join(",") })
 
 	var baselineDirection *vertex.WrappedTx
 	if targetTs.Tick() == 0 {
@@ -48,13 +48,13 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 	}
 	if baselineDirection == nil {
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to determine baseline direction in %s",
-			name, extend.IDShortString())
+			name, extend.IDStringShort())
 	}
 	baseline := baselineDirection.BaselineBranch()
 	if baseline == nil {
 		// may happen when baselineDirection is virtualTx
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to determine valid baselineDirection branch of %s. baseline direction: %s",
-			name, extend.IDShortString(), baselineDirection.IDShortString())
+			name, extend.IDStringShort(), baselineDirection.IDShortString())
 	}
 
 	ret := &IncrementalAttacher{
@@ -71,7 +71,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 	if conflict := ret.Check(); conflict != nil {
 		ret.Close()
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to create incremental attacher extending  %s: double-spend (conflict) %s in the past cone",
-			name, extend.IDShortString(), conflict.IDShortString())
+			name, extend.IDStringShort(), conflict.IDStringShort())
 	}
 	return ret, nil
 }
@@ -93,7 +93,7 @@ func (a *IncrementalAttacher) IsClosed() bool {
 
 func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx, targetTs ledger.Time, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
 	if !a.setBaseline(baseline, targetTs) {
-		return fmt.Errorf("NewIncrementalAttacher: failed to set baseline branch of %s", extend.IDShortString())
+		return fmt.Errorf("NewIncrementalAttacher: failed to set baseline branch of %s", extend.IDStringShort())
 	}
 	a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). baseline: %s",
 		a.name, baseline.IDShortString)
@@ -140,10 +140,10 @@ func (a *IncrementalAttacher) insertVirtuallyConsumedOutput(wOut vertex.WrappedO
 		return a.err
 	}
 	if !a.pastCone.IsKnownDefined(wOut.VID) {
-		return fmt.Errorf("output %s not solid yet", wOut.IDShortString())
+		return fmt.Errorf("output %s not solid yet", wOut.IDStringShort())
 	}
 	if conflict := a.pastCone.AddVirtuallyConsumedOutput(wOut, a.baselineStateReader()); conflict != nil {
-		return fmt.Errorf("past cone contains double-spend %s", conflict.IDShortString())
+		return fmt.Errorf("past cone contains double-spend %s", conflict.IDStringShort())
 	}
 	a.inputs = append(a.inputs, wOut)
 	return nil
@@ -173,7 +173,7 @@ func (a *IncrementalAttacher) insertEndorsement(endorsement *vertex.WrappedTx) e
 	}
 
 	if conflict := a.Check(); conflict != nil {
-		return fmt.Errorf("insertEndorsement: double-spend (conflict) %s in the past cone", conflict.IDShortString())
+		return fmt.Errorf("insertEndorsement: double-spend (conflict) %s in the past cone", conflict.IDStringShort())
 	}
 	a.endorse = append(a.endorse, endorsement)
 	return nil

@@ -293,7 +293,7 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 					// double check
 					lc := a.LedgerCoverage()
 					conflict := a.pastCone.Check(a.baselineStateReader())
-					a.Assertf(conflict == nil, "unexpected conflict %s in %s", conflict.IDShortString(), a.name)
+					a.Assertf(conflict == nil, "unexpected conflict %s in %s", conflict.IDStringShort(), a.name)
 					a.Assertf(lc == a.LedgerCoverage(), "lc == a.LedgerCoverage()")
 				}
 			},
@@ -347,7 +347,7 @@ func (a *milestoneAttacher) validateSequencerTxUnwrapped(v *vertex.Vertex) (ok, 
 
 	conflict := a.pastCone.CheckAndClean(a.baselineStateReader())
 	if conflict != nil {
-		a.setError(fmt.Errorf("double-spend %s in the past cone", conflict.IDShortString()))
+		a.setError(fmt.Errorf("double-spend %s in the past cone", conflict.IDStringShort()))
 		v.UnReferenceDependencies()
 		return false, false
 	}

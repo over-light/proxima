@@ -443,12 +443,12 @@ func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx,
 		VID:   vidDep,
 		Index: oid.Index(),
 	}
-	a.Tracef(TraceTagBranchAvailable, "before attachOutput(%s): %s", wOut.IDShortString, a.pastCone.Flags(vidDep).String())
+	a.Tracef(TraceTagBranchAvailable, "before attachOutput(%s): %s", wOut.IDStringShort, a.pastCone.Flags(vidDep).String())
 	ok = a.attachOutput(wOut)
 	if !ok {
 		return false
 	}
-	a.Tracef(TraceTagBranchAvailable, "after attachOutput(%s): %s", wOut.IDShortString, a.pastCone.Flags(vidDep).String())
+	a.Tracef(TraceTagBranchAvailable, "after attachOutput(%s): %s", wOut.IDStringShort, a.pastCone.Flags(vidDep).String())
 	return true
 }
 
@@ -481,9 +481,9 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 	return true
 }
 
-func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID *ledger.OutputID) bool {
+func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID ledger.OutputID) bool {
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
-	o, err := a.BaselineSugaredStateReader().GetOutputWithID(inputID)
+	o, err := a.BaselineSugaredStateReader().GetOutputWithID(&inputID)
 	if errors.Is(err, multistate.ErrNotFound) {
 		a.setError(fmt.Errorf("output %s is already consumed", inputID.StringShort()))
 		return false
@@ -512,7 +512,7 @@ func (a *attacher) attachOutput(wOut vertex.WrappedOutput) bool {
 		return true
 	}
 	// not defined: not in the state or unknown
-	a.Assertf(!wOut.VID.IsBranchTransaction(), "!wOut.VID.IsBranchTransaction(): %s", wOut.IDShortString)
+	a.Assertf(!wOut.VID.IsBranchTransaction(), "!wOut.VID.IsBranchTransaction(): %s", wOut.IDStringShort)
 	return a.attachVertexNonBranch(wOut.VID)
 }
 

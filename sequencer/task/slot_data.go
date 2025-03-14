@@ -27,7 +27,7 @@ type (
 		numNoProposals      int
 		numNotGoodEnough    int
 		// base proposer
-		lastExtendedOutputB0     vertex.WrappedOutput
+		lastExtendedOutputIDB0   ledger.OutputID
 		lastTimeBacklogCheckedB0 time.Time
 		// e1 proposer optimization
 		lastTimeBacklogCheckedE1 time.Time

@@ -230,11 +230,11 @@ func (seq *Sequencer) ensureFirstMilestone() bool {
 func (seq *Sequencer) checkSequencerStartOutput(wOut vertex.WrappedOutput) bool {
 	util.Assertf(wOut.VID != nil, "wOut.VID != nil")
 	if !wOut.VID.ID.IsSequencerMilestone() {
-		seq.log.Warnf("checkSequencerStartOutput: start output %s is not a sequencer output", wOut.IDShortString())
+		seq.log.Warnf("checkSequencerStartOutput: start output %s is not a sequencer output", wOut.IDStringShort())
 	}
 	oReal, err := wOut.VID.OutputAt(wOut.Index)
 	if oReal == nil || err != nil {
-		seq.log.Errorf("checkSequencerStartOutput: failed to load start output %s: %s", wOut.IDShortString(), err)
+		seq.log.Errorf("checkSequencerStartOutput: failed to load start output %s: %s", wOut.IDStringShort(), err)
 		return false
 	}
 	lock := oReal.Lock()
@@ -251,7 +251,7 @@ func (seq *Sequencer) checkSequencerStartOutput(wOut vertex.WrappedOutput) bool 
 		return false
 	}
 	seq.log.Infof("sequencer start output %s has amount %s (%s%% of the initial supply)",
-		wOut.IDShortString(), util.Th(amount), util.PercentString(int(amount), int(ledger.L().ID.InitialSupply)))
+		wOut.IDStringShort(), util.Th(amount), util.PercentString(int(amount), int(ledger.L().ID.InitialSupply)))
 	return true
 }
 

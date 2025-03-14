@@ -34,27 +34,27 @@ func baseProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
 	if !ledger.ValidSequencerPace(extend.Timestamp(), p.targetTs) {
 		// it means proposer is obsolete, abandon it
 		p.Tracef(TraceTagBaseProposer, "force exit in %s: own latest milestone and target ledger time does not make valid pace %s",
-			p.Name, extend.IDShortString)
+			p.Name, extend.IDStringShort)
 		return nil, true
 	}
 
-	p.Tracef(TraceTagBaseProposer, "%s extending %s", p.Name, extend.IDShortString)
+	p.Tracef(TraceTagBaseProposer, "%s extending %s", p.Name, extend.IDStringShort)
 	// own latest milestone exists
 	if !p.targetTs.IsSlotBoundary() {
 		// target is not a branch target
 		p.Tracef(TraceTagBaseProposer, "%s target is not a branch target", p.Name)
 		if extend.Slot() != p.targetTs.Slot() {
-			p.Tracef(TraceTagBaseProposer, "%s force exit: cross-slot %s", p.Name, extend.IDShortString)
+			p.Tracef(TraceTagBaseProposer, "%s force exit: cross-slot %s", p.Name, extend.IDStringShort)
 			return nil, true
 		}
 		p.Tracef(TraceTagBaseProposer, "%s target is not a branch and it is on the same slot", p.Name)
 		if !extend.VID.IsSequencerMilestone() {
-			p.Tracef(TraceTagBaseProposer, "%s force exit: not-sequencer %s", p.Name, extend.IDShortString)
+			p.Tracef(TraceTagBaseProposer, "%s force exit: not-sequencer %s", p.Name, extend.IDStringShort)
 			return nil, true
 		}
 		// proposer optimization: if backlog and extended output didn't change since last target,
 		// makes no sense to continue with proposals.
-		noChanges := p.slotData.lastExtendedOutputB0 == extend &&
+		noChanges := p.slotData.lastExtendedOutputIDB0 == extend.DecodeID() &&
 			!p.Backlog().ArrivedOutputsSince(p.slotData.lastTimeBacklogCheckedB0)
 		p.slotData.lastTimeBacklogCheckedB0 = time.Now()
 		if noChanges {
@@ -63,7 +63,7 @@ func baseProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
 	}
 
 	p.Tracef(TraceTagBaseProposer, "%s predecessor %s is sequencer milestone with coverage %s",
-		p.Name, extend.IDShortString, extend.VID.GetLedgerCoverageString)
+		p.Name, extend.IDStringShort, extend.VID.GetLedgerCoverageString)
 
 	a, err := attacher.NewIncrementalAttacher(p.Name, p.environment, p.targetTs, extend)
 	if err != nil {
@@ -76,16 +76,16 @@ func baseProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
 	if p.targetTs.IsSlotBoundary() {
 		p.Tracef(TraceTagBaseProposer, "%s making branch, no tag-along, extending %s cov: %s, attacher %s cov: %s",
 			p.Name,
-			extend.IDShortString, func() string { return util.Th(extend.VID.GetLedgerCoverage()) },
+			extend.IDStringShort, func() string { return util.Th(extend.VID.GetLedgerCoverage()) },
 			a.Name(), func() string { return util.Th(a.LedgerCoverage()) },
 		)
 	} else {
-		p.Tracef(TraceTagBaseProposer, "%s making non-branch, extending %s, collecting and inserting tag-along inputs", p.Name, extend.IDShortString)
+		p.Tracef(TraceTagBaseProposer, "%s making non-branch, extending %s, collecting and inserting tag-along inputs", p.Name, extend.IDStringShort)
 
 		p.insertInputs(a)
 	}
 
-	p.slotData.lastExtendedOutputB0 = extend
+	p.slotData.lastExtendedOutputIDB0 = extend.DecodeID()
 	// only need one proposal when extending a branch
 	stopProposing := extend.VID.IsBranchTransaction()
 	return a, stopProposing

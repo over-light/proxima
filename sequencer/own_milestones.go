@@ -17,11 +17,11 @@ func (seq *Sequencer) FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOu
 	defer seq.ownMilestonesMutex.RUnlock()
 
 	seq.Tracef(TraceTag, "FutureConeOwnMilestonesOrdered for root output %s. Total %d own milestones",
-		rootOutput.IDShortString, len(seq.ownMilestones))
+		rootOutput.IDStringShort, len(seq.ownMilestones))
 
 	_, ok := seq.ownMilestones[rootOutput.VID]
 	seq.Assertf(ok, "FutureConeOwnMilestonesOrdered: milestone output %s of chain %s is expected to be among set of own milestones (%d)",
-		rootOutput.IDShortString, seq.sequencerID.StringShort, len(seq.ownMilestones))
+		rootOutput.IDStringShort, seq.sequencerID.StringShort, len(seq.ownMilestones))
 
 	ordered := util.KeysSorted(seq.ownMilestones, func(vid1, vid2 *vertex.WrappedTx) bool {
 		// by timestamp -> equivalent to topological order, ascending, i.e. older first

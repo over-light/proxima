@@ -7,20 +7,29 @@ import (
 	"github.com/lunfardo314/proxima/util/lines"
 )
 
-func (o *WrappedOutput) DecodeID() *ledger.OutputID {
+func (o *WrappedOutput) DecodeID() (ret ledger.OutputID) {
 	if o.VID == nil {
-		ret := ledger.MustNewOutputID(&ledger.TransactionID{}, o.Index)
-		return &ret
+		ret = ledger.MustNewOutputID(&ledger.TransactionID{}, o.Index)
+	} else {
+		ret = o.VID.OutputID(o.Index)
 	}
-	ret := o.VID.OutputID(o.Index)
-	return &ret
+	return
 }
 
-func (o *WrappedOutput) IDShortString() string {
+func (o *WrappedOutput) IDString() string {
 	if o == nil {
 		return "<nil>"
 	}
-	return o.DecodeID().StringShort()
+	ret := o.DecodeID()
+	return ret.String()
+}
+
+func (o *WrappedOutput) IDStringShort() string {
+	if o == nil {
+		return "<nil>"
+	}
+	ret := o.DecodeID()
+	return ret.StringShort()
 }
 
 func (o *WrappedOutput) Timestamp() ledger.Time {
@@ -72,7 +81,7 @@ func (o *WrappedOutput) Output() (ret *ledger.Output) {
 
 func (o *WrappedOutput) OutputWithID() *ledger.OutputWithID {
 	ret := ledger.OutputWithID{
-		ID:     *o.DecodeID(),
+		ID:     o.DecodeID(),
 		Output: o.Output(),
 	}
 	if ret.Output == nil {
@@ -96,13 +105,13 @@ func (o *WrappedOutput) LockName() string {
 }
 
 func (o *WrappedOutput) IDHasFragment(frag string) bool {
-	return strings.Contains(o.DecodeID().String(), frag)
+	return strings.Contains(o.IDString(), frag)
 }
 
 func WrappedOutputsShortLines(wOuts []WrappedOutput) *lines.Lines {
 	ret := lines.New()
 	for _, wOut := range wOuts {
-		ret.Add(wOut.IDShortString())
+		ret.Add(wOut.IDStringShort())
 	}
 	return ret
 }

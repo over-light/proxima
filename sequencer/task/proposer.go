@@ -174,38 +174,38 @@ func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 	var ret, a *attacher.IncrementalAttacher
 	var err error
 	for _, extend := range extendCandidates {
-		p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s filtered out: extend %s and endorse %s: %v", p.targetTs.String, extend.IDShortString, endorse.IDShortString, err)
+		p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s filtered out: extend %s and endorse %s: %v", p.targetTs.String, extend.IDStringShort, endorse.IDShortString, err)
 		if !pairFilter(extend, endorse) {
 			continue
 		}
 		a, err = attacher.NewIncrementalAttacher(p.Name, p, p.targetTs, extend, endorse)
 		if err != nil {
 			p.Task.slotData.markCombinationChecked(false, extend, endorse)
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: %v", p.targetTs.String, extend.IDShortString, endorse.IDShortString, err)
+			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: %v", p.targetTs.String, extend.IDStringShort, endorse.IDShortString, err)
 			continue
 		}
 		// we must carefully dispose unused references, otherwise pruning does not work
 		// we dispose all attachers with their references, except the one with the biggest coverage
 		switch {
 		case !a.Completed():
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: NOT COMPLETED", p.targetTs.String, extend.IDShortString, endorse.IDShortString)
+			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: NOT COMPLETED", p.targetTs.String, extend.IDStringShort, endorse.IDShortString)
 			a.Close()
 		case ret == nil:
 			ret = a
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"first proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDShortString, endorse.IDShortString, util.Th(a.LedgerCoverage()))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
 
 		case a.LedgerCoverage() > ret.LedgerCoverage():
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"new proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDShortString, endorse.IDShortString, util.Th(a.LedgerCoverage()))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
 			ret.Close()
 			ret = a
 		default:
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"discard proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDShortString, endorse.IDShortString, util.Th(a.LedgerCoverage()))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
 			a.Close()
 		}
 		p.Task.slotData.markCombinationChecked(true, extend, endorse)

@@ -190,7 +190,7 @@ func (p *proposal) String() string {
 		endorse = append(endorse, vid.IDShortString())
 	}
 	return fmt.Sprintf("%s(%s -- %s -> [%s])",
-		p.strategyShortName, p.extended.IDShortString(), util.Th(p.coverage), strings.Join(endorse, ", "))
+		p.strategyShortName, p.extended.IDStringShort(), util.Th(p.coverage), strings.Join(endorse, ", "))
 }
 
 func (t *Task) startProposers() {
@@ -221,9 +221,9 @@ func (t *Task) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.Wrapp
 		}
 		if success, err := a.InsertInput(wOut); success {
 			numInserted++
-			t.Tracef(TraceTagInsertInputs, "%s. Inserted %s", a.Name, wOut.IDShortString)
+			t.Tracef(TraceTagInsertInputs, "%s. Inserted %s", a.Name, wOut.IDStringShort)
 		} else {
-			t.Tracef(TraceTagInsertInputs, "%s. Failed to insert %s: '%v'", a.Name, wOut.IDShortString, err)
+			t.Tracef(TraceTagInsertInputs, "%s. Failed to insert %s: '%v'", a.Name, wOut.IDStringShort, err)
 		}
 		if a.NumInputs() >= maxInputs {
 			return

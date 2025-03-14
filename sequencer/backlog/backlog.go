@@ -62,13 +62,13 @@ func New(env Environment) (*TagAlongBacklog, error) {
 
 	// start listening to chain-locked account. Tag-along outputs
 	env.ListenToAccount(seqID.AsChainLock(), func(wOut vertex.WrappedOutput) {
-		env.Tracef(TraceTag, "[%s] output IN: %s", ret.SequencerName, wOut.IDShortString)
+		env.Tracef(TraceTag, "[%s] output IN: %s", ret.SequencerName, wOut.IDStringShort)
 
 		ret.mutex.Lock()
 		defer ret.mutex.Unlock()
 
 		if _, already := ret.outputs[wOut]; already {
-			env.Tracef(TraceTag, "repeating output %s", wOut.IDShortString)
+			env.Tracef(TraceTag, "repeating output %s", wOut.IDStringShort)
 			return
 		}
 		if !ret.checkCandidate(wOut) {
@@ -80,7 +80,7 @@ func New(env Environment) (*TagAlongBacklog, error) {
 		ret.lastOutputArrived = nowis
 		ret.outputCount++
 		ret.ReferenceVID(wOut.VID)
-		env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDShortString, len(ret.outputs))
+		env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDStringShort, len(ret.outputs))
 	})
 
 	// start periodic cleanup in background
