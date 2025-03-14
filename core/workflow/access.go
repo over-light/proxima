@@ -53,7 +53,7 @@ func (w *Workflow) MustPersistTxBytesWithMetadata(txBytes []byte, metadata *txme
 }
 
 func (w *Workflow) SendToTippool(vid *vertex.WrappedTx) {
-	w.tippool.Push(tippool.Input{VID: vid})
+	w.tippool.Push(tippool.Input{WrappedTx: vid})
 }
 
 func (w *Workflow) IsSynced() bool {

@@ -21,7 +21,7 @@ type (
 	}
 
 	Input struct {
-		VID *vertex.WrappedTx
+		*vertex.WrappedTx
 	}
 
 	// SequencerTips is a collection with input queue, which keeps all latest sequencer
@@ -83,43 +83,43 @@ func New(env environment) *SequencerTips {
 }
 
 func (t *SequencerTips) consume(inp Input) {
-	seqID := inp.VID.SequencerID.Load()
+	seqID := inp.SequencerID.Load()
 	t.Assertf(seqID != nil, "inp.VID.SequencerID != nil")
-	t.Tracef(TraceTag, "seq milestone IN: %s of %s", inp.VID.IDShortString, seqID.StringShort)
+	t.Tracef(TraceTag, "seq milestone IN: %s of %s", inp.IDShortString, seqID.StringShort)
 
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	t.updateLatestSequencerData(inp.VID, *seqID)
+	t.updateLatestSequencerData(inp.WrappedTx, *seqID)
 
 	storedNew := false
 	old, prevExists := t.latestMilestones[*seqID]
 	if prevExists {
-		if old.WrappedTx == inp.VID {
+		if old.WrappedTx == inp.WrappedTx {
 			// repeating, ignore
 			return
 		}
-		if ledger.TooCloseOnTimeAxis(&old.ID, &inp.VID.ID) {
+		if ledger.TooCloseOnTimeAxis(&old.ID, &inp.ID) {
 			// this means there's a bug in the sequencer because it submits transactions too close in the ledger time window
 			t.Log().Warnf("[tippool] %s and %s: too close on time axis. seqID: %s",
-				old.IDShortString(), inp.VID.IDShortString(), seqID.StringShort())
+				old.IDShortString(), inp.IDShortString(), seqID.StringShort())
 		}
-		if t.replaceOldWithNew(old.WrappedTx, inp.VID) {
+		if t.replaceOldWithNew(old.WrappedTx, inp.WrappedTx) {
 			old.WrappedTx.SetFlagIsReferencedFromTippool(false)
-			inp.VID.SetFlagIsReferencedFromTippool(true)
+			inp.SetFlagIsReferencedFromTippool(true)
 
-			old.WrappedTx = inp.VID
+			old.WrappedTx = inp.WrappedTx
 			old.lastActivity = time.Now()
 			t.latestMilestones[*seqID] = old
 			t.latestMilestoneAddedWhen = time.Now()
 			storedNew = true
 		} else {
-			t.Tracef(TraceTag, "incoming milestone %s didn't replace existing %s", inp.VID.IDShortString, old.IDShortString)
+			t.Tracef(TraceTag, "incoming milestone %s didn't replace existing %s", inp.IDShortString, old.IDShortString)
 		}
 	} else {
-		inp.VID.SetFlagIsReferencedFromTippool(true)
+		inp.SetFlagIsReferencedFromTippool(true)
 		t.latestMilestones[*seqID] = _activeMilestoneData{
-			WrappedTx:    inp.VID,
+			WrappedTx:    inp.WrappedTx,
 			lastActivity: time.Now(),
 		}
 		t.latestMilestoneAddedWhen = time.Now()
@@ -130,7 +130,7 @@ func (t *SequencerTips) consume(inp Input) {
 		prevStr = old.IDShortString()
 	}
 	if storedNew {
-		t.Tracef(TraceTag, "new milestone: seqID: %s,  %s (replaced: %s)", seqID.StringShort, inp.VID.IDShortString, prevStr)
+		t.Tracef(TraceTag, "new milestone: seqID: %s,  %s (replaced: %s)", seqID.StringShort, inp.IDShortString, prevStr)
 	}
 }
 
