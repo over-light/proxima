@@ -78,8 +78,8 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 	}
 }
 
-// Detach detaches past cone and leaves only a collection of produced outputs
-func (vid *WrappedTx) Detach() {
+// DetachPastCone detaches past cone and leaves only a collection of produced outputs
+func (vid *WrappedTx) DetachPastCone() {
 	vid.Unwrap(UnwrapOptions{Vertex: func(v *Vertex) {
 		vid.convertToDetachedTxUnlocked(v)
 	}})

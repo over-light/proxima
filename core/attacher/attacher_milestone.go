@@ -138,9 +138,9 @@ func (a *milestoneAttacher) run() error {
 
 	if a.vid.IsBranchTransaction() {
 		// branch transaction vertex is immediately detached. Thus branch transaction does not reference past cone
-		a.Tracef(TraceTagAttachMilestone, ">>>>>>>>>>>>>>> Detach branch immediately after attachement: %s", a.vid.IDShortString())
+		a.Tracef(TraceTagAttachMilestone, ">>>>>>>>>>>>>>> DetachPastCone branch immediately after attachement: %s", a.vid.IDShortString())
 
-		a.vid.Detach()
+		a.vid.DetachPastCone()
 	}
 
 	a.pastCone.SetFlagsUp(a.vid, vertex.FlagPastConeVertexDefined)
