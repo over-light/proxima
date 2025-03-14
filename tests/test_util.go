@@ -208,7 +208,7 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 	if len(startPruner) > 0 && startPruner[0] {
 		ret.wrk = workflow.Start(ret.env, peering.NewPeersDummy())
 	} else {
-		ret.wrk = workflow.Start(ret.env, peering.NewPeersDummy(), workflow.OptionDoNotStartPruner)
+		ret.wrk = workflow.Start(ret.env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 	}
 
 	t.Logf("bootstrap chain id: %s", ret.bootstrapChainID.String())
@@ -893,7 +893,7 @@ func StartTestEnv() (*workflowDummyEnvironment, *ledger.TransactionID, error) {
 	env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 	env.root = root
 
-	workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDoNotStartPruner)
+	workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
 	txBytes, err := txbuilder.DistributeInitialSupply(stateStore, privKey, distrib)
 	if err != nil {

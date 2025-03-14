@@ -20,6 +20,7 @@ type (
 	environment interface {
 		global.NodeGlobal
 		StateStore() multistate.StateStore
+		DisableMemDAGGC() bool
 	}
 
 	// MemDAG is a global map of all in-memory vertices of the transaction DAG
@@ -72,14 +73,18 @@ func New(env environment) *MemDAG {
 	}
 	if env != nil {
 		ret.registerMetrics()
-		ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
-			ret.doMaintenance() // GC-ing, pruning etc
-			nVertices, nKeep := ret.NumVertices()
-			env.Log().Infof("[memdag] vertices: %d, keepList: %d, stateReaders: %d",
-				nVertices, nKeep, ret.NumStateReaders())
-			ret.numVerticesGauge.Set(float64(nVertices))
-			return true
-		})
+		if env.DisableMemDAGGC() {
+			env.Log().Infof("[memdag] GC disabled")
+		} else {
+			ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
+				ret.doGC() // GC-ing, pruning etc
+				nVertices, nKeep := ret.NumVertices()
+				env.Log().Infof("[memdag] vertices: %d, keepList: %d, stateReaders: %d",
+					nVertices, nKeep, ret.NumStateReaders())
+				ret.numVerticesGauge.Set(float64(nVertices))
+				return true
+			})
+		}
 	}
 
 	return ret
@@ -152,7 +157,7 @@ func (d *MemDAG) garbageCollectVertices() (num int) {
 	return
 }
 
-func (d *MemDAG) doMaintenance() {
+func (d *MemDAG) doGC() {
 	nDetached := d.detachUnreferenced()
 	nPurged := d.garbageCollectVertices()
 	d.Log().Infof("[memdag] removed empty entries: %d, detached: %d", nPurged, nDetached)

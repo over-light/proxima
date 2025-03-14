@@ -75,12 +75,12 @@ func Start(env environment, peers *peering.Peers, opts ...ConfigOption) *Workflo
 
 	ret := &Workflow{
 		environment:  env,
-		MemDAG:       memdag.New(env),
 		cfg:          &cfg,
 		peers:        peers,
 		traceTags:    set.New[string](),
 		earliestSlot: multistate.FetchEarliestSlot(env.StateStore()),
 	}
+	ret.MemDAG = memdag.New(ret)
 	ret.poker = poker.New(ret)
 	ret.events = events.New(ret)
 	ret.pullTxServer = pull_tx_server.New(ret)
@@ -111,7 +111,7 @@ func Start(env environment, peers *peering.Peers, opts ...ConfigOption) *Workflo
 func StartFromConfig(env environment, peers *peering.Peers) *Workflow {
 	opts := make([]ConfigOption, 0)
 	if viper.GetBool("workflow.do_not_start_pruner") {
-		opts = append(opts, OptionDoNotStartPruner)
+		opts = append(opts, OptionDisableMemDAGGC)
 	}
 	if viper.GetBool("workflow.sync_manager.enable") {
 		opts = append(opts, OptionEnableSyncManager)

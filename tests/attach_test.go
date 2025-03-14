@@ -39,7 +39,7 @@ func TestAttachBasic(t *testing.T) {
 
 		env.StartTracingTags(global.TraceTag)
 
-		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDoNotStartPruner)
+		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
 		_, _, err := multistate.ScanGenesisState(stateStore)
 		require.NoError(t, err)
@@ -76,7 +76,7 @@ func TestAttachBasic(t *testing.T) {
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
-		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDoNotStartPruner)
+		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
 		txBytes, err := txbuilder.DistributeInitialSupply(stateStore, privKey, distrib)
 		require.NoError(t, err)
@@ -139,7 +139,7 @@ func TestAttachBasic(t *testing.T) {
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
-		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDoNotStartPruner)
+		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
 		txBytes, err := txbuilder.MakeDistributionTransaction(stateStore, privKey, distrib)
 		require.NoError(t, err)
@@ -212,7 +212,7 @@ func TestAttachBasic(t *testing.T) {
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
-		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDoNotStartPruner)
+		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
 		txBytes, err := txbuilder.DistributeInitialSupply(stateStore, privKey, distrib)
 		require.NoError(t, err)
