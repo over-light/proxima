@@ -106,7 +106,7 @@ func (d *Poker) pokeAllCmd(wanted *vertex.WrappedTx) {
 }
 
 func (d *Poker) periodicCleanup() {
-	d.Infof1("[poker] total %d entries", len(d.m))
+	//d.Infof1("[poker] total %d entries", len(d.m))
 
 	nowis := time.Now()
 	count := 0

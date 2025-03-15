@@ -146,6 +146,10 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	}
 }
 
+// doGC traverses all known transaction IDs and:
+// -- deletes those with weak pointers GC-ed
+// -- collects those which are already expired and not referenced by other parts of the system (in different critical section)
+// -- nullifies strong references of those expired thus preparing them for GC
 func (d *MemDAG) doGC() (detached, deleted int) {
 	expired := make([]*vertex.WrappedTx, 0)
 	// collect those expired
