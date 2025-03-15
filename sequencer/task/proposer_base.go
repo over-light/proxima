@@ -33,7 +33,7 @@ func baseProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
 	}
 	if p.targetTs.IsSlotBoundary() && !extend.VID.IsBranchTransaction() && extend.VID.Slot()+1 != p.targetTs.Slot() {
 		// latest output is beyond reach for the branch as next transaction
-		p.Tracef(TraceTagBaseProposerExit, "OUT base proposer %s option 1", p.Name)
+		p.Tracef(TraceTagBaseProposerExit, "OUT base proposer %s: latest output is beyond reach: %s", p.Name, extend.IDStringShort())
 		return nil, true
 	}
 
