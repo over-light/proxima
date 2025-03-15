@@ -77,19 +77,23 @@ func New(env environment) *MemDAG {
 	if env != nil {
 		ret.registerMetrics()
 		if env.DisableMemDAGGC() {
-			env.Log().Infof("[memdag] GC disabled")
+			env.Log().Infof("[memdag cleanup] DISABLED")
 		} else {
-			ret.RepeatInBackground("memdag-maintenance", 5*time.Second, func() bool {
-				ret.doGC() // GC-ing, pruning etc
-				nVertices := ret.NumVertices()
-				env.Log().Infof("[memdag] vertices: %d, stateReaders: %d",
-					nVertices, ret.NumStateReaders())
-				ret.numVerticesGauge.Set(float64(nVertices))
+			ret.RepeatInBackground("memdag-GC", 5*time.Second, func() bool {
+				nDetached, nDeleted := ret.doGC()
+				env.Log().Infof("[memdag GC] detached: %d, deleted: %d", nDetached, nDeleted)
 				return true
-			})
+			}, true)
 		}
-	}
 
+		ret.RepeatInBackground("memdag-stats", 3*time.Second, func() bool {
+			ret.cleanupCachedStateReaders()
+			nVertices, nStateReaders := ret.NumVerticesAndStateReaders()
+			env.Log().Infof("[memdag stats] vertices: %d, state readers: %d", nVertices, nStateReaders)
+			ret.numVerticesGauge.Set(float64(nVertices))
+			return true
+		})
+	}
 	return ret
 }
 
@@ -125,37 +129,24 @@ func (d *MemDAG) GetVertex(txid ledger.TransactionID) *vertex.WrappedTx {
 	return d.GetVertexNoLock(txid)
 }
 
-// NumVertices number of vertices
-func (d *MemDAG) NumVertices() int {
+func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	return len(d.vertices)
-}
-
-func (d *MemDAG) NumStateReaders() int {
-	d.stateReadersMutex.RLock()
-	defer d.stateReadersMutex.RUnlock()
-
-	return len(d.stateReaders)
+	return len(d.vertices), len(d.stateReaders)
 }
 
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
-	util.Assertf(d.GetVertexNoLock(vid.ID()) == nil, "d.GetVertexNoLock(vid.id())==nil")
-	d.vertices[vid.ID()] = _vertexRecord{
+	txid := vid.ID()
+	util.Assertf(d.GetVertexNoLock(txid) == nil, "d.GetVertexNoLock(vid.id())==nil")
+	d.vertices[txid] = _vertexRecord{
 		Pointer:   weak.Make(vid),
 		WrappedTx: vid,
 		Slot:      ledger.TimeNow().Slot(),
 	}
 }
 
-func (d *MemDAG) doGC() {
-	nDetached, nDeleted := d.detachUnreferenced()
-	d.Log().Infof("[memdag] removed empty entries: %d, detached: %d", nDeleted, nDetached)
-	d.purgeCachedStateReaders()
-}
-
-func (d *MemDAG) detachUnreferenced() (detached, deleted int) {
+func (d *MemDAG) doGC() (detached, deleted int) {
 	expired := make([]*vertex.WrappedTx, 0)
 	// collect those expired
 	d.WithGlobalWriteLock(func() {
@@ -167,18 +158,35 @@ func (d *MemDAG) detachUnreferenced() (detached, deleted int) {
 			} else {
 				if rec.WrappedTx != nil && slotNow-rec.Slot > vertexTTLSlots {
 					expired = append(expired, rec.WrappedTx)
-					rec.WrappedTx = nil
-					d.vertices[txid] = rec
 				}
 			}
 		}
 	})
-	for _, vid := range expired {
+	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
 		if !vid.IsReferenced() {
 			vid.DetachPastCone()
-			detached++
+			return true
 		}
+		return false
+	})
+	if len(expired) == 0 {
+		return
 	}
+	d.WithGlobalWriteLock(func() {
+		for _, vid := range expired {
+			txid := vid.ID()
+			if rec, found := d.vertices[txid]; found {
+				if rec.Value() == nil {
+					delete(d.vertices, txid)
+					deleted++
+				} else {
+					rec.WrappedTx = nil
+					d.vertices[txid] = rec
+					detached++
+				}
+			}
+		}
+	})
 	return
 }
 
@@ -191,7 +199,7 @@ func _stateReaderCacheTTL() time.Duration {
 	return stateReaderTTL
 }
 
-func (d *MemDAG) purgeCachedStateReaders() (int, int) {
+func (d *MemDAG) cleanupCachedStateReaders() (int, int) {
 	ttl := _stateReaderCacheTTL()
 	count := 0
 
