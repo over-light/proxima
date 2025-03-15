@@ -16,8 +16,8 @@ func (seq *Sequencer) FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOu
 	seq.ownMilestonesMutex.RLock()
 	defer seq.ownMilestonesMutex.RUnlock()
 
-	seq.Tracef(TraceTag, "FutureConeOwnMilestonesOrdered for root output %s. Total %d own milestones",
-		rootOutput.IDStringShort, len(seq.ownMilestones))
+	//seq.Tracef(TraceTag, "FutureConeOwnMilestonesOrdered for root output %s. Total %d own milestones",
+	//	rootOutput.IDStringShort, len(seq.ownMilestones))
 
 	_, ok := seq.ownMilestones[rootOutput.VID]
 	seq.Assertf(ok, "FutureConeOwnMilestonesOrdered: milestone output %s of chain %s is expected to be among set of own milestones (%d)",

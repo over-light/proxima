@@ -305,6 +305,8 @@ func (seq *Sequencer) sequencerLoop() {
 	}
 }
 
+const TraceTagTarget = "target"
+
 func (seq *Sequencer) doSequencerStep() bool {
 	seq.Tracef(TraceTag, "doSequencerStep")
 	if seq.config.MaxBranches != 0 && seq.branchCount >= seq.config.MaxBranches {
@@ -331,20 +333,20 @@ func (seq *Sequencer) doSequencerStep() bool {
 		return false
 	}
 
-	seq.Tracef(TraceTag, "target ts: %s. Now is: %s", targetTs, ledger.TimeNow())
+	seq.Tracef(TraceTagTarget, "target ts: %s. Now is: %s", targetTs, ledger.TimeNow())
 
 	msTx, meta, err := seq.generateMilestoneForTarget(targetTs)
 
 	switch {
 	case errors.Is(err, task.ErrNotGoodEnough):
 		seq.slotData.NotGoodEnough()
-		seq.Tracef(TraceTag, "'not good enough' for the target logical time %s in %v",
-			targetTs, time.Since(timerStart))
+		//seq.Tracef(TraceTagTarget, "'not good enough' for the target logical time %s in %v",
+		//	targetTs, time.Since(timerStart))
 		return true
 	case errors.Is(err, task.ErrNoProposals):
 		seq.slotData.NoProposals()
-		seq.Tracef(TraceTag, "'no proposals' for the target logical time %s in %v",
-			targetTs, time.Since(timerStart))
+		//seq.Tracef(TraceTagTarget, "'no proposals' for the target logical time %s in %v",
+		//	targetTs, time.Since(timerStart))
 		return true
 	case err != nil:
 		seq.Log().Warnf("FAILED to generate transaction for target %s. Now is %s. Reason: %v",
