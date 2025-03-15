@@ -10,7 +10,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/sequencer"
-	"github.com/lunfardo314/proxima/sequencer/task"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/stretchr/testify/require"
@@ -171,10 +170,10 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	const (
 		maxSlots    = 1000
 		nSequencers = 4 // in addition to bootstrap
-		runTime     = 30 * time.Second
+		runTime     = 60 * time.Second
 	)
 	testData := initMultiSequencerTest(t, nSequencers, false)
-	testData.env.StartTracingTags(task.TraceTagBaseProposerExit) //, sequencer.TraceTagTarget)
+	//testData.env.StartTracingTags(task.TraceTagBaseProposerExit) //, sequencer.TraceTagTarget)
 
 	//testData.env.RepeatInBackground("GC", 3*time.Second, func() bool {
 	//	runtime.GC()

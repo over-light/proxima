@@ -395,6 +395,11 @@ func (seq *Sequencer) getNextTargetTime() ledger.Time {
 	seq.ClockCatchUpWithLedgerTime(seq.lastSubmittedTs)
 
 	nowis := ledger.TimeNow()
+
+	if ledger.DiffTicks(nowis.NextSlotBoundary(), nowis) < int64(ledger.L().ID.PreBranchConsolidationTicks) {
+		return nowis.NextSlotBoundary()
+	}
+
 	var targetAbsoluteMinimum ledger.Time
 
 	if seq.lastSubmittedTs.IsSlotBoundary() {
