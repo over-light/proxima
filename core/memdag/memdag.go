@@ -160,19 +160,22 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 				delete(d.vertices, txid)
 				deleted++
 			} else {
-				if rec.WrappedTx != nil && slotNow-rec.Slot > vertexTTLSlots {
+				expiredSlots := slotNow - rec.Slot
+				if rec.WrappedTx != nil && expiredSlots > vertexTTLSlots {
 					expired = append(expired, rec.WrappedTx)
 				}
 			}
 		}
 	})
+
 	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
-		if !vid.IsReferenced() {
+		if vid.NumReferences() == 0 {
 			vid.DetachPastCone()
 			return true
 		}
 		return false
 	})
+
 	if len(expired) == 0 {
 		return
 	}

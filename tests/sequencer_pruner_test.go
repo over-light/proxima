@@ -188,9 +188,9 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	success := testData.stopAndWait(5 * time.Second)
 	require.True(t, success)
 
-	//t.Logf("--------\n%s", testData.wrk.Info(true))
-	testData.saveFullDAG("utangle_full")
-	multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
+	t.Logf("--------\n%s", testData.wrk.Info(true))
+	//testData.saveFullDAG("utangle_full")
+	//multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 }
 
 func TestNSequencersTransferPruner(t *testing.T) {

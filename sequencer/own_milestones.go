@@ -89,6 +89,7 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 		since:    time.Now(),
 	}
 	if vid.IsSequencerMilestone() {
+		// it can be non-sequencer milestone at the origin
 		prev := vid.SequencerPredecessor(func(txid ledger.TransactionID) *vertex.WrappedTx {
 			return attacher.AttachTxID(txid, seq)
 		})
@@ -103,12 +104,14 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 					VID:   vidInput,
 					Index: v.Tx.MustOutputIndexOfTheInput(i),
 				})
-				seq.ReferenceVID(vidInput)
 				return true
 			})
 		}})
+		for wOut := range withTime.consumed {
+			wOut.VID.Reference()
+		}
 	}
-	seq.ReferenceVID(vid)
+	vid.Reference()
 	seq.ownMilestones[vid] = withTime
 }
 
@@ -122,10 +125,10 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 	for vid, withTime := range seq.ownMilestones {
 		if withTime.since.Before(horizon) {
 			for out := range withTime.consumed {
-				seq.UnReferenceVID(out.VID)
+				out.VID.UnReference()
 			}
 			delete(seq.ownMilestones, vid)
-			seq.UnReferenceVID(vid)
+			vid.UnReference()
 			count++
 		}
 	}

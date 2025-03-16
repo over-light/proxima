@@ -168,33 +168,17 @@ func (vid *WrappedTx) SetTxStatusBadNoLock(reason error) {
 	vid.err = reason
 }
 
-func (vid *WrappedTx) SetFlagIsReferencedFromSequencer(isReferenced bool) {
-	vid.mutex.Lock()
-	defer vid.mutex.Unlock()
-
-	if isReferenced {
-		vid.SetFlagsUpNoLock(FlagVertexIsReferencedFromSequencer)
-	} else {
-		vid.SetFlagsDownNoLock(FlagVertexIsReferencedFromSequencer)
-	}
+func (vid *WrappedTx) Reference() {
+	vid.references.Add(1)
 }
 
-func (vid *WrappedTx) SetFlagIsReferencedFromTippool(isReferenced bool) {
-	vid.mutex.Lock()
-	defer vid.mutex.Unlock()
-
-	if isReferenced {
-		vid.SetFlagsUpNoLock(FlagVertexIsReferencedFromTippool)
-	} else {
-		vid.SetFlagsDownNoLock(FlagVertexIsReferencedFromTippool)
-	}
+func (vid *WrappedTx) UnReference() {
+	v := vid.references.Add(-1)
+	util.Assertf(v >= 0, "vertex reference counter should not go below 0 in %s", vid.IDShortString)
 }
 
-func (vid *WrappedTx) IsReferenced() bool {
-	vid.mutex.RLock()
-	defer vid.mutex.RUnlock()
-
-	return vid.flags&(FlagVertexIsReferencedFromSequencer|FlagVertexIsReferencedFromTippool) != 0
+func (vid *WrappedTx) NumReferences() int {
+	return int(vid.references.Load())
 }
 
 func (vid *WrappedTx) GetError() error {
@@ -263,7 +247,7 @@ func (vid *WrappedTx) ShortString() string {
 			}
 		},
 	})
-	return fmt.Sprintf("%22s %10s (%s%s) %s", vid.IDShortString(), mode, status, flagsStr, reason)
+	return fmt.Sprintf("%22s %10s (%s%s) %s ref = %d", vid.IDShortString(), mode, status, flagsStr, reason, vid.NumReferences())
 }
 
 func (vid *WrappedTx) IDShortString() string {

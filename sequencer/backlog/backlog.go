@@ -29,8 +29,6 @@ type (
 		BacklogTTLSlots() (int, int)
 		MustEnsureBranch(txid ledger.TransactionID) *vertex.WrappedTx
 		EvidenceBacklogSize(size int)
-		ReferenceVID(vid *vertex.WrappedTx)
-		UnReferenceVID(vid *vertex.WrappedTx)
 	}
 
 	TagAlongBacklog struct {
@@ -79,7 +77,7 @@ func New(env Environment) (*TagAlongBacklog, error) {
 		ret.outputs[wOut] = nowis
 		ret.lastOutputArrived = nowis
 		ret.outputCount++
-		ret.ReferenceVID(wOut.VID)
+		wOut.VID.Reference()
 		env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDStringShort, len(ret.outputs))
 	})
 
@@ -224,7 +222,7 @@ func (b *TagAlongBacklog) purgeBacklog() int {
 		if del {
 			delete(b.outputs, wOut)
 			count++
-			b.UnReferenceVID(wOut.VID)
+			wOut.VID.UnReference()
 		}
 	}
 	b.EvidenceBacklogSize(len(b.outputs))

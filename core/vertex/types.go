@@ -61,6 +61,7 @@ type (
 		mutexDescendants sync.RWMutex
 		consumed         map[byte]set.Set[*WrappedTx]
 		attachmentDepth  int
+		references       atomic.Int32
 
 		pastCone *PastConeBase
 	}
@@ -129,13 +130,11 @@ type (
 )
 
 const (
-	FlagVertexDefined                   = Flags(0b00000001)
-	FlagVertexConstraintsValid          = Flags(0b00000010)
-	FlagVertexTxAttachmentStarted       = Flags(0b00000100)
-	FlagVertexTxAttachmentFinished      = Flags(0b00001000)
-	FlagVertexIgnoreAbsenceOfPastCone   = Flags(0b00010000)
-	FlagVertexIsReferencedFromSequencer = Flags(0b00100000)
-	FlagVertexIsReferencedFromTippool   = Flags(0b01000000)
+	FlagVertexDefined                 = Flags(0b00000001)
+	FlagVertexConstraintsValid        = Flags(0b00000010)
+	FlagVertexTxAttachmentStarted     = Flags(0b00000100)
+	FlagVertexTxAttachmentFinished    = Flags(0b00001000)
+	FlagVertexIgnoreAbsenceOfPastCone = Flags(0b00010000)
 )
 
 const (
@@ -176,13 +175,11 @@ func (f *Flags) SetFlagsUp(fl Flags) {
 }
 
 func (f *Flags) String() string {
-	return fmt.Sprintf("defined=%v, validated=%v, attachStarted=%v, attachFinished=%v, refSeq=%v, refTips=%v",
+	return fmt.Sprintf("defined=%v, validated=%v, attachStarted=%v, attachFinished=%v",
 		f.FlagsUp(FlagVertexDefined),
 		f.FlagsUp(FlagVertexConstraintsValid),
 		f.FlagsUp(FlagVertexTxAttachmentStarted),
 		f.FlagsUp(FlagVertexTxAttachmentFinished),
-		f.FlagsUp(FlagVertexIsReferencedFromSequencer),
-		f.FlagsUp(FlagVertexIsReferencedFromTippool),
 	)
 }
 
