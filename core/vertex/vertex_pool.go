@@ -27,9 +27,7 @@ func GetVertexArray256(size byte) []*WrappedTx {
 
 func DisposeVertexArray256(arr []*WrappedTx) {
 	util.Assertf(len(arr) < 256, "len(arr) < 256")
-	for i := range arr {
-		arr[i] = nil
-	}
+	clear(arr)
 	if len(arr) > 0 {
 		vidArrPool[byte(len(arr))].Put(arr)
 	}

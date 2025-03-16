@@ -375,7 +375,7 @@ func (a *milestoneAttacher) pokeMe(with *vertex.WrappedTx) {
 	flags := a.pastCone.Flags(with)
 	util.Assertf(a.pastCone.IsKnown(with), "must be marked known %s", with.IDShortString)
 	if !flags.FlagsUp(vertex.FlagPastConeVertexAskedForPoke) {
-		a.Tracef(TraceTagAttachMilestone, "pokeMe with %s", with.IDShortString())
+		a.Tracef(TraceTagAttachMilestone, "pokeMe with %s", with.IDShortString)
 		a.PokeMe(a.vid, with)
 		a.pastCone.SetFlagsUp(with, vertex.FlagPastConeVertexAskedForPoke)
 	}

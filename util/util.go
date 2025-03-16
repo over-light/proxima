@@ -144,33 +144,6 @@ func PurgeSlice[T any](slice []T, filter func(el T) bool) []T {
 	return ret
 }
 
-// PurgeSliceExtended filters elements on the same underlying array
-// Element remains in the array only if 'filter' function returns true
-// The elements of the array which are not covered by slice are nullified.
-// This may be important when slice contains pointers, which, in turn, may lead to hidden
-// memory leak because GC can't remove them
-// Different from PurgeSlice in the way that in addition returns all elements that were filtered out
-func PurgeSliceExtended[T any](slice []T, filter func(el T) bool) ([]T, []T) {
-	if len(slice) == 0 {
-		return slice, nil
-	}
-	ret := slice[:0]
-	retDeleted := make([]T, 0)
-	for _, el := range slice {
-		if filter(el) {
-			ret = append(ret, el)
-		} else {
-			retDeleted = append(retDeleted, el)
-		}
-	}
-	// please the GC
-	var nul T
-	for i := len(ret); i < len(slice); i++ {
-		slice[i] = nul
-	}
-	return ret, retDeleted
-}
-
 // TrimSlice trims slice on the same underlying array. Nullifies trimmed elements
 func TrimSlice[T any](slice []T, maxLen int) []T {
 	if len(slice) <= maxLen {

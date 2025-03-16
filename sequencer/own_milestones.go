@@ -130,6 +130,7 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 			delete(seq.ownMilestones, vid)
 			vid.UnReference()
 			count++
+			seq.Log().Infof("--------- deleted own milestone %s ------------", vid.IDShortString())
 		}
 	}
 

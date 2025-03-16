@@ -92,8 +92,8 @@ func (pb *PastConeBase) Dispose() {
 		return
 	}
 	pb.baseline = nil
-	maps.Clear(pb.vertices)
-	maps.Clear(pb.virtuallyConsumed)
+	clear(pb.vertices)
+	clear(pb.virtuallyConsumed)
 	_pastConePool.Put(pb)
 }
 

@@ -45,11 +45,6 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 		calculatedMetadata.Supply = util.Ref(a.baselineSupply + a.slotInflation)
 	}
 	a.Tracef(TraceTagAttachMilestone, "%s: calculated metadata: %s", a.name, calculatedMetadata.String)
-
-	//a.vid.Unwrap(vertex.UnwrapOptions{Vertex: func(v *vertex.Vertex) {
-	//	// gossip tx if needed
-	//	a.GossipAttachedTransaction(v.Tx, &calculatedMetadata)
-	//}})
 }
 
 func (a *milestoneAttacher) commitBranch() {

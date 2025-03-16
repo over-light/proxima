@@ -46,7 +46,6 @@ type (
 		memDAGAccessEnvironment
 		pullEnvironment
 		postEventEnvironment
-		//GossipAttachedTransaction(tx *transaction.Transaction, metadata *txmetadata.TransactionMetadata)
 		ParseMilestoneData(msVID *vertex.WrappedTx) *ledger.MilestoneData
 		SaveFullDAG(fname string)
 		EvidencePastConeSize(sz int)
@@ -124,7 +123,7 @@ type (
 	}
 
 	SequencerCommandParser interface {
-		// ParseSequencerCommandToOutput analyzes consumed output for sequencer command and produces
+		// ParseSequencerCommandToOutputs analyzes consumed output for sequencer command and produces
 		// one or several outputs as an effect of the command. Returns:
 		// - nil, nil if a syntactically valid sequencer command is not detected  in the inputs
 		// - nil, err if a syntactically valid command can be detected, however it contains errors
