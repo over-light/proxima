@@ -31,7 +31,7 @@ func (d *MemDAG) InfoLines(verbose ...bool) *lines.Lines {
 		vertices := d.Vertices()
 		ln.Add("---- all vertices (verbose)")
 		sort.Slice(vertices, func(i, j int) bool {
-			return ledger.LessTxID(vertices[i].ID(), vertices[j].ID())
+			return vertices[i].SlotWhenAdded < vertices[j].SlotWhenAdded
 		})
 		for _, vid := range vertices {
 			ln.Add("    %s", vid.ShortString())

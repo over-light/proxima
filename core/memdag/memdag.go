@@ -26,7 +26,6 @@ type (
 	_vertexRecord struct {
 		*vertex.WrappedTx              // strong pointer to protect against GC
 		weak.Pointer[vertex.WrappedTx] // weak pointer
-		ledger.Slot                    // slot when added
 	}
 	// MemDAG is a global map of all in-memory vertices of the transaction DAG
 	MemDAG struct {
@@ -139,10 +138,10 @@ func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	txid := vid.ID()
 	util.Assertf(d.GetVertexNoLock(txid) == nil, "d.GetVertexNoLock(vid.id())==nil")
+	vid.SlotWhenAdded = ledger.TimeNow().Slot()
 	d.vertices[txid] = _vertexRecord{
 		Pointer:   weak.Make(vid),
 		WrappedTx: vid,
-		Slot:      ledger.TimeNow().Slot(),
 	}
 }
 
@@ -160,8 +159,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 				delete(d.vertices, txid)
 				deleted++
 			} else {
-				expiredSlots := slotNow - rec.Slot
-				if rec.WrappedTx != nil && expiredSlots > vertexTTLSlots {
+				if rec.WrappedTx != nil && slotNow-rec.WrappedTx.SlotWhenAdded > vertexTTLSlots {
 					expired = append(expired, rec.WrappedTx)
 				}
 			}

@@ -26,7 +26,7 @@ func (w *Workflow) EnsureBranch(txid ledger.TransactionID, timeout ...time.Durat
 		return vid, nil
 	}
 
-	if err := w.TxFromStoreIn(&txid); err != nil {
+	if err := w.TxFromStoreIn(txid); err != nil {
 		return nil, err
 	}
 

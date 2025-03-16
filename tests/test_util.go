@@ -730,7 +730,7 @@ func (td *workflowTestData) spamTransfers(par *spammerParams, ctx context.Contex
 				workflow.WithSourceType(txmetadata.SourceTypeAPI),
 			)
 			require.NoError(td.t, err)
-			par.spammedTxIDs = append(par.spammedTxIDs, *txid)
+			par.spammedTxIDs = append(par.spammedTxIDs, txid)
 		}
 		par.numSpammedBatches++
 		if par.maxBatches != 0 && par.numSpammedBatches >= par.maxBatches {

@@ -26,7 +26,7 @@ type (
 		SendToTippool(vid *vertex.WrappedTx)
 		EvidenceBranchSlot(s ledger.Slot, healthy bool)
 		TxBytesStore() global.TxBytesStore
-		TxBytesFromStoreIn(txBytesWithMetadata []byte) (*ledger.TransactionID, error)
+		TxBytesFromStoreIn(txBytesWithMetadata []byte) (ledger.TransactionID, error)
 		AddWantedTransaction(txid ledger.TransactionID)
 	}
 

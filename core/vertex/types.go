@@ -62,8 +62,8 @@ type (
 		consumed         map[byte]set.Set[*WrappedTx]
 		attachmentDepth  int
 		references       atomic.Int32
-
-		pastCone *PastConeBase
+		SlotWhenAdded    ledger.Slot // immutable
+		pastCone         *PastConeBase
 	}
 
 	WrappedOutput struct {

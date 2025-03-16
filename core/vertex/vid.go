@@ -247,7 +247,8 @@ func (vid *WrappedTx) ShortString() string {
 			}
 		},
 	})
-	return fmt.Sprintf("%22s %10s (%s%s) %s ref = %d", vid.IDShortString(), mode, status, flagsStr, reason, vid.NumReferences())
+	return fmt.Sprintf("%22s %10s (%s%s) %s ref = %d, added %d slots back",
+		vid.IDShortString(), mode, status, flagsStr, reason, vid.NumReferences(), ledger.TimeNow().Slot()-vid.SlotWhenAdded)
 }
 
 func (vid *WrappedTx) IDShortString() string {
