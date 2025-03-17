@@ -27,7 +27,7 @@ type (
 	FlagsPastCone byte
 
 	PastCone struct {
-		global.Logging
+		global.Logging     // TODO not very necessary
 		tip                *WrappedTx
 		targetTs           ledger.Time
 		name               string
@@ -81,10 +81,12 @@ func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 		ret := r.(*PastConeBase)
 		ret.baseline = baseline
 	}
-	return &PastConeBase{
+	ret := &PastConeBase{
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
+	CheckGCPastConeBase.RegisterPointer(ret)
+	return ret
 }
 
 func (pb *PastConeBase) Dispose() {
@@ -102,12 +104,15 @@ func (pc *PastCone) DisposeAll() {
 		return
 	}
 	pc.tip = nil
+	pc.Logging = nil
 	pc.PastConeBase.Dispose()
 	pc.delta.Dispose()
 }
 
 func NewPastCone(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string) *PastCone {
-	return newPastConeFromBase(env, tip, targetTs, name, NewPastConeBase(nil))
+	ret := newPastConeFromBase(env, tip, targetTs, name, NewPastConeBase(nil))
+	CheckGCPastCone.RegisterPointer(ret)
+	return ret
 }
 
 func newPastConeFromBase(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string, pb *PastConeBase) *PastCone {
@@ -374,15 +379,6 @@ func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 			ret.Add("   %s: %+v", vid.IDShortString(), maps.Keys(consumedIndices))
 		}
 	}
-	//ret.Add("----- rooted ----")
-	//for _, wOut := range rooted {
-	//	covStr := "n/a"
-	//	o, err := wOut.VID.OutputAt(wOut.Index)
-	//	if err == nil && o != nil {
-	//		covStr = util.Th(o.Amount())
-	//	}
-	//	ret.Add("   %s: amount: %s", wOut.IDShortString(), covStr)
-	//}
 	coverage, delta := pc.CoverageAndDelta()
 	ret.Add("ledger coverage: %s, delta: %s", util.Th(coverage), util.Th(delta))
 	return ret
@@ -812,21 +808,6 @@ func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedS
 			return &wOut, false, 0
 		}
 		pc.Assertf(len(consumers) == 1, "len(consumers) == 1")
-		//if consumers[0] == nil {
-		//	// virtual consumer
-		//	allConsumersAreInTheState = false
-		//} else {
-		//	// real consumer
-		//	pc.Assertf(pc.Flags(consumers[0]).FlagsUp(FlagPastConeVertexCheckedInTheState), "pc.Flags(consumers[0]).FlagsUp(FlagPastConeVertexCheckedInTheState)")
-		//	if !pc.IsInTheState(consumers[0]) {
-		//		allConsumersAreInTheState = false
-		//		// must be in the state
-		//		if inTheState && !stateReader.HasUTXO(wOut.DecodeID()) {
-		//			return &wOut, false, 0
-		//		}
-		//		coverageDelta += vid.MustOutputAt(idx).Amount()
-		//	}
-		//}
 
 		// virtual consumer nil is never in the state
 		if !pc.IsInTheState(consumers[0]) {

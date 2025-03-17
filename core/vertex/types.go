@@ -8,6 +8,7 @@ import (
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/transaction"
+	"github.com/lunfardo314/proxima/util/checkgc"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/set"
 )
@@ -244,3 +245,15 @@ func (s *TxIDStatusJSONAble) Parse() (*TxIDStatus, error) {
 	}
 	return ret, nil
 }
+
+var CheckGCPastConeBase = checkgc.NewList[PastConeBase](func(p *PastConeBase) string {
+	return fmt.Sprintf("past cone base len1=%d, len2=%d, bl=%p", len(p.virtuallyConsumed), len(p.vertices), p.baseline)
+})
+
+var CheckGCPastCone = checkgc.NewList[PastCone](func(p *PastCone) string {
+	return fmt.Sprintf("past cone %s", p.name)
+})
+
+var CheckGCVertex = checkgc.NewList[Vertex](func(p *Vertex) string {
+	return fmt.Sprintf("vertex %s", p.Tx.IDShortString())
+})

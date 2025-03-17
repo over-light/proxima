@@ -171,7 +171,7 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	const (
 		maxSlots    = 1000
 		nSequencers = 4 // in addition to bootstrap
-		runTime     = 60 * time.Second
+		runTime     = 120 * time.Second
 	)
 	testData := initMultiSequencerTest(t, nSequencers, true)
 	//testData.env.StartTracingTags(task.TraceTagBaseProposerExit) //, sequencer.TraceTagTarget)
@@ -189,6 +189,17 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	require.True(t, success)
 
 	t.Logf("--------\n%s", testData.wrk.Info(true))
+
+	runtime.GC()
+	t.Logf("-------- 2\n%s", testData.wrk.Info(true))
+
+	//t.Logf("-------- not GCed attachers:\n%s", attacher.LinesNotGCedAttachers("      ").String())
+	//t.Logf("-------- not GCed past cone bases:\n%s", vertex.CheckGCPastConeBase.LinesNotGCed("      ").String())
+	//t.Logf("-------- not GCed past cones:\n%s", vertex.CheckGCPastCone.LinesNotGCed("      ").String())
+	//t.Logf("-------- not GCed vertices:\n%s", vertex.CheckGCVertex.LinesNotGCed("      ").String())
+	//t.Logf("-------- not GCed tasks:\n%s", task.CheckGCTask.LinesNotGCed("      ").String())
+	//t.Logf("-------- not GCed VIDs:\n%s", vertex.CheckGCVID.LinesNotGCed("      ").String())
+
 	//testData.saveFullDAG("utangle_full")
 	//multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/sequencer/backlog"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/checkgc"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 )
@@ -102,6 +103,10 @@ func allProposingStrategies() []*Strategy {
 	return ret
 }
 
+var CheckGCTask = checkgc.NewList[Task](func(p *Task) string {
+	return p.Name
+})
+
 // Run starts task with the aim to generate sequencer transaction for the target ledger time.
 // The proposer task consist of several proposers (goroutines)
 // Each proposer generates proposals and writes it to the channel of the task.
@@ -127,6 +132,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 		// proposals:    make([]*proposal, 0),
 		Name: fmt.Sprintf("%s[%s]", env.SequencerName(), targetTs.String()),
 	}
+	CheckGCTask.RegisterPointer(task)
 
 	// start proposers
 	var cancel func()

@@ -12,17 +12,21 @@ var (
 	vertexPool sync.Pool
 )
 
-func GetVertexArray256(size byte) []*WrappedTx {
+func GetVertexArray256(size byte) (ret []*WrappedTx) {
 	if size == 0 {
 		return nil
 	}
 	r := vidArrPool[size].Get()
 	if r == nil {
-		return make([]*WrappedTx, size)
+		ret = make([]*WrappedTx, size)
+	} else {
+		ret = r.([]*WrappedTx)
 	}
-	ret := r.([]*WrappedTx)
 	util.Assertf(len(ret) == int(size), "len(ret)==size")
-	return ret
+	for _, v := range ret {
+		util.Assertf(v == nil, "v==nil")
+	}
+	return
 }
 
 func DisposeVertexArray256(arr []*WrappedTx) {
@@ -45,6 +49,7 @@ func New(tx *transaction.Transaction) (ret *Vertex) {
 		Inputs:       GetVertexArray256(byte(tx.NumInputs())),
 		Endorsements: GetVertexArray256(byte(tx.NumEndorsements())),
 	}
+	CheckGCVertex.RegisterPointer(ret)
 	return
 }
 
