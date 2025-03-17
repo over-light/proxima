@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lunfardo314/proxima/core/attacher"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/sequencer"
+	"github.com/lunfardo314/proxima/sequencer/task"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/stretchr/testify/require"
@@ -190,15 +192,20 @@ func Test5SequencersIdlePruner(t *testing.T) {
 
 	t.Logf("--------\n%s", testData.wrk.Info(true))
 
+	t.Logf("-------- not GCed attachers:\n%s", attacher.LinesNotGCedAttachers("      ").String())
+	t.Logf("-------- not GCed past cone bases:\n%s", vertex.CheckGCPastConeBase.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed past cones:\n%s", vertex.CheckGCPastCone.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed vertices:\n%s", vertex.CheckGCVertex.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed tasks:\n%s", task.CheckGCTask.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed VIDs:\n%s", vertex.CheckGCVID.LinesNotGCed("      ").String())
+	t.Logf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 	runtime.GC()
-	t.Logf("-------- 2\n%s", testData.wrk.Info(true))
-
-	//t.Logf("-------- not GCed attachers:\n%s", attacher.LinesNotGCedAttachers("      ").String())
-	//t.Logf("-------- not GCed past cone bases:\n%s", vertex.CheckGCPastConeBase.LinesNotGCed("      ").String())
-	//t.Logf("-------- not GCed past cones:\n%s", vertex.CheckGCPastCone.LinesNotGCed("      ").String())
-	//t.Logf("-------- not GCed vertices:\n%s", vertex.CheckGCVertex.LinesNotGCed("      ").String())
-	//t.Logf("-------- not GCed tasks:\n%s", task.CheckGCTask.LinesNotGCed("      ").String())
-	//t.Logf("-------- not GCed VIDs:\n%s", vertex.CheckGCVID.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed attachers:\n%s", attacher.LinesNotGCedAttachers("      ").String())
+	t.Logf("-------- not GCed past cone bases:\n%s", vertex.CheckGCPastConeBase.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed past cones:\n%s", vertex.CheckGCPastCone.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed vertices:\n%s", vertex.CheckGCVertex.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed tasks:\n%s", task.CheckGCTask.LinesNotGCed("      ").String())
+	t.Logf("-------- not GCed VIDs:\n%s", vertex.CheckGCVID.LinesNotGCed("      ").String())
 
 	//testData.saveFullDAG("utangle_full")
 	//multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))

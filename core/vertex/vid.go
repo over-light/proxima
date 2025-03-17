@@ -103,6 +103,7 @@ func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
 	v.Dispose()
 	vid.pastCone.Dispose()
 	vid.pastCone = nil
+	vid.onPoke.Store(func() {})
 	vid.SetFlagsUpNoLock(FlagVertexIgnoreAbsenceOfPastCone)
 	vid.consumed = nil //<< essential for GC ???????????????????
 }

@@ -224,6 +224,8 @@ func (t *SequencerTips) NumSequencerTips() int {
 	return len(t.latestMilestones)
 }
 
+const activityTTL = 20 * time.Second
+
 // purgeAndLog removes all transactions with baseline == nil, i.e. all non-branch sequencers which are virtualTx
 func (t *SequencerTips) purgeAndLog() {
 	t.mutex.Lock()
@@ -247,8 +249,9 @@ func (t *SequencerTips) purgeAndLog() {
 				t.latestMilestones[chainID] = md
 			}
 		}
-		if md.BaselineBranch() == nil {
+		if time.Since(md.lastActivity) > activityTTL {
 			delete(t.latestMilestones, chainID)
+			md.UnReference()
 			t.Log().Infof("[tippool] chainID %s has been removed from the sequencer tippool", chainID.StringShort())
 		}
 	}
