@@ -81,7 +81,6 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 // TODO some kind of checking if it is closed after some time
 func (a *IncrementalAttacher) Close() {
 	if a != nil && !a.IsClosed() {
-		a.pastCone.DisposeAll()
 		a.pastCone = nil
 		a.closed = true
 	}

@@ -115,7 +115,7 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 
 		// virtual tx is converted into full vertex with the full transaction
 		env.Tracef(TraceTagAttach, ">>>>>>>>>>>>>>>>>>>>>>> ConvertVirtualTxToVertexNoLock: %s", tx.IDShortString())
-		vid.ConvertVirtualTxToVertexNoLock(vertex.New(tx))
+		vid.ConvertVirtualTxToVertexNoLock(vertex.NewVertex(tx))
 
 		if vid.IsSequencerMilestone() {
 			// for sequencer milestones start attacher

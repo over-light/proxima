@@ -11,6 +11,14 @@ import (
 	"github.com/lunfardo314/proxima/util/set"
 )
 
+func NewVertex(tx *transaction.Transaction) *Vertex {
+	return &Vertex{
+		Tx:           tx,
+		Inputs:       make([]*WrappedTx, tx.NumInputs()),
+		Endorsements: make([]*WrappedTx, tx.NumEndorsements()),
+	}
+}
+
 func (v *Vertex) TimeSlot() ledger.Slot {
 	return v.Tx.Slot()
 }

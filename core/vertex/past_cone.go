@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 	"sort"
-	"sync"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -74,39 +73,13 @@ func (f FlagsPastCone) String() string {
 
 // we are using sync.Pool for heap optimization
 
-var _pastConePool sync.Pool
-
 func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
-	if r := _pastConePool.Get(); r != nil {
-		ret := r.(*PastConeBase)
-		ret.baseline = baseline
-	}
 	ret := &PastConeBase{
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
 	CheckGCPastConeBase.RegisterPointer(ret)
 	return ret
-}
-
-func (pb *PastConeBase) Dispose() {
-	if pb == nil {
-		return
-	}
-	pb.baseline = nil
-	clear(pb.vertices)
-	clear(pb.virtuallyConsumed)
-	_pastConePool.Put(pb)
-}
-
-func (pc *PastCone) DisposeAll() {
-	if pc == nil {
-		return
-	}
-	pc.tip = nil
-	pc.Logging = nil
-	pc.PastConeBase.Dispose()
-	pc.delta.Dispose()
 }
 
 func NewPastCone(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string) *PastCone {
@@ -229,7 +202,6 @@ func (pc *PastCone) CommitDelta() {
 			pc.addVirtuallyConsumedOutput(WrappedOutput{VID: vid, Index: idx})
 		}
 	}
-	pc.delta.Dispose()
 	pc.delta = nil
 }
 
@@ -237,7 +209,6 @@ func (pc *PastCone) RollbackDelta() {
 	if pc.delta == nil {
 		return
 	}
-	pc.delta.Dispose()
 	pc.delta = nil
 	pc.coverageDelta = pc.savedCoverageDelta
 }

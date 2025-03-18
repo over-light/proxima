@@ -322,7 +322,7 @@ func (d *MemDAG) loadPastConeFromTxStore(txid ledger.TransactionID, txStore glob
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	util.AssertNoError(err)
 
-	v := vertex.New(tx)
+	v := vertex.NewVertex(tx)
 	for i := range v.Inputs {
 		oid := tx.MustInputAt(byte(i))
 		v.Inputs[i] = d.loadPastConeFromTxStore(oid.TransactionID(), txStore, oldestSlot)
