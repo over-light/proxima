@@ -12,7 +12,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/checkgc"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/set"
 )
@@ -32,10 +31,6 @@ func (v _virtualTx) _outputAt(idx byte) (*ledger.Output, error) {
 	return nil, nil
 }
 
-var CheckGCVID = checkgc.NewList[WrappedTx](func(p *WrappedTx) string {
-	return "WrappedTx " + p.id.StringShort()
-})
-
 func _newVID(g _genericVertex, txid ledger.TransactionID, seqID *ledger.ChainID) *WrappedTx {
 	ret := &WrappedTx{
 		id:             txid,
@@ -43,9 +38,6 @@ func _newVID(g _genericVertex, txid ledger.TransactionID, seqID *ledger.ChainID)
 	}
 	ret.SequencerID.Store(seqID)
 	ret.onPoke.Store(func() {})
-
-	CheckGCVID.RegisterPointer(ret)
-
 	return ret
 }
 

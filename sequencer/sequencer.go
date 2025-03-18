@@ -283,7 +283,6 @@ func (seq *Sequencer) sequencerLoop() {
 	seq.Log().Infof("STARTING sequencer loop")
 	defer func() {
 		seq.Log().Infof("sequencer loop STOPPING..")
-		_ = seq.Log().Sync()
 	}()
 
 	for {

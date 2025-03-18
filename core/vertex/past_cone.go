@@ -78,13 +78,11 @@ func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
-	CheckGCPastConeBase.RegisterPointer(ret)
 	return ret
 }
 
 func NewPastCone(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string) *PastCone {
 	ret := newPastConeFromBase(env, tip, targetTs, name, NewPastConeBase(nil))
-	CheckGCPastCone.RegisterPointer(ret)
 	return ret
 }
 

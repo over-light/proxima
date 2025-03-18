@@ -28,13 +28,13 @@ func (d *MemDAG) InfoLines(verbose ...bool) *lines.Lines {
 	d.mutex.RUnlock()
 
 	if len(verbose) > 0 && verbose[0] {
-		vertices := d.Vertices()
+		verticesWithFlags := d.VerticesWitExpirationFlag()
 		ln.Add("---- all vertices (verbose)")
-		sort.Slice(vertices, func(i, j int) bool {
-			return vertices[i].SlotWhenAdded < vertices[j].SlotWhenAdded
+		vertices := util.KeysSorted(verticesWithFlags, func(vid1, vid2 *vertex.WrappedTx) bool {
+			return vid1.SlotWhenAdded < vid2.SlotWhenAdded
 		})
 		for _, vid := range vertices {
-			ln.Add("    %s", vid.ShortString())
+			ln.Add("    %s -- expired: %v", vid.ShortString(), verticesWithFlags[vid])
 		}
 
 		ln.Add("---- cached state readers (verbose)")

@@ -12,6 +12,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/checkgc"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/maps"
 )
@@ -107,6 +108,10 @@ func init() {
 	util.Assertf(vertexTTLSlots >= _vertexTTLSlotsMinimum, "constant vertexTTLSlots must be at least %d", _vertexTTLSlotsMinimum)
 }
 
+var TrackedVertices = checkgc.NewList[vertex.WrappedTx](func(p *vertex.WrappedTx) string {
+	return p.IDShortString()
+})
+
 func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -142,6 +147,9 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	d.vertices[txid] = _vertexRecord{
 		Pointer:   weak.Make(vid),
 		WrappedTx: vid,
+	}
+	if vid.Slot() <= 1 {
+		TrackedVertices.TrackPointer(vid, vid.IDShortString())
 	}
 }
 
@@ -382,6 +390,19 @@ func (d *MemDAG) Vertices() []*vertex.WrappedTx {
 	for _, weakp := range d.vertices {
 		if strongP := weakp.Value(); strongP != nil {
 			ret = append(ret, strongP)
+		}
+	}
+	return ret
+}
+
+func (d *MemDAG) VerticesWitExpirationFlag() map[*vertex.WrappedTx]bool {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	ret := make(map[*vertex.WrappedTx]bool, len(d.vertices))
+	for _, weakp := range d.vertices {
+		if strongP := weakp.Value(); strongP != nil {
+			ret[strongP] = weakp.WrappedTx == nil
 		}
 	}
 	return ret

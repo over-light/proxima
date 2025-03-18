@@ -9,19 +9,10 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/checkgc"
 	"github.com/lunfardo314/proxima/util/lazyargs"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/unitrie/common"
 )
-
-var checkGCPool = checkgc.NewList[attacher](func(p *attacher) string {
-	return p.name
-})
-
-func LinesNotGCedAttachers(prefix ...string) *lines.Lines {
-	return checkGCPool.LinesNotGCed(prefix...)
-}
 
 func newPastConeAttacher(env Environment, tip *vertex.WrappedTx, targetTs ledger.Time, name string) attacher {
 	ret := attacher{
@@ -30,7 +21,6 @@ func newPastConeAttacher(env Environment, tip *vertex.WrappedTx, targetTs ledger
 		pokeMe:      func(_ *vertex.WrappedTx) {},
 		pastCone:    vertex.NewPastCone(env, tip, targetTs, name),
 	}
-	checkGCPool.RegisterPointer(&ret)
 	return ret
 }
 

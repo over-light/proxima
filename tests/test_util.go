@@ -109,11 +109,12 @@ func (p *workflowDummyEnvironment) SubmitTxBytesFromAPI(txBytes []byte) {
 }
 
 func newWorkflowDummyEnvironment(stateStore multistate.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {
-	return &workflowDummyEnvironment{
+	ret := &workflowDummyEnvironment{
 		Global:       global.NewDefault(false),
 		stateStore:   stateStore,
 		txBytesStore: txStore,
 	}
+	return ret
 }
 
 type workflowTestData struct {
