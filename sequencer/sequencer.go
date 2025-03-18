@@ -492,7 +492,7 @@ func (seq *Sequencer) waitMilestoneInTippool(txid ledger.TransactionID, deadline
 	for {
 		select {
 		case <-seq.Ctx().Done():
-			return nil, fmt.Errorf("waitMilestoneInTippool: %s has been cancelled", txid.ShortID())
+			return nil, fmt.Errorf("waitMilestoneInTippool: %s has been cancelled", txid.StringShort())
 		case <-time.After(10 * time.Millisecond):
 			if time.Now().After(deadline) {
 				return nil, fmt.Errorf("waitMilestoneInTippool: deadline has been missed while waiting for %s in the tippool", txid.StringShort())

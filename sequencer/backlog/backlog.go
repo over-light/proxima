@@ -218,6 +218,8 @@ func (b *TagAlongBacklog) purgeBacklog() int {
 			del = whenAdded.Before(horizonTagAlong)
 		case ledger.DelegationLockName:
 			del = whenAdded.Before(horizonDelegation)
+		default:
+			b.Log().Fatalf("unexpected type of the lock in backlog: '%s'", wOut.LockName())
 		}
 		if del {
 			delete(b.outputs, wOut)

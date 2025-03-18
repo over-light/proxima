@@ -137,10 +137,11 @@ func PurgeSlice[T any](slice []T, filter func(el T) bool) []T {
 		}
 	}
 	// please the GC
-	var nul T
-	for i := len(ret); i < len(slice); i++ {
-		slice[i] = nul
-	}
+	clear(slice[len(ret):])
+	//var nul T
+	//for i := len(ret); i < len(slice); i++ {
+	//	slice[i] = nul
+	//}
 	return ret
 }
 
@@ -150,10 +151,11 @@ func TrimSlice[T any](slice []T, maxLen int) []T {
 		return slice
 	}
 	ret := slice[:maxLen]
-	var nul T
-	for i := maxLen; i < len(slice); i++ {
-		slice[i] = nul
-	}
+	clear(slice[maxLen:])
+	//var nul T
+	//for i := maxLen; i < len(slice); i++ {
+	//	slice[i] = nul
+	//}
 	return ret
 }
 func EqualSlices[T comparable](s1, s2 []T) bool {

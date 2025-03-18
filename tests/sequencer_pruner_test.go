@@ -178,7 +178,7 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	testData := initMultiSequencerTest(t, nSequencers, true)
 	//testData.env.StartTracingTags(task.TraceTagBaseProposerExit) //, sequencer.TraceTagTarget)
 
-	testData.env.RepeatInBackground("GC", 3*time.Second, func() bool {
+	testData.env.RepeatInBackground("test GC loop", 3*time.Second, func() bool {
 		runtime.GC()
 		return true
 	})

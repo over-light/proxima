@@ -33,7 +33,7 @@ type (
 		latestMilestones                map[ledger.ChainID]_activeMilestoneData
 		expectedSequencerActivityPeriod time.Duration
 		latestMilestoneAddedWhen        time.Time
-		latestSequencerData             map[ledger.ChainID]LatestSequencerTipData // never purged
+		latestSequencerData             map[ledger.ChainID]LatestSequencerTipData
 	}
 
 	_activeMilestoneData struct {

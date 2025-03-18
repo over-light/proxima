@@ -117,7 +117,7 @@ func (d *Poker) periodicCleanup() {
 		}
 	}
 	if count > 0 {
-		d.Infof1("[poker] purged %d entries, remain %d", count, len(d.m))
+		d.Infof0("[poker] purged %d entries, remain %d", count, len(d.m))
 	}
 	//d.Tracef(TraceTag, "wanted list size: %d", len(d.m))
 }
