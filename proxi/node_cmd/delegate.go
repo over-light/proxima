@@ -133,7 +133,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	delegationOid, err := ledger.NewOutputID(&txid, delegationOutputIdx)
+	delegationOid, err := ledger.NewOutputID(txid, delegationOutputIdx)
 	glb.AssertNoError(err)
 
 	delegationID := ledger.MakeOriginChainID(&delegationOid)

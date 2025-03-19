@@ -53,7 +53,7 @@ func (seq *Sequencer) IsConsumedInThePastPath(wOut vertex.WrappedOutput, ms *ver
 	seq.ownMilestonesMutex.RLock()
 	defer seq.ownMilestonesMutex.RUnlock()
 
-	return seq.ownMilestones[ms].consumed.Contains(wOut)
+	return seq.ownMilestones[ms].consumed.Contains(wOut.DecodeID())
 }
 
 func (seq *Sequencer) OwnLatestMilestoneOutput() vertex.WrappedOutput {
@@ -85,7 +85,7 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 	}
 
 	withTime := outputsWithTime{
-		consumed: set.New[vertex.WrappedOutput](),
+		consumed: set.New[ledger.OutputID](),
 		since:    time.Now(),
 	}
 	if vid.IsSequencerMilestone() {
@@ -100,16 +100,10 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 		}
 		vid.Unwrap(vertex.UnwrapOptions{Vertex: func(v *vertex.Vertex) {
 			v.ForEachInputDependency(func(i byte, vidInput *vertex.WrappedTx) bool {
-				withTime.consumed.Insert(vertex.WrappedOutput{
-					VID:   vidInput,
-					Index: v.Tx.MustOutputIndexOfTheInput(i),
-				})
+				withTime.consumed.Insert(ledger.MustNewOutputID(vidInput.ID(), v.Tx.MustOutputIndexOfTheInput(i)))
 				return true
 			})
 		}})
-		for wOut := range withTime.consumed {
-			wOut.VID.Reference()
-		}
 	}
 	vid.Reference()
 	seq.ownMilestones[vid] = withTime
@@ -124,9 +118,6 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 	count := 0
 	for vid, withTime := range seq.ownMilestones {
 		if withTime.since.Before(horizon) {
-			for out := range withTime.consumed {
-				out.VID.UnReference()
-			}
 			delete(seq.ownMilestones, vid)
 			vid.UnReference()
 			count++

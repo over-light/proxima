@@ -705,7 +705,7 @@ func (tx *Transaction) SequencerAndStemOutputIndices() (byte, byte) {
 }
 
 func (tx *Transaction) OutputID(idx byte) ledger.OutputID {
-	return ledger.MustNewOutputID(tx.IDRef(), idx)
+	return ledger.MustNewOutputID(tx.ID(), idx)
 }
 
 func (tx *Transaction) InflationAmount() uint64 {

@@ -61,7 +61,7 @@ func (w *workflowDummyEnvironment) GetOwnSequencerID() *ledger.ChainID {
 	panic("not implemented")
 }
 
-func (w *workflowDummyEnvironment) SnapshotBranchID() *ledger.TransactionID {
+func (w *workflowDummyEnvironment) SnapshotBranchID() ledger.TransactionID {
 	return ledger.GenesisTransactionID()
 }
 

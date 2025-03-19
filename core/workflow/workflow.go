@@ -33,7 +33,7 @@ type (
 		GetOwnSequencerID() *ledger.ChainID
 		EvidencePastConeSize(sz int)
 		EvidenceNumberOfTxDependencies(n int)
-		SnapshotBranchID() *ledger.TransactionID
+		SnapshotBranchID() ledger.TransactionID
 		DurationSinceLastMessageFromPeer() time.Duration
 		SelfPeerID() peer.ID
 	}

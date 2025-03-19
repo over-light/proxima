@@ -440,9 +440,8 @@ func GenesisTransactionIDShort() (ret TransactionIDShort) {
 }
 
 // GenesisTransactionID independent on any ledger constants
-func GenesisTransactionID() *TransactionID {
-	ret := NewTransactionID(Time{}, GenesisTransactionIDShort(), true)
-	return &ret
+func GenesisTransactionID() TransactionID {
+	return NewTransactionID(Time{}, GenesisTransactionIDShort(), true)
 }
 
 // GenesisOutputID independent on ledger constants, except GenesisOutputIndex which is byte(0)

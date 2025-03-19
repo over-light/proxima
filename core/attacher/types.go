@@ -49,7 +49,7 @@ type (
 		ParseMilestoneData(msVID *vertex.WrappedTx) *ledger.MilestoneData
 		SaveFullDAG(fname string)
 		EvidencePastConeSize(sz int)
-		SnapshotBranchID() *ledger.TransactionID
+		SnapshotBranchID() ledger.TransactionID
 		DurationSinceLastMessageFromPeer() time.Duration
 	}
 

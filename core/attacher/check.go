@@ -13,7 +13,8 @@ func (a *milestoneAttacher) checkConsistencyBeforeWrapUp() (err error) {
 	if a.vid.GetTxStatus() == vertex.Bad {
 		return fmt.Errorf("checkConsistencyBeforeWrapUp: vertex %s is BAD", a.vid.IDShortString())
 	}
-	if a.SnapshotBranchID().Timestamp().AfterOrEqual(a.vid.Timestamp()) {
+	brid := a.SnapshotBranchID()
+	if brid.Timestamp().AfterOrEqual(a.vid.Timestamp()) {
 		// attacher is before the snapshot -> no need to check inputs, it must be in the state anyway
 		return nil
 	}

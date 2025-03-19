@@ -102,7 +102,7 @@ const TraceTagSolidifySequencerBaseline = "seqBase"
 // _getSnapshotBranch returns vertex for the snapshot branch. It always exists, because it is fetched from the
 // root record
 func (a *attacher) _getSnapshotBranch() *vertex.WrappedTx {
-	ret := AttachTxID(*a.SnapshotBranchID(), a, WithInvokedBy(a.name))
+	ret := AttachTxID(a.SnapshotBranchID(), a, WithInvokedBy(a.name))
 	a.Assertf(ret.GetTxStatus() == vertex.Good, "_getSnapshotBranch: inconsistency")
 	return ret
 }
@@ -111,7 +111,8 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
 	defer a.Tracef(TraceTagSolidifySequencerBaseline, "OUT for %s", v.Tx.IDShortString)
 
-	if a.SnapshotBranchID().Timestamp().AfterOrEqual(vidUnwrapped.Timestamp()) {
+	brid := a.SnapshotBranchID()
+	if brid.Timestamp().AfterOrEqual(vidUnwrapped.Timestamp()) {
 		// If attacher is before the snapshot, baseline needs special treatment
 		// Set baseline equal to the snapshot branch
 		v.BaselineBranch = a._getSnapshotBranch()
@@ -549,15 +550,15 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, currentTS ledger.T
 	a.baseline = baselineVID
 	a.baselineSupply = rr.Supply
 
-	snapTs := a.SnapshotBranchID().Timestamp()
-	if currentTS.After(snapTs) {
+	brid := a.SnapshotBranchID()
+	if currentTS.After(brid.Timestamp()) {
 		if currentTS.IsSlotBoundary() {
 			a.Assertf(baselineVID.Slot() < currentTS.Slot(), "baselineVID.Slot() < currentTS.Slot()")
 		} else {
 			a.Assertf(baselineVID.Slot() == currentTS.Slot(), "baselineVID.Slot() == currentTS.Slot()")
 		}
 	} else {
-		a.Assertf(baselineVID.Timestamp() == snapTs, "baselineVID.Timestamp()==snapTs")
+		a.Assertf(baselineVID.Timestamp() == brid.Timestamp(), "baselineVID.Timestamp()==snapTs")
 	}
 	return true
 }

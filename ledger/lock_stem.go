@@ -67,7 +67,7 @@ func addStemLockConstraint(lib *Library) {
 
 func initTestStemLockConstraint() {
 	txid := RandomTransactionID(true)
-	predID := MustNewOutputID(&txid, byte(txid.NumProducedOutputs()-1))
+	predID := MustNewOutputID(txid, byte(txid.NumProducedOutputs()-1))
 	example := StemLock{
 		PredecessorOutputID: predID,
 		VRFProof:            []byte{0x01, 0x02, 0x03},

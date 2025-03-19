@@ -73,7 +73,7 @@ type (
 	}
 
 	outputsWithTime struct {
-		consumed set.Set[vertex.WrappedOutput]
+		consumed set.Set[ledger.OutputID]
 		since    time.Time
 	}
 

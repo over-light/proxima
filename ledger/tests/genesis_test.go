@@ -46,7 +46,7 @@ func TestInitOrigin(t *testing.T) {
 	require.True(t, ledger.CommitmentModel.EqualCommitments(genesisRoot, branchData.Root))
 
 	snapshotBranchID := multistate.FetchSnapshotBranchID(store)
-	require.EqualValues(t, *ledger.GenesisTransactionID(), snapshotBranchID)
+	require.EqualValues(t, ledger.GenesisTransactionID(), snapshotBranchID)
 
 	rdr := multistate.MustNewSugaredReadableState(store, genesisRoot)
 

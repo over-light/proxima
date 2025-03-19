@@ -9,7 +9,7 @@ import (
 
 func (o *WrappedOutput) DecodeID() (ret ledger.OutputID) {
 	if o.VID == nil {
-		ret = ledger.MustNewOutputID(&ledger.TransactionID{}, o.Index)
+		ret = ledger.MustNewOutputID(ledger.TransactionID{}, o.Index)
 	} else {
 		ret = o.VID.OutputID(o.Index)
 	}

@@ -284,7 +284,7 @@ func (vid *WrappedTx) OutputWithIDAt(idx byte) (ledger.OutputWithID, error) {
 		return ledger.OutputWithID{}, err
 	}
 	return ledger.OutputWithID{
-		ID:     ledger.MustNewOutputID(&vid.id, idx),
+		ID:     ledger.MustNewOutputID(vid.id, idx),
 		Output: ret,
 	}, nil
 }
@@ -381,7 +381,7 @@ func (vid *WrappedTx) FindChainOutput(chainID *ledger.ChainID) (ret *ledger.Outp
 			ret = v.Tx.FindChainOutput(*chainID)
 		},
 		VirtualTx: func(v *VirtualTransaction) {
-			ret = v.findChainOutput(&vid.id, chainID)
+			ret = v.findChainOutput(vid.id, chainID)
 		},
 	})
 	return
@@ -435,7 +435,7 @@ func (vid *WrappedTx) _ofKindString() (ret string) {
 }
 
 func (vid *WrappedTx) OutputID(idx byte) (ret ledger.OutputID) {
-	ret = ledger.MustNewOutputID(&vid.id, idx)
+	ret = ledger.MustNewOutputID(vid.id, idx)
 	return
 }
 

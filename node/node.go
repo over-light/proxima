@@ -330,8 +330,8 @@ func (p *ProximaNode) EvidenceNumberOfTxDependencies(n int) {
 	p.counterTxDependencies.Add(float64(n))
 }
 
-func (p *ProximaNode) SnapshotBranchID() *ledger.TransactionID {
-	return &p.snapshotBranchID
+func (p *ProximaNode) SnapshotBranchID() ledger.TransactionID {
+	return p.snapshotBranchID
 }
 
 func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {

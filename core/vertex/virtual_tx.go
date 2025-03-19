@@ -40,7 +40,7 @@ func (v *Vertex) toDetachedVertex() *DetachedVertex {
 }
 
 func (v *VirtualTransaction) wrapWithID(txid ledger.TransactionID) *WrappedTx {
-	return _newVID(_virtualTx{VirtualTransaction: v}, txid, v.sequencerID(&txid))
+	return _newVID(_virtualTx{VirtualTransaction: v}, txid, v.sequencerID(txid))
 }
 
 // WrapBranchDataAsVirtualTx branch vertex immediately becomes 'good'
@@ -119,7 +119,7 @@ func (v *VirtualTransaction) SequencerOutputs() (*ledger.Output, *ledger.Output)
 }
 
 // sequencerID returns nil if not available
-func (v *VirtualTransaction) sequencerID(txid *ledger.TransactionID) (ret *ledger.ChainID) {
+func (v *VirtualTransaction) sequencerID(txid ledger.TransactionID) (ret *ledger.ChainID) {
 	if v.sequencerOutputIndices != nil {
 		seqOData, ok := v.outputs[v.sequencerOutputIndices[0]].SequencerOutputData()
 		util.Assertf(ok, "sequencer output data unavailable for the output #%d", v.sequencerOutputIndices[0])
@@ -163,7 +163,7 @@ func (v *VirtualTransaction) PullNeeded() bool {
 	return v.pullRulesDefined && v.needsPull && v.nextPull.Before(time.Now())
 }
 
-func (v *VirtualTransaction) findChainOutput(txid *ledger.TransactionID, chainID *ledger.ChainID) *ledger.OutputWithID {
+func (v *VirtualTransaction) findChainOutput(txid ledger.TransactionID, chainID *ledger.ChainID) *ledger.OutputWithID {
 	v.mutex.RLock()
 	defer v.mutex.RUnlock()
 

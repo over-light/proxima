@@ -235,7 +235,7 @@ func TooCloseOnTimeAxis(txid1, txid2 TransactionID) bool {
 	return !ValidTransactionPace(txid1.Timestamp(), txid2.Timestamp()) && txid1 != txid2
 }
 
-func NewOutputID(id *TransactionID, idx byte) (ret OutputID, err error) {
+func NewOutputID(id TransactionID, idx byte) (ret OutputID, err error) {
 	if int(idx) > id.NumProducedOutputs() {
 		return OutputID{}, fmt.Errorf("wrong output index")
 	}
@@ -244,7 +244,7 @@ func NewOutputID(id *TransactionID, idx byte) (ret OutputID, err error) {
 	return
 }
 
-func MustNewOutputID(id *TransactionID, idx byte) OutputID {
+func MustNewOutputID(id TransactionID, idx byte) OutputID {
 	ret, err := NewOutputID(id, idx)
 	util.AssertNoError(err)
 	return ret

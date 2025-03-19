@@ -17,7 +17,7 @@ type TxContext struct {
 	tree        *lazybytes.Tree
 	traceOption int
 	// calculated and cached values
-	txid            *ledger.TransactionID
+	txid            ledger.TransactionID
 	sender          ledger.AddressED25519
 	inflationAmount uint64
 	// EasyFL constraint validation context
@@ -37,7 +37,7 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 		tree:            nil,
 		traceOption:     TraceOptionNone,
 		dataContext:     nil,
-		txid:            tx.IDRef(),
+		txid:            tx.ID(),
 		sender:          tx.SenderAddress(),
 		inflationAmount: tx.InflationAmount(),
 	}
@@ -114,7 +114,7 @@ func (ctx *TxContext) TransactionBytes() []byte {
 	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch))
 }
 
-func (ctx *TxContext) TransactionID() *ledger.TransactionID {
+func (ctx *TxContext) TransactionID() ledger.TransactionID {
 	return ctx.txid
 }
 
