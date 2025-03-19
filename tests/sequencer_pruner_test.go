@@ -54,6 +54,7 @@ func Test1SequencerPruner(t *testing.T) {
 
 		require.EqualValues(t, maxSlots, int(countBr.Load()))
 		t.Logf("%s", testData.wrk.Info(true))
+		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
 		//testData.saveFullDAG("full_dag")
 	})
 	t.Run("tag along transfers", func(t *testing.T) {

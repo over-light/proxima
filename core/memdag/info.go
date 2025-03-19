@@ -54,6 +54,28 @@ func (d *MemDAG) InfoLines(verbose ...bool) *lines.Lines {
 	return ln
 }
 
+func (d *MemDAG) InfoRefLines(prefix ...string) *lines.Lines {
+	ln := lines.New(prefix...)
+	vert := d.Vertices()
+	sort.Slice(vert, func(i, j int) bool {
+		return vert[i].Timestamp().Before(vert[j].Timestamp())
+	})
+	for _, vid := range vert {
+		past := vid.FindPastReferencesSuchAs(func(vid *vertex.WrappedTx) bool {
+			return true // vid.Slot() <= 1
+		})
+		if len(past) == 0 {
+			ln.Add(" %s -> no past references", vid.IDShortString())
+		} else {
+			ln.Add(" %s -> %d past references", vid.IDShortString(), len(past))
+			for _, ref := range past {
+				ln.Add("    --> %s", ref.ShortString())
+			}
+		}
+	}
+	return ln
+}
+
 func (d *MemDAG) VerticesInSlotAndAfter(slot ledger.Slot) []*vertex.WrappedTx {
 	ret := d.VerticesFiltered(func(txid ledger.TransactionID) bool {
 		return txid.Slot() >= slot

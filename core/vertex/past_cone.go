@@ -868,3 +868,24 @@ func (pc *PastCone) NumVertices() int {
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 	return len(pc.vertices)
 }
+
+func (pc *PastConeBase) FindAllSuchAs(filter func(vid *WrappedTx) bool) (ret []*WrappedTx) {
+	ret = make([]*WrappedTx, 0)
+	if pc == nil {
+		return
+	}
+	if filter(pc.baseline) {
+		ret = append(ret, pc.baseline)
+	}
+	for vid := range pc.vertices {
+		if filter(vid) {
+			ret = append(ret, pc.baseline)
+		}
+	}
+	for vid := range pc.virtuallyConsumed {
+		if filter(vid) {
+			ret = append(ret, pc.baseline)
+		}
+	}
+	return
+}

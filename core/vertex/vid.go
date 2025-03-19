@@ -963,3 +963,25 @@ func (vid *WrappedTx) GetTransaction() (tx *transaction.Transaction) {
 	})
 	return
 }
+
+func (vid *WrappedTx) FindPastReferencesSuchAs(filter func(vid *WrappedTx) bool) (ret []*WrappedTx) {
+	if vid == nil {
+		return nil
+	}
+	vid.RUnwrap(UnwrapOptions{Vertex: func(v *Vertex) {
+		ret = vid.pastCone.FindAllSuchAs(filter)
+		v.ForEachInputDependency(func(_ byte, vidInput *WrappedTx) bool {
+			if filter(vidInput) {
+				ret = append(ret, vid)
+			}
+			return true
+		})
+		v.ForEachEndorsement(func(_ byte, vid *WrappedTx) bool {
+			if filter(vid) {
+				ret = append(ret, vid)
+			}
+			return true
+		})
+	}})
+	return
+}
