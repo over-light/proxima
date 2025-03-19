@@ -37,7 +37,7 @@ func _newVID(g _genericVertex, txid ledger.TransactionID, seqID *ledger.ChainID)
 		_genericVertex: g,
 	}
 	ret.SequencerID.Store(seqID)
-	ret.onPoke.Store(func() {})
+	ret.OnPokeNop()
 	return ret
 }
 
@@ -93,7 +93,7 @@ func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
 	vid._put(_detachedVertex{v.toDetachedVertex()})
 	v.UnReferenceDependencies()
 	vid.pastCone = nil
-	vid.onPoke.Store(func() {})
+	vid.OnPokeNop()
 	vid.SetFlagsUpNoLock(FlagVertexIgnoreAbsenceOfPastCone)
 	vid.consumed = nil //<< essential for GC ???????????????????
 }
@@ -200,11 +200,18 @@ func (vid *WrappedTx) IsBad() bool {
 }
 
 func (vid *WrappedTx) OnPoke(fun func()) {
-	if fun == nil {
-		vid.onPoke.Store(func() {})
-	} else {
-		vid.onPoke.Store(fun)
-	}
+	vid.onPoke.Store(fun)
+	//if fun == nil {
+	//	vid.onPoke.Store(func() {})
+	//} else {
+	//	vid.onPoke.Store(fun)
+	//}
+}
+
+var _nopFun = func() {}
+
+func (vid *WrappedTx) OnPokeNop() {
+	vid.onPoke.Store(_nopFun)
 }
 
 func (vid *WrappedTx) Poke() {
@@ -246,8 +253,9 @@ func (vid *WrappedTx) ShortString() string {
 			}
 		},
 	})
-	return fmt.Sprintf("%22s %10s (%s%s) %s ref = %d, added %d slots back",
-		vid.IDShortString(), mode, status, flagsStr, reason, vid.NumReferences(), ledger.TimeNow().Slot()-vid.SlotWhenAdded)
+	return fmt.Sprintf("%22s %10s (%s%s) %s ref = %d, onPoke = %p, added %d slots back",
+		vid.IDShortString(), mode, status, flagsStr, reason, vid.NumReferences(),
+		vid.onPoke.Load(), ledger.TimeNow().Slot()-vid.SlotWhenAdded)
 }
 
 func (vid *WrappedTx) IDShortString() string {

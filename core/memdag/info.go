@@ -65,9 +65,9 @@ func (d *MemDAG) InfoRefLines(prefix ...string) *lines.Lines {
 			return true // vid.Slot() <= 1
 		})
 		if len(past) == 0 {
-			ln.Add(" %s -> no past references", vid.IDShortString())
+			ln.Add(" %s -> no past references", vid.ShortString())
 		} else {
-			ln.Add(" %s -> %d past references", vid.IDShortString(), len(past))
+			ln.Add(" %s -> %d past references", vid.ShortString(), len(past))
 			for _, ref := range past {
 				ln.Add("    --> %s", ref.ShortString())
 			}
