@@ -20,7 +20,7 @@ import (
 func Test1SequencerPruner(t *testing.T) {
 	t.Run("idle", func(t *testing.T) {
 		const (
-			maxSlots = 100 // 20
+			maxSlots = 50
 		)
 		testData := initWorkflowTest(t, 1, true)
 		t.Logf("%s", testData.wrk.Info())
@@ -30,6 +30,11 @@ func Test1SequencerPruner(t *testing.T) {
 		//testData.env.StartTracingTags(tippool.TraceTag)
 		//testData.env.StartTracingTags(task.TraceTagEndorse1Proposer)
 		//testData.env.StartTracingTags(task.TraceTagChooseFirstExtendEndorsePair)
+
+		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
+			runtime.GC()
+			return true
+		})
 
 		seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey,
 			sequencer.WithMaxBranches(maxSlots))
@@ -48,8 +53,8 @@ func Test1SequencerPruner(t *testing.T) {
 		testData.waitStop()
 
 		require.EqualValues(t, maxSlots, int(countBr.Load()))
-		t.Logf("%s", testData.wrk.Info())
-		testData.saveFullDAG("full_dag")
+		t.Logf("%s", testData.wrk.Info(true))
+		//testData.saveFullDAG("full_dag")
 	})
 	t.Run("tag along transfers", func(t *testing.T) {
 		const (

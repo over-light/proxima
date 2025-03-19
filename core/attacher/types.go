@@ -18,7 +18,7 @@ import (
 type (
 	memDAGAccessEnvironment interface {
 		WithGlobalWriteLock(fun func())
-		GetVertexNoLock(txid ledger.TransactionID) *vertex.WrappedTx
+		GetVertexNoLock(txid ledger.TransactionID, caller string) *vertex.WrappedTx
 		AddVertexNoLock(vid *vertex.WrappedTx)
 		StateStore() multistate.StateStore
 		GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate.IndexedStateReader

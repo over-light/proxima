@@ -95,7 +95,7 @@ func TestAttachBasic(t *testing.T) {
 		t.Logf("genesis branch txid: %s", vidDistrib.IDShortString())
 		t.Logf("%s", wrk.Info())
 
-		distribVID := wrk.GetVertex(vidDistrib.ID())
+		distribVID := wrk.GetVertex(vidDistrib.ID(), "test with distribution")
 		require.True(t, distribVID != nil)
 
 		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID()))
@@ -236,7 +236,7 @@ func TestAttachBasic(t *testing.T) {
 		env.Stop()
 		env.WaitAllWorkProcessesStop()
 
-		distribVID := wrk.GetVertex(vidDistrib.ID())
+		distribVID := wrk.GetVertex(vidDistrib.ID(), "test with distribution tx")
 		require.True(t, distribVID != nil)
 		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID()))
 		stemOut := rdr.GetStemOutput()

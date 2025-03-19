@@ -119,18 +119,21 @@ func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 	fun()
 }
 
-func (d *MemDAG) GetVertexNoLock(txid ledger.TransactionID) *vertex.WrappedTx {
+func (d *MemDAG) GetVertexNoLock(txid ledger.TransactionID, caller string) *vertex.WrappedTx {
 	if rec, found := d.vertices[txid]; found {
+		if txid.Slot() <= 1 {
+			d.Log().Infof(">>>>>>>>>>>>> GetVertexNoLock %s, caller = %s", txid.StringShort(), caller)
+		}
 		return rec.Value()
 	}
 	return nil
 }
 
-func (d *MemDAG) GetVertex(txid ledger.TransactionID) *vertex.WrappedTx {
+func (d *MemDAG) GetVertex(txid ledger.TransactionID, caller string) *vertex.WrappedTx {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	return d.GetVertexNoLock(txid)
+	return d.GetVertexNoLock(txid, caller)
 }
 
 func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
@@ -142,7 +145,7 @@ func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
 
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	txid := vid.ID()
-	util.Assertf(d.GetVertexNoLock(txid) == nil, "d.GetVertexNoLock(vid.id())==nil")
+	util.Assertf(d.GetVertexNoLock(txid, "AddVertexNoLock") == nil, "d.GetVertexNoLock(vid.id())==nil")
 	vid.SlotWhenAdded = ledger.TimeNow().Slot()
 	d.vertices[txid] = _vertexRecord{
 		Pointer:   weak.Make(vid),
@@ -252,7 +255,7 @@ func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) multi
 }
 
 func (d *MemDAG) GetStemWrappedOutput(branch ledger.TransactionID) (ret vertex.WrappedOutput) {
-	if vid := d.GetVertex(branch); vid != nil {
+	if vid := d.GetVertex(branch, "GetStemWrappedOutput"); vid != nil {
 		ret = vid.StemWrappedOutput()
 	}
 	return
@@ -263,7 +266,7 @@ func (d *MemDAG) HeaviestStateForLatestTimeSlotWithBaseline() (multistate.Sugare
 	util.Assertf(len(branchRecords) > 0, "len(branchRecords)>0")
 
 	return multistate.MakeSugared(multistate.MustNewReadable(d.StateStore(), branchRecords[0].Root, 0)),
-		d.GetVertex(branchRecords[0].TxID())
+		d.GetVertex(branchRecords[0].TxID(), "HeaviestStateForLatestTimeSlotWithBaseline")
 }
 
 func (d *MemDAG) LatestReliableState() (multistate.SugaredStateReader, error) {

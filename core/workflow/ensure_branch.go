@@ -21,7 +21,7 @@ func (w *Workflow) EnsureBranch(txid ledger.TransactionID, timeout ...time.Durat
 
 	deadline := time.Now().Add(to)
 
-	vid := attacher.AttachTxID(txid, w)
+	vid := attacher.AttachTxID(txid, w, attacher.WithInvokedBy("EnsureBranch"))
 	if vid.GetTxStatus() == vertex.Good {
 		return vid, nil
 	}

@@ -37,7 +37,7 @@ func (seq *Sequencer) FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOu
 		case !vid.IsSequencerMilestone():
 			continue
 		case !visited.Contains(vid.SequencerPredecessor(func(txid ledger.TransactionID) *vertex.WrappedTx {
-			return attacher.AttachTxID(txid, seq)
+			return attacher.AttachTxID(txid, seq, attacher.WithInvokedBy("FutureConeOwnMilestonesOrdered"))
 		})):
 			continue
 		case !ledger.ValidTransactionPace(vid.Timestamp(), targetTs):
@@ -91,7 +91,7 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 	if vid.IsSequencerMilestone() {
 		// it can be non-sequencer milestone at the origin
 		prev := vid.SequencerPredecessor(func(txid ledger.TransactionID) *vertex.WrappedTx {
-			return attacher.AttachTxID(txid, seq)
+			return attacher.AttachTxID(txid, seq, attacher.WithInvokedBy("AddOwnMilestone"))
 		})
 		if prev != nil {
 			if prevConsumed, found := seq.ownMilestones[prev]; found {
@@ -121,7 +121,7 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 			delete(seq.ownMilestones, vid)
 			vid.UnReference()
 			count++
-			seq.Log().Infof("--------- deleted own milestone %s ------------", vid.IDShortString())
+			seq.Log().Infof("--------- deleted own milestone %s, outputs from past cone %d ------------", vid.IDShortString(), len(withTime.consumed))
 		}
 	}
 
