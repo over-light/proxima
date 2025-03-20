@@ -151,9 +151,6 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 		Pointer:   weak.Make(vid),
 		WrappedTx: vid,
 	}
-	if vid.Slot() <= 1 {
-		TrackedVertices.TrackPointerGCed(vid, vid.IDShortString())
-	}
 }
 
 // doGC traverses all known transaction IDs and:
@@ -180,6 +177,12 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
 		if vid.NumReferences() == 0 {
 			vid.DetachPastCone()
+			{ // debug
+				TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second, true)
+				//if vid.Slot() <= 1 {
+				//	TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second)
+				//}
+			}
 			return true
 		}
 		return false

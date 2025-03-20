@@ -93,11 +93,12 @@ func (gcp *List[T]) TrackPointerGCed(p *T, msg string) {
 	}()
 }
 
-func (gcp *List[T]) TrackPointerNotGCed(p *T, msg string, timeout time.Duration) {
+func (gcp *List[T]) TrackPointerNotGCed(p *T, msg string, timeout time.Duration, panicOnTimeout ...bool) {
 	gcp.RegisterPointer(p)
 	s := fmt.Sprintf("%p", p)
 
-	deadline := time.Now().Add(timeout)
+	nowis := time.Now()
+	deadline := nowis.Add(timeout)
 	go func() {
 		for {
 			time.Sleep(10 * time.Millisecond)
@@ -106,12 +107,19 @@ func (gcp *List[T]) TrackPointerNotGCed(p *T, msg string, timeout time.Duration)
 			wp := gcp.m[s]
 			gcp.Mutex.Unlock()
 
-			if wp.Value() == nil {
-				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: exit OK '%s'\n", msg)
+			strong := wp.Value()
+			if strong == nil {
+				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: exit OK in %v: '%s'\n", time.Since(nowis), msg)
 				return
 			}
 			if time.Now().After(deadline) {
-				panic(fmt.Sprintf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: timeout %s\n", msg))
+				msg = fmt.Sprintf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: GC timeout in %s (%v after start tracking) -- %s, string = %p", msg, timeout, msg, strong)
+				if len(panicOnTimeout) > 0 && panicOnTimeout[0] {
+					panic(msg)
+				} else {
+					fmt.Printf("%s\n", msg)
+				}
+				return
 			}
 		}
 	}()

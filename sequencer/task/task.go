@@ -17,6 +17,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/sequencer/backlog"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 )
@@ -102,6 +103,15 @@ func allProposingStrategies() []*Strategy {
 	return ret
 }
 
+var (
+	trackTasksGC = trackgc.New[Task](func(p *Task) string {
+		return "task " + p.Name
+	})
+	trackProposerGC = trackgc.New[Proposer](func(p *Proposer) string {
+		return "proposer " + p.Name
+	})
+)
+
 // Run starts task with the aim to generate sequencer transaction for the target ledger time.
 // The proposer task consist of several proposers (goroutines)
 // Each proposer generates proposals and writes it to the channel of the task.
@@ -126,6 +136,10 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 		slotData:     slotData,
 		// proposals:    make([]*proposal, 0),
 		Name: fmt.Sprintf("%s[%s]", env.SequencerName(), targetTs.String()),
+	}
+
+	{ // debug
+		trackTasksGC.TrackPointerNotGCed(task, "task "+task.Name, 5*time.Second, true)
 	}
 
 	// start proposers
@@ -199,6 +213,9 @@ func (t *Task) startProposers() {
 			Task:     t,
 			strategy: s,
 			Name:     t.Name + "-" + s.Name,
+		}
+		{
+			trackProposerGC.TrackPointerNotGCed(p, "proposer "+p.Name, 5*time.Second, true)
 		}
 		t.proposersWG.Add(1)
 		go func() {

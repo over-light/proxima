@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"time"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -11,6 +12,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/set"
+	"github.com/lunfardo314/proxima/util/trackgc"
 	"golang.org/x/exp/maps"
 )
 
@@ -73,11 +75,16 @@ func (f FlagsPastCone) String() string {
 
 // we are using sync.Pool for heap optimization
 
+var trackedPastConeBases = trackgc.New[PastConeBase](func(p *PastConeBase) string {
+	return p.Lines("      ").Join(", ")
+})
+
 func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 	ret := &PastConeBase{
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
+	trackedPastConeBases.TrackPointerNotGCed(ret, "---", 10*time.Second)
 	return ret
 }
 
@@ -118,6 +125,22 @@ func (pb *PastConeBase) addVirtuallyConsumedOutput(wOut WrappedOutput) {
 	} else {
 		consumedIndices.Insert(wOut.Index)
 	}
+}
+
+func (pb *PastConeBase) Lines(prefix ...string) *lines.Lines {
+	ret := lines.New(prefix...)
+	if pb.baseline == nil {
+		ret.Add("baseline: <nil>")
+	} else {
+		ret.Add("baseline: %s", pb.baseline.IDShortString())
+	}
+	for vid := range pb.vertices {
+		ret.Add("  dept %s", vid.IDShortString())
+	}
+	for vid := range pb.virtuallyConsumed {
+		ret.Add("  virt %s", vid.IDShortString())
+	}
+	return ret
 }
 
 func (pc *PastCone) AddVirtuallyConsumedOutput(wOut WrappedOutput, stateReader multistate.IndexedStateReader) *WrappedOutput {
