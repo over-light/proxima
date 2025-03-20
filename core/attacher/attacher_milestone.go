@@ -15,12 +15,17 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/checkpoints"
+	"github.com/lunfardo314/proxima/util/trackgc"
 )
 
 const (
 	TraceTagAttachMilestone = "milestone"
 	periodicCheckEach       = 50 * time.Millisecond
 )
+
+var trackedMilestoneAttachers = trackgc.New[milestoneAttacher](func(p *milestoneAttacher) string {
+	return "milestoneAttacher " + p.name
+})
 
 func runMilestoneAttacher(
 	vid *vertex.WrappedTx,
@@ -98,6 +103,8 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 		},
 	})
 	ret.pastCone.MustMarkVertexNotInTheState(vid)
+
+	trackedMilestoneAttachers.TrackPointerNotGCed(ret, "milestoneAttacher "+vid.IDShortString(), 10*time.Second)
 	return ret
 }
 

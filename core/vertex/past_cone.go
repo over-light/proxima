@@ -96,10 +96,6 @@ func newPastConeFromBase(env global.Logging, tip *WrappedTx, targetTs ledger.Tim
 	}
 }
 
-func (pc *PastCone) Tip() *WrappedTx {
-	return pc.tip
-}
-
 func (pb *PastConeBase) CloneImmutable() *PastConeBase {
 	util.Assertf(len(pb.virtuallyConsumed) == 0, "len(pb.virtuallyConsumed)==0")
 

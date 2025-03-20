@@ -1,4 +1,4 @@
-package checkgc
+package trackgc
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type List[T any] struct {
 	prnFun func(p *T) string
 }
 
-func NewList[T any](prnFun func(p *T) string) *List[T] {
+func New[T any](prnFun func(p *T) string) *List[T] {
 	return &List[T]{
 		m:      make(map[string]weak.Pointer[T], 0),
 		prnFun: prnFun,
@@ -73,7 +73,7 @@ func (gcp *List[T]) IsPointerGCed(p *T) bool {
 	return wp.Value() == nil
 }
 
-func (gcp *List[T]) TrackPointer(p *T, msg string) {
+func (gcp *List[T]) TrackPointerGCed(p *T, msg string) {
 	gcp.RegisterPointer(p)
 	s := fmt.Sprintf("%p", p)
 
@@ -82,10 +82,37 @@ func (gcp *List[T]) TrackPointer(p *T, msg string) {
 			time.Sleep(1 * time.Millisecond)
 
 			gcp.Mutex.Lock()
-			if wp := gcp.m[s]; wp.Value() == nil {
-				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointer GCed: '%s'\n", msg)
-			}
+			wp := gcp.m[s]
 			gcp.Mutex.Unlock()
+
+			if wp.Value() == nil {
+				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerGCed GCed: '%s'\n", msg)
+				return
+			}
+		}
+	}()
+}
+
+func (gcp *List[T]) TrackPointerNotGCed(p *T, msg string, timeout time.Duration) {
+	gcp.RegisterPointer(p)
+	s := fmt.Sprintf("%p", p)
+
+	deadline := time.Now().Add(timeout)
+	go func() {
+		for {
+			time.Sleep(10 * time.Millisecond)
+
+			gcp.Mutex.Lock()
+			wp := gcp.m[s]
+			gcp.Mutex.Unlock()
+
+			if wp.Value() == nil {
+				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: exit OK '%s'\n", msg)
+				return
+			}
+			if time.Now().After(deadline) {
+				panic(fmt.Sprintf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: timeout %s\n", msg))
+			}
 		}
 	}()
 }

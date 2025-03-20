@@ -3,15 +3,21 @@ package attacher
 import (
 	"crypto/ed25519"
 	"fmt"
+	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/trackgc"
 )
 
 const TraceTagIncrementalAttacher = "incAttach"
+
+var trackedIncrementalAttachers = trackgc.New[IncrementalAttacher](func(p *IncrementalAttacher) string {
+	return "incAttacher " + p.name
+})
 
 func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (*IncrementalAttacher, error) {
 	env.Assertf(ledger.ValidSequencerPace(extend.Timestamp(), targetTs), "NewIncrementalAttacher: target is closer than allowed pace (%d): %s -> %s",
@@ -73,6 +79,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to create incremental attacher extending  %s: double-spend (conflict) %s in the past cone",
 			name, extend.IDStringShort(), conflict.IDStringShort())
 	}
+	trackedIncrementalAttachers.TrackPointerNotGCed(ret, "incAttacher "+name, 10*time.Second)
 	return ret, nil
 }
 

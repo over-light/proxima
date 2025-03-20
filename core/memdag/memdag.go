@@ -12,7 +12,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/checkgc"
+	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/maps"
 )
@@ -108,7 +108,7 @@ func init() {
 	util.Assertf(vertexTTLSlots >= _vertexTTLSlotsMinimum, "constant vertexTTLSlots must be at least %d", _vertexTTLSlotsMinimum)
 }
 
-var TrackedVertices = checkgc.NewList[vertex.WrappedTx](func(p *vertex.WrappedTx) string {
+var TrackedVertices = trackgc.New[vertex.WrappedTx](func(p *vertex.WrappedTx) string {
 	return p.IDShortString()
 })
 
@@ -152,7 +152,7 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 		WrappedTx: vid,
 	}
 	if vid.Slot() <= 1 {
-		TrackedVertices.TrackPointer(vid, vid.IDShortString())
+		TrackedVertices.TrackPointerGCed(vid, vid.IDShortString())
 	}
 }
 
