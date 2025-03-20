@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"sync/atomic"
+
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -13,7 +15,6 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/atomic"
 )
 
 func Test1Sequencer(t *testing.T) {
@@ -32,7 +33,7 @@ func Test1Sequencer(t *testing.T) {
 		var countBr atomic.Int32
 		seq.OnMilestoneSubmitted(func(_ *sequencer.Sequencer, ms *vertex.WrappedTx) {
 			if ms.IsBranchTransaction() {
-				countBr.Inc()
+				countBr.Add(1)
 			}
 		})
 		seq.OnExit(func() {
@@ -139,9 +140,9 @@ func Test1Sequencer(t *testing.T) {
 		var countBr, countSeq atomic.Int32
 		seq.OnMilestoneSubmitted(func(_ *sequencer.Sequencer, ms *vertex.WrappedTx) {
 			if ms.IsBranchTransaction() {
-				countBr.Inc()
+				countBr.Add(1)
 			} else {
-				countSeq.Inc()
+				countSeq.Add(1)
 			}
 		})
 		seq.OnExit(func() {

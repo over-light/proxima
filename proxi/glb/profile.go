@@ -2,6 +2,7 @@ package glb
 
 import (
 	"crypto/ed25519"
+	"sync/atomic"
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
@@ -9,7 +10,6 @@ import (
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/atomic"
 )
 
 const LedgerIDFileName = "proxima.genesis.id.yaml"

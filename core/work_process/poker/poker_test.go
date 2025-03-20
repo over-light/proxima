@@ -2,13 +2,13 @@ package poker
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/atomic"
 )
 
 func init() {
@@ -37,7 +37,7 @@ func TestBasic(t *testing.T) {
 	for i, vid := range vids {
 		vid.OnPoke(func() {
 			//t.Logf("poked %s with %s", vid.IDShortString(), vid1.IDShortString())
-			counter.Inc()
+			counter.Add(1)
 			wg.Done()
 		})
 		for j := 0; j < howManyPokes; j++ {

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/lunfardo314/proxima/util"
-	"go.uber.org/atomic"
 )
 
 type Countdown struct {
@@ -38,7 +38,7 @@ func NewNamed(name string, from int, timeout ...time.Duration) *Countdown {
 }
 
 func (c *Countdown) Tick() {
-	c.counter.Dec()
+	c.counter.Add(-1)
 }
 
 func (c *Countdown) Wait() error {

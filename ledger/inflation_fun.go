@@ -4,10 +4,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/util"
-	"go.uber.org/atomic"
 )
 
 // This file contains definitions of the inflation calculation functions in EasyFL (on-ledger)

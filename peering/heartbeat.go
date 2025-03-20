@@ -147,15 +147,14 @@ func (ps *Peers) heartbeatStreamHandler(stream network.Stream) {
 }
 
 func (ps *Peers) evidenceMessage() {
-	ps.lastMsgReceived.Store(time.Now())
+	ps.lastMsgReceived.Store(time.Now().UnixNano())
 }
 
 func (ps *Peers) DurationSinceLastMessageFromPeer() time.Duration {
-	var nilTime time.Time
-	if ps.lastMsgReceived.Load() == nilTime {
+	if ps.lastMsgReceived.Load() == 0 {
 		return 0
 	}
-	return time.Since(ps.lastMsgReceived.Load())
+	return time.Since(time.Unix(0, ps.lastMsgReceived.Load()))
 }
 
 func (ps *Peers) _evidenceHeartBeat(p *Peer, hbInfo heartbeatInfo) {

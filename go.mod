@@ -18,7 +18,6 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/yoseplee/vrf v0.0.0-20210814110709-d1caf509310b
-	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.35.0
 	golang.org/x/exp v0.0.0-20250228200357-dead58393ab7

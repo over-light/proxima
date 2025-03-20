@@ -5,10 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/util"
-	"go.uber.org/atomic"
 )
 
 // DelegationLock is a basic delegation lock which is:

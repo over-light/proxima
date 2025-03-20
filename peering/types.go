@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -21,7 +22,6 @@ import (
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/spf13/viper"
-	"go.uber.org/atomic"
 )
 
 type (
@@ -78,7 +78,7 @@ type (
 		routingDiscovery *routing.RoutingDiscovery
 		peers            map[peer.ID]*Peer // except self/host
 		staticPeers      map[peer.ID]*staticPeerInfo
-		lastMsgReceived  atomic.Time
+		lastMsgReceived  atomic.Int64
 		blacklist        map[peer.ID]_deadlineWithReason
 		cooloffList      map[peer.ID]time.Time
 		connectList      set.Set[peer.ID]

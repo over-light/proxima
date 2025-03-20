@@ -2,12 +2,12 @@ package queue
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/lunfardo314/proxima/util/countdown"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/atomic"
 	"golang.org/x/exp/rand"
 )
 
@@ -42,7 +42,7 @@ func TestBasic(t *testing.T) {
 		const n = 100_000
 		var counter atomic.Int32
 		q := New[int](func(e int) {
-			counter.Inc()
+			counter.Add(1)
 		})
 		require.EqualValues(t, 0, q.Len())
 		for i := 0; i < n; i++ {
@@ -115,7 +115,7 @@ func TestClose(t *testing.T) {
 
 	var counter atomic.Int32
 	q := New[int](func(i int) {
-		counter.Inc()
+		counter.Add(1)
 	})
 
 	for i := 0; i < nMessages; i++ {
@@ -134,7 +134,7 @@ func TestPriority1(t *testing.T) {
 	var counter atomic.Int32
 	all := make(map[int]int)
 	q := New[int](func(i int) {
-		counter.Inc()
+		counter.Add(1)
 		all[i] = all[i] + 1
 		if i%3 != 0 {
 			time.Sleep(1 * time.Millisecond)
@@ -180,17 +180,17 @@ func TestTwoQueues(t *testing.T) {
 	q1 = New[int](func(e int) {
 		if e+1 < limit {
 			q2.Push(e + 1)
-			counter.Inc()
+			counter.Add(1)
 		} else {
 			close(stop)
 		}
 	})
 	q2 = New[int](func(e int) {
-		counter.Inc()
+		counter.Add(1)
 		q3.Push(e + 1)
 	})
 	q3 = New[int](func(e int) {
-		counter.Inc()
+		counter.Add(1)
 		q1.Push(e + 1)
 	})
 	q1.Push(0)

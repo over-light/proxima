@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -21,7 +22,6 @@ import (
 	"github.com/lunfardo314/proxima/util/eventtype"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/viper"
-	"go.uber.org/atomic"
 )
 
 type (

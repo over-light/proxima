@@ -3,6 +3,7 @@ package peering
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/lunfardo314/proxima/util/countdown"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/atomic"
 )
 
 // TODO tests fails when started all together due to timing problems and deadlocks
@@ -162,7 +162,7 @@ func TestSendMsg(t *testing.T) {
 		for _, h := range hosts {
 			h1 := h
 			h1.OnReceiveTxBytes(func(from peer.ID, txBytes []byte, _ *txmetadata.TransactionMetadata, _ []byte) {
-				counter1.Inc()
+				counter1.Add(1)
 				counter.Tick()
 			})
 		}
@@ -202,7 +202,7 @@ func TestSendMsg(t *testing.T) {
 		for _, h := range hosts {
 			h1 := h
 			h1.OnReceiveTxBytes(func(from peer.ID, txBytes []byte, _ *txmetadata.TransactionMetadata, _ []byte) {
-				counter1.Inc()
+				counter1.Add(1)
 				counter.Tick()
 			})
 		}
@@ -250,7 +250,7 @@ func TestSendMsg(t *testing.T) {
 		for _, h := range hosts {
 			h1 := h
 			h1.OnReceiveTxBytes(func(from peer.ID, txBytes []byte, _ *txmetadata.TransactionMetadata, _ []byte) {
-				counter1.Inc()
+				counter1.Add(1)
 				counter.Tick()
 			})
 		}

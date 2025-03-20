@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"math"
 
+	"sync/atomic"
+
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/slicepool"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/unitrie/common"
-	"go.uber.org/atomic"
 	"golang.org/x/crypto/blake2b"
 )
 
