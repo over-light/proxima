@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/countdown"
 	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/stretchr/testify/require"
@@ -218,17 +219,30 @@ func TestQueueGC(t *testing.T) {
 		return fmt.Sprintf("tracked %s", *p)
 	})
 
+	var arr [howMany]*string
+
 	go func() {
 		for i := 0; i < howMany; i++ {
-			str := strings.Repeat(fmt.Sprintf("abcde-%d", i), 5)
-			trackPtr.RegisterPointer(&str)
-			q.Push(&str, rand.Intn(2) == 1)
+			arr[i] = util.Ref(strings.Repeat(fmt.Sprintf("abcde-%d", i), 5))
+			trackPtr.RegisterPointer(arr[i])
+			q.Push(arr[i], rand.Intn(2) == 1)
 		}
 	}()
 	wg.Wait()
 
+	runtime.SetFinalizer(&arr, func(p any) {
+		t.Logf("--- finalizer has been called with: %T", p)
+	})
 	runtime.GC()
+
+	//runtime.KeepAlive(arr)
 	gced, notgced := trackPtr.Stats()
+	t.Logf("---- stats: GCed: %d, not GCed: %d\n", gced, notgced)
+	require.EqualValues(t, howMany, notgced)
+	require.EqualValues(t, 0, gced)
+
+	runtime.GC()
+	gced, notgced = trackPtr.Stats()
 	t.Logf("---- stats: GCed: %d, not GCed: %d\n", gced, notgced)
 	require.EqualValues(t, 0, notgced)
 	require.EqualValues(t, howMany, gced)
