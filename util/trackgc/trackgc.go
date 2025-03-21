@@ -14,15 +14,22 @@ import (
 
 type List[T any] struct {
 	sync.Mutex
-	m      map[string]weak.Pointer[T]
-	keyFun func(p *T) string
+	m         map[string]weak.Pointer[T]
+	keyFun    func(p *T) string
+	prnObjFun func(p *T) string
 }
 
-func New[T any](keyFun func(p *T) string) *List[T] {
-	return &List[T]{
+func New[T any](keyFun func(p *T) string, prnObjFun ...func(p *T) string) *List[T] {
+	ret := &List[T]{
 		m:      make(map[string]weak.Pointer[T], 0),
 		keyFun: keyFun,
 	}
+	if len(prnObjFun) > 0 {
+		ret.prnObjFun = prnObjFun[0]
+	} else {
+		ret.prnObjFun = keyFun
+	}
+	return ret
 }
 
 func (gcp *List[T]) Key(p *T) string {
@@ -126,11 +133,11 @@ func (gcp *List[T]) TrackPointerNotGCed(p *T, timeout time.Duration, panicOnTime
 
 			strong := wp.Value()
 			if strong == nil {
-				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: exit OK in %v: key = '%s'\n", time.Since(nowis), key)
+				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerNotGCed[%T]: exit OK in %v: key = '%s'\n", p, time.Since(nowis), key)
 				return
 			}
 			if time.Now().After(deadline) {
-				msg := fmt.Sprintf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: GC timeout in key '%s' (%v after start tracking)", key, timeout)
+				msg := fmt.Sprintf(">>>>>>>>>>>>>>>> TrackPointerNotGCed[%T]: GC timeout (%v after start tracking)\n%s", p, timeout, gcp.prnObjFun(p))
 				if len(panicOnTimeout) > 0 && panicOnTimeout[0] {
 					panic(msg)
 				} else {

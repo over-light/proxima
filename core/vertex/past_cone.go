@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/lunfardo314/proxima/global"
@@ -43,8 +44,30 @@ type (
 		baseline          *WrappedTx
 		vertices          map[*WrappedTx]FlagsPastCone // byte is used by attacher for flags
 		virtuallyConsumed map[*WrappedTx]set.Set[byte]
+		num               int // tmp
 	}
 )
+
+var (
+	pastConeBaseCounter      int
+	pastConeBaseCounterMutex sync.Mutex
+)
+
+func _nextPastConeBaseCounter() (ret int) {
+	pastConeBaseCounterMutex.Lock()
+	defer pastConeBaseCounterMutex.Unlock()
+
+	ret = pastConeBaseCounter
+	pastConeBaseCounter++
+	return
+}
+
+var trackedPastConeBases = trackgc.New[PastConeBase](
+	func(p *PastConeBase) string {
+		return fmt.Sprintf("%T: %p #%d", p, p, p.num)
+	}, func(p *PastConeBase) string {
+		return fmt.Sprintf("%T: %p #%d\n%s", p, p, p.num, p.Lines("    ").String())
+	})
 
 const (
 	FlagPastConeVertexKnown             = FlagsPastCone(0b00000001) // each vertex of consideration has this flag on
@@ -75,16 +98,13 @@ func (f FlagsPastCone) String() string {
 
 // we are using sync.Pool for heap optimization
 
-var trackedPastConeBases = trackgc.New[PastConeBase](func(p *PastConeBase) string {
-	return p.Lines("      ").Join(", ")
-})
-
 func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 	ret := &PastConeBase{
+		num:      _nextPastConeBaseCounter(),
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
-	trackedPastConeBases.TrackPointerNotGCed(ret, 10*time.Second)
+	trackedPastConeBases.TrackPointerNotGCed(ret, 20*time.Second, true)
 	return ret
 }
 
