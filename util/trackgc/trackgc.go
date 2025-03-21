@@ -29,8 +29,7 @@ func (gcp *List[T]) RegisterPointer(p *T) {
 	gcp.Mutex.Lock()
 	defer gcp.Mutex.Unlock()
 
-	s := fmt.Sprintf("%p", p)
-	gcp.m[s] = weak.Make(p)
+	gcp.m[gcp.prnFun(p)] = weak.Make(p)
 }
 
 func (gcp *List[T]) Stats() (gced int, notgced int) {

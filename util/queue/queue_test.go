@@ -3,12 +3,12 @@ package queue
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/countdown"
 	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/stretchr/testify/require"
@@ -204,41 +204,32 @@ func TestTwoQueues(t *testing.T) {
 }
 
 func TestQueueGC(t *testing.T) {
-	const howMany = 50
+	const howMany = 10000
 
 	var wg sync.WaitGroup
 	wg.Add(howMany)
 
-	//q := New[*int](func(e *int) {
-	//	t.Logf(">> %d", *e)
-	//	wg.Done()
-	//})
+	q := New[*string](func(e *string) {
+		//t.Logf(">> %s", *e)
+		wg.Done()
+	})
 
-	trackPtr := trackgc.New[int](func(p *int) string {
-		return fmt.Sprintf("tracked %d", *p)
+	trackPtr := trackgc.New[string](func(p *string) string {
+		return fmt.Sprintf("tracked %s", *p)
 	})
 
 	go func() {
-		//var arr [howMany]*int
-		//arr := make([]*int, howMany)
 		for i := 0; i < howMany; i++ {
-			//i1 := new(int)
-			//*i1 = i
-			trackPtr.RegisterPointer(util.Ref(i))
-			//q.Push(&i1)
-			//arr[i] = &i1
-			wg.Done()
+			str := strings.Repeat(fmt.Sprintf("abcde-%d", i), 5)
+			trackPtr.RegisterPointer(&str)
+			q.Push(&str, rand.Intn(2) == 1)
 		}
 	}()
 	wg.Wait()
 
-	for i := 0; i < 10; i++ {
-		runtime.GC()
-		gced, notgced := trackPtr.Stats()
-		t.Logf("---- stats: GCed: %d, not GCed: %d\n", gced, notgced)
-		time.Sleep(time.Second)
-	}
-	t.Logf(">>>>>>>>>>>>>>>\n%s", trackPtr.LinesOfTracked("     ").String())
-	//t.Logf("---------------- after GC \n%s", trackPtr.LinesOfTracked("       ").String())
-
+	runtime.GC()
+	gced, notgced := trackPtr.Stats()
+	t.Logf("---- stats: GCed: %d, not GCed: %d\n", gced, notgced)
+	require.EqualValues(t, 0, notgced)
+	require.EqualValues(t, howMany, gced)
 }
