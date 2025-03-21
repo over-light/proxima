@@ -84,7 +84,7 @@ func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
-	trackedPastConeBases.TrackPointerNotGCed(ret, "---", 10*time.Second)
+	trackedPastConeBases.TrackPointerNotGCed(ret, 10*time.Second)
 	return ret
 }
 

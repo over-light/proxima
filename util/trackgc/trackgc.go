@@ -15,21 +15,25 @@ import (
 type List[T any] struct {
 	sync.Mutex
 	m      map[string]weak.Pointer[T]
-	prnFun func(p *T) string
+	keyFun func(p *T) string
 }
 
-func New[T any](prnFun func(p *T) string) *List[T] {
+func New[T any](keyFun func(p *T) string) *List[T] {
 	return &List[T]{
 		m:      make(map[string]weak.Pointer[T], 0),
-		prnFun: prnFun,
+		keyFun: keyFun,
 	}
+}
+
+func (gcp *List[T]) Key(p *T) string {
+	return gcp.keyFun(p)
 }
 
 func (gcp *List[T]) RegisterPointer(p *T) {
 	gcp.Mutex.Lock()
 	defer gcp.Mutex.Unlock()
 
-	gcp.m[gcp.prnFun(p)] = weak.Make(p)
+	gcp.m[gcp.keyFun(p)] = weak.Make(p)
 }
 
 func (gcp *List[T]) Stats() (gced int, notgced int) {
@@ -54,7 +58,7 @@ func (gcp *List[T]) LinesNotGCed(prefix ...string) *lines.Lines {
 
 	for _, wp := range gcp.m {
 		if p := wp.Value(); p != nil {
-			ret.Add(gcp.prnFun(p))
+			ret.Add(gcp.keyFun(p))
 		}
 	}
 	return ret
@@ -106,9 +110,9 @@ func (gcp *List[T]) TrackPointerGCed(p *T, msg string) {
 	}()
 }
 
-func (gcp *List[T]) TrackPointerNotGCed(p *T, msg string, timeout time.Duration, panicOnTimeout ...bool) {
+func (gcp *List[T]) TrackPointerNotGCed(p *T, timeout time.Duration, panicOnTimeout ...bool) {
 	gcp.RegisterPointer(p)
-	s := fmt.Sprintf("%p", p)
+	key := gcp.Key(p)
 
 	nowis := time.Now()
 	deadline := nowis.Add(timeout)
@@ -117,16 +121,16 @@ func (gcp *List[T]) TrackPointerNotGCed(p *T, msg string, timeout time.Duration,
 			time.Sleep(10 * time.Millisecond)
 
 			gcp.Mutex.Lock()
-			wp := gcp.m[s]
+			wp := gcp.m[key]
 			gcp.Mutex.Unlock()
 
 			strong := wp.Value()
 			if strong == nil {
-				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: exit OK in %v: '%s'\n", time.Since(nowis), msg)
+				fmt.Printf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: exit OK in %v: key = '%s'\n", time.Since(nowis), key)
 				return
 			}
 			if time.Now().After(deadline) {
-				msg = fmt.Sprintf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: GC timeout in %s (%v after start tracking) -- %s, string = %p", msg, timeout, msg, strong)
+				msg := fmt.Sprintf(">>>>>>>>>>>>>>>> TrackPointerNotGCed: GC timeout in key '%s' (%v after start tracking)", key, timeout)
 				if len(panicOnTimeout) > 0 && panicOnTimeout[0] {
 					panic(msg)
 				} else {

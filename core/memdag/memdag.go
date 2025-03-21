@@ -178,7 +178,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 		if vid.NumReferences() == 0 {
 			vid.DetachPastCone()
 			{ // debug
-				TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second, true)
+				TrackedVertices.TrackPointerNotGCed(vid, 5*time.Second, true)
 				//if vid.Slot() <= 1 {
 				//	TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second)
 				//}
