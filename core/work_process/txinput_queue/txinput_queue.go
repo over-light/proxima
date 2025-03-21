@@ -77,7 +77,7 @@ func New(env environment) *TxInputQueue {
 	ret.WorkProcess.Start()
 
 	ret.RepeatInBackground(Name+"_inGateCleanup", blackListCleanupPeriod, func() bool {
-		ret.inGate.purgeBlackList()
+		ret.inGate.purgeInGate()
 		return true
 	})
 

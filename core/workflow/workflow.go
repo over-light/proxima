@@ -59,10 +59,7 @@ type (
 	}
 )
 
-var (
-	EventNewGoodTx = eventtype.RegisterNew[*vertex.WrappedTx]("new good seq")
-	EventNewTx     = eventtype.RegisterNew[*vertex.WrappedTx]("new tx") // event may be posted more than once for the transaction
-)
+var EventNewTx = eventtype.RegisterNew[*vertex.WrappedTx]("new tx") // event may be posted more than once for the transaction
 
 const recreateMapPeriod = time.Minute
 

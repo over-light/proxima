@@ -17,7 +17,6 @@ type (
 	txInOptions struct {
 		txMetadata       txmetadata.TransactionMetadata
 		receivedFromPeer *peer.ID
-		//callback         func(vid *vertex.WrappedTx, err error)
 	}
 
 	TxInOption func(options *txInOptions)
@@ -112,7 +111,7 @@ func (w *Workflow) TxIn(tx *transaction.Transaction, opts ...TxInOption) error {
 		opt(options)
 	}
 	// base validation
-	txid := tx.IDRef()
+	txid := tx.ID()
 
 	if !txid.IsSequencerMilestone() {
 		w.EvidenceNonSequencerTx()
@@ -134,7 +133,7 @@ func (w *Workflow) TxIn(tx *transaction.Transaction, opts ...TxInOption) error {
 		if enforceTimeBounds {
 			w.Tracef(TraceTagTxInput, "invalidate %s: time bounds validation failed", txid.StringShort)
 			err = fmt.Errorf("%w (MaxDurationInTheFuture = %v)", err, w.MaxDurationInTheFuture())
-			attacher.InvalidateTxID(*txid, w, err)
+			attacher.InvalidateTxID(txid, w, err)
 
 			return err
 		}
@@ -145,7 +144,7 @@ func (w *Workflow) TxIn(tx *transaction.Transaction, opts ...TxInOption) error {
 	if err = tx.Validate(transaction.MainTxValidationOptions...); err != nil {
 		err = fmt.Errorf("error while pre-validating transaction %s: '%w'", txid.StringShort(), err)
 		w.Tracef(TraceTagTxInput, "%v", err)
-		attacher.InvalidateTxID(*txid, w, err)
+		attacher.InvalidateTxID(txid, w, err)
 		return err
 	}
 

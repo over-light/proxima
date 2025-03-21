@@ -49,7 +49,7 @@ func (g *inGate[T]) addWanted(key T) {
 	g.m[key] = inGateEntry{isWanted: true}
 }
 
-func (g *inGate[T]) purgeBlackList() {
+func (g *inGate[T]) purgeInGate() {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 

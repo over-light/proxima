@@ -37,7 +37,6 @@ type (
 	}
 
 	postEventEnvironment interface {
-		PostEventNewGood(vid *vertex.WrappedTx)
 		PostEventNewTransaction(vid *vertex.WrappedTx)
 	}
 

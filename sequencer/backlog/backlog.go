@@ -88,7 +88,6 @@ func New(env Environment) (*TagAlongBacklog, error) {
 		}
 		return true
 	})
-
 	return ret, nil
 }
 
@@ -250,7 +249,6 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 
 	rdr := multistate.MustNewSugaredReadableState(b.StateStore(), branchData.Root, 0)
 	vidBranch := b.MustEnsureBranch(branchData.Stem.ID.TransactionID())
-	b.PostEventNewGood(vidBranch)
 	loadedTxs.Insert(vidBranch)
 
 	// load sequencer output for the chain

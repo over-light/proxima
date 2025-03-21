@@ -172,7 +172,6 @@ func (a *milestoneAttacher) run() error {
 		a.Log().Infof(">>>>>>>>>>>>> past cone of attacher %s\n%s", a.Name(), a.pastCone.Lines("      ").String())
 	}
 
-	a.PostEventNewGood(a.vid)
 	a.SendToTippool(a.vid)
 
 	return nil

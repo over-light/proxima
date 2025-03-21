@@ -59,7 +59,6 @@ func AttachTxID(txid ledger.TransactionID, env Environment, opts ...AttachTxOpti
 			env.AddVertexNoLock(vid)
 			env.Assertf(vid.GetTxStatusNoLock() == vertex.Good, "vid.GetTxStatusNoLock()==vertex.Good")
 
-			env.PostEventNewGood(vid)
 			env.SendToTippool(vid)
 			return
 		}

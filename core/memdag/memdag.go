@@ -433,7 +433,9 @@ func (d *MemDAG) RecreateVertexMap() {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
+	m := d.vertices
 	d.vertices = maps.Clone(d.vertices)
+	clear(m)
 }
 
 func (d *MemDAG) registerMetrics() {
