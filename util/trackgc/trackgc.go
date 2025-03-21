@@ -33,6 +33,20 @@ func (gcp *List[T]) RegisterPointer(p *T) {
 	gcp.m[s] = weak.Make(p)
 }
 
+func (gcp *List[T]) Stats() (gced int, notgced int) {
+	gcp.Mutex.Lock()
+	defer gcp.Mutex.Unlock()
+
+	for _, wp := range gcp.m {
+		if p := wp.Value(); p != nil {
+			notgced++
+		} else {
+			gced++
+		}
+	}
+	return
+}
+
 func (gcp *List[T]) LinesNotGCed(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 
@@ -53,11 +67,11 @@ func (gcp *List[T]) LinesOfTracked(prefix ...string) *lines.Lines {
 	gcp.Mutex.Lock()
 	defer gcp.Mutex.Unlock()
 
-	for _, wp := range gcp.m {
+	for pstr, wp := range gcp.m {
 		if p := wp.Value(); p != nil {
-			ret.Add("NOT GCed: %s", gcp.prnFun(p))
+			ret.Add("NOT GCed: %s", pstr)
 		} else {
-			ret.Add("    GCed: %s", gcp.prnFun(p))
+			ret.Add("    GCed: %s", pstr)
 		}
 	}
 	return ret

@@ -1,12 +1,16 @@
 package queue
 
 import (
+	"fmt"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/countdown"
+	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/rand"
 )
@@ -197,4 +201,44 @@ func TestTwoQueues(t *testing.T) {
 	<-stop
 	t.Logf("----------\n%d", counter.Load())
 	require.EqualValues(t, limit, counter.Load())
+}
+
+func TestQueueGC(t *testing.T) {
+	const howMany = 50
+
+	var wg sync.WaitGroup
+	wg.Add(howMany)
+
+	//q := New[*int](func(e *int) {
+	//	t.Logf(">> %d", *e)
+	//	wg.Done()
+	//})
+
+	trackPtr := trackgc.New[int](func(p *int) string {
+		return fmt.Sprintf("tracked %d", *p)
+	})
+
+	go func() {
+		//var arr [howMany]*int
+		//arr := make([]*int, howMany)
+		for i := 0; i < howMany; i++ {
+			//i1 := new(int)
+			//*i1 = i
+			trackPtr.RegisterPointer(util.Ref(i))
+			//q.Push(&i1)
+			//arr[i] = &i1
+			wg.Done()
+		}
+	}()
+	wg.Wait()
+
+	for i := 0; i < 10; i++ {
+		runtime.GC()
+		gced, notgced := trackPtr.Stats()
+		t.Logf("---- stats: GCed: %d, not GCed: %d\n", gced, notgced)
+		time.Sleep(time.Second)
+	}
+	t.Logf(">>>>>>>>>>>>>>>\n%s", trackPtr.LinesOfTracked("     ").String())
+	//t.Logf("---------------- after GC \n%s", trackPtr.LinesOfTracked("       ").String())
+
 }
