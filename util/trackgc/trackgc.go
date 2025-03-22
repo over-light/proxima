@@ -156,16 +156,18 @@ func (gcp *List[T]) TrackPointerNotGCed(p *T, timeout time.Duration, panicOnTime
 	}()
 }
 
-func GoWithTimeout(fun func(), name string, timeout time.Duration) {
+func MustGoWithTimeout(fun func(), name string, timeout time.Duration) {
 	ch := make(chan struct{})
 	go func() {
 		fun()
 		close(ch)
 	}()
-	select {
-	case <-ch:
-		return
-	case <-time.After(timeout):
-		panic(fmt.Sprintf("goroutine '%s' didn't finish in timeout %v", name, timeout))
-	}
+	go func() {
+		select {
+		case <-ch:
+			return
+		case <-time.After(timeout):
+			panic(fmt.Sprintf("goroutine '%s' didn't finish in timeout %v", name, timeout))
+		}
+	}()
 }
