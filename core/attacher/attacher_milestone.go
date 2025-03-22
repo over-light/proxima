@@ -104,7 +104,7 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 	})
 	ret.pastCone.MustMarkVertexNotInTheState(vid)
 
-	trackedMilestoneAttachers.TrackPointerNotGCed(ret, 10*time.Second)
+	//trackedMilestoneAttachers.TrackPointerNotGCed(ret, 10*time.Second)
 	return ret
 }
 

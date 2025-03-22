@@ -3,13 +3,13 @@ package attacher
 import (
 	"crypto/ed25519"
 	"fmt"
-	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/trackgc"
 )
 
@@ -79,15 +79,15 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to create incremental attacher extending  %s: double-spend (conflict) %s in the past cone",
 			name, extend.IDStringShort(), conflict.IDStringShort())
 	}
-	trackedIncrementalAttachers.TrackPointerNotGCed(ret, 10*time.Second)
+	//trackedIncrementalAttachers.TrackPointerNotGCed(ret, 10*time.Second)
 	return ret, nil
 }
 
-// Close releases all references of Vertices. Incremental attacher must be closed before disposing it,
-// otherwise memDAG starts leaking Vertices. Repetitive closing has no effect
-// TODO some kind of checking if it is closed after some time
+// Close releases all references of vertices. Repetitive closing has no effect
 func (a *IncrementalAttacher) Close() {
 	if a != nil && !a.IsClosed() {
+		a.endorse = nil
+		a.inputs = nil
 		a.pastCone = nil
 		a.closed = true
 	}
@@ -316,13 +316,24 @@ func (a *IncrementalAttacher) Completed() bool {
 }
 
 func (a *IncrementalAttacher) Extending() vertex.WrappedOutput {
+	a.Assertf(!a.IsClosed(), "!a.IsClosed() -- %s", a.name)
 	return a.inputs[0]
 }
 
 func (a *IncrementalAttacher) Endorsing() []*vertex.WrappedTx {
+	a.Assertf(!a.IsClosed(), "!a.IsClosed() -- %s", a.name)
 	return a.endorse
 }
 
 func (a *IncrementalAttacher) Check() *vertex.WrappedOutput {
 	return a.pastCone.Check(a.baselineStateReader())
+}
+
+func (a *IncrementalAttacher) ExtendEndorseLines(prefix ...string) *lines.Lines {
+	ret := lines.New(prefix...)
+	ret.Add("extend: %s", a.inputs[0].IDStringShort())
+	for _, vid := range a.endorse {
+		ret.Add("-> %s", vid.IDShortString())
+	}
+	return ret
 }

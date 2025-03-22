@@ -207,6 +207,7 @@ func (seq *Sequencer) ensureFirstMilestone() bool {
 			}
 		}
 	}()
+
 	<-ctx.Done()
 
 	if startOutput.VID == nil || !startOutput.IsAvailable() {

@@ -70,7 +70,7 @@ func (p *Proposer) propose(a *attacher.IncrementalAttacher) error {
 
 	coverage := a.LedgerCoverage()
 
-	tx, err := p.makeTxProposal(a)
+	tx, hrString, err := p.makeTxProposal(a)
 	util.Assertf(a.IsClosed(), "a.IsClosed()")
 
 	if err != nil {
@@ -82,8 +82,7 @@ func (p *Proposer) propose(a *attacher.IncrementalAttacher) error {
 			SourceTypeNonPersistent: txmetadata.SourceTypeSequencer,
 			LedgerCoverage:          util.Ref(coverage),
 		},
-		extended:          a.Extending(),
-		endorsing:         a.Endorsing(),
+		hrString:          hrString,
 		coverage:          coverage,
 		attacherName:      a.Name(),
 		strategyShortName: p.strategy.ShortName,
@@ -98,13 +97,15 @@ func (p *Proposer) propose(a *attacher.IncrementalAttacher) error {
 	return nil
 }
 
-func (p *Proposer) makeTxProposal(a *attacher.IncrementalAttacher) (*transaction.Transaction, error) {
+func (p *Proposer) makeTxProposal(a *attacher.IncrementalAttacher) (*transaction.Transaction, string, error) {
 	cmdParser := commands.NewCommandParser(ledger.AddressED25519FromPrivateKey(p.ControllerPrivateKey()))
 	nm := p.environment.SequencerName() + "." + p.strategy.ShortName
 	tx, err := a.MakeSequencerTransaction(nm, p.ControllerPrivateKey(), cmdParser)
 	// attacher and references not needed anymore, should be released
+	extEndorseString := a.ExtendEndorseLines().Join(", ")
+
 	a.Close()
-	return tx, err
+	return tx, extEndorseString, err
 }
 
 const TraceTagChooseFirstExtendEndorsePair = "chooseFirstPair"

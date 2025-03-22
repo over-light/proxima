@@ -5,7 +5,6 @@ import (
 	"slices"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -104,7 +103,7 @@ func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
-	trackedPastConeBases.TrackPointerNotGCed(ret, 20*time.Second, true)
+	//trackedPastConeBases.TrackPointerNotGCed(ret, 20*time.Second, true)
 	return ret
 }
 

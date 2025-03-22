@@ -5,7 +5,6 @@ import (
 	"crypto/ed25519"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -55,8 +54,7 @@ type (
 	proposal struct {
 		tx                *transaction.Transaction
 		txMetadata        *txmetadata.TransactionMetadata
-		extended          vertex.WrappedOutput
-		endorsing         []*vertex.WrappedTx
+		hrString          string
 		coverage          uint64
 		attacherName      string
 		strategyShortName string
@@ -198,12 +196,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 }
 
 func (p *proposal) String() string {
-	endorse := make([]string, 0, len(p.endorsing))
-	for _, vid := range p.endorsing {
-		endorse = append(endorse, vid.IDShortString())
-	}
-	return fmt.Sprintf("%s(%s -- %s -> [%s])",
-		p.strategyShortName, p.extended.IDStringShort(), util.Th(p.coverage), strings.Join(endorse, ", "))
+	return p.hrString
 }
 
 func (t *Task) startProposers() {

@@ -86,6 +86,7 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 func (vid *WrappedTx) DetachPastCone() {
 	vid.Unwrap(UnwrapOptions{Vertex: func(v *Vertex) {
 		vid.convertToDetachedTxUnlocked(v)
+		fmt.Printf(">>>>>>> DetachPastCone %s\n", vid.IDShortString())
 	}})
 }
 

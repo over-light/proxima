@@ -157,12 +157,11 @@ func AttachTransactionFromBytes(txBytes []byte, env Environment, opts ...AttachT
 }
 
 // InvalidateTxID marks existing vertex as BAD or creates new BAD
-func InvalidateTxID(txid ledger.TransactionID, env Environment, reason error) *vertex.WrappedTx {
+func InvalidateTxID(txid ledger.TransactionID, env Environment, reason error) {
 	env.Tracef(TraceTagAttach, "InvalidateTxID: %s", txid.StringShort())
 
 	vid := AttachTxID(txid, env, WithInvokedBy("InvalidateTxID"))
 	vid.SetTxStatusBad(reason)
-	return vid
 }
 
 func AttachOutputID(oid ledger.OutputID, env Environment, opts ...AttachTxOption) vertex.WrappedOutput {
