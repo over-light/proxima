@@ -17,6 +17,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNoSequencerPruner(t *testing.T) {
+	t.Run("1", func(t *testing.T) {
+		testData := initWorkflowTest(t, 1, true)
+		t.Logf("%s", testData.wrk.Info())
+
+		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
+			runtime.GC()
+			return true
+		})
+
+		err := testData.wrk.TxIn(testData.distributionBranchTx)
+		require.NoError(t, err)
+
+		testData.makeChainOrigins(1)
+
+		err = testData.wrk.TxIn(testData.chainOriginsTx)
+		require.NoError(t, err)
+
+		time.Sleep(60 * time.Second)
+		testData.stop()
+		testData.waitStop()
+
+		t.Logf("%s", testData.wrk.Info(true))
+		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
+	})
+}
+
 func Test1SequencerPruner(t *testing.T) {
 	t.Run("idle", func(t *testing.T) {
 		const (
