@@ -235,6 +235,7 @@ func (a *milestoneAttacher) close() {
 		a.closed = true
 		close(a.pokeChan)
 		a.vid.OnPokeNop()
+		a.attacher.pokeMe = func(_ *vertex.WrappedTx) {}
 	})
 }
 
