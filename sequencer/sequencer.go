@@ -21,6 +21,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/checkpoints"
 	"github.com/lunfardo314/proxima/util/set"
+	"github.com/lunfardo314/proxima/util/trackgc"
 	"go.uber.org/zap"
 )
 
@@ -90,6 +91,10 @@ type (
 )
 
 const TraceTag = "sequencer"
+
+var TrackGCSequencers = trackgc.New[Sequencer](func(p *Sequencer) string {
+	return p.SequencerName()
+})
 
 func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey, opts ...ConfigOption) (*Sequencer, error) {
 	cfg := configOptions(opts...)
@@ -521,7 +526,7 @@ func (seq *Sequencer) OnMilestoneSubmitted(fun func(seq *Sequencer, ms *vertex.W
 	}
 }
 
-func (seq *Sequencer) OnExit(fun func()) {
+func (seq *Sequencer) OnExitOnce(fun func()) {
 	seq.onCallbackMutex.Lock()
 	defer seq.onCallbackMutex.Unlock()
 
@@ -532,6 +537,10 @@ func (seq *Sequencer) OnExit(fun func()) {
 		seq.onExit = func() {
 			prevFun()
 			fun()
+
+			seq.onCallbackMutex.Lock()
+			defer seq.onCallbackMutex.Unlock()
+			seq.onExit = prevFun
 		}
 	}
 }

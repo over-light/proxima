@@ -84,10 +84,18 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 
 // DetachPastCone detaches past cone and leaves only a collection of produced outputs
 func (vid *WrappedTx) DetachPastCone() {
-	vid.Unwrap(UnwrapOptions{Vertex: func(v *Vertex) {
-		vid.convertToDetachedTxUnlocked(v)
-		fmt.Printf(">>>>>>> DetachPastCone %s\n", vid.IDShortString())
-	}})
+	vid.Unwrap(UnwrapOptions{
+		Vertex: func(v *Vertex) {
+			vid.convertToDetachedTxUnlocked(v)
+			fmt.Printf(">>>>>>> DetachPastCone Vertex %s\n", vid.IDShortString())
+		},
+		DetachedVertex: func(v *DetachedVertex) {
+			fmt.Printf(">>>>>>> DetachPastCone DetachedVertex %s\n", vid.IDShortString())
+		},
+		VirtualTx: func(v *VirtualTransaction) {
+			fmt.Printf(">>>>>>> DetachPastCone VirtualTx %s\n", vid.IDShortString())
+		},
+	})
 }
 
 func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
@@ -96,7 +104,7 @@ func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
 	vid.pastCone = nil
 	vid.OnPokeNop()
 	vid.SetFlagsUpNoLock(FlagVertexIgnoreAbsenceOfPastCone)
-	vid.consumed = nil //<< essential for GC ???????????????????
+	//vid.consumed = nil //<< essential for GC ???????????????????
 }
 
 func (vid *WrappedTx) GetTxStatus() Status {

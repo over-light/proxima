@@ -121,9 +121,9 @@ func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 
 func (d *MemDAG) GetVertexNoLock(txid ledger.TransactionID, caller string) *vertex.WrappedTx {
 	if rec, found := d.vertices[txid]; found {
-		if txid.Slot() <= 1 {
-			d.Log().Infof(">>>>>>>>>>>>> GetVertexNoLock %s, caller = %s", txid.StringShort(), caller)
-		}
+		//if txid.Slot() <= 1 {
+		//	d.Log().Infof(">>>>>>>>>>>>> GetVertexNoLock %s, caller = %s", txid.StringShort(), caller)
+		//}
 		return rec.Value()
 	}
 	return nil
@@ -178,7 +178,11 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 		if vid.NumReferences() == 0 {
 			vid.DetachPastCone()
 			{ // debug
-				TrackedVertices.TrackPointerNotGCed(vid, 5*time.Second, true)
+				TrackedVertices.TrackPointerNotGCed(vid,
+					trackgc.WithTimeout(20*time.Second),
+					trackgc.WithPanicOnTimeout(false),
+					trackgc.WithReportTimeout(false),
+				)
 				//if vid.Slot() <= 1 {
 				//	TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second)
 				//}

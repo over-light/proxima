@@ -42,6 +42,54 @@ func TestNoSequencerPruner(t *testing.T) {
 		t.Logf("%s", testData.wrk.Info(true))
 		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
 	})
+	t.Run("run until GCed", func(t *testing.T) {
+		const (
+			maxSlots    = 50
+			waitTimeout = 400 * time.Second
+		)
+		testData := initWorkflowTest(t, 1, true)
+		t.Logf("%s", testData.wrk.Info())
+
+		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
+			runtime.GC()
+			return true
+		})
+
+		seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey,
+			sequencer.WithName("singleTestSequencer"),
+			sequencer.WithMaxBranches(maxSlots))
+		require.NoError(t, err)
+
+		seq.OnExitOnce(func() {
+			//sequencer.TrackGCSequencers.TrackPointerNotGCed(seq, waitTimeout/4)
+		})
+
+		seq.Start()
+		//time.Sleep(waitTimeout)
+
+		start := time.Now()
+		nVert, nRdr := testData.wrk.NumVerticesAndStateReaders()
+		for {
+			t.Logf("%d vertices, %d state readers", nVert, nRdr)
+			time.Sleep(1 * time.Second)
+			nVert, nRdr = testData.wrk.NumVerticesAndStateReaders()
+
+			if nVert == 0 {
+				t.Logf("memdag is empty after %v", time.Since(start))
+				break
+			}
+			if time.Since(start) > waitTimeout {
+				t.Logf("exceeded wait timeout of %v", waitTimeout)
+			}
+		}
+
+		testData.stop()
+		testData.waitStop()
+
+		t.Logf("%s", testData.wrk.Info(true))
+		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
+		//testData.saveFullDAG("full_dag")
+	})
 }
 
 func Test1SequencerPruner(t *testing.T) {
@@ -72,7 +120,7 @@ func Test1SequencerPruner(t *testing.T) {
 				countBr.Add(1)
 			}
 		})
-		seq.OnExit(func() {
+		seq.OnExitOnce(func() {
 			testData.stop()
 		})
 		seq.Start()
@@ -109,7 +157,7 @@ func Test1SequencerPruner(t *testing.T) {
 				countSeq.Add(1)
 			}
 		})
-		seq.OnExit(func() {
+		seq.OnExitOnce(func() {
 			testData.stop()
 		})
 		seq.Start()

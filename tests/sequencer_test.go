@@ -36,7 +36,7 @@ func Test1Sequencer(t *testing.T) {
 				countBr.Add(1)
 			}
 		})
-		seq.OnExit(func() {
+		seq.OnExitOnce(func() {
 			testData.stop()
 		})
 		seq.Start()
@@ -145,7 +145,7 @@ func Test1Sequencer(t *testing.T) {
 				countSeq.Add(1)
 			}
 		})
-		seq.OnExit(func() {
+		seq.OnExitOnce(func() {
 			testData.stop()
 		})
 
