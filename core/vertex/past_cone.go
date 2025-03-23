@@ -61,12 +61,20 @@ func _nextPastConeBaseCounter() (ret int) {
 	return
 }
 
-var trackedPastConeBases = trackgc.New[PastConeBase](
-	func(p *PastConeBase) string {
-		return fmt.Sprintf("%T: %p #%d", p, p, p.num)
-	}, func(p *PastConeBase) string {
-		return fmt.Sprintf("%T: %p #%d\n%s", p, p, p.num, p.Lines("    ").String())
-	})
+var (
+	trackedPastConeBases = trackgc.New[PastConeBase](
+		func(p *PastConeBase) string {
+			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
+		}, func(p *PastConeBase) string {
+			return fmt.Sprintf("%T: %p #%d\n%s", p, p, p.num, p.Lines("    ").String())
+		})
+	trackedPastCones = trackgc.New[PastCone](
+		func(p *PastCone) string {
+			return fmt.Sprintf("%T: %p #%d, oldest ref: %s", p, p, p.num, p.OldestReference().String())
+		}, func(p *PastCone) string {
+			return fmt.Sprintf("%T: %p #%d, oldest ref: %s", p, p, p.num, p.OldestReference().String())
+		})
+)
 
 const (
 	FlagPastConeVertexKnown             = FlagsPastCone(0b00000001) // each vertex of consideration has this flag on
@@ -103,12 +111,19 @@ func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
-	//trackedPastConeBases.TrackPointerNotGCed(ret, 20*time.Second, true)
+	//trackedPastConeBases.TrackPointerNotGCed(ret,
+	//	trackgc.WithTimeout(20*time.Second),
+	//	trackgc.WithPanicOnTimeout(true),
+	//)
 	return ret
 }
 
 func NewPastCone(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string) *PastCone {
 	ret := newPastConeFromBase(env, tip, targetTs, name, NewPastConeBase(nil))
+	//trackedPastCones.TrackPointerNotGCed(ret,
+	//	trackgc.WithTimeout(20*time.Second),
+	//	trackgc.WithPanicOnTimeout(true),
+	//)
 	return ret
 }
 
@@ -120,6 +135,70 @@ func newPastConeFromBase(env global.Logging, tip *WrappedTx, targetTs ledger.Tim
 		name:         name,
 		PastConeBase: pb,
 	}
+}
+
+func (pc *PastCone) Dispose() {
+	if pc == nil {
+		return
+	}
+	pc.tip = nil
+	pc.PastConeBase.Dispose()
+	pc.PastConeBase = nil
+	pc.delta.Dispose()
+	pc.delta = nil
+}
+
+func (pb *PastConeBase) Dispose() {
+	if pb == nil {
+		return
+	}
+	pb.baseline = nil
+	clear(pb.vertices)
+	pb.vertices = nil
+	clear(pb.virtuallyConsumed)
+	pb.virtuallyConsumed = nil
+}
+
+func (pb *PastConeBase) OldestReference() ledger.Time {
+	ret := ledger.NewLedgerTime(0x0fffffff, 0)
+	if pb == nil {
+		return ret
+	}
+	if pb.baseline != nil && pb.baseline.Timestamp().Before(ret) {
+		ret = pb.baseline.Timestamp()
+	}
+	for vid := range pb.vertices {
+		if vid.Timestamp().Before(ret) {
+			ret = vid.Timestamp()
+		}
+	}
+	for vid := range pb.virtuallyConsumed {
+		if vid.Timestamp().Before(ret) {
+			ret = vid.Timestamp()
+		}
+	}
+	return ret
+}
+
+func (pc *PastCone) OldestReference() ledger.Time {
+	ret := ledger.NewLedgerTime(0x0fffffff, 0)
+	if pc == nil {
+		return ret
+	}
+
+	if pc.tip != nil && pc.tip.Timestamp().Before(ret) {
+		ret = pc.tip.Timestamp()
+	}
+
+	ret1 := pc.PastConeBase.OldestReference()
+	if ret1.Before(ret) {
+		ret = ret1
+	}
+	ret1 = pc.delta.OldestReference()
+	if ret1.Before(ret) {
+		ret = ret1
+	}
+	return ret
 }
 
 func (pb *PastConeBase) CloneImmutable() *PastConeBase {
@@ -366,11 +445,12 @@ func (pc *PastCone) forAllVertices(fun func(vid *WrappedTx) bool, sortAsc ...boo
 
 func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
+	pbStr := "<nil>"
+	if pc.baseline != nil {
+		pc.baseline.IDShortString()
+	}
 	ret.Add("------ past cone: '%s'", pc.name).
-		Add("------ baseline: %s, coverage: %s",
-			util.Cond(pc.baseline == nil, "<nil>", pc.baseline.IDShortString()),
-			pc.baseline.GetLedgerCoverageString(),
-		)
+		Add("------ baseline: %s, coverage: %s", pbStr, pc.baseline.GetLedgerCoverageString())
 
 	//rooted := make([]WrappedOutput, 0)
 	counter := 0

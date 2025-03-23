@@ -88,6 +88,7 @@ func (a *IncrementalAttacher) Close() {
 	if a != nil && !a.IsClosed() {
 		a.endorse = nil
 		a.inputs = nil
+		a.pastCone.Dispose()
 		a.pastCone = nil
 		a.closed = true
 	}

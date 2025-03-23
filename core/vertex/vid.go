@@ -101,6 +101,7 @@ func (vid *WrappedTx) DetachPastCone() {
 func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
 	vid._put(_detachedVertex{v.toDetachedVertex()})
 	v.UnReferenceDependencies()
+	vid.pastCone.Dispose()
 	vid.pastCone = nil
 	vid.OnPokeNop()
 	vid.SetFlagsUpNoLock(FlagVertexIgnoreAbsenceOfPastCone)
