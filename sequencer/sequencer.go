@@ -21,7 +21,6 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/checkpoints"
 	"github.com/lunfardo314/proxima/util/set"
-	"github.com/lunfardo314/proxima/util/trackgc"
 	"go.uber.org/zap"
 )
 
@@ -92,9 +91,9 @@ type (
 
 const TraceTag = "sequencer"
 
-var TrackGCSequencers = trackgc.New[Sequencer](func(p *Sequencer) string {
-	return p.SequencerName()
-})
+//var TrackGCSequencers = trackgc.New[Sequencer](func(p *Sequencer) string {
+//	return p.SequencerName()
+//})
 
 func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey, opts ...ConfigOption) (*Sequencer, error) {
 	cfg := configOptions(opts...)

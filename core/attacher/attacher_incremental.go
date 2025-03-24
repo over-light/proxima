@@ -10,14 +10,13 @@ import (
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
-	"github.com/lunfardo314/proxima/util/trackgc"
 )
 
 const TraceTagIncrementalAttacher = "incAttach"
 
-var trackedIncrementalAttachers = trackgc.New[IncrementalAttacher](func(p *IncrementalAttacher) string {
-	return "incAttacher " + p.name
-})
+//var trackedIncrementalAttachers = trackgc.New[IncrementalAttacher](func(p *IncrementalAttacher) string {
+//	return "incAttacher " + p.name
+//})
 
 func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (*IncrementalAttacher, error) {
 	env.Assertf(ledger.ValidSequencerPace(extend.Timestamp(), targetTs), "NewIncrementalAttacher: target is closer than allowed pace (%d): %s -> %s",

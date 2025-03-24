@@ -83,19 +83,25 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 }
 
 // ConvertToDetached detaches past cone and leaves only a collection of produced outputs
+// Detaches input dependencies and converts to the DetachedVertex
+// Note, however, that for branches, WrappedTx with DetachedVertex can later contain reference to the pastCone structure.
+// Upon repeated calls to ConvertToDetached we set pastCone to nil. If not this, DAG remains always connected and
+// old vertices are not garbage collected -> memory leak!
 func (vid *WrappedTx) ConvertToDetached() {
 	vid.Unwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
 			vid.convertToDetachedTxUnlocked(v)
-			fmt.Printf(">>>>>>> ConvertToDetached Vertex %s\n", vid.IDShortString())
+			vid.pastCone = nil
+			//fmt.Printf(">>>>>>> ConvertToDetached Vertex %s\n", vid.IDShortString())
 		},
 		DetachedVertex: func(v *DetachedVertex) {
-			vid.pastCone = nil // TODO temporary solution for the GC problem
-			fmt.Printf(">>>>>>> ConvertToDetached DetachedVertex %s\n", vid.IDShortString())
+			util.Assertf(vid.pastCone == nil || vid.IsBranchTransaction(), "vid.pastCone == nil ||vid.IsBranchTransaction()")
+			vid.pastCone = nil // Important: if not this, memdag leaks memory
+			//fmt.Printf(">>>>>>> ConvertToDetached DetachedVertex %s\n", vid.IDShortString())
 		},
 		VirtualTx: func(v *VirtualTransaction) {
 			util.Assertf(vid.pastCone == nil, "vid.pastCone == nil")
-			fmt.Printf(">>>>>>> ConvertToDetached VirtualTx %s\n", vid.IDShortString())
+			//fmt.Printf(">>>>>>> ConvertToDetached VirtualTx %s\n", vid.IDShortString())
 		},
 	})
 }
@@ -103,10 +109,10 @@ func (vid *WrappedTx) ConvertToDetached() {
 func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
 	vid._put(_detachedVertex{v.toDetachedVertex()})
 	v.UnReferenceDependencies()
-	vid.pastCone.Dispose()
-	vid.pastCone = nil
 	vid.OnPokeNop()
 	vid.SetFlagsUpNoLock(FlagVertexIgnoreAbsenceOfPastCone)
+	//vid.pastCone.Dispose()
+	//vid.pastCone = nil
 	//vid.consumed = nil
 }
 
@@ -146,20 +152,6 @@ func (vid *WrappedTx) SetTxStatusGood(pastCone *PastConeBase, coverage uint64) {
 	if pastCone == nil {
 		vid.flags.SetFlagsUp(FlagVertexIgnoreAbsenceOfPastCone)
 	} else {
-		//if vid.IsBranchTransaction() && vid.Slot() == 10
-		{ // debug
-			deepestStr := "<nil>"
-			deepest := pastCone.DeepestReference(set.New[*WrappedTx]())
-			if deepest != nil {
-				deepestStr = deepest.IDShortString()
-			}
-			fmt.Printf(">>>>>>>> SetTxStatusGood in %s. Oldest ref: %s\n", vid.IDShortString(), deepestStr)
-
-			//if oldest.Slot() > 10 {
-			//	fmt.Printf("pastCone of %s: %s\n", )
-			//}
-
-		}
 		vid.pastCone = pastCone
 		if coverage > 0 {
 			vid.coverage = util.Ref(coverage)

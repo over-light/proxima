@@ -12,7 +12,6 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/set"
-	"github.com/lunfardo314/proxima/util/trackgc"
 	"golang.org/x/exp/maps"
 )
 
@@ -61,20 +60,20 @@ func _nextPastConeBaseCounter() (ret int) {
 	return
 }
 
-var (
-	trackedPastConeBases = trackgc.New[PastConeBase](
-		func(p *PastConeBase) string {
-			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
-		}, func(p *PastConeBase) string {
-			return fmt.Sprintf("%T: %p #%d\n%s", p, p, p.num, p.Lines("    ").String())
-		})
-	trackedPastCones = trackgc.New[PastCone](
-		func(p *PastCone) string {
-			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
-		}, func(p *PastCone) string {
-			return fmt.Sprintf("%T: %p #%d, oldest ref: %s", p, p, p.num, p.OldestReference().String())
-		})
-)
+//var (
+//	trackedPastConeBases = trackgc.New[PastConeBase](
+//		func(p *PastConeBase) string {
+//			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
+//		}, func(p *PastConeBase) string {
+//			return fmt.Sprintf("%T: %p #%d\n%s", p, p, p.num, p.Lines("    ").String())
+//		})
+//	trackedPastCones = trackgc.New[PastCone](
+//		func(p *PastCone) string {
+//			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
+//		}, func(p *PastCone) string {
+//			return fmt.Sprintf("%T: %p #%d, oldest ref: %s", p, p, p.num, p.OldestReference().String())
+//		})
+//)
 
 const (
 	FlagPastConeVertexKnown             = FlagsPastCone(0b00000001) // each vertex of consideration has this flag on

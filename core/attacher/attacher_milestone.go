@@ -15,7 +15,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/checkpoints"
-	"github.com/lunfardo314/proxima/util/trackgc"
 )
 
 const (
@@ -23,9 +22,9 @@ const (
 	periodicCheckEach       = 50 * time.Millisecond
 )
 
-var trackedMilestoneAttachers = trackgc.New[milestoneAttacher](func(p *milestoneAttacher) string {
-	return "milestoneAttacher " + p.name
-})
+//var trackedMilestoneAttachers = trackgc.New[milestoneAttacher](func(p *milestoneAttacher) string {
+//	return "milestoneAttacher " + p.name
+//})
 
 func runMilestoneAttacher(
 	vid *vertex.WrappedTx,
@@ -143,35 +142,46 @@ func (a *milestoneAttacher) run() error {
 	// finalizing touches
 	a.wrapUpAttacher()
 
+	a.pastCone.SetFlagsUp(a.vid, vertex.FlagPastConeVertexDefined)
 	if a.vid.IsBranchTransaction() {
 		// branch transaction vertex is immediately detached. Thus branch transaction does not reference past cone
 		a.vid.ConvertToDetached()
-		a.vid.SetTxStatusGood(nil, a.pastCone.LedgerCoverage())
+		//a.vid.SetTxStatusGood(nil, a.pastCone.LedgerCoverage())
+		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
 	} else {
 		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
 		a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 	}
+	//else {
+	//	a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
+	//	a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
+	//}
 
-	a.pastCone.SetFlagsUp(a.vid, vertex.FlagPastConeVertexDefined)
+	//if a.vid.IsBranchTransaction() {
+	//	a.vid.SetTxStatusGood(nil, a.pastCone.LedgerCoverage())
+	//} else {
+	//	a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
+	//}
+	//a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 
-	{ // debug
-		const (
-			lastCheck     = false
-			printPastCone = false
-		)
-		if lastCheck {
-			err = a.pastCone.CheckFinalPastCone(a.baselineStateReader)
-			if err != nil {
-				err = fmt.Errorf("%w\n------ past cone of %s ------\n%s",
-					err, a.vid.IDShortString(), a.pastCone.Lines("     ").Join("\n"))
-				memdag.SaveGraphPastCone(a.vid, "past_cone_CheckFinalPastCone")
-			}
-			a.AssertNoError(err)
-		}
-		if printPastCone {
-			a.Log().Infof(">>>>>>>>>>>>> past cone of attacher %s\n%s", a.Name(), a.pastCone.Lines("      ").String())
-		}
-	}
+	//{ // debug
+	//	const (
+	//		lastCheck     = false
+	//		printPastCone = false
+	//	)
+	//	if lastCheck {
+	//		err = a.pastCone.CheckFinalPastCone(a.baselineStateReader)
+	//		if err != nil {
+	//			err = fmt.Errorf("%w\n------ past cone of %s ------\n%s",
+	//				err, a.vid.IDShortString(), a.pastCone.Lines("     ").Join("\n"))
+	//			memdag.SaveGraphPastCone(a.vid, "past_cone_CheckFinalPastCone")
+	//		}
+	//		a.AssertNoError(err)
+	//	}
+	//	if printPastCone {
+	//		a.Log().Infof(">>>>>>>>>>>>> past cone of attacher %s\n%s", a.Name(), a.pastCone.Lines("      ").String())
+	//	}
+	//}
 
 	a.SendToTippool(a.vid)
 

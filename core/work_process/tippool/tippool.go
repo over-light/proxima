@@ -90,13 +90,13 @@ func (t *SequencerTips) consume(inp Input) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	{ // debug
-		for _, lm := range t.latestMilestones {
-			if lm.Slot() <= 1 {
-				t.Log().Infof(">>>>>>>>>>> in tippool %s", lm.WrappedTx.IDShortString())
-			}
-		}
-	}
+	//{ // debug
+	//	for _, lm := range t.latestMilestones {
+	//		if lm.Slot() <= 1 {
+	//			t.Log().Infof(">>>>>>>>>>> in tippool %s", lm.WrappedTx.IDShortString())
+	//		}
+	//	}
+	//}
 
 	t.updateLatestSequencerData(inp.WrappedTx, *seqID)
 

@@ -12,7 +12,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/maps"
 )
@@ -108,9 +107,9 @@ func init() {
 	util.Assertf(vertexTTLSlots >= _vertexTTLSlotsMinimum, "constant vertexTTLSlots must be at least %d", _vertexTTLSlotsMinimum)
 }
 
-var TrackedVertices = trackgc.New[vertex.WrappedTx](func(p *vertex.WrappedTx) string {
-	return p.IDShortString()
-})
+//var TrackedVertices = trackgc.New[vertex.WrappedTx](func(p *vertex.WrappedTx) string {
+//	return p.IDShortString()
+//})
 
 func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 	d.mutex.Lock()
@@ -177,16 +176,16 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
 		if vid.NumReferences() == 0 {
 			vid.ConvertToDetached()
-			{ // debug
-				TrackedVertices.TrackPointerNotGCed(vid,
-					trackgc.WithTimeout(20*time.Second),
-					trackgc.WithPanicOnTimeout(false),
-					trackgc.WithReportTimeout(false),
-				)
-				//if vid.Slot() <= 1 {
-				//	TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second)
-				//}
-			}
+			//{ // debug
+			//	TrackedVertices.TrackPointerNotGCed(vid,
+			//		trackgc.WithTimeout(20*time.Second),
+			//		trackgc.WithPanicOnTimeout(false),
+			//		trackgc.WithReportTimeout(false),
+			//	)
+			//	//if vid.Slot() <= 1 {
+			//	//	TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second)
+			//	//}
+			//}
 			return true
 		}
 		return false

@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNoSequencerPruner(t *testing.T) {
+func TestDebugPruner(t *testing.T) {
 	t.Run("1", func(t *testing.T) {
 		testData := initWorkflowTest(t, 1, true)
 		t.Logf("%s", testData.wrk.Info())
@@ -257,7 +257,7 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	testData := initMultiSequencerTest(t, nSequencers, true)
 	//testData.env.StartTracingTags(task.TraceTagBaseProposerExit) //, sequencer.TraceTagTarget)
 
-	testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
+	testData.env.RepeatInBackground("test GC loop", 2*time.Second, func() bool {
 		runtime.GC()
 		return true
 	})
@@ -269,13 +269,13 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	success := testData.stopAndWait(5 * time.Second)
 	require.True(t, success)
 
-	t.Logf("--------\n%s", testData.wrk.Info(true))
-	runtime.GC()
-	time.Sleep(time.Second)
-	t.Logf("--------\n%s", testData.wrk.Info(true))
+	//t.Logf("--------\n%s", testData.wrk.Info(true))
+	//runtime.GC()
+	//time.Sleep(time.Second)
+	//t.Logf("--------\n%s", testData.wrk.Info(true))
 
-	//testData.saveFullDAG("utangle_full")
-	//multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
+	testData.saveFullDAG("utangle_full")
+	multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 }
 
 func TestNSequencersTransferPruner(t *testing.T) {
@@ -285,7 +285,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 			nSequencers     = 2 // in addition to bootstrap
 			batchSize       = 10
 			sendAmount      = 2000
-			spammingTimeout = 15 * time.Second
+			spammingTimeout = 30 * time.Second
 		)
 		testData := initMultiSequencerTest(t, nSequencers, true)
 
