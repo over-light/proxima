@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 	"sort"
-	"sync"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -42,23 +41,23 @@ type (
 		baseline          *WrappedTx
 		vertices          map[*WrappedTx]FlagsPastCone // byte is used by attacher for flags
 		virtuallyConsumed map[*WrappedTx]set.Set[byte]
-		num               int // tmp
+		//num               int // tmp
 	}
 )
 
-var (
-	pastConeBaseCounter      int
-	pastConeBaseCounterMutex sync.Mutex
-)
-
-func _nextPastConeBaseCounter() (ret int) {
-	pastConeBaseCounterMutex.Lock()
-	defer pastConeBaseCounterMutex.Unlock()
-
-	ret = pastConeBaseCounter
-	pastConeBaseCounter++
-	return
-}
+//var (
+//	pastConeBaseCounter      int
+//	pastConeBaseCounterMutex sync.Mutex
+//)
+//
+//func _nextPastConeBaseCounter() (ret int) {
+//	pastConeBaseCounterMutex.Lock()
+//	defer pastConeBaseCounterMutex.Unlock()
+//
+//	ret = pastConeBaseCounter
+//	pastConeBaseCounter++
+//	return
+//}
 
 //var (
 //	trackedPastConeBases = trackgc.New[PastConeBase](
@@ -106,7 +105,7 @@ func (f FlagsPastCone) String() string {
 
 func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 	ret := &PastConeBase{
-		num:      _nextPastConeBaseCounter(),
+		//num:      _nextPastConeBaseCounter(),
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}

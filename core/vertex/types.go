@@ -61,9 +61,9 @@ type (
 		mutexDescendants sync.RWMutex
 		consumed         map[byte]set.Set[*WrappedTx]
 		attachmentDepth  int
-		references       atomic.Int32
-		SlotWhenAdded    ledger.Slot // immutable
-		pastCone         *PastConeBase
+		//references       atomic.Int32
+		SlotWhenAdded ledger.Slot // immutable
+		pastCone      *PastConeBase
 	}
 
 	WrappedOutput struct {

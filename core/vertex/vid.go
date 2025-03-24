@@ -185,18 +185,18 @@ func (vid *WrappedTx) SetTxStatusBadNoLock(reason error) {
 	vid.err = reason
 }
 
-func (vid *WrappedTx) Reference() {
-	vid.references.Add(1)
-}
-
-func (vid *WrappedTx) UnReference() {
-	v := vid.references.Add(-1)
-	util.Assertf(v >= 0, "vertex reference counter should not go below 0 in %s", vid.IDShortString)
-}
-
-func (vid *WrappedTx) NumReferences() int {
-	return int(vid.references.Load())
-}
+//func (vid *WrappedTx) Reference() {
+//	vid.references.Add(1)
+//}
+//
+//func (vid *WrappedTx) UnReference() {
+//	v := vid.references.Add(-1)
+//	util.Assertf(v >= 0, "vertex reference counter should not go below 0 in %s", vid.IDShortString)
+//}
+//
+//func (vid *WrappedTx) NumReferences() int {
+//	return int(vid.references.Load())
+//}
 
 func (vid *WrappedTx) GetError() error {
 	vid.mutex.RLock()
@@ -271,9 +271,12 @@ func (vid *WrappedTx) ShortString() string {
 			}
 		},
 	})
-	return fmt.Sprintf("%22s %10s (%s%s) %s ref = %d, onPoke = %p, added %d slots back",
-		vid.IDShortString(), mode, status, flagsStr, reason, vid.NumReferences(),
+	return fmt.Sprintf("%22s %10s (%s%s) %s, onPoke = %p, added %d slots back",
+		vid.IDShortString(), mode, status, flagsStr, reason,
 		vid.onPoke.Load(), ledger.TimeNow().Slot()-vid.SlotWhenAdded)
+	//return fmt.Sprintf("%22s %10s (%s%s) %s ref = %d, onPoke = %p, added %d slots back",
+	//	vid.IDShortString(), mode, status, flagsStr, reason, vid.NumReferences(),
+	//	vid.onPoke.Load(), ledger.TimeNow().Slot()-vid.SlotWhenAdded)
 }
 
 func (vid *WrappedTx) IDShortString() string {
@@ -790,11 +793,12 @@ func (vid *WrappedTx) SequencerPredecessor(reattachBranch func(txid ledger.Trans
 			}
 		},
 		DetachedVertex: func(v *DetachedVertex) {
-			if vid.IsBranchTransaction() {
-				ret = reattachBranch(v.BranchID)
-			} else {
-				util.Panicf("SequencerPredecessor: can't get predecessor vertex in detached tx %s", vid.IDShortString())
-			}
+			ret = reattachBranch(v.BranchID)
+			//if vid.IsBranchTransaction() {
+			//	ret = reattachBranch(v.BranchID)
+			//} else {
+			//	util.Panicf("SequencerPredecessor: can't get predecessor vertex in detached tx %s", vid.IDShortString())
+			//}
 		},
 	})
 	return

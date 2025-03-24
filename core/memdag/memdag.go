@@ -174,21 +174,23 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 	})
 
 	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
-		if vid.NumReferences() == 0 {
-			vid.ConvertToDetached()
-			//{ // debug
-			//	TrackedVertices.TrackPointerNotGCed(vid,
-			//		trackgc.WithTimeout(20*time.Second),
-			//		trackgc.WithPanicOnTimeout(false),
-			//		trackgc.WithReportTimeout(false),
-			//	)
-			//	//if vid.Slot() <= 1 {
-			//	//	TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second)
-			//	//}
-			//}
-			return true
-		}
-		return false
+		vid.ConvertToDetached()
+		return true
+		//if vid.NumReferences() == 0 {
+		//	vid.ConvertToDetached()
+		//	//{ // debug
+		//	//	TrackedVertices.TrackPointerNotGCed(vid,
+		//	//		trackgc.WithTimeout(20*time.Second),
+		//	//		trackgc.WithPanicOnTimeout(false),
+		//	//		trackgc.WithReportTimeout(false),
+		//	//	)
+		//	//	//if vid.Slot() <= 1 {
+		//	//	//	TrackedVertices.TrackPointerNotGCed(vid, vid.IDShortString(), 5*time.Second)
+		//	//	//}
+		//	//}
+		//	return true
+		//}
+		//return false
 	})
 
 	if len(expired) == 0 {

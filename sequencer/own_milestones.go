@@ -105,7 +105,7 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 			})
 		}})
 	}
-	vid.Reference()
+	//vid.Reference()
 	seq.ownMilestones[vid] = withTime
 }
 
@@ -119,7 +119,7 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 	for vid, withTime := range seq.ownMilestones {
 		if withTime.since.Before(horizon) {
 			delete(seq.ownMilestones, vid)
-			vid.UnReference()
+			//vid.UnReference()
 			count++
 			//seq.Log().Infof("--------- deleted own milestone %s, outputs from past cone %d ------------", vid.IDShortString(), len(withTime.consumed))
 		}

@@ -77,7 +77,7 @@ func New(env Environment) (*TagAlongBacklog, error) {
 		ret.outputs[wOut] = nowis
 		ret.lastOutputArrived = nowis
 		ret.outputCount++
-		wOut.VID.Reference()
+		//wOut.VID.Reference()
 		env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDStringShort, len(ret.outputs))
 	})
 
@@ -223,7 +223,7 @@ func (b *TagAlongBacklog) purgeBacklog() int {
 		if del {
 			delete(b.outputs, wOut)
 			count++
-			wOut.VID.UnReference()
+			//wOut.VID.UnReference()
 		}
 	}
 	b.EvidenceBacklogSize(len(b.outputs))
