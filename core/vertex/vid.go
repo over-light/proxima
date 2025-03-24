@@ -90,7 +90,7 @@ func (vid *WrappedTx) ConvertToDetached() {
 			fmt.Printf(">>>>>>> ConvertToDetached Vertex %s\n", vid.IDShortString())
 		},
 		DetachedVertex: func(v *DetachedVertex) {
-			vid.pastCone = nil // TODO temporary solution
+			vid.pastCone = nil // TODO temporary solution for the GC problem
 			fmt.Printf(">>>>>>> ConvertToDetached DetachedVertex %s\n", vid.IDShortString())
 		},
 		VirtualTx: func(v *VirtualTransaction) {
@@ -107,7 +107,7 @@ func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
 	vid.pastCone = nil
 	vid.OnPokeNop()
 	vid.SetFlagsUpNoLock(FlagVertexIgnoreAbsenceOfPastCone)
-	//vid.consumed = nil //<< essential for GC ???????????????????
+	//vid.consumed = nil
 }
 
 func (vid *WrappedTx) GetTxStatus() Status {

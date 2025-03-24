@@ -146,13 +146,13 @@ func (a *milestoneAttacher) run() error {
 	if a.vid.IsBranchTransaction() {
 		// branch transaction vertex is immediately detached. Thus branch transaction does not reference past cone
 		a.vid.ConvertToDetached()
+		a.vid.SetTxStatusGood(nil, a.pastCone.LedgerCoverage())
+	} else {
+		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
+		a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 	}
 
 	a.pastCone.SetFlagsUp(a.vid, vertex.FlagPastConeVertexDefined)
-
-	// TODO optimization in the branch is not necessary to keep the past cone
-	a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
-	a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 
 	{ // debug
 		const (

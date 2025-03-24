@@ -591,7 +591,7 @@ func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, sta
 				}
 			}
 		} else {
-			// TODO no need to store number of outputs: now all is contained in the id
+			// xTODO no need to store number of outputs: now all is contained in the id
 			muts.InsertAddTxMutation(vid.id, slot, byte(vid.id.NumProducedOutputs()-1))
 			stats.NumTransactions++
 
@@ -666,7 +666,8 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, getStateReader func() mult
 	baselineStateReader := getStateReader()
 
 	for vid, flags := range pcb.vertices {
-		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s", flags.String())
+		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
+			flags.String, vid.IDShortString, pcb.Lines("    ").String)
 
 		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
 			// if vertex is in the state of the appended past cone, it will be in the state of the new baseline
