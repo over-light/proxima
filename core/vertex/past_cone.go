@@ -990,16 +990,22 @@ func (pb *PastConeBase) OldestReference() (ret *WrappedTx) {
 
 func (pb *PastConeBase) DeepestReference(visited set.Set[*WrappedTx]) (ret *WrappedTx) {
 	if pb.baseline != nil {
-		ret = pb.baseline.DeepestPastConeReference()
+		ret = pb.baseline.DeepestPastConeReference(visited)
 	}
 	for vid := range pb.vertices {
-		deepest := vid.DeepestPastConeReference()
+		deepest := vid.DeepestPastConeReference(visited)
+		if deepest == nil {
+			continue
+		}
 		if ret == nil || deepest.Timestamp().Before(ret.Timestamp()) {
 			ret = deepest
 		}
 	}
 	for vid := range pb.virtuallyConsumed {
-		deepest := vid.DeepestPastConeReference()
+		deepest := vid.DeepestPastConeReference(visited)
+		if deepest == nil {
+			continue
+		}
 		if ret == nil || deepest.Timestamp().Before(ret.Timestamp()) {
 			ret = deepest
 		}
