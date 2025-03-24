@@ -70,7 +70,7 @@ var (
 		})
 	trackedPastCones = trackgc.New[PastCone](
 		func(p *PastCone) string {
-			return fmt.Sprintf("%T: %p #%d, oldest ref: %s", p, p, p.num, p.OldestReference().String())
+			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
 		}, func(p *PastCone) string {
 			return fmt.Sprintf("%T: %p #%d, oldest ref: %s", p, p, p.num, p.OldestReference().String())
 		})
@@ -137,70 +137,6 @@ func newPastConeFromBase(env global.Logging, tip *WrappedTx, targetTs ledger.Tim
 	}
 }
 
-func (pc *PastCone) Dispose() {
-	if pc == nil {
-		return
-	}
-	pc.tip = nil
-	pc.PastConeBase.Dispose()
-	pc.PastConeBase = nil
-	pc.delta.Dispose()
-	pc.delta = nil
-}
-
-func (pb *PastConeBase) Dispose() {
-	if pb == nil {
-		return
-	}
-	pb.baseline = nil
-	clear(pb.vertices)
-	pb.vertices = nil
-	clear(pb.virtuallyConsumed)
-	pb.virtuallyConsumed = nil
-}
-
-func (pb *PastConeBase) OldestReference() ledger.Time {
-	ret := ledger.NewLedgerTime(0x0fffffff, 0)
-	if pb == nil {
-		return ret
-	}
-	if pb.baseline != nil && pb.baseline.Timestamp().Before(ret) {
-		ret = pb.baseline.Timestamp()
-	}
-	for vid := range pb.vertices {
-		if vid.Timestamp().Before(ret) {
-			ret = vid.Timestamp()
-		}
-	}
-	for vid := range pb.virtuallyConsumed {
-		if vid.Timestamp().Before(ret) {
-			ret = vid.Timestamp()
-		}
-	}
-	return ret
-}
-
-func (pc *PastCone) OldestReference() ledger.Time {
-	ret := ledger.NewLedgerTime(0x0fffffff, 0)
-	if pc == nil {
-		return ret
-	}
-
-	if pc.tip != nil && pc.tip.Timestamp().Before(ret) {
-		ret = pc.tip.Timestamp()
-	}
-
-	ret1 := pc.PastConeBase.OldestReference()
-	if ret1.Before(ret) {
-		ret = ret1
-	}
-	ret1 = pc.delta.OldestReference()
-	if ret1.Before(ret) {
-		ret = ret1
-	}
-	return ret
-}
-
 func (pb *PastConeBase) CloneImmutable() *PastConeBase {
 	util.Assertf(len(pb.virtuallyConsumed) == 0, "len(pb.virtuallyConsumed)==0")
 
@@ -227,6 +163,10 @@ func (pb *PastConeBase) addVirtuallyConsumedOutput(wOut WrappedOutput) {
 
 func (pb *PastConeBase) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
+	if pb == nil {
+		ret.Add("<nil pastCone>")
+		return ret
+	}
 	if pb.baseline == nil {
 		ret.Add("baseline: <nil>")
 	} else {
@@ -987,22 +927,81 @@ func (pc *PastCone) NumVertices() int {
 	return len(pc.vertices)
 }
 
-func (pc *PastConeBase) FindAllSuchAs(filter func(vid *WrappedTx) bool) (ret []*WrappedTx) {
+func (pb *PastConeBase) FindAllSuchAs(filter func(vid *WrappedTx) bool) (ret []*WrappedTx) {
 	ret = make([]*WrappedTx, 0)
+	if pb == nil {
+		return
+	}
+	if filter(pb.baseline) {
+		ret = append(ret, pb.baseline)
+	}
+	for vid := range pb.vertices {
+		if filter(vid) {
+			ret = append(ret, pb.baseline)
+		}
+	}
+	for vid := range pb.virtuallyConsumed {
+		if filter(vid) {
+			ret = append(ret, pb.baseline)
+		}
+	}
+	return
+}
+
+func (pc *PastCone) Dispose() {
 	if pc == nil {
 		return
 	}
-	if filter(pc.baseline) {
-		ret = append(ret, pc.baseline)
+	pc.tip = nil
+	pc.PastConeBase.Dispose()
+	pc.PastConeBase = nil
+	pc.delta.Dispose()
+	pc.delta = nil
+}
+
+func (pb *PastConeBase) Dispose() {
+	if pb == nil {
+		return
 	}
-	for vid := range pc.vertices {
-		if filter(vid) {
-			ret = append(ret, pc.baseline)
+	pb.baseline = nil
+	clear(pb.vertices)
+	pb.vertices = nil
+	clear(pb.virtuallyConsumed)
+	pb.virtuallyConsumed = nil
+}
+
+func (pb *PastConeBase) OldestReference() (ret *WrappedTx) {
+	if pb == nil {
+		return
+	}
+	ret = pb.baseline
+	for vid := range pb.vertices {
+		if ret == nil || vid.Timestamp().Before(ret.Timestamp()) {
+			ret = vid
 		}
 	}
-	for vid := range pc.virtuallyConsumed {
-		if filter(vid) {
-			ret = append(ret, pc.baseline)
+	for vid := range pb.virtuallyConsumed {
+		if ret == nil || vid.Timestamp().Before(ret.Timestamp()) {
+			ret = vid
+		}
+	}
+	return ret
+}
+
+func (pb *PastConeBase) DeepestReference(visited set.Set[*WrappedTx]) (ret *WrappedTx) {
+	if pb.baseline != nil {
+		ret = pb.baseline.DeepestPastConeReference()
+	}
+	for vid := range pb.vertices {
+		deepest := vid.DeepestPastConeReference()
+		if ret == nil || deepest.Timestamp().Before(ret.Timestamp()) {
+			ret = deepest
+		}
+	}
+	for vid := range pb.virtuallyConsumed {
+		deepest := vid.DeepestPastConeReference()
+		if ret == nil || deepest.Timestamp().Before(ret.Timestamp()) {
+			ret = deepest
 		}
 	}
 	return

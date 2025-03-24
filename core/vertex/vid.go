@@ -144,6 +144,19 @@ func (vid *WrappedTx) SetTxStatusGood(pastCone *PastConeBase, coverage uint64) {
 	if pastCone == nil {
 		vid.flags.SetFlagsUp(FlagVertexIgnoreAbsenceOfPastCone)
 	} else {
+		if vid.IsBranchTransaction() && vid.Slot() == 20 { // debug
+			deepestStr := "<nil>"
+			deepest := pastCone.DeepestReference()
+			if deepest != nil {
+				deepestStr = deepest.IDShortString()
+			}
+			fmt.Printf(">>>>>>>> SetTxStatusGood in %s. Oldest ref: %s -- %s\n", vid.IDShortString(), deepestStr)
+
+			//if oldest.Slot() > 10 {
+			//	fmt.Printf("pastCone of %s: %s\n", )
+			//}
+
+		}
 		vid.pastCone = pastCone
 		if coverage > 0 {
 			vid.coverage = util.Ref(coverage)
@@ -1001,5 +1014,28 @@ func (vid *WrappedTx) FindPastReferencesSuchAs(filter func(vid *WrappedTx) bool)
 			return true
 		})
 	}})
+	return
+}
+
+func (vid *WrappedTx) DeepestPastConeReference() (ret *WrappedTx) {
+	ret = vid
+
+	vid.mutex.RLock()
+	pc := vid.GetPastConeNoLock()
+	vid.mutex.RUnlock()
+
+	if pc == nil {
+		return
+	}
+	if pc.baseline != nil {
+		ret = pc.baseline.DeepestPastConeReference()
+	}
+	util.Assertf(len(pc.virtuallyConsumed) == 0, "len(pc.virtuallyConsumed)==0")
+	for vidDept := range pc.vertices {
+		deepest := vidDept.DeepestPastConeReference()
+		if deepest.Timestamp().Before(ret.Timestamp()) {
+			ret = deepest
+		}
+	}
 	return
 }
