@@ -145,32 +145,33 @@ func (a *milestoneAttacher) run() error {
 
 	if a.vid.IsBranchTransaction() {
 		// branch transaction vertex is immediately detached. Thus branch transaction does not reference past cone
-		a.Tracef(TraceTagAttachMilestone, ">>>>>>>>>>>>>>> DetachPastCone branch immediately after attachement: %s", a.vid.IDShortString())
-
 		a.vid.DetachPastCone()
 	}
 
 	a.pastCone.SetFlagsUp(a.vid, vertex.FlagPastConeVertexDefined)
 
-	const lastCheck = false
-	if lastCheck {
-		err = a.pastCone.CheckFinalPastCone(a.baselineStateReader)
-		if err != nil {
-			err = fmt.Errorf("%w\n------ past cone of %s ------\n%s",
-				err, a.vid.IDShortString(), a.pastCone.Lines("     ").Join("\n"))
-			memdag.SaveGraphPastCone(a.vid, "past_cone_CheckFinalPastCone")
+	{ // debug
+		const (
+			lastCheck     = false
+			printPastCone = false
+		)
+		if lastCheck {
+			err = a.pastCone.CheckFinalPastCone(a.baselineStateReader)
+			if err != nil {
+				err = fmt.Errorf("%w\n------ past cone of %s ------\n%s",
+					err, a.vid.IDShortString(), a.pastCone.Lines("     ").Join("\n"))
+				memdag.SaveGraphPastCone(a.vid, "past_cone_CheckFinalPastCone")
+			}
+			a.AssertNoError(err)
 		}
-		a.AssertNoError(err)
+		if printPastCone {
+			a.Log().Infof(">>>>>>>>>>>>> past cone of attacher %s\n%s", a.Name(), a.pastCone.Lines("      ").String())
+		}
 	}
 
 	// TODO optimization in the branch is not necessary to keep the past cone
 	a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
 	a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
-
-	const printPastCone = false
-	if printPastCone {
-		a.Log().Infof(">>>>>>>>>>>>> past cone of attacher %s\n%s", a.Name(), a.pastCone.Lines("      ").String())
-	}
 
 	a.SendToTippool(a.vid)
 
