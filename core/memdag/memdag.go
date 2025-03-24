@@ -176,7 +176,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 
 	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
 		if vid.NumReferences() == 0 {
-			vid.DetachPastCone()
+			vid.ConvertToDetached()
 			{ // debug
 				TrackedVertices.TrackPointerNotGCed(vid,
 					trackgc.WithTimeout(20*time.Second),

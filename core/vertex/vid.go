@@ -82,18 +82,20 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 	}
 }
 
-// DetachPastCone detaches past cone and leaves only a collection of produced outputs
-func (vid *WrappedTx) DetachPastCone() {
+// ConvertToDetached detaches past cone and leaves only a collection of produced outputs
+func (vid *WrappedTx) ConvertToDetached() {
 	vid.Unwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
 			vid.convertToDetachedTxUnlocked(v)
-			fmt.Printf(">>>>>>> DetachPastCone Vertex %s\n", vid.IDShortString())
+			fmt.Printf(">>>>>>> ConvertToDetached Vertex %s\n", vid.IDShortString())
 		},
 		DetachedVertex: func(v *DetachedVertex) {
-			fmt.Printf(">>>>>>> DetachPastCone DetachedVertex %s\n", vid.IDShortString())
+			vid.pastCone = nil // TODO temporary solution
+			fmt.Printf(">>>>>>> ConvertToDetached DetachedVertex %s\n", vid.IDShortString())
 		},
 		VirtualTx: func(v *VirtualTransaction) {
-			fmt.Printf(">>>>>>> DetachPastCone VirtualTx %s\n", vid.IDShortString())
+			util.Assertf(vid.pastCone == nil, "vid.pastCone == nil")
+			fmt.Printf(">>>>>>> ConvertToDetached VirtualTx %s\n", vid.IDShortString())
 		},
 	})
 }
