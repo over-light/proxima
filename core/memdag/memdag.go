@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 	"weak"
 
@@ -51,6 +52,9 @@ type (
 		// Inactive cached readers with their trie caches are constantly cleaned up by the pruner
 		stateReadersMutex sync.RWMutex
 		stateReaders      map[ledger.TransactionID]*cachedStateReader
+
+		// onTxDeleted is not nil, called each time when memdag entry is deleted
+		onTxDeleted atomic.Value
 
 		metrics
 	}
@@ -161,6 +165,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 			if rec.Pointer.Value() == nil {
 				delete(d.vertices, txid)
 				deleted++
+				d.callOnTxDeleted(txid)
 			} else {
 				if rec.WrappedTx != nil && slotNow-rec.WrappedTx.SlotWhenAdded > vertexTTLSlots {
 					expired = append(expired, rec.WrappedTx)
@@ -184,6 +189,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 				if rec.Value() == nil {
 					delete(d.vertices, txid)
 					deleted++
+					d.callOnTxDeleted(txid)
 				} else {
 					rec.WrappedTx = nil
 					d.vertices[txid] = rec
@@ -422,6 +428,16 @@ func (d *MemDAG) RecreateVertexMap() {
 	m := d.vertices
 	d.vertices = maps.Clone(d.vertices)
 	clear(m)
+}
+
+func (d *MemDAG) OnTxDeleted(fun func(txid ledger.TransactionID)) {
+	d.onTxDeleted.Store(fun)
+}
+
+func (d *MemDAG) callOnTxDeleted(txid ledger.TransactionID) {
+	if f := d.onTxDeleted.Load(); f != nil {
+		f.(func(txid ledger.TransactionID))(txid)
+	}
 }
 
 func (d *MemDAG) registerMetrics() {

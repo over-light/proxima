@@ -258,6 +258,10 @@ func Test5SequencersIdlePruner(t *testing.T) {
 		return true
 	})
 
+	testData.wrk.OnTxDeleted(func(txid ledger.TransactionID) {
+		t.Logf("REMOVED %s", txid.StringShort())
+	})
+
 	testData.startSequencersWithTimeout(maxSlots)
 	t.Logf("after start sequencers")
 	time.Sleep(runTime)
