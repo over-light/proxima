@@ -22,10 +22,6 @@ const (
 	periodicCheckEach       = 50 * time.Millisecond
 )
 
-//var trackedMilestoneAttachers = trackgc.New[milestoneAttacher](func(p *milestoneAttacher) string {
-//	return "milestoneAttacher " + p.name
-//})
-
 func runMilestoneAttacher(
 	vid *vertex.WrappedTx,
 	metadata *txmetadata.TransactionMetadata,
@@ -103,7 +99,6 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 	})
 	ret.pastCone.MustMarkVertexNotInTheState(vid)
 
-	//trackedMilestoneAttachers.TrackPointerNotGCed(ret, 10*time.Second)
 	return ret
 }
 
@@ -152,17 +147,6 @@ func (a *milestoneAttacher) run() error {
 		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
 		a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 	}
-	//else {
-	//	a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
-	//	a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
-	//}
-
-	//if a.vid.IsBranchTransaction() {
-	//	a.vid.SetTxStatusGood(nil, a.pastCone.LedgerCoverage())
-	//} else {
-	//	a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
-	//}
-	//a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 
 	//{ // debug
 	//	const (

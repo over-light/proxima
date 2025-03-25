@@ -91,10 +91,6 @@ type (
 
 const TraceTag = "sequencer"
 
-//var TrackGCSequencers = trackgc.New[Sequencer](func(p *Sequencer) string {
-//	return p.SequencerName()
-//})
-
 func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey, opts ...ConfigOption) (*Sequencer, error) {
 	cfg := configOptions(opts...)
 	logName := fmt.Sprintf("[%s-%s]", cfg.SequencerName, seqID.StringVeryShort())
@@ -588,9 +584,10 @@ func (seq *Sequencer) generateMilestoneForTarget(targetTs ledger.Time) (*transac
 	seq.Tracef(TraceTag, "generateMilestoneForTarget: target: %s, deadline: %s, nowis: %s",
 		targetTs.String, deadline.Format("15:04:05.999"), nowis.Format("15:04:05.999"))
 
-	if deadline.Before(nowis) {
-		return nil, nil, fmt.Errorf("sequencer: target %s is in the past by %v: impossible to generate milestone",
-			targetTs.String(), nowis.Sub(deadline))
+	earliestToleratedTarget := nowis.Add(-ledger.L().ID.TickDuration / 2)
+	if deadline.Before(earliestToleratedTarget) {
+		return nil, nil, fmt.Errorf("sequencer: target %s before earliest tolerated %v: impossible to generate milestone",
+			targetTs.String(), earliestToleratedTarget)
 	}
 	return task.Run(seq, targetTs, seq.slotData)
 }

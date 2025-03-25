@@ -100,15 +100,6 @@ func allProposingStrategies() []*Strategy {
 	return ret
 }
 
-//var (
-//	trackTasksGC = trackgc.New[Task](func(p *Task) string {
-//		return "task " + p.Name
-//	})
-//	trackProposerGC = trackgc.New[Proposer](func(p *Proposer) string {
-//		return "proposer " + p.Name
-//	})
-//)
-
 // Run starts task with the aim to generate sequencer transaction for the target ledger time.
 // The proposer task consist of several proposers (goroutines)
 // Each proposer generates proposals and writes it to the channel of the task.
@@ -120,10 +111,10 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 	env.Tracef(TraceTagTask, "RunTask: target: %s, deadline: %s, nowis: %s",
 		targetTs.String, deadline.Format("15:04:05.999"), nowis.Format("15:04:05.999"))
 
-	if deadline.Before(nowis) {
-		return nil, nil, fmt.Errorf("task: target %s is in the past by %v: impossible to generate milestone",
-			targetTs.String(), nowis.Sub(deadline))
-	}
+	//if deadline.Before(nowis) {
+	//	return nil, nil, fmt.Errorf("task: target %s is in the past by %v: impossible to generate milestone",
+	//		targetTs.String(), nowis.Sub(deadline))
+	//}
 
 	task := &Task{
 		environment:  env,
@@ -134,11 +125,6 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 		// proposals:    make([]*proposal, 0),
 		Name: fmt.Sprintf("%s[%s]", env.SequencerName(), targetTs.String()),
 	}
-
-	//{ // debug
-	//	trackTasksGC.TrackPointerNotGCed(task, "task "+task.Name, 5*time.Second, true)
-	//}
-
 	// start proposers
 	var cancel func()
 	task.ctx, cancel = context.WithDeadline(env.Ctx(), deadline)
@@ -206,9 +192,6 @@ func (t *Task) startProposers() {
 			strategy: s,
 			Name:     t.Name + "-" + s.Name,
 		}
-		//{
-		//	trackProposerGC.TrackPointerNotGCed(p, "proposer "+p.Name, 5*time.Second, true)
-		//}
 		t.proposersWG.Add(1)
 		go func() {
 			p.IncCounter("prop")

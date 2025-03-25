@@ -45,35 +45,6 @@ type (
 	}
 )
 
-//var (
-//	pastConeBaseCounter      int
-//	pastConeBaseCounterMutex sync.Mutex
-//)
-//
-//func _nextPastConeBaseCounter() (ret int) {
-//	pastConeBaseCounterMutex.Lock()
-//	defer pastConeBaseCounterMutex.Unlock()
-//
-//	ret = pastConeBaseCounter
-//	pastConeBaseCounter++
-//	return
-//}
-
-//var (
-//	trackedPastConeBases = trackgc.New[PastConeBase](
-//		func(p *PastConeBase) string {
-//			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
-//		}, func(p *PastConeBase) string {
-//			return fmt.Sprintf("%T: %p #%d\n%s", p, p, p.num, p.Lines("    ").String())
-//		})
-//	trackedPastCones = trackgc.New[PastCone](
-//		func(p *PastCone) string {
-//			return fmt.Sprintf("%T: %p #%d", p, p, p.num)
-//		}, func(p *PastCone) string {
-//			return fmt.Sprintf("%T: %p #%d, oldest ref: %s", p, p, p.num, p.OldestReference().String())
-//		})
-//)
-
 const (
 	FlagPastConeVertexKnown             = FlagsPastCone(0b00000001) // each vertex of consideration has this flag on
 	FlagPastConeVertexDefined           = FlagsPastCone(0b00000010) // means vertex is 'defined', i.e. its validity is checked
@@ -105,24 +76,14 @@ func (f FlagsPastCone) String() string {
 
 func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 	ret := &PastConeBase{
-		//num:      _nextPastConeBaseCounter(),
 		vertices: make(map[*WrappedTx]FlagsPastCone),
 		baseline: baseline,
 	}
-	//trackedPastConeBases.TrackPointerNotGCed(ret,
-	//	trackgc.WithTimeout(20*time.Second),
-	//	trackgc.WithPanicOnTimeout(true),
-	//)
 	return ret
 }
 
 func NewPastCone(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string) *PastCone {
-	ret := newPastConeFromBase(env, tip, targetTs, name, NewPastConeBase(nil))
-	//trackedPastCones.TrackPointerNotGCed(ret,
-	//	trackgc.WithTimeout(20*time.Second),
-	//	trackgc.WithPanicOnTimeout(true),
-	//)
-	return ret
+	return newPastConeFromBase(env, tip, targetTs, name, NewPastConeBase(nil))
 }
 
 func newPastConeFromBase(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string, pb *PastConeBase) *PastCone {

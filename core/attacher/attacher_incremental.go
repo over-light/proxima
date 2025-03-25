@@ -14,10 +14,6 @@ import (
 
 const TraceTagIncrementalAttacher = "incAttach"
 
-//var trackedIncrementalAttachers = trackgc.New[IncrementalAttacher](func(p *IncrementalAttacher) string {
-//	return "incAttacher " + p.name
-//})
-
 func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (*IncrementalAttacher, error) {
 	env.Assertf(ledger.ValidSequencerPace(extend.Timestamp(), targetTs), "NewIncrementalAttacher: target is closer than allowed pace (%d): %s -> %s",
 		ledger.TransactionPaceSequencer(), extend.Timestamp().String, targetTs.String)
@@ -78,7 +74,6 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to create incremental attacher extending  %s: double-spend (conflict) %s in the past cone",
 			name, extend.IDStringShort(), conflict.IDStringShort())
 	}
-	//trackedIncrementalAttachers.TrackPointerNotGCed(ret, 10*time.Second)
 	return ret, nil
 }
 

@@ -35,7 +35,7 @@ func TestDebugPruner(t *testing.T) {
 		err = testData.wrk.TxIn(testData.chainOriginsTx)
 		require.NoError(t, err)
 
-		time.Sleep(60 * time.Second)
+		time.Sleep(20 * time.Second)
 		testData.stop()
 		testData.waitStop()
 
@@ -101,10 +101,6 @@ func Test1SequencerPruner(t *testing.T) {
 		t.Logf("%s", testData.wrk.Info())
 
 		//testData.env.StartTracingTags(task.TraceTagBaseProposer)
-		//testData.env.StartTracingTags(sequencer.TraceTag)
-		//testData.env.StartTracingTags(tippool.TraceTag)
-		//testData.env.StartTracingTags(task.TraceTagEndorse1Proposer)
-		//testData.env.StartTracingTags(task.TraceTagChooseFirstExtendEndorsePair)
 
 		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
 			runtime.GC()
@@ -128,9 +124,9 @@ func Test1SequencerPruner(t *testing.T) {
 		testData.waitStop()
 
 		require.EqualValues(t, maxSlots, int(countBr.Load()))
-		t.Logf("%s", testData.wrk.Info(true))
-		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
-		//testData.saveFullDAG("full_dag")
+		//t.Logf("%s", testData.wrk.Info(true))
+		//t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
+		testData.saveFullDAG("full_dag")
 	})
 	t.Run("tag along transfers", func(t *testing.T) {
 		const (
@@ -288,12 +284,6 @@ func TestNSequencersTransferPruner(t *testing.T) {
 			spammingTimeout = 30 * time.Second
 		)
 		testData := initMultiSequencerTest(t, nSequencers, true)
-
-		//testData.wrk.StartTracingTags(factory.TraceTagChooseExtendEndorsePair)
-		//testData.wrk.StartTracingTags(attacher.TraceTagAttachVertex, attacher.TraceTagAttachOutput)
-		//testData.wrk.StartTracingTags(proposer_endorse1.TraceTag)
-		//testData.wrk.StartTracingTags(factory.TraceTagChooseExtendEndorsePair)
-		//testData.wrk.StartTracingTags(factory.TraceTag)
 
 		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
 		require.EqualValues(t, initBalance*nSequencers, int(rdr.BalanceOf(testData.addrAux.AccountID())))

@@ -1,3 +1,4 @@
+// Package trackgc contains tools to track garbage collection
 package trackgc
 
 import (
