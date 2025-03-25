@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 	"weak"
 
@@ -22,6 +21,7 @@ type (
 		global.NodeGlobal
 		StateStore() multistate.StateStore
 		DisableMemDAGGC() bool
+		PostEventTxDeleted(txid ledger.TransactionID)
 	}
 
 	_vertexRecord struct {
@@ -52,9 +52,6 @@ type (
 		// Inactive cached readers with their trie caches are constantly cleaned up by the pruner
 		stateReadersMutex sync.RWMutex
 		stateReaders      map[ledger.TransactionID]*cachedStateReader
-
-		// onTxDeleted is not nil, called each time when memdag entry is deleted
-		onTxDeleted atomic.Value
 
 		metrics
 	}
@@ -118,7 +115,7 @@ func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 	fun()
 }
 
-func (d *MemDAG) GetVertexNoLock(txid ledger.TransactionID, caller string) *vertex.WrappedTx {
+func (d *MemDAG) GetVertexNoLock(txid ledger.TransactionID) *vertex.WrappedTx {
 	if rec, found := d.vertices[txid]; found {
 		//if txid.Slot() <= 1 {
 		//	d.Log().Infof(">>>>>>>>>>>>> GetVertexNoLock %s, caller = %s", txid.StringShort(), caller)
@@ -128,11 +125,11 @@ func (d *MemDAG) GetVertexNoLock(txid ledger.TransactionID, caller string) *vert
 	return nil
 }
 
-func (d *MemDAG) GetVertex(txid ledger.TransactionID, caller string) *vertex.WrappedTx {
+func (d *MemDAG) GetVertex(txid ledger.TransactionID) *vertex.WrappedTx {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	return d.GetVertexNoLock(txid, caller)
+	return d.GetVertexNoLock(txid)
 }
 
 func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
@@ -144,7 +141,7 @@ func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
 
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	txid := vid.ID()
-	util.Assertf(d.GetVertexNoLock(txid, "AddVertexNoLock") == nil, "d.GetVertexNoLock(vid.id())==nil")
+	util.Assertf(d.GetVertexNoLock(txid) == nil, "d.GetVertexNoLock(vid.id())==nil")
 	vid.SlotWhenAdded = ledger.TimeNow().Slot()
 	d.vertices[txid] = _vertexRecord{
 		Pointer:   weak.Make(vid),
@@ -165,7 +162,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 			if rec.Pointer.Value() == nil {
 				delete(d.vertices, txid)
 				deleted++
-				d.callOnTxDeleted(txid)
+				d.PostEventTxDeleted(txid)
 			} else {
 				if rec.WrappedTx != nil && slotNow-rec.WrappedTx.SlotWhenAdded > vertexTTLSlots {
 					expired = append(expired, rec.WrappedTx)
@@ -189,7 +186,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 				if rec.Value() == nil {
 					delete(d.vertices, txid)
 					deleted++
-					d.callOnTxDeleted(txid)
+					d.PostEventTxDeleted(txid)
 				} else {
 					rec.WrappedTx = nil
 					d.vertices[txid] = rec
@@ -250,7 +247,7 @@ func (d *MemDAG) GetStateReaderForTheBranch(branchID ledger.TransactionID) multi
 }
 
 func (d *MemDAG) GetStemWrappedOutput(branch ledger.TransactionID) (ret vertex.WrappedOutput) {
-	if vid := d.GetVertex(branch, "GetStemWrappedOutput"); vid != nil {
+	if vid := d.GetVertex(branch); vid != nil {
 		ret = vid.StemWrappedOutput()
 	}
 	return
@@ -261,7 +258,7 @@ func (d *MemDAG) HeaviestStateForLatestTimeSlotWithBaseline() (multistate.Sugare
 	util.Assertf(len(branchRecords) > 0, "len(branchRecords)>0")
 
 	return multistate.MakeSugared(multistate.MustNewReadable(d.StateStore(), branchRecords[0].Root, 0)),
-		d.GetVertex(branchRecords[0].TxID(), "HeaviestStateForLatestTimeSlotWithBaseline")
+		d.GetVertex(branchRecords[0].TxID())
 }
 
 func (d *MemDAG) LatestReliableState() (multistate.SugaredStateReader, error) {
@@ -428,16 +425,6 @@ func (d *MemDAG) RecreateVertexMap() {
 	m := d.vertices
 	d.vertices = maps.Clone(d.vertices)
 	clear(m)
-}
-
-func (d *MemDAG) OnTxDeleted(fun func(txid ledger.TransactionID)) {
-	d.onTxDeleted.Store(fun)
-}
-
-func (d *MemDAG) callOnTxDeleted(txid ledger.TransactionID) {
-	if f := d.onTxDeleted.Load(); f != nil {
-		f.(func(txid ledger.TransactionID))(txid)
-	}
 }
 
 func (d *MemDAG) registerMetrics() {

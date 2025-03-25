@@ -8,7 +8,7 @@ import (
 // QueryTxIDStatus returns vertex mode, tx status and error of the vertex
 func (d *MemDAG) QueryTxIDStatus(txid ledger.TransactionID) (ret vertex.TxIDStatus) {
 	ret.ID = txid
-	vid := d.GetVertex(txid, "QueryTxIDStatus")
+	vid := d.GetVertex(txid)
 	if vid == nil {
 		return
 	}

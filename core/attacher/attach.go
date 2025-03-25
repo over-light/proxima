@@ -22,7 +22,7 @@ func AttachTxID(txid ledger.TransactionID, env Environment, opts ...AttachTxOpti
 	}
 
 	env.WithGlobalWriteLock(func() {
-		vid = env.GetVertexNoLock(txid, "AttachTxID 1: "+options.calledBy)
+		vid = env.GetVertexNoLock(txid)
 		if vid != nil {
 			// found existing -> return it
 			return
@@ -50,7 +50,7 @@ func AttachTxID(txid ledger.TransactionID, env Environment, opts ...AttachTxOpti
 	branchData, branchAvailable := multistate.FetchBranchData(env.StateStore(), txid)
 
 	env.WithGlobalWriteLock(func() {
-		if vid = env.GetVertexNoLock(txid, "AttachTxID 2"+options.calledBy); vid != nil {
+		if vid = env.GetVertexNoLock(txid); vid != nil {
 			return
 		}
 		if branchAvailable {

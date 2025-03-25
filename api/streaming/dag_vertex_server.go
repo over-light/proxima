@@ -19,6 +19,7 @@ type (
 	environment interface {
 		global.Logging
 		OnTransaction(fun func(tx *transaction.Transaction) bool)
+		OnTxDeleted(fun func(txid ledger.TransactionID)) // called whenever tx is GCed. Could be useful for the visualizer
 		TxBytesStore() global.TxBytesStore
 	}
 	wsServer struct {
@@ -91,7 +92,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 			_, _, err := conn.ReadMessage()
 			if err != nil {
 				srv.Log().Infof("[%s] WebSocket client disconnected, remote: %s, err: %v", TraceTag, r.RemoteAddr, err)
-				conn.Close() // explicitly close the connection
+				_ = conn.Close() // explicitly close the connection
 				return
 			}
 

@@ -8,7 +8,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/core/memdag"
 	"github.com/lunfardo314/proxima/core/txmetadata"
-	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/core/work_process/events"
 	"github.com/lunfardo314/proxima/core/work_process/poker"
 	"github.com/lunfardo314/proxima/core/work_process/pull_tx_server"
@@ -19,7 +18,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
-	"github.com/lunfardo314/proxima/util/eventtype"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/viper"
 )
@@ -58,8 +56,6 @@ type (
 		traceTags      set.Set[string]
 	}
 )
-
-var EventNewTx = eventtype.RegisterNew[*vertex.WrappedTx]("new tx") // event may be posted more than once for the transaction
 
 const recreateMapPeriod = time.Minute
 

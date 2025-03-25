@@ -71,3 +71,9 @@ func (w *Workflow) OnTransaction(fun func(tx *transaction.Transaction) bool) {
 	w.txListener.handlers[w.txListener.handlerCounter] = fun
 	w.txListener.handlerCounter++
 }
+
+func (w *Workflow) OnTxDeleted(fun func(txid ledger.TransactionID)) {
+	w.events.OnEvent(EventTxDeleted, func(txid ledger.TransactionID) {
+		fun(txid)
+	})
+}
