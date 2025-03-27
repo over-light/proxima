@@ -42,15 +42,15 @@ func registerGCMetricsOnce(env environment) {
 			Help: "not GCed object counter",
 		})
 
-		trackInAttachersGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		trackIncAttachersGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "proxima_trackgc_inc_attachers",
 			Help: "not GCed object counter",
 		})
 
 		trackTasks.StartCleanupWithMetrics(trackTasksGauge, 3*time.Second)
 		trackProposers.StartCleanupWithMetrics(trackProposersGauge, 3*time.Second)
-		trackIncAttachers.StartCleanupWithMetrics(trackInAttachersGauge, 3*time.Second)
+		trackIncAttachers.StartCleanupWithMetrics(trackIncAttachersGauge, 3*time.Second)
 
-		reg.MustRegister(trackTasksGauge, trackProposersGauge)
+		reg.MustRegister(trackTasksGauge, trackProposersGauge, trackIncAttachersGauge)
 	})
 }
