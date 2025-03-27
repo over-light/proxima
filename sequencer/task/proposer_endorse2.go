@@ -12,14 +12,14 @@ import (
 const TraceTagEndorse2Proposer = "propose-endorse2"
 
 func init() {
-	registerProposerStrategy(&Strategy{
+	registerProposerStrategy(&proposerStrategy{
 		Name:             "endorse2",
 		ShortName:        "e2",
 		GenerateProposal: endorse2ProposeGenerator,
 	})
 }
 
-func endorse2ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
+func endorse2ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	if p.targetTs.IsSlotBoundary() {
 		// the proposer does not generate branch transactions
 		return nil, true
@@ -27,7 +27,7 @@ func endorse2ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 
 	// Check all pairs, in descending order
 	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
-		checked, consistent := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		checked, consistent := p.task.slotData.wasCombinationChecked(extend, endorse)
 		return !checked || consistent
 	})
 	if a == nil {
@@ -59,18 +59,18 @@ func endorse2ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			continue
 		}
 		if !newOutputArrived {
-			checked, _ := p.Task.slotData.wasCombinationChecked(extending, endorsing, endorsementCandidate)
+			checked, _ := p.task.slotData.wasCombinationChecked(extending, endorsing, endorsementCandidate)
 			if checked {
 				continue
 			}
 		}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			p.Task.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
 			addedSecond = true
 			break //>>>> return attacher
 		} else {
-			p.Task.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
 		}
 		p.Tracef(TraceTagEndorse2Proposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}

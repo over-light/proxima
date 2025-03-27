@@ -12,28 +12,28 @@ import (
 const TraceTagEndorse1Proposer = "propose-endorse1"
 
 func init() {
-	registerProposerStrategy(&Strategy{
+	registerProposerStrategy(&proposerStrategy{
 		Name:             "endorse1",
 		ShortName:        "e1",
 		GenerateProposal: endorse1ProposeGenerator,
 	})
 }
 
-func endorse1ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
+func endorse1ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	if p.targetTs.IsSlotBoundary() {
 		// the proposer does not generate branch transactions
 		return nil, true
 	}
 	// choose extend-endorse pair with optimization. If that pair was chosen in the past and newOutputs didn't arrive
 	// since last check, use that pair to create new attacher (if not conflicting)
-	newOutputsArrived := p.Backlog().ArrivedOutputsSince(p.Task.slotData.lastTimeBacklogCheckedE1)
-	p.Task.slotData.lastTimeBacklogCheckedE1 = time.Now()
+	newOutputsArrived := p.Backlog().ArrivedOutputsSince(p.task.slotData.lastTimeBacklogCheckedE1)
+	p.task.slotData.lastTimeBacklogCheckedE1 = time.Now()
 	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
 		if newOutputsArrived {
 			// use pair with new tag-along outputs
 			return true
 		}
-		alreadyChecked, _ := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		alreadyChecked, _ := p.task.slotData.wasCombinationChecked(extend, endorse)
 		return !alreadyChecked
 	})
 

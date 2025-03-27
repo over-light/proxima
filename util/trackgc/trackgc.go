@@ -2,6 +2,7 @@
 package trackgc
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -9,6 +10,8 @@ import (
 
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
+	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/exp/maps"
 )
 
 // debug tool
@@ -217,4 +220,28 @@ func MustGoWithTimeout(fun func(), name string, timeout time.Duration) {
 			panic(fmt.Sprintf("goroutine '%s' didn't finish in timeout %v", name, timeout))
 		}
 	}()
+}
+
+// StartCleanupWithMetrics helps report number of not GCed objects
+func (gcp *List[T]) StartCleanupWithMetrics(m prometheus.Gauge, refreshEach time.Duration) context.CancelFunc {
+	ctx, stopFun := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(refreshEach):
+				gcp.Lock()
+
+				maps.DeleteFunc(gcp.m, func(s string, weakp weak.Pointer[T]) bool {
+					return weakp.Value() == nil
+				})
+
+				gcp.Unlock()
+
+				m.Set(float64(len(gcp.m)))
+			}
+		}
+	}()
+	return stopFun
 }

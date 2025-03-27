@@ -13,14 +13,14 @@ import (
 const TraceTagEndorse3Proposer = "propose-endorse3"
 
 func init() {
-	registerProposerStrategy(&Strategy{
+	registerProposerStrategy(&proposerStrategy{
 		Name:             "endorse3",
 		ShortName:        "e3",
 		GenerateProposal: endorse3ProposeGenerator,
 	})
 }
 
-func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
+func endorse3ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	if p.targetTs.IsSlotBoundary() {
 		// the proposer does not generate branch transactions
 		return nil, true
@@ -28,7 +28,7 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 
 	// Check all pairs, in descending order
 	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
-		checked, consistent := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		checked, consistent := p.task.slotData.wasCombinationChecked(extend, endorse)
 		return !checked || consistent
 	})
 	if a == nil {
@@ -60,17 +60,17 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			continue
 		}
 		if !newOutputArrived {
-			checked, _ := p.Task.slotData.wasCombinationChecked(extending, endorsing0, endorsementCandidate)
+			checked, _ := p.task.slotData.wasCombinationChecked(extending, endorsing0, endorsementCandidate)
 			if checked {
 				continue
 			}
 		}
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			p.Task.slotData.markCombinationChecked(true, extending, endorsing0, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(true, extending, endorsing0, endorsementCandidate)
 			endorsing1 = endorsementCandidate
 			break //>>>> second endorsement
 		} else {
-			p.Task.slotData.markCombinationChecked(false, extending, endorsing0, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(false, extending, endorsing0, endorsementCandidate)
 		}
 		p.Tracef(TraceTagEndorse3Proposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
@@ -93,17 +93,17 @@ func endorse3ProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool)
 			continue
 		}
 		if !newOutputArrived {
-			checked, _ := p.Task.slotData.wasCombinationChecked(extending, endorsing0, endorsing1, endorsementCandidate)
+			checked, _ := p.task.slotData.wasCombinationChecked(extending, endorsing0, endorsing1, endorsementCandidate)
 			if checked {
 				continue
 			}
 		}
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			p.Task.slotData.markCombinationChecked(true, extending, endorsing0, endorsing1, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(true, extending, endorsing0, endorsing1, endorsementCandidate)
 			endorsing2 = endorsementCandidate
 			break //>>>> third endorsement
 		} else {
-			p.Task.slotData.markCombinationChecked(false, extending, endorsing0, endorsing1, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(false, extending, endorsing0, endorsing1, endorsementCandidate)
 		}
 		p.Tracef(TraceTagEndorse3Proposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}

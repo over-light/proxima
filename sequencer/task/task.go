@@ -16,6 +16,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/sequencer/backlog"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 )
@@ -40,7 +41,7 @@ type (
 		EvidenceBestProposalForTheTarget(strategyShortName string)
 	}
 
-	Task struct {
+	task struct {
 		environment
 		targetTs     ledger.Time
 		ctx          context.Context
@@ -60,18 +61,18 @@ type (
 		strategyShortName string
 	}
 
-	Proposer struct {
-		*Task
-		strategy *Strategy
+	proposer struct {
+		*task
+		strategy *proposerStrategy
 		Name     string
 		Msg      string // how proposer ended. For debugging
 	}
 
 	// ProposalGenerator returns incremental attacher as draft transaction or
 	// otherwise nil and forceExit flag = true
-	ProposalGenerator func(p *Proposer) (*attacher.IncrementalAttacher, bool)
+	ProposalGenerator func(p *proposer) (*attacher.IncrementalAttacher, bool)
 
-	Strategy struct {
+	proposerStrategy struct {
 		Name             string
 		ShortName        string
 		GenerateProposal ProposalGenerator
@@ -81,17 +82,21 @@ type (
 const TraceTagTask = "task"
 
 var (
-	AllProposingStrategies = make(map[string]*Strategy)
+	AllProposingStrategies = make(map[string]*proposerStrategy)
 	ErrNoProposals         = errors.New("no proposals were generated")
 	ErrNotGoodEnough       = errors.New("proposals aren't good enough")
 )
 
-func registerProposerStrategy(s *Strategy) {
+var traceTasks = trackgc.New[task](func(p *task) string {
+	return "task-" + p.Name
+})
+
+func registerProposerStrategy(s *proposerStrategy) {
 	AllProposingStrategies[s.Name] = s
 }
 
-func allProposingStrategies() []*Strategy {
-	ret := make([]*Strategy, 0)
+func allProposingStrategies() []*proposerStrategy {
+	ret := make([]*proposerStrategy, 0)
 	for _, s := range AllProposingStrategies {
 		if !viper.GetBool("sequencer.disable_proposer." + s.ShortName) {
 			ret = append(ret, s)
@@ -116,7 +121,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 	//		targetTs.String(), nowis.Sub(deadline))
 	//}
 
-	task := &Task{
+	task := &task{
 		environment:  env,
 		targetTs:     targetTs,
 		ctx:          nil,
@@ -185,10 +190,10 @@ func (p *proposal) String() string {
 	return p.hrString
 }
 
-func (t *Task) startProposers() {
+func (t *task) startProposers() {
 	for _, s := range allProposingStrategies() {
-		p := &Proposer{
-			Task:     t,
+		p := &proposer{
+			task:     t,
 			strategy: s,
 			Name:     t.Name + "-" + s.Name,
 		}
@@ -204,7 +209,7 @@ func (t *Task) startProposers() {
 
 const TraceTagInsertInputs = "insertInputs"
 
-func (t *Task) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.WrappedOutput, maxInputs int) (numInserted int) {
+func (t *task) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.WrappedOutput, maxInputs int) (numInserted int) {
 	for _, wOut := range outs {
 		select {
 		case <-t.ctx.Done():
@@ -225,7 +230,7 @@ func (t *Task) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.Wrapp
 }
 
 // InsertTagAlongInputs includes filtered outputs from the backlog into attacher
-func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
+func (t *task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
 	preSelected := t.Backlog().FilterAndSortOutputs(func(wOut vertex.WrappedOutput) bool {
 		t.Assertf(wOut.LockName() == ledger.ChainLockName, "wOut.LockName() == ledger.ChainLockName")
 
@@ -241,7 +246,7 @@ func (t *Task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs i
 	return t.insertInputs(a, preSelected, maxInputs)
 }
 
-func (t *Task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
+func (t *task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
 	t.Tracef(TraceTagInsertInputs, "IN InsertDelegationInputs: %s, maxInputs: %d", a.Name, maxInputs)
 
 	rdr := a.BaselineSugaredStateReader()

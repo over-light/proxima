@@ -12,14 +12,14 @@ import (
 const TraceTagEndorse2RndProposer = "propose-endorse2rnd"
 
 func init() {
-	registerProposerStrategy(&Strategy{
+	registerProposerStrategy(&proposerStrategy{
 		Name:             "endorse2rnd",
 		ShortName:        "r2",
 		GenerateProposal: endorse2RndProposeGenerator,
 	})
 }
 
-func endorse2RndProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
+func endorse2RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	if p.targetTs.IsSlotBoundary() {
 		// the proposer does not generate branch transactions
 		return nil, true
@@ -27,7 +27,7 @@ func endorse2RndProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bo
 
 	// Check peers in RANDOM order
 	a := p.ChooseFirstExtendEndorsePair(true, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
-		checked, consistent := p.Task.slotData.wasCombinationChecked(extend, endorse)
+		checked, consistent := p.task.slotData.wasCombinationChecked(extend, endorse)
 		return !checked || consistent
 	})
 	if a == nil {
@@ -67,11 +67,11 @@ func endorse2RndProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bo
 		}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			p.Task.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
 			addedSecond = true
 			break //>>>> return attacher
 		} else {
-			p.Task.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
+			p.task.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
 		}
 
 		p.Tracef(TraceTagEndorse2RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)

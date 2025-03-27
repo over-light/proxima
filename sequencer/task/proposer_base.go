@@ -16,14 +16,14 @@ const (
 )
 
 func init() {
-	registerProposerStrategy(&Strategy{
+	registerProposerStrategy(&proposerStrategy{
 		Name:             "base",
 		ShortName:        "b0",
 		GenerateProposal: baseProposeGenerator,
 	})
 }
 
-func baseProposeGenerator(p *Proposer) (*attacher.IncrementalAttacher, bool) {
+func baseProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	p.Tracef(TraceTagBaseProposerExit, "IN base proposer %s", p.Name)
 
 	extend := p.OwnLatestMilestoneOutput()

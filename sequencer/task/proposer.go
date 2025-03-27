@@ -14,7 +14,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 )
 
-func (p *Proposer) run() {
+func (p *proposer) run() {
 	defer p.proposersWG.Done()
 
 	var a *attacher.IncrementalAttacher
@@ -65,7 +65,7 @@ func (p *Proposer) run() {
 	}
 }
 
-func (p *Proposer) propose(a *attacher.IncrementalAttacher) error {
+func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 	util.Assertf(a.TargetTs() == p.targetTs, "a.targetTs() == p.task.targetTs")
 
 	coverage := a.LedgerCoverage()
@@ -97,7 +97,7 @@ func (p *Proposer) propose(a *attacher.IncrementalAttacher) error {
 	return nil
 }
 
-func (p *Proposer) makeTxProposal(a *attacher.IncrementalAttacher) (*transaction.Transaction, string, error) {
+func (p *proposer) makeTxProposal(a *attacher.IncrementalAttacher) (*transaction.Transaction, string, error) {
 	cmdParser := commands.NewCommandParser(ledger.AddressED25519FromPrivateKey(p.ControllerPrivateKey()))
 	nm := p.environment.SequencerName() + "." + p.strategy.ShortName
 	tx, err := a.MakeSequencerTransaction(nm, p.ControllerPrivateKey(), cmdParser)
@@ -114,7 +114,7 @@ const TraceTagChooseFirstExtendEndorsePair = "chooseFirstPair"
 // extend-endorse pair encountered while traversing endorse candidates.
 // Endorse candidates are either sorted descending by coverage, or randomly shuffled
 // Pairs are filtered before checking. It allows to exclude repeating pairs
-func (p *Proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, pairFilter func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool) *attacher.IncrementalAttacher {
+func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, pairFilter func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool) *attacher.IncrementalAttacher {
 	p.Tracef(TraceTagChooseFirstExtendEndorsePair, "IN")
 
 	p.Assertf(!p.targetTs.IsSlotBoundary(), "!p.targetTs.IsSlotBoundary()")
@@ -149,7 +149,7 @@ func (p *Proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 			continue
 		}
 		p.AssertNoError(err)
-		extendRoot := attacher.AttachOutputID(seqOut.ID, p.Task)
+		extendRoot := attacher.AttachOutputID(seqOut.ID, p.task)
 
 		p.AddOwnMilestone(extendRoot.VID) // to ensure it is in the pool of own milestones
 		futureConeMilestones := p.FutureConeOwnMilestonesOrdered(extendRoot, p.targetTs)
@@ -168,7 +168,7 @@ func (p *Proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 
 // ChooseEndorseExtendPairAttacher traverses all known extension options and check each of it with the endorsement target
 // Returns consistent incremental attacher with the biggest ledger coverage
-func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, extendCandidates []vertex.WrappedOutput, pairFilter func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool) *attacher.IncrementalAttacher {
+func (p *proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, extendCandidates []vertex.WrappedOutput, pairFilter func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool) *attacher.IncrementalAttacher {
 	if pairFilter == nil {
 		pairFilter = func(_ vertex.WrappedOutput, _ *vertex.WrappedTx) bool { return true }
 	}
@@ -181,7 +181,7 @@ func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 		}
 		a, err = attacher.NewIncrementalAttacher(p.Name, p, p.targetTs, extend, endorse)
 		if err != nil {
-			p.Task.slotData.markCombinationChecked(false, extend, endorse)
+			p.task.slotData.markCombinationChecked(false, extend, endorse)
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: %v", p.targetTs.String, extend.IDStringShort, endorse.IDShortString, err)
 			continue
 		}
@@ -209,12 +209,12 @@ func (p *Proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
 			a.Close()
 		}
-		p.Task.slotData.markCombinationChecked(true, extend, endorse)
+		p.task.slotData.markCombinationChecked(true, extend, endorse)
 	}
 	return ret
 }
 
-func (p *Proposer) insertInputs(a *attacher.IncrementalAttacher) {
+func (p *proposer) insertInputs(a *attacher.IncrementalAttacher) {
 	if ledger.L().ID.IsPreBranchConsolidationTimestamp(a.TargetTs()) {
 		// skipping tagging-along in pre-branch consolidation zone
 		p.Tracef(TraceTagInsertInputs, "%s. No tag-along or delegation in the pre-branch consolidation zone of ticks", a.Name())
