@@ -1,0 +1,56 @@
+package task
+
+import (
+	"sync"
+	"time"
+
+	"github.com/lunfardo314/proxima/core/attacher"
+	"github.com/lunfardo314/proxima/util/trackgc"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	trackTasks = trackgc.New[taskData](func(p *taskData) string {
+		return "taskData-" + p.Name
+	})
+
+	trackProposers = trackgc.New[proposer](func(p *proposer) string {
+		return "proposer-" + p.Name
+	})
+
+	trackIncAttachers = trackgc.New[attacher.IncrementalAttacher](func(p *attacher.IncrementalAttacher) string {
+		return "incAtt-" + p.Name()
+	})
+
+	registerMetricsOnce sync.Once
+)
+
+func registerGCMetricsOnce(env environment) {
+	registerMetricsOnce.Do(func() {
+		reg := env.MetricsRegistry()
+		if reg == nil {
+			return
+		}
+
+		trackTasksGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "proxima_trackgc_tasks",
+			Help: "not GCed object counter",
+		})
+
+		trackProposersGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "proxima_trackgc_proposers",
+			Help: "not GCed object counter",
+		})
+
+		trackInAttachersGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "proxima_trackgc_inc_attachers",
+			Help: "not GCed object counter",
+		})
+
+		trackTasks.StartCleanupWithMetrics(trackTasksGauge, 3*time.Second)
+		trackProposers.StartCleanupWithMetrics(trackProposersGauge, 3*time.Second)
+		trackIncAttachers.StartCleanupWithMetrics(trackInAttachersGauge, 3*time.Second)
+
+		reg.MustRegister(trackTasksGauge, trackProposersGauge)
+	})
+}

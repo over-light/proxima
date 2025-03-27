@@ -27,7 +27,7 @@ func endorse2RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 
 	// Check peers in RANDOM order
 	a := p.ChooseFirstExtendEndorsePair(true, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
-		checked, consistent := p.task.slotData.wasCombinationChecked(extend, endorse)
+		checked, consistent := p.taskData.slotData.wasCombinationChecked(extend, endorse)
 		return !checked || consistent
 	})
 	if a == nil {
@@ -67,11 +67,11 @@ func endorse2RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 		}
 
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			p.task.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
+			p.taskData.slotData.markCombinationChecked(true, extending, endorsing, endorsementCandidate)
 			addedSecond = true
 			break //>>>> return attacher
 		} else {
-			p.task.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
+			p.taskData.slotData.markCombinationChecked(false, extending, endorsing, endorsementCandidate)
 		}
 
 		p.Tracef(TraceTagEndorse2RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)

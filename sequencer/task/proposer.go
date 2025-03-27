@@ -39,6 +39,11 @@ func (p *proposer) run() {
 		a.Close()
 
 		a, forceExit = p.strategy.GenerateProposal(p)
+
+		if a != nil {
+			trackIncAttachers.RegisterPointer(a)
+		}
+
 		if a == nil && forceExit {
 			return
 		}
@@ -66,7 +71,7 @@ func (p *proposer) run() {
 }
 
 func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
-	util.Assertf(a.TargetTs() == p.targetTs, "a.targetTs() == p.task.targetTs")
+	util.Assertf(a.TargetTs() == p.targetTs, "a.targetTs() == p.taskData.targetTs")
 
 	coverage := a.LedgerCoverage()
 
@@ -149,7 +154,7 @@ func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 			continue
 		}
 		p.AssertNoError(err)
-		extendRoot := attacher.AttachOutputID(seqOut.ID, p.task)
+		extendRoot := attacher.AttachOutputID(seqOut.ID, p.taskData)
 
 		p.AddOwnMilestone(extendRoot.VID) // to ensure it is in the pool of own milestones
 		futureConeMilestones := p.FutureConeOwnMilestonesOrdered(extendRoot, p.targetTs)
@@ -181,7 +186,7 @@ func (p *proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 		}
 		a, err = attacher.NewIncrementalAttacher(p.Name, p, p.targetTs, extend, endorse)
 		if err != nil {
-			p.task.slotData.markCombinationChecked(false, extend, endorse)
+			p.taskData.slotData.markCombinationChecked(false, extend, endorse)
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: %v", p.targetTs.String, extend.IDStringShort, endorse.IDShortString, err)
 			continue
 		}
@@ -209,7 +214,7 @@ func (p *proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
 			a.Close()
 		}
-		p.task.slotData.markCombinationChecked(true, extend, endorse)
+		p.taskData.slotData.markCombinationChecked(true, extend, endorse)
 	}
 	return ret
 }

@@ -27,7 +27,7 @@ func endorse3RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 
 	// Check all pairs, in descending order
 	a := p.ChooseFirstExtendEndorsePair(true, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
-		checked, consistent := p.task.slotData.wasCombinationChecked(extend, endorse)
+		checked, consistent := p.taskData.slotData.wasCombinationChecked(extend, endorse)
 		return !checked || consistent
 	})
 	if a == nil {
@@ -59,17 +59,17 @@ func endorse3RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 			continue
 		}
 		if !newOutputArrived {
-			checked, _ := p.task.slotData.wasCombinationChecked(extending, endorsing0, endorsementCandidate)
+			checked, _ := p.taskData.slotData.wasCombinationChecked(extending, endorsing0, endorsementCandidate)
 			if checked {
 				continue
 			}
 		}
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			p.task.slotData.markCombinationChecked(true, extending, endorsing0, endorsementCandidate)
+			p.taskData.slotData.markCombinationChecked(true, extending, endorsing0, endorsementCandidate)
 			endorsing1 = endorsementCandidate
 			break //>>>> second endorsement
 		} else {
-			p.task.slotData.markCombinationChecked(false, extending, endorsing0, endorsementCandidate)
+			p.taskData.slotData.markCombinationChecked(false, extending, endorsing0, endorsementCandidate)
 		}
 		p.Tracef(TraceTagEndorse3RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
@@ -92,17 +92,17 @@ func endorse3RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 			continue
 		}
 		if !newOutputArrived {
-			checked, _ := p.task.slotData.wasCombinationChecked(extending, endorsing0, endorsing1, endorsementCandidate)
+			checked, _ := p.taskData.slotData.wasCombinationChecked(extending, endorsing0, endorsing1, endorsementCandidate)
 			if checked {
 				continue
 			}
 		}
 		if err := a.InsertEndorsement(endorsementCandidate); err == nil {
-			p.task.slotData.markCombinationChecked(true, extending, endorsing0, endorsing1, endorsementCandidate)
+			p.taskData.slotData.markCombinationChecked(true, extending, endorsing0, endorsing1, endorsementCandidate)
 			endorsing2 = endorsementCandidate
 			break //>>>> third endorsement
 		} else {
-			p.task.slotData.markCombinationChecked(false, extending, endorsing0, endorsing1, endorsementCandidate)
+			p.taskData.slotData.markCombinationChecked(false, extending, endorsing0, endorsing1, endorsementCandidate)
 		}
 		p.Tracef(TraceTagEndorse3RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}

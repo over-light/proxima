@@ -16,12 +16,11 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/sequencer/backlog"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/trackgc"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 )
 
-// Task to generate proposals for the target ledger time. The task is interrupted
+// Task to generate proposals for the target ledger time. The taskData is interrupted
 // by the context with deadline
 type (
 	environment interface {
@@ -41,7 +40,7 @@ type (
 		EvidenceBestProposalForTheTarget(strategyShortName string)
 	}
 
-	task struct {
+	taskData struct {
 		environment
 		targetTs     ledger.Time
 		ctx          context.Context
@@ -62,7 +61,7 @@ type (
 	}
 
 	proposer struct {
-		*task
+		*taskData
 		strategy *proposerStrategy
 		Name     string
 		Msg      string // how proposer ended. For debugging
@@ -79,17 +78,13 @@ type (
 	}
 )
 
-const TraceTagTask = "task"
+const TraceTagTask = "taskData"
 
 var (
 	AllProposingStrategies = make(map[string]*proposerStrategy)
 	ErrNoProposals         = errors.New("no proposals were generated")
 	ErrNotGoodEnough       = errors.New("proposals aren't good enough")
 )
-
-var traceTasks = trackgc.New[task](func(p *task) string {
-	return "task-" + p.Name
-})
 
 func registerProposerStrategy(s *proposerStrategy) {
 	AllProposingStrategies[s.Name] = s
@@ -105,23 +100,20 @@ func allProposingStrategies() []*proposerStrategy {
 	return ret
 }
 
-// Run starts task with the aim to generate sequencer transaction for the target ledger time.
-// The proposer task consist of several proposers (goroutines)
-// Each proposer generates proposals and writes it to the channel of the task.
+// Run starts taskData with the aim to generate sequencer transaction for the target ledger time.
+// The proposer taskData consist of several proposers (goroutines)
+// Each proposer generates proposals and writes it to the channel of the taskData.
 // The best proposal is selected and returned. Function only returns transaction which is better
 // than others in the tippool for the current slot. Otherwise, returns nil
 func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
+	registerGCMetricsOnce(env)
+
 	deadline := targetTs.Time()
 	nowis := time.Now()
 	env.Tracef(TraceTagTask, "RunTask: target: %s, deadline: %s, nowis: %s",
 		targetTs.String, deadline.Format("15:04:05.999"), nowis.Format("15:04:05.999"))
 
-	//if deadline.Before(nowis) {
-	//	return nil, nil, fmt.Errorf("task: target %s is in the past by %v: impossible to generate milestone",
-	//		targetTs.String(), nowis.Sub(deadline))
-	//}
-
-	task := &task{
+	task := &taskData{
 		environment:  env,
 		targetTs:     targetTs,
 		ctx:          nil,
@@ -130,6 +122,9 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 		// proposals:    make([]*proposal, 0),
 		Name: fmt.Sprintf("%s[%s]", env.SequencerName(), targetTs.String()),
 	}
+
+	trackTasks.RegisterPointer(task)
+
 	// start proposers
 	var cancel func()
 	task.ctx, cancel = context.WithDeadline(env.Ctx(), deadline)
@@ -148,7 +143,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 
 	go func() {
 		for p := range task.proposalChan {
-			proposals[*p.tx.IDRef()] = p
+			proposals[p.tx.ID()] = p
 			task.slotData.ProposalSubmitted(p.strategyShortName)
 			task.EvidenceProposal(p.strategyShortName)
 		}
@@ -190,13 +185,21 @@ func (p *proposal) String() string {
 	return p.hrString
 }
 
-func (t *task) startProposers() {
+func (t *taskData) newProposer(s *proposerStrategy) *proposer {
+	ret := &proposer{
+		taskData: t,
+		strategy: s,
+		Name:     t.Name + "-" + s.Name,
+	}
+
+	trackProposers.RegisterPointer(ret)
+
+	return ret
+}
+
+func (t *taskData) startProposers() {
 	for _, s := range allProposingStrategies() {
-		p := &proposer{
-			task:     t,
-			strategy: s,
-			Name:     t.Name + "-" + s.Name,
-		}
+		p := t.newProposer(s)
 		t.proposersWG.Add(1)
 		go func() {
 			p.IncCounter("prop")
@@ -209,7 +212,7 @@ func (t *task) startProposers() {
 
 const TraceTagInsertInputs = "insertInputs"
 
-func (t *task) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.WrappedOutput, maxInputs int) (numInserted int) {
+func (t *taskData) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.WrappedOutput, maxInputs int) (numInserted int) {
 	for _, wOut := range outs {
 		select {
 		case <-t.ctx.Done():
@@ -230,7 +233,7 @@ func (t *task) insertInputs(a *attacher.IncrementalAttacher, outs []vertex.Wrapp
 }
 
 // InsertTagAlongInputs includes filtered outputs from the backlog into attacher
-func (t *task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
+func (t *taskData) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
 	preSelected := t.Backlog().FilterAndSortOutputs(func(wOut vertex.WrappedOutput) bool {
 		t.Assertf(wOut.LockName() == ledger.ChainLockName, "wOut.LockName() == ledger.ChainLockName")
 
@@ -246,7 +249,7 @@ func (t *task) InsertTagAlongInputs(a *attacher.IncrementalAttacher, maxInputs i
 	return t.insertInputs(a, preSelected, maxInputs)
 }
 
-func (t *task) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
+func (t *taskData) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxInputs int) (numInserted int) {
 	t.Tracef(TraceTagInsertInputs, "IN InsertDelegationInputs: %s, maxInputs: %d", a.Name, maxInputs)
 
 	rdr := a.BaselineSugaredStateReader()
