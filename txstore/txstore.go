@@ -5,7 +5,6 @@ import (
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/transaction"
-	"github.com/lunfardo314/proxima/util/bytepool"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -83,7 +82,9 @@ func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata
 
 	//concat in the buffer and the dispose
 	mdBytes := metadata.Bytes()
-	txBytesWithMetadata := bytepool.GetArray(len(mdBytes) + len(txBytes))
+
+	txBytesWithMetadata := make([]byte, len(mdBytes)+len(txBytes))
+	//txBytesWithMetadata := bytepool.GetArray(len(mdBytes) + len(txBytes))
 	copy(txBytesWithMetadata, mdBytes)
 	copy(txBytesWithMetadata[len(mdBytes):], txBytes)
 
@@ -100,7 +101,7 @@ func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata
 		}
 	}
 
-	bytepool.DisposeArray(txBytesWithMetadata)
+	//bytepool.DisposeArray(txBytesWithMetadata)
 	return txid, nil
 }
 

@@ -6,7 +6,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/core/txmetadata"
-	"github.com/lunfardo314/proxima/util/bytepool"
 	"github.com/lunfardo314/unitrie/common"
 )
 
@@ -65,7 +64,7 @@ func (ps *Peers) gossipStreamHandler(stream network.Stream) {
 			err = fmt.Errorf("gossip: error while parsing tx message from peer %s: %v", id.String(), err)
 			ps.Log().Error(err)
 			ps.dropPeer(id, err.Error(), true)
-			bytepool.DisposeArray(txBytesWithMetadata)
+			//bytepool.DisposeArray(txBytesWithMetadata)
 			return
 		}
 		metadata, err = txmetadata.TransactionMetadataFromBytes(metadataBytes)
@@ -74,7 +73,7 @@ func (ps *Peers) gossipStreamHandler(stream network.Stream) {
 			err = fmt.Errorf("gossip: error while parsing tx message metadata from peer %s: %v", id.String(), err)
 			ps.Log().Error(err)
 			ps.dropPeer(id, err.Error(), true)
-			bytepool.DisposeArray(txBytesWithMetadata)
+			//bytepool.DisposeArray(txBytesWithMetadata)
 			return
 		}
 

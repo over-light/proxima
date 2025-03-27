@@ -8,7 +8,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/bytepool"
 )
 
 // pull request message 1st byte is the type of the message. The rest is message body
@@ -92,7 +91,7 @@ func (ps *Peers) pullStreamHandler(stream network.Stream) {
 		ps.pullRequestsIn.Inc()
 
 		// return buffer for reuse
-		bytepool.DisposeArray(msgData)
+		//bytepool.DisposeArray(msgData)
 	}
 }
 
