@@ -22,6 +22,10 @@ var (
 		return "incAtt-" + p.Name()
 	})
 
+	trackProposals = trackgc.New[proposal](func(p *proposal) string {
+		return "proposal-" + p.hrString
+	})
+
 	registerMetricsOnce sync.Once
 )
 
@@ -36,21 +40,24 @@ func registerGCMetricsOnce(env environment) {
 			Name: "proxima_trackgc_tasks",
 			Help: "not GCed object counter",
 		})
-
 		trackProposersGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "proxima_trackgc_proposers",
 			Help: "not GCed object counter",
 		})
-
 		trackIncAttachersGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "proxima_trackgc_inc_attachers",
+			Help: "not GCed object counter",
+		})
+		trackProposalsGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "proxima_trackgc_proposals",
 			Help: "not GCed object counter",
 		})
 
 		trackTasks.StartCleanupWithMetrics(trackTasksGauge, 3*time.Second)
 		trackProposers.StartCleanupWithMetrics(trackProposersGauge, 3*time.Second)
 		trackIncAttachers.StartCleanupWithMetrics(trackIncAttachersGauge, 3*time.Second)
+		trackProposals.StartCleanupWithMetrics(trackProposalsGauge, 3*time.Second)
 
-		reg.MustRegister(trackTasksGauge, trackProposersGauge, trackIncAttachersGauge)
+		reg.MustRegister(trackTasksGauge, trackProposersGauge, trackIncAttachersGauge, trackProposalsGauge)
 	})
 }

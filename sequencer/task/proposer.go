@@ -93,6 +93,8 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 		strategyShortName: p.strategy.ShortName,
 	}
 
+	trackProposals.RegisterPointer(_proposal)
+
 	if p.targetTs.IsSlotBoundary() {
 		_proposal.txMetadata.LedgerCoverage = util.Ref(coverage)
 		_proposal.txMetadata.Supply = util.Ref(a.FinalSupply())
