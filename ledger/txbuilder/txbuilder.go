@@ -897,9 +897,10 @@ func (txb *TransactionBuilder) String() string {
 	return strings.Join(ret, "\n")
 }
 
+// LoadInput returns clone of the consumed output
 func (txb *TransactionBuilder) LoadInput(i byte) (*ledger.Output, error) {
 	if int(i) >= len(txb.ConsumedOutputs) {
 		return nil, fmt.Errorf("can't load input #%d", i)
 	}
-	return txb.ConsumedOutputs[i], nil
+	return txb.ConsumedOutputs[i].Clone(), nil
 }
