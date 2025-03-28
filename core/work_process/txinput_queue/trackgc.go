@@ -33,5 +33,5 @@ func StartTrackingTxBytes(env environment) {
 	trackTxBytes.StartTrackingWithMetrics(trackTxBytesAllocGauge, 3*time.Second, trackTxBytesTotalGauge)
 	trackTxMedatada.StartTrackingWithMetrics(trackTxMetadataGauge, 3*time.Second)
 
-	env.MetricsRegistry().MustRegister(trackTxBytesAllocGauge, trackTxMetadataGauge)
+	env.MetricsRegistry().MustRegister(trackTxBytesAllocGauge, trackTxMetadataGauge, trackTxBytesTotalGauge)
 }
