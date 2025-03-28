@@ -53,10 +53,10 @@ func registerGCMetricsOnce(env environment) {
 			Help: "not GCed object counter",
 		})
 
-		trackTasks.StartCleanupWithMetrics(trackTasksGauge, 3*time.Second)
-		trackProposers.StartCleanupWithMetrics(trackProposersGauge, 3*time.Second)
-		trackIncAttachers.StartCleanupWithMetrics(trackIncAttachersGauge, 3*time.Second)
-		trackProposals.StartCleanupWithMetrics(trackProposalsGauge, 3*time.Second)
+		trackTasks.StartTrackingWithMetrics(trackTasksGauge, 3*time.Second)
+		trackProposers.StartTrackingWithMetrics(trackProposersGauge, 3*time.Second)
+		trackIncAttachers.StartTrackingWithMetrics(trackIncAttachersGauge, 3*time.Second)
+		trackProposals.StartTrackingWithMetrics(trackProposalsGauge, 3*time.Second)
 
 		reg.MustRegister(trackTasksGauge, trackProposersGauge, trackIncAttachersGauge, trackProposalsGauge)
 	})

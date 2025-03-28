@@ -93,6 +93,11 @@ func (q *TxInputQueue) consume(inp Input) {
 	q.inputTxCounter.Inc()
 	q.txBytesSizeReceived.Set(float64(len(inp.TxBytes)))
 
+	{ // debug
+		trackTxBytes.RegisterPointer(&inp.TxBytes[0], len(inp.TxBytes))
+		trackTxMedatada.RegisterPointer(inp.TxMetaData)
+	}
+
 	switch inp.Cmd {
 	case CmdFromPeer:
 		q.fromPeer(&inp)

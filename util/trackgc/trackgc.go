@@ -11,21 +11,31 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/maps"
 )
 
 // debug tool
 
-type List[T any] struct {
-	sync.Mutex
-	m         map[string]weak.Pointer[T]
-	keyFun    func(p *T) string
-	prnObjFun func(p *T) string
-}
+type (
+	List[T any] struct {
+		sync.Mutex
+		m         map[string]weakPointerWithLen[T]
+		keyFun    func(p *T) string
+		prnObjFun func(p *T) string
+	}
+
+	weakPointerWithLen[T any] struct {
+		weak.Pointer[T]
+		size int
+	}
+
+	TrackByteArrays struct {
+		*List[byte]
+	}
+)
 
 func New[T any](keyFun func(p *T) string, prnObjFun ...func(p *T) string) *List[T] {
 	ret := &List[T]{
-		m:      make(map[string]weak.Pointer[T], 0),
+		m:      make(map[string]weakPointerWithLen[T], 0),
 		keyFun: keyFun,
 	}
 	if len(prnObjFun) > 0 {
@@ -44,11 +54,24 @@ func (gcp *List[T]) PrintObj(p *T) string {
 	return gcp.prnObjFun(p)
 }
 
-func (gcp *List[T]) RegisterPointer(p *T) {
+func (gcp *List[T]) RegisterPointer(p *T, size ...int) {
+	if p == nil {
+		return
+	}
 	gcp.Mutex.Lock()
 	defer gcp.Mutex.Unlock()
 
-	gcp.m[gcp.keyFun(p)] = weak.Make(p)
+	sz := 0
+	if len(size) > 0 {
+		sz = size[0]
+	}
+	key := gcp.keyFun(p)
+	if _, already := gcp.m[key]; !already {
+		gcp.m[key] = weakPointerWithLen[T]{
+			Pointer: weak.Make(p),
+			size:    sz,
+		}
+	}
 }
 
 func (gcp *List[T]) Stats() (gced int, notgced int) {
@@ -222,8 +245,8 @@ func MustGoWithTimeout(fun func(), name string, timeout time.Duration) {
 	}()
 }
 
-// StartCleanupWithMetrics helps report number of not GCed objects
-func (gcp *List[T]) StartCleanupWithMetrics(m prometheus.Gauge, refreshEach time.Duration) context.CancelFunc {
+// StartTrackingWithMetrics helps report number of not GCed objects
+func (gcp *List[T]) StartTrackingWithMetrics(m prometheus.Gauge, refreshEach time.Duration, sizeGauge ...prometheus.Gauge) context.CancelFunc {
 	ctx, stopFun := context.WithCancel(context.Background())
 	go func() {
 		for {
@@ -233,15 +256,34 @@ func (gcp *List[T]) StartCleanupWithMetrics(m prometheus.Gauge, refreshEach time
 			case <-time.After(refreshEach):
 				gcp.Lock()
 
-				maps.DeleteFunc(gcp.m, func(s string, weakp weak.Pointer[T]) bool {
-					return weakp.Value() == nil
-				})
+				sz := 0
+				for key, weakp := range gcp.m {
+					p := weakp.Value()
+					if p == nil {
+						delete(gcp.m, key)
+						continue
+					}
+					if len(sizeGauge) > 0 {
+						sz += weakp.size
+					}
+				}
 
 				gcp.Unlock()
 
 				m.Set(float64(len(gcp.m)))
+				if len(sizeGauge) > 0 {
+					sizeGauge[0].Set(float64(sz))
+				}
 			}
 		}
 	}()
 	return stopFun
+}
+
+func NewByteArrayTracker() *TrackByteArrays {
+	return &TrackByteArrays{
+		List: New[byte](func(p *byte) string {
+			return fmt.Sprintf("%p", p)
+		}),
+	}
 }

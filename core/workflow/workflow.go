@@ -98,6 +98,9 @@ func Start(env environment, peers *peering.Peers, opts ...ConfigOption) *Workflo
 		ret.RecreateVertexMap()
 		return true
 	})
+
+	txinput_queue.StartTrackingTxBytes(ret)
+
 	return ret
 }
 
