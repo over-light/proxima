@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lunfardo314/easyfl/slicepool"
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -117,6 +118,9 @@ func (p *ProximaNode) Start() {
 	p.readInTraceTags()
 
 	var initStep string
+
+	slicepool.Disable() // disables optimized memory allocation in EasyFL and just uses standard make({}byte, size)
+	p.Log().Infof("DISABLE optimized memory allocation in EasyFL")
 
 	err := util.CatchPanicOrError(func() error {
 		initStep = "startMetrics"
