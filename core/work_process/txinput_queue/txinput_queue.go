@@ -95,7 +95,7 @@ func (q *TxInputQueue) consume(inp Input) {
 
 	{ // debug
 		trackTxBytes.RegisterPointer(&inp.TxBytes[0], len(inp.TxBytes))
-		trackTxMedatada.RegisterPointer(inp.TxMetaData)
+		trackTxMetadata.RegisterPointer(inp.TxMetaData)
 	}
 
 	switch inp.Cmd {

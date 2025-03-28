@@ -11,7 +11,7 @@ import (
 
 var (
 	trackTxBytes    = trackgc.NewByteArrayTracker()
-	trackTxMedatada = trackgc.New[txmetadata.TransactionMetadata](func(p *txmetadata.TransactionMetadata) string {
+	trackTxMetadata = trackgc.New[txmetadata.TransactionMetadata](func(p *txmetadata.TransactionMetadata) string {
 		return fmt.Sprintf("%p", p)
 	})
 )
@@ -31,7 +31,7 @@ func StartTrackingTxBytes(env environment) {
 	})
 
 	trackTxBytes.StartTrackingWithMetrics(trackTxBytesAllocGauge, 3*time.Second, trackTxBytesTotalGauge)
-	trackTxMedatada.StartTrackingWithMetrics(trackTxMetadataGauge, 3*time.Second)
+	trackTxMetadata.StartTrackingWithMetrics(trackTxMetadataGauge, 3*time.Second)
 
 	env.MetricsRegistry().MustRegister(trackTxBytesAllocGauge, trackTxMetadataGauge, trackTxBytesTotalGauge)
 }
