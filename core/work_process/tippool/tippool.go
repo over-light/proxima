@@ -232,7 +232,7 @@ func (t *SequencerTips) NumSequencerTips() int {
 	return len(t.latestMilestones)
 }
 
-const activityTTL = 20 * time.Second
+const activityTTL = 40 * time.Second
 
 // purgeAndLog removes all transactions with baseline == nil, i.e. all non-branch sequencers which are virtualTx
 func (t *SequencerTips) purgeAndLog() {
