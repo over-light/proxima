@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
+	"golang.org/x/exp/maps"
 )
 
 type (
@@ -81,13 +82,23 @@ func New(env Environment) (*TagAlongBacklog, error) {
 		env.Tracef(TraceTag, "output included into input backlog: %s (total: %d)", wOut.IDStringShort, len(ret.outputs))
 	})
 
+	const (
+		backlogCleanupPeriod = time.Second
+		recreateMapPeriod    = time.Minute
+	)
 	// start periodic cleanup in background
-	env.RepeatInBackground(env.SequencerName()+"_backlogCleanup", time.Second, func() bool {
+	env.RepeatInBackground(env.SequencerName()+"_backlogCleanup", backlogCleanupPeriod, func() bool {
 		if n := ret.purgeBacklog(); n > 0 {
 			ret.Log().Infof("deleted %d outputs from the backlog", n)
 		}
 		return true
 	})
+	// start periodic reallocation of the map
+	env.RepeatInBackground(env.SequencerName()+"_backlogRecreateMap", recreateMapPeriod, func() bool {
+		ret.recreateMap()
+		return true
+	})
+
 	return ret, nil
 }
 
@@ -228,6 +239,13 @@ func (b *TagAlongBacklog) purgeBacklog() int {
 	}
 	b.EvidenceBacklogSize(len(b.outputs))
 	return count
+}
+
+func (b *TagAlongBacklog) recreateMap() {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	b.outputs = maps.Clone(b.outputs)
 }
 
 // LoadSequencerStartTips loads tip transactions relevant to the sequencer startup from persistent state to the memDAG

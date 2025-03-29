@@ -149,12 +149,17 @@ func (seq *Sequencer) Start() {
 
 		ttl := time.Duration(seq.config.MilestonesTTLSlots) * ledger.L().ID.SlotDuration()
 
-		seq.RepeatInBackground(seq.SequencerName()+"_own_milestone_purge", ownMilestonePurgePeriod, func() bool {
+		seq.RepeatInBackground(seq.SequencerName()+"_own_milestone_cleanup", ownMilestoneCleanupPeriod, func() bool {
 			if n, remain := seq.purgeOwnMilestones(ttl); n > 0 {
 				seq.Log().Infof("purged %d own milestones, %d remain. TTL = %v", n, remain, ttl)
 			}
 			return true
 		}, true)
+
+		seq.RepeatInBackground(seq.SequencerName()+"_own_milestone_recreate_map", ownMilestoneMapRecreatePeriod, func() bool {
+			seq.recreateMapOwnMilestones()
+			return true
+		})
 
 		seq.sequencerLoop()
 

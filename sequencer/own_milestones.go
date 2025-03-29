@@ -8,9 +8,13 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
+	"golang.org/x/exp/maps"
 )
 
-const ownMilestonePurgePeriod = time.Second
+const (
+	ownMilestoneCleanupPeriod     = time.Second
+	ownMilestoneMapRecreatePeriod = time.Minute
+)
 
 func (seq *Sequencer) FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOutput, targetTs ledger.Time) []vertex.WrappedOutput {
 	seq.ownMilestonesMutex.RLock()
@@ -126,4 +130,11 @@ func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
 	}
 
 	return count, len(seq.ownMilestones)
+}
+
+func (seq *Sequencer) recreateMapOwnMilestones() {
+	seq.ownMilestonesMutex.Lock()
+	defer seq.ownMilestonesMutex.Unlock()
+
+	seq.ownMilestones = maps.Clone(seq.ownMilestones)
 }
