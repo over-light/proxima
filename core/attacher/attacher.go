@@ -545,7 +545,12 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, currentTS ledger.T
 	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
 
 	rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID())
-	a.Assertf(found, "setBaseline: can't fetch root record for %s", baselineVID.IDShortString)
+	if !found {
+		// it can happen when root record is pruned
+		a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline can't fetch root record for %s", baselineVID.IDShortString)
+		return false
+	}
+	//a.Assertf(found, "setBaseline: can't fetch root record for %s", baselineVID.IDShortString)
 
 	a.baseline = baselineVID
 	a.baselineSupply = rr.Supply
