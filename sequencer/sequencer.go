@@ -589,11 +589,10 @@ func (seq *Sequencer) generateMilestoneForTarget(targetTs ledger.Time) (*transac
 	seq.Tracef(TraceTag, "generateMilestoneForTarget: target: %s, deadline: %s, nowis: %s",
 		targetTs.String, deadline.Format("15:04:05.999"), nowis.Format("15:04:05.999"))
 
-	//earliestToleratedTarget := nowis.Add(-ledger.L().ID.TickDuration / 2)
-	//if deadline.Before(earliestToleratedTarget) {
-	//	return nil, nil, fmt.Errorf("sequencer: target %s before earliest tolerated %v: impossible to generate milestone",
-	//		targetTs.String(), earliestToleratedTarget)
-	//}
+	if behind := deadline.Sub(nowis); behind < -2*ledger.L().ID.TickDuration {
+		return nil, nil, fmt.Errorf("sequencer: target %s (%v) is before current clock by %v: too late to generate milestone",
+			targetTs.String(), targetTs.Time().Format("15:04:05.999"), behind)
+	}
 	return task.Run(seq, targetTs, seq.slotData)
 }
 
