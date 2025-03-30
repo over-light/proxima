@@ -16,10 +16,10 @@ import (
 
 func initSeqSetupCmd() *cobra.Command {
 	seqSendCmd := &cobra.Command{
-		Use:     "setup_seq <name> <amount>",
+		Use:     "setup_seq <name> [<amount>]",
 		Aliases: util.List("send"),
 		Short:   `setup a sequencer with name and amount`,
-		Args:    cobra.ExactArgs(2),
+		Args:    cobra.RangeArgs(1, 2),
 		Run:     runSeqSetupCmd,
 	}
 	seqSendCmd.InitDefaultHelpCmd()
@@ -37,31 +37,66 @@ func runSeqSetupCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("name: %s", name)
 
-	amount, err := strconv.ParseUint(args[1], 10, 64)
-	glb.AssertNoError(err)
+	var chainId *ledger.ChainID = nil
+	if len(args) > 1 {
+		// create a chain
+		amount, err := strconv.ParseUint(args[1], 10, 64)
+		glb.AssertNoError(err)
 
-	glb.Infof("amount: %s", util.Th(amount))
-	if amount < ledger.L().Const().MinimumAmountOnSequencer() {
-		glb.Infof("minimum amout required: %d", ledger.L().Const().MinimumAmountOnSequencer())
-		return
+		glb.Infof("amount: %s", util.Th(amount))
+		if amount < ledger.L().Const().MinimumAmountOnSequencer() {
+			glb.Infof("minimum amout required: %d", ledger.L().Const().MinimumAmountOnSequencer())
+			return
+		}
+
+		// wait for available funds
+		waitForFunds(accountable, amount)
+
+		// proxi node mkchain 1000000000000
+		txCtx, cid, err := MakeChain(amount)
+		glb.AssertNoError(err)
+		glb.Infof("new chain id is %s", cid.String())
+		if !glb.NoWait() {
+			glb.TrackTxInclusion(txCtx.TransactionID(), time.Second)
+		}
+		chainId = &cid
+	} else {
+		// search for chain
+		chainId = getChainIdForAccount(walletData.Account)
+		if chainId == nil {
+			glb.Infof("chain id not found for account %s", walletData.Account.String())
+			return
+		} else {
+			glb.Infof("found chain id: %s", chainId.StringHex())
+		}
+	}
+	if chainId != nil {
+		// update proxi.yaml with chain id
+		updateWalletConfig(*chainId)
+
+		// update proxima.yaml
+		updateNodeConfig(name, walletData.PrivateKey, *chainId)
+	}
+}
+
+func getChainIdForAccount(account ledger.Accountable) *ledger.ChainID {
+	clnt := glb.GetClient()
+	chains, _, err := clnt.GetAllChains()
+	glb.AssertNoError(err)
+	for _, o := range chains {
+		lock := o.Output.Lock()
+
+		if o.Output.Lock().Name() == ledger.DelegationLockName {
+			// only sequencer chain
+			continue
+		}
+
+		if account.String() == lock.String() {
+			return &o.ChainID
+		}
 	}
 
-	// wait for available funds
-	waitForFunds(accountable, amount)
-
-	// proxi node mkchain 1000000000000
-	txCtx, chainID, err := MakeChain(amount)
-	glb.AssertNoError(err)
-	glb.Infof("new chain id is %s", chainID.String())
-	if !glb.NoWait() {
-		glb.TrackTxInclusion(txCtx.TransactionID(), time.Second)
-	}
-
-	// update proxi.yaml with chain id
-	updateWalletConfig(chainID)
-
-	// update proxima.yaml
-	updateNodeConfig(name, walletData.PrivateKey, chainID)
+	return nil
 }
 
 func waitForFunds(accountable ledger.Accountable, amount uint64) {

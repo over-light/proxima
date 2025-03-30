@@ -23,11 +23,12 @@ kill_proxima() {
     else
         echo "Proxima process not found"
     fi
+    sleep 2  # let process die
 }
 
 # increase the maximum buffer for quic
-sysctl -w net.core.rmem_max=7500000
-sysctl -w net.core.wmem_max=7500000
+#sysctl -w net.core.rmem_max=7500000
+#sysctl -w net.core.wmem_max=7500000
 
 boot_param=""
 if [ "$NODE_NAME" = "boot" ]; then
@@ -57,7 +58,7 @@ if [ ! -f "$INITIALIZED_FILE" ]; then
         echo "node init sequencer"
         # Loop until the command succeeds
         while true; do
-            ./proxi node setup_seq seq$NODE_NAME 100000000000000
+            ./proxi node setup_seq seq$NODE_NAME
             
             # Check if the command was successful
             if [ $? -eq 0 ]; then
@@ -70,20 +71,27 @@ if [ ! -f "$INITIALIZED_FILE" ]; then
         done
 
         kill_proxima
-        sleep 2  # let process die
     fi 
+    if [ "$NODE_NAME" = "3" ]; then
+        # TODO: restart necessary to avoid warning
+        ./proxima &
+        sleep 30
+        kill_proxima
+    fi
 
     # Create the initialized file to mark the container as initialized
     touch "$INITIALIZED_FILE"
 fi
 
+
+./proxima $boot_param &
+
 if [ "$NODE_NAME" = "boot" ]; then
     # 
+    sleep 10  # let process start
     echo "start faucet server"
     ./proxi node faucet &
 fi
-
-./proxima $boot_param
 
 # do not let the script end
 while true; do
