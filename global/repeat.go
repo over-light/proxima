@@ -13,17 +13,33 @@ func (l *Global) RepeatInBackground(name string, period time.Duration, fun func(
 		}()
 
 		if len(skipFirst) == 0 || !skipFirst[0] {
-			fun()
-		}
-		for {
-			select {
-			case <-l.Ctx().Done():
+			if !fun() {
 				return
-			case <-time.After(period):
-				if !fun() {
-					return
-				}
 			}
 		}
+		l.RepeatSync(period, fun)
+		//for {
+		//	select {
+		//	case <-l.Ctx().Done():
+		//		return
+		//	case <-time.After(period):
+		//		if !fun() {
+		//			return
+		//		}
+		//	}
+		//}
 	}()
+}
+
+func (l *Global) RepeatSync(period time.Duration, fun func() bool) bool {
+	for {
+		select {
+		case <-l.Ctx().Done():
+			return false
+		case <-time.After(period):
+			if !fun() {
+				return true
+			}
+		}
+	}
 }

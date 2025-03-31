@@ -138,12 +138,16 @@ func (seq *Sequencer) Start() {
 		seq.MarkWorkProcessStarted(seq.config.SequencerName)
 		defer seq.MarkWorkProcessStopped(seq.config.SequencerName)
 
-		if !seq.ensureFirstMilestone() {
-			seq.log.Warnf("can't start sequencer. EXIT..")
+		if !seq.ensurePreConditions() {
 			return
 		}
-		seq.log.Infof("waiting for %v (1 slot) before starting sequencer", ledger.L().ID.SlotDuration())
-		time.Sleep(ledger.L().ID.SlotDuration())
+
+		//if !seq.ensureFirstMilestone() {
+		//	seq.log.Warnf("can't start sequencer. EXIT..")
+		//	return
+		//}
+		//seq.log.Infof("waiting for %v (1 slot) before starting sequencer", ledger.L().ID.SlotDuration())
+		//time.Sleep(ledger.L().ID.SlotDuration())
 
 		seq.log.Infof("sequencer has been STARTED %s", util.Ref(seq.SequencerID()).String())
 
@@ -183,38 +187,53 @@ func (seq *Sequencer) Start() {
 	}
 }
 
-func (seq *Sequencer) Ctx() context.Context {
-	return seq.ctx
+func (seq *Sequencer) ensureSyncedIfNecessary() bool {
+	if !seq.config.EnsureSyncedBeforeStart {
+		return true
+	}
+	seq.Log().Infof("ensureSyncedIfNecessary: ensure node is synced before starting sequencer...")
+	seq.RepeatSync(2*time.Second, func() bool {
+		seq.Log().Infof("ensureSyncedIfNecessary: waiting for node synced before starting sequencer...")
+		return !seq.IsSynced()
+	})
+	return seq.IsSynced()
 }
 
-func (seq *Sequencer) Stop() {
-	seq.stopFun()
+func (seq *Sequencer) ensurePreConditions() bool {
+	if !seq.ensureSyncedIfNecessary() {
+		seq.log.Warnf("ensurePreConditions: node is not synced. EXIT..")
+		return false
+	}
+	seq.log.Infof("ensurePreConditions: node is synced")
+
+	if !seq.ensureFirstMilestone() {
+		seq.log.Warnf("ensurePreConditions: can't start sequencer. EXIT..")
+		return false
+	}
+	seq.log.Infof("ensurePreConditions: waiting for %v (1 slot) before starting sequencer", ledger.L().ID.SlotDuration())
+	time.Sleep(ledger.L().ID.SlotDuration())
+	return true
 }
 
-const ensureStartingMilestoneTimeout = 2 * time.Second
+const ensureStartingMilestoneTimeout = 5 * time.Second
 
 // ensureFirstMilestone waiting for the first sequencer milestone arrive
 func (seq *Sequencer) ensureFirstMilestone() bool {
-	ctx, cancel := context.WithTimeout(seq.Ctx(), ensureStartingMilestoneTimeout)
 	var startOutput vertex.WrappedOutput
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(10 * time.Millisecond):
-				startOutput = seq.OwnLatestMilestoneOutput()
-				if startOutput.VID != nil && startOutput.IsAvailable() {
-					cancel()
-					return
-				}
-			}
+	deadline := time.Now().Add(ensureStartingMilestoneTimeout)
+	succ := seq.RepeatSync(ledger.L().ID.TickDuration, func() bool {
+		if time.Now().After(deadline) {
+			return false
 		}
-	}()
+		startOutput = seq.OwnLatestMilestoneOutput()
+		return startOutput.VID == nil || !startOutput.IsAvailable()
+	})
 
-	<-ctx.Done()
-
+	if !succ {
+		seq.log.Errorf("ensureFirstMilestone: interrupted")
+		return false
+	}
 	if startOutput.VID == nil || !startOutput.IsAvailable() {
 		seq.log.Errorf("failed to find a chain output to start")
 		return false
@@ -257,6 +276,14 @@ func (seq *Sequencer) checkSequencerStartOutput(wOut vertex.WrappedOutput) bool 
 	seq.log.Infof("sequencer start output %s has amount %s (%s%% of the initial supply)",
 		wOut.IDStringShort(), util.Th(amount), util.PercentString(int(amount), int(ledger.L().ID.InitialSupply)))
 	return true
+}
+
+func (seq *Sequencer) Ctx() context.Context {
+	return seq.ctx
+}
+
+func (seq *Sequencer) Stop() {
+	seq.stopFun()
 }
 
 func (seq *Sequencer) Backlog() *backlog.TagAlongBacklog {
@@ -343,13 +370,13 @@ func (seq *Sequencer) doSequencerStep() bool {
 	switch {
 	case errors.Is(err, task.ErrNotGoodEnough):
 		seq.slotData.NotGoodEnough()
-		//seq.Tracef(TraceTagTarget, "'not good enough' for the target logical time %s in %v",
-		//	targetTs, time.Since(timerStart))
+		seq.Tracef(TraceTagTarget, "'not good enough' for the target logical time %s in %v",
+			targetTs, time.Since(timerStart))
 		return true
 	case errors.Is(err, task.ErrNoProposals):
 		seq.slotData.NoProposals()
-		//seq.Tracef(TraceTagTarget, "'no proposals' for the target logical time %s in %v",
-		//	targetTs, time.Since(timerStart))
+		seq.Tracef(TraceTagTarget, "'no proposals' for the target logical time %s in %v",
+			targetTs, time.Since(timerStart))
 		return true
 	case err != nil:
 		seq.Log().Warnf("FAILED to generate transaction for target %s. Now is %s. Reason: %v",

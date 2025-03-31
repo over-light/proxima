@@ -20,6 +20,7 @@ type (
 		MaxInputs                 int
 		MaxTargetTs               ledger.Time
 		MaxBranches               int
+		EnsureSyncedBeforeStart   bool
 		DelayStart                time.Duration
 		BacklogTagAlongTTLSlots   int
 		BacklogDelegationTTLSlots int
@@ -108,6 +109,9 @@ func paramsFromConfig() ([]ConfigOption, ledger.ChainID, ed25519.PrivateKey, err
 		WithMilestonesTTLSlots(milestonesTTLSlots),
 		WithSingleSequencerEnforced,
 	}
+	if subViper.GetBool("ensure_synced_at_startup") {
+		cfg = append(cfg, WithEnsureSyncedAtStartup)
+	}
 	return cfg, seqID, controllerKey, nil
 }
 
@@ -168,6 +172,10 @@ func WithMilestonesTTLSlots(slots int) ConfigOption {
 	return func(o *ConfigOptions) {
 		o.MilestonesTTLSlots = slots
 	}
+}
+
+func WithEnsureSyncedAtStartup(o *ConfigOptions) {
+	o.EnsureSyncedBeforeStart = true
 }
 
 func WithSingleSequencerEnforced(o *ConfigOptions) {

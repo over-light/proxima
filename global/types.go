@@ -66,6 +66,7 @@ type (
 		MarkWorkProcessStarted(name string)
 		MarkWorkProcessStopped(name string)
 		RepeatInBackground(name string, period time.Duration, fun func() bool, skipFirst ...bool) // runs background goroutine
+		RepeatSync(period time.Duration, fun func() bool) bool                                    // repeats synchronously. Returns false if was interrupted, true otherwise
 	}
 
 	Metrics interface {

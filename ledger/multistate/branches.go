@@ -452,11 +452,14 @@ func (br *BranchData) IsHealthy(fraction global.Fraction) bool {
 	return global.IsHealthyCoverage(br.LedgerCoverage, br.Supply, fraction)
 }
 
-// FirstHealthySlotIsNotBefore determines if first healthy slot is nor before tha refSlot.
+// FirstHealthySlotIsNotBefore determines if first healthy slot is not before tha refSlot.
 // Usually refSlot is just few slots back, so the operation does not require
 // each time traversing unbounded number of slots
 func FirstHealthySlotIsNotBefore(store StateStoreReader, refSlot ledger.Slot, fraction global.Fraction) (ret bool) {
 	IterateSlotsBack(store, func(slot ledger.Slot, roots []RootRecord) bool {
+		if slot < refSlot {
+			return false
+		}
 		for _, rr := range roots {
 			br := FetchBranchDataByRoot(store, rr)
 			if ret = br.IsHealthy(fraction); ret {
