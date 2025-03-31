@@ -1,7 +1,6 @@
 package ledger
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -94,8 +93,10 @@ func OutputFromHexString(hexStr string, validateOpt ...func(*Output) error) (*Ou
 }
 
 func OutputFromBytesMain(data []byte) (*Output, Amount, Lock, error) {
+	d := make([]byte, len(data))
+	copy(d[:], data)
 	ret := &Output{
-		arr: lazybytes.ArrayFromBytesReadOnly(data, 256),
+		arr: lazybytes.ArrayFromBytesReadOnly(d, 256),
 	}
 	var amount Amount
 	var lock Lock
@@ -166,7 +167,7 @@ func (o *Output) Hex() string {
 // to modify the output before it is locked for modification
 func (o *Output) Clone(overrideReadOnly ...func(o *Output)) *Output {
 	// clone underlying byte array
-	ret, err := OutputFromBytesReadOnly(bytes.Clone(o.Bytes()))
+	ret, err := OutputFromBytesReadOnly(o.Bytes())
 	util.AssertNoError(err)
 	if len(overrideReadOnly) > 0 {
 		ret.arr.SetReadOnly(false)

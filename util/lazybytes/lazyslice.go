@@ -254,18 +254,6 @@ func (a *Array) At(idx int) []byte {
 	return a.parsed[idx]
 }
 
-func (a *Array) AtSafe(idx int) ([]byte, error) {
-	var ret []byte
-	err := util.CatchPanicOrError(func() error {
-		ret = a.At(idx)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
 func (a *Array) Parsed() [][]byte {
 	a.ensureParsed()
 	return a.parsed

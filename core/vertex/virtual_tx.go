@@ -67,7 +67,7 @@ func (v *VirtualTransaction) _addOutput(idx byte, o *ledger.Output) error {
 		}
 		return nil
 	}
-	v.outputs[idx] = o
+	v.outputs[idx] = o.Clone()
 	return nil
 }
 
