@@ -122,7 +122,7 @@ const TraceTagChooseFirstExtendEndorsePair = "chooseFirstPair"
 // Endorse candidates are either sorted descending by coverage, or randomly shuffled
 // Pairs are filtered before checking. It allows to exclude repeating pairs
 func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, pairFilter func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool) *attacher.IncrementalAttacher {
-	p.Tracef(TraceTagChooseFirstExtendEndorsePair, "IN")
+	p.Tracef(TraceTagChooseFirstExtendEndorsePair, "IN %s", p.Name)
 
 	p.Assertf(!p.targetTs.IsSlotBoundary(), "!p.targetTs.IsSlotBoundary()")
 	var endorseCandidates []*vertex.WrappedTx
@@ -131,12 +131,12 @@ func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 	} else {
 		endorseCandidates = p.Backlog().CandidatesToEndorseSorted(p.targetTs)
 	}
-	p.Tracef(TraceTagChooseFirstExtendEndorsePair, "endorse candidates: %d", len(endorseCandidates))
+	p.Tracef(TraceTagChooseFirstExtendEndorsePair, "endorse candidates: %d -- %s", len(endorseCandidates), p.Name)
 
 	seqID := p.SequencerID()
 	var ret *attacher.IncrementalAttacher
 	for _, endorse := range endorseCandidates {
-		p.Tracef(TraceTagChooseFirstExtendEndorsePair, "check endorse candidate: %s", endorse.IDShortString)
+		p.Tracef(TraceTagChooseFirstExtendEndorsePair, "check endorse candidate: %s -- %s", endorse.IDShortString, p.Name)
 
 		select {
 		case <-p.ctx.Done():
@@ -146,13 +146,14 @@ func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 
 		if !ledger.ValidTransactionPace(endorse.Timestamp(), p.targetTs) {
 			// cannot endorse candidate because of ledger time constraint
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> !ledger.ValidTransactionPace")
+			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> !ledger.ValidTransactionPace target %s -> endorse %s",
+				endorse.Timestamp().String(), p.targetTs.String())
 			continue
 		}
 		rdr := multistate.MakeSugared(p.GetStateReaderForTheBranch(endorse.BaselineBranch().ID()))
 		seqOut, err := rdr.GetChainOutput(&seqID)
 		if errors.Is(err, multistate.ErrNotFound) {
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> GetChainOutput not found")
+			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> GetChainOutput not found -- %s", p.Name)
 			continue
 		}
 		p.AssertNoError(err)

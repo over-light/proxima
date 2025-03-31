@@ -142,13 +142,6 @@ func (seq *Sequencer) Start() {
 			return
 		}
 
-		//if !seq.ensureFirstMilestone() {
-		//	seq.log.Warnf("can't start sequencer. EXIT..")
-		//	return
-		//}
-		//seq.log.Infof("waiting for %v (1 slot) before starting sequencer", ledger.L().ID.SlotDuration())
-		//time.Sleep(ledger.L().ID.SlotDuration())
-
 		seq.log.Infof("sequencer has been STARTED %s", util.Ref(seq.SequencerID()).String())
 
 		ttl := time.Duration(seq.config.MilestonesTTLSlots) * ledger.L().ID.SlotDuration()

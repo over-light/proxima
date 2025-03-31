@@ -38,13 +38,14 @@ func endorse1ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool)
 	})
 
 	if a == nil {
-		p.Tracef(TraceTagEndorse1Proposer, "propose: ChooseFirstExtendEndorsePair returned nil")
+		p.Tracef(TraceTagEndorse1Proposer, "propose: ChooseFirstExtendEndorsePair returned nil in %s", p.Name)
 		return nil, false
 	}
 	if !a.Completed() {
 		endorsing := a.Endorsing()[0]
 		extending := a.Extending()
-		p.Tracef(TraceTagTask, "proposal [extend=%s, endorsing=%s] not complete 1", extending.IDStringShort, endorsing.IDShortString)
+		p.Tracef(TraceTagTask, "proposal [extend=%s, endorsing=%s] not complete 1 in %s",
+			extending.IDStringShort, endorsing.IDShortString, p.Name)
 		return nil, false
 	}
 
