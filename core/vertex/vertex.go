@@ -156,8 +156,8 @@ func (v *Vertex) StemInputIndex() byte {
 	var stemInputIdx byte
 	var stemInputFound bool
 
-	v.Tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-		if *oid == predOID {
+	v.Tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+		if oid == predOID {
 			stemInputIdx = i
 			stemInputFound = true
 		}

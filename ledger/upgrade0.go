@@ -70,9 +70,7 @@ const (
 	TxTreeIndexMax
 )
 
-const (
-	ConsumedOutputsBranch = byte(iota)
-)
+const ConsumedOutputsBranch = byte(0)
 
 var (
 	PathToConsumedOutputs               = lazybytes.Path(ConsumedBranch, ConsumedOutputsBranch)

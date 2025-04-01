@@ -61,8 +61,8 @@ func ConsistencyCheckBeforeAddTransaction(tx *transaction.Transaction, r *multis
 	if r.KnowsCommittedTransaction(tx.IDRef()) {
 		return fmt.Errorf("BeforeAddTransaction: transaction %s already in the state: cannot be added", tx.IDShortString())
 	}
-	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-		if !r.HasUTXO(oid) {
+	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+		if !r.HasUTXO(&oid) {
 			err = fmt.Errorf("BeforeAddTransaction: output %s does not exist: cannot be consumed", oid.StringShort())
 			return false
 		}
@@ -112,8 +112,8 @@ func ConsistencyCheckAfterAddTransaction(tx *transaction.Transaction, r *multist
 	if !r.KnowsCommittedTransaction(tx.IDRef()) {
 		return fmt.Errorf("AfterAddTransaction: transaction %s is expected to be in the state", tx.IDShortString())
 	}
-	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-		if r.HasUTXO(oid) {
+	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+		if r.HasUTXO(&oid) {
 			err = fmt.Errorf("input %s must not exist", oid.StringShort())
 			return false
 		}

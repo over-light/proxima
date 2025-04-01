@@ -53,7 +53,7 @@ var MainTxValidationOptions = []TxValidationOption{
 	CheckEndorsements(),
 	CheckUniqueness(),
 	ScanOutputs(),
-	CheckSizeOfOutputCommitment(),
+	CheckSizeOfInputCommitment(),
 }
 
 func FromBytes(txBytes []byte, opt ...TxValidationOption) (*Transaction, error) {
@@ -268,14 +268,13 @@ func CheckUniqueness() TxValidationOption {
 	return func(tx *Transaction) error {
 		var err error
 		// check if inputs are unique
-		inps := make(map[ledger.OutputID]struct{})
-		tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-			_, already := inps[*oid]
-			if already {
+		inps := set.New[ledger.OutputID]()
+		tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+			if inps.Contains(oid) {
 				err = fmt.Errorf("repeating input @ %d", i)
 				return false
 			}
-			inps[*oid] = struct{}{}
+			inps.Insert(oid)
 			return true
 		})
 		if err != nil {
@@ -283,14 +282,13 @@ func CheckUniqueness() TxValidationOption {
 		}
 
 		// check if endorsements are unique
-		endorsements := make(map[ledger.TransactionID]struct{})
-		tx.ForEachEndorsement(func(i byte, txid *ledger.TransactionID) bool {
-			_, already := endorsements[*txid]
-			if already {
+		endorsements := set.New[ledger.TransactionID]()
+		tx.ForEachEndorsement(func(i byte, txid ledger.TransactionID) bool {
+			if endorsements.Contains(txid) {
 				err = fmt.Errorf("repeating endorsement @ %d", i)
 				return false
 			}
-			endorsements[*txid] = struct{}{}
+			endorsements.Insert(txid)
 			return true
 		})
 		if err != nil {
@@ -306,7 +304,7 @@ func CheckTimePace() TxValidationOption {
 		var err error
 		ts := tx.Timestamp()
 		if tx.IsSequencerMilestone() {
-			tx.ForEachInput(func(_ byte, oid *ledger.OutputID) bool {
+			tx.ForEachInput(func(_ byte, oid ledger.OutputID) bool {
 				if !ledger.ValidSequencerPace(oid.Timestamp(), ts) {
 					err = fmt.Errorf("timestamp of input violates sequencer time pace constraint: %s", oid.StringShort())
 					return false
@@ -314,7 +312,7 @@ func CheckTimePace() TxValidationOption {
 				return true
 			})
 		} else {
-			tx.ForEachInput(func(_ byte, oid *ledger.OutputID) bool {
+			tx.ForEachInput(func(_ byte, oid ledger.OutputID) bool {
 				if !ledger.ValidTransactionPace(oid.Timestamp(), ts) {
 					err = fmt.Errorf("timestamp of input violates non-sequencer time pace constraint: %s", oid.StringShort())
 					return false
@@ -336,7 +334,7 @@ func CheckEndorsements() TxValidationOption {
 		}
 
 		txSlot := tx.Timestamp().Slot()
-		tx.ForEachEndorsement(func(_ byte, endorsedTxID *ledger.TransactionID) bool {
+		tx.ForEachEndorsement(func(_ byte, endorsedTxID ledger.TransactionID) bool {
 			if !endorsedTxID.IsSequencerMilestone() {
 				err = fmt.Errorf("tx %s contains endorsement of non-sequencer transaction: %s", tx.IDShortString(), endorsedTxID.StringShort())
 				return false
@@ -381,7 +379,7 @@ func ScanOutputs() TxValidationOption {
 	}
 }
 
-func CheckSizeOfOutputCommitment() TxValidationOption {
+func CheckSizeOfInputCommitment() TxValidationOption {
 	return func(tx *Transaction) error {
 		data := tx.tree.BytesAtPath(Path(ledger.TxInputCommitment))
 		if len(data) != 32 {
@@ -648,19 +646,19 @@ func (tx *Transaction) HashInputsAndEndorsements() [32]byte {
 	return blake2b.Sum256(buf.Bytes())
 }
 
-func (tx *Transaction) ForEachInput(fun func(i byte, oid *ledger.OutputID) bool) {
+func (tx *Transaction) ForEachInput(fun func(i byte, oid ledger.OutputID) bool) {
 	tx.tree.ForEach(func(i byte, data []byte) bool {
 		oid, err := ledger.OutputIDFromBytes(data)
 		util.Assertf(err == nil, "ForEachInput @ %d: %v", i, err)
-		return fun(i, &oid)
+		return fun(i, oid)
 	}, Path(ledger.TxInputIDs))
 }
 
-func (tx *Transaction) ForEachEndorsement(fun func(idx byte, txid *ledger.TransactionID) bool) {
+func (tx *Transaction) ForEachEndorsement(fun func(idx byte, txid ledger.TransactionID) bool) {
 	tx.tree.ForEach(func(i byte, data []byte) bool {
 		txid, err := ledger.TransactionIDFromBytes(data)
 		util.Assertf(err == nil, "ForEachEndorsement @ %d: %v", i, err)
-		return fun(i, &txid)
+		return fun(i, txid)
 	}, Path(ledger.TxEndorsements))
 }
 
@@ -686,12 +684,12 @@ func (tx *Transaction) ForEachProducedOutput(fun func(idx byte, o *ledger.Output
 
 func (tx *Transaction) PredecessorTransactionIDs() set.Set[ledger.TransactionID] {
 	ret := set.New[ledger.TransactionID]()
-	tx.ForEachInput(func(_ byte, oid *ledger.OutputID) bool {
+	tx.ForEachInput(func(_ byte, oid ledger.OutputID) bool {
 		ret.Insert(oid.TransactionID())
 		return true
 	})
-	tx.ForEachEndorsement(func(_ byte, txid *ledger.TransactionID) bool {
-		ret.Insert(*txid)
+	tx.ForEachEndorsement(func(_ byte, txid ledger.TransactionID) bool {
+		ret.Insert(txid)
 		return true
 	})
 	return ret
@@ -801,8 +799,8 @@ func (tx *Transaction) SequencerAndStemInputData() (seqInputIdx *byte, stemInput
 	seqID = util.Ref(seqMeta.SequencerID)
 
 	if tx.IsBranchTransaction() {
-		tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-			if *oid == seqMeta.StemOutputData.PredecessorOutputID {
+		tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+			if oid == seqMeta.StemOutputData.PredecessorOutputID {
 				stemInputIdx = util.Ref(i)
 			}
 			return true
@@ -863,7 +861,7 @@ func (tx *Transaction) FindStemProducedOutput() *ledger.OutputWithID {
 
 func (tx *Transaction) EndorsementsVeryShort() string {
 	ret := make([]string, tx.NumEndorsements())
-	tx.ForEachEndorsement(func(idx byte, txid *ledger.TransactionID) bool {
+	tx.ForEachEndorsement(func(idx byte, txid ledger.TransactionID) bool {
 		ret[idx] = txid.StringVeryShort()
 		return true
 	})
@@ -881,8 +879,8 @@ func (tx *Transaction) ProducedOutputsToString() string {
 
 func (tx *Transaction) StateMutations() *multistate.Mutations {
 	ret := multistate.NewMutations()
-	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
-		ret.InsertDelOutputMutation(*oid)
+	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+		ret.InsertDelOutputMutation(oid)
 		return true
 	})
 	tx.ForEachProducedOutput(func(_ byte, o *ledger.Output, oid *ledger.OutputID) bool {
@@ -930,12 +928,12 @@ func (tx *Transaction) LinesShort(prefix ...string) *lines.Lines {
 		ret.Add("Sequencer output index: %d, Stem output index: %d", tx.sequencerTransactionData.SequencerOutputIndex, tx.sequencerTransactionData.StemOutputIndex)
 	}
 	ret.Add("Endorsements (%d):", tx.NumEndorsements())
-	tx.ForEachEndorsement(func(idx byte, txid *ledger.TransactionID) bool {
+	tx.ForEachEndorsement(func(idx byte, txid ledger.TransactionID) bool {
 		ret.Add("    %3d: %s", idx, txid.String())
 		return true
 	})
 	ret.Add("Inputs (%d):", tx.NumInputs())
-	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
+	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
 		ret.Add("    %3d: %s", i, oid.String())
 		ret.Add("       Unlock data: %s", UnlockDataToString(tx.MustUnlockDataAt(i)))
 		return true

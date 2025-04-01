@@ -319,12 +319,12 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 		}
 	}
 
-	tx.ForEachEndorsement(func(i byte, txid *ledger.TransactionID) bool {
+	tx.ForEachEndorsement(func(i byte, txid ledger.TransactionID) bool {
 		ret.Endorsements[i] = txid.StringHex()
 		return true
 	})
 
-	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
+	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
 		ret.Inputs[i] = Input{
 			OutputID:   oid.StringHex(),
 			UnlockData: hex.EncodeToString(tx.MustUnlockDataAt(i)),
@@ -372,7 +372,7 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 	var stemTxID, seqTxID ledger.TransactionID
 
 	inputTxIDs := set.New[ledger.TransactionID]()
-	tx.ForEachInput(func(i byte, oid *ledger.OutputID) bool {
+	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
 		inputTxIDs.Insert(oid.TransactionID())
 		if tx.IsSequencerMilestone() {
 			if *seqInputIdx == i {
@@ -405,7 +405,7 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ret.Inputs = append(ret.Inputs, txid.StringHex())
 	}
 
-	tx.ForEachEndorsement(func(i byte, txid *ledger.TransactionID) bool {
+	tx.ForEachEndorsement(func(i byte, txid ledger.TransactionID) bool {
 		ret.Endorsements[i] = txid.StringHex()
 		return true
 	})
