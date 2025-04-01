@@ -36,11 +36,15 @@ func TestOutput(t *testing.T) {
 		t.Logf("empty output: %d bytes", len(out.Bytes()))
 	})
 	t.Run("address", func(t *testing.T) {
+		addr := ledger.AddressED25519FromPublicKey(pubKey)
+		t.Logf("address: %s", addr.String())
+		t.Logf("address hex: 0x%s", hex.EncodeToString(addr.Bytes()))
 		out := ledger.OutputBasic(0, ledger.AddressED25519FromPublicKey(pubKey))
 		outBack, err := ledger.OutputFromBytesReadOnly(out.Bytes())
 		require.NoError(t, err)
 		require.EqualValues(t, outBack.Bytes(), out.Bytes())
 		t.Logf("output: %d bytes", len(out.Bytes()))
+		t.Logf("output: %s", out.Lines().String())
 
 		_, err = ledger.AddressED25519FromBytes(outBack.Lock().Bytes())
 		require.NoError(t, err)
