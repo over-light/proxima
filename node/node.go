@@ -119,8 +119,12 @@ func (p *ProximaNode) Start() {
 
 	var initStep string
 
-	slicepool.Disable() // disables optimized memory allocation in EasyFL and just uses standard make({}byte, size)
-	p.Log().Infof("DISABLE optimized memory allocation in EasyFL")
+	if viper.GetBool("disable_slicepool") {
+		slicepool.Disable() // disables optimized memory allocation in EasyFL and just uses standard make({}byte, size)
+		p.Log().Infof("DISABLE optimized memory allocation in EasyFL")
+	} else {
+		p.Log().Infof("optimized memory allocation in EasyFL ENABLED")
+	}
 
 	err := util.CatchPanicOrError(func() error {
 		initStep = "startMetrics"
