@@ -248,6 +248,10 @@ type (
 		Endorsements          []string `json:"endorse,omitempty"` // list of endorsements (can be nil)
 	}
 
+	VertexDelete struct {
+		ID string `json:"id"` // transaction ID in hex form
+	}
+
 	KnownLatestMilestones struct {
 		Error
 		Sequencers map[string]tippool.LatestSequencerTipDataJSONAble `json:"sequencers"`

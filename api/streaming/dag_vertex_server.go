@@ -172,4 +172,16 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return err == nil // returns false to remove callback
 	})
+
+	srv.OnTxDeleted(func(txid ledger.TransactionID) {
+		vertex := &api.VertexDelete{
+			ID: txid.StringHex(),
+		}
+		respBin, err := json.MarshalIndent(vertex, "", "  ")
+		util.AssertNoError(err)
+
+		if err = conn.WriteMessage(websocket.TextMessage, respBin); err != nil {
+			srv.Log().Infof("[%s] web socket client disconnected, remote: %s, err = %v", TraceTag, r.RemoteAddr, err)
+		}
+	})
 }
