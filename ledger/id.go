@@ -88,10 +88,15 @@ func TransactionIDFromHexString(str string) (ret TransactionID, err error) {
 }
 
 // RandomTransactionID not completely random. For testing
-func RandomTransactionID(sequencerFlag bool) TransactionID {
+func RandomTransactionID(sequencerFlag bool, maxOutIdx byte, timestamp ...Time) TransactionID {
 	var hash TransactionIDShort
 	_, _ = rand.Read(hash[:])
-	return NewTransactionID(TimeNow(), hash, sequencerFlag)
+	hash[0] = maxOutIdx
+	ts := TimeNow()
+	if len(timestamp) > 0 {
+		ts = timestamp[0]
+	}
+	return NewTransactionID(ts, hash, sequencerFlag)
 }
 
 func (txid *TransactionID) NumProducedOutputs() int {
