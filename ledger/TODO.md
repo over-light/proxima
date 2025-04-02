@@ -10,3 +10,5 @@ That would simplify sorting and optimize trie size
   * move ledger ID constants to the library definition. 
   * move easyfl library to the state.
   * make easyfl library upgradeable
+* Move ledger and multi-state DB to separate repository
+* Introduce more open transaction signature part to different signature schemes, like BLS and similar. 
