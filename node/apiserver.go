@@ -144,6 +144,6 @@ func (p *ProximaNode) OnTransaction(fun func(tx *transaction.Transaction) bool) 
 	p.workflow.OnTransaction(fun)
 }
 
-func (p *ProximaNode) OnTxDeleted(fun func(txid ledger.TransactionID)) {
+func (p *ProximaNode) OnTxDeleted(fun func(txid ledger.TransactionID) bool) {
 	p.workflow.OnTxDeleted(fun)
 }

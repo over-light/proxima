@@ -31,14 +31,17 @@ func (w *Workflow) ListenToAccount(account ledger.Accountable, fun func(wOut ver
 }
 
 type txListener struct {
-	mutex          sync.Mutex
-	handlerCounter int
-	handlers       map[int]func(tx *transaction.Transaction) bool
+	mutex                sync.Mutex
+	handlerCounter       int
+	handlers             map[int]func(tx *transaction.Transaction) bool
+	deleteHandlerCounter int
+	deleteHandlers       map[int]func(txid ledger.TransactionID) bool
 }
 
 func (w *Workflow) startListeningTransactions() {
 	w.txListener = &txListener{
-		handlers: make(map[int]func(tx *transaction.Transaction) bool),
+		handlers:       make(map[int]func(tx *transaction.Transaction) bool),
+		deleteHandlers: make(map[int]func(txid ledger.TransactionID) bool),
 	}
 	w.events.OnEvent(EventNewTx, func(vid *vertex.WrappedTx) {
 		var tx *transaction.Transaction
@@ -50,6 +53,9 @@ func (w *Workflow) startListeningTransactions() {
 			// no need for goroutine because events are on queue
 			w.txListener.runFor(tx)
 		}
+	})
+	w.events.OnEvent(EventTxDeleted, func(txid ledger.TransactionID) {
+		w.txListener.runForDelete(txid)
 	})
 }
 
@@ -64,6 +70,17 @@ func (tl *txListener) runFor(tx *transaction.Transaction) {
 	}
 }
 
+func (tl *txListener) runForDelete(txid ledger.TransactionID) {
+	tl.mutex.Lock()
+	defer tl.mutex.Unlock()
+
+	for id, fun := range tl.deleteHandlers {
+		if !fun(txid) {
+			delete(tl.deleteHandlers, id)
+		}
+	}
+}
+
 func (w *Workflow) OnTransaction(fun func(tx *transaction.Transaction) bool) {
 	w.txListener.mutex.Lock()
 	defer w.txListener.mutex.Unlock()
@@ -72,8 +89,10 @@ func (w *Workflow) OnTransaction(fun func(tx *transaction.Transaction) bool) {
 	w.txListener.handlerCounter++
 }
 
-func (w *Workflow) OnTxDeleted(fun func(txid ledger.TransactionID)) {
-	w.events.OnEvent(EventTxDeleted, func(txid ledger.TransactionID) {
-		fun(txid)
-	})
+func (w *Workflow) OnTxDeleted(fun func(txid ledger.TransactionID) bool) {
+	w.txListener.mutex.Lock()
+	defer w.txListener.mutex.Unlock()
+
+	w.txListener.deleteHandlers[w.txListener.deleteHandlerCounter] = fun
+	w.txListener.deleteHandlerCounter++
 }
