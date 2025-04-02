@@ -48,6 +48,7 @@ type (
 		pastConeSize          prometheus.Gauge
 		numTxDependencies     prometheus.Gauge
 		counterTxDependencies prometheus.Counter
+		diskSpace             prometheus.Gauge
 	}
 )
 
@@ -230,6 +231,9 @@ func (p *ProximaNode) goLoggingMemStats() {
 	p.RepeatInBackground("logging_memStats", memStatsPeriod, func() bool {
 		runtime.ReadMemStats(&memStats)
 		_, availableHDD, _ := diskusage.GetDiskUsage("/")
+		availableMB := float64(availableHDD) / (1024 * 1024)
+		p.diskSpace.Set(availableMB)
+
 		availableGB := float64(availableHDD) / (1024 * 1024 * 1024)
 		diskSpace := ""
 		if availableGB > 0 {
@@ -317,6 +321,10 @@ func (p *ProximaNode) registerMetrics() {
 		Name: "proxima_counter_tx_dependencies",
 		Help: "cumulative number of inputs plus endorsements in the transaction",
 	})
+	p.diskSpace = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "proxima_disk_space",
+		Help: "available disk space in MB",
+	})
 	p.MetricsRegistry().MustRegister(
 		p.lrbCoverage,
 		p.lrbSlotsBehind,
@@ -325,6 +333,7 @@ func (p *ProximaNode) registerMetrics() {
 		p.pastConeSize,
 		p.numTxDependencies,
 		p.counterTxDependencies,
+		p.diskSpace,
 	)
 }
 
