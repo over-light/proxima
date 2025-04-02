@@ -546,10 +546,11 @@ func (o *OutputWithID) IDShort() string {
 	return o.ID.StringShort()
 }
 
-func OutputsWithIdToString(outs ...*OutputWithID) string {
+func OutputsWithIDToString(outs ...*OutputWithID) string {
 	ret := lines.New()
 	for i, o := range outs {
 		ret.Add("%d : %s", i, o.ID.StringShort()).
+			Add("      bytecode: %s", o.Output.Hex()).
 			Append(o.Output.Lines("      "))
 	}
 	return ret.String()

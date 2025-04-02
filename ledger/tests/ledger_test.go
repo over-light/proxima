@@ -175,7 +175,7 @@ func TestTimelock(t *testing.T) {
 		txTs := ts.AddSlots(2)
 		par, err = u.MakeTransferInputData(priv1, nil, txTs)
 		require.NoError(t, err)
-		t.Logf("AdditionalInputs: \n%s\n", ledger.OutputsWithIdToString(par.Inputs...))
+		t.Logf("AdditionalInputs: \n%s\n", ledger.OutputsWithIDToString(par.Inputs...))
 
 		err = u.DoTransfer(par.
 			WithAmount(2000).
