@@ -149,6 +149,11 @@ func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	}
 }
 
+func (d *MemDAG) deleteNoLock(txid ledger.TransactionID) {
+	delete(d.vertices, txid)
+	d.PostEventTxDeleted(txid)
+}
+
 // doGC traverses all known transaction IDs and:
 // -- deletes those with weak pointers GC-ed
 // -- collects those which are already expired and not referenced by other parts of the system (in different critical section)
@@ -160,9 +165,8 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 		slotNow := ledger.TimeNow().Slot()
 		for txid, rec := range d.vertices {
 			if rec.Pointer.Value() == nil {
-				delete(d.vertices, txid)
+				d.deleteNoLock(txid)
 				deleted++
-				d.PostEventTxDeleted(txid)
 			} else {
 				if rec.WrappedTx != nil && slotNow-rec.WrappedTx.SlotWhenAdded > vertexTTLSlots {
 					expired = append(expired, rec.WrappedTx)
@@ -170,23 +174,19 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 			}
 		}
 	})
-
-	expired = util.PurgeSlice(expired, func(vid *vertex.WrappedTx) bool {
-		vid.ConvertToDetached()
-		return true
-	})
-
 	if len(expired) == 0 {
 		return
+	}
+	for _, vid := range expired {
+		vid.ConvertToDetached()
 	}
 	d.WithGlobalWriteLock(func() {
 		for _, vid := range expired {
 			txid := vid.ID()
 			if rec, found := d.vertices[txid]; found {
 				if rec.Value() == nil {
-					delete(d.vertices, txid)
+					d.deleteNoLock(txid)
 					deleted++
-					d.PostEventTxDeleted(txid)
 				} else {
 					rec.WrappedTx = nil
 					d.vertices[txid] = rec
