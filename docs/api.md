@@ -222,15 +222,21 @@ curl -L -X GET 'http://localhost:8000/txapi/v1/get_vertex_dep?txid=8000001400017
 }
 ```
 
+# WebSocket API
+* [dag_vertex_stream](#dag_vertex_stream)
+## dag_vertex_stream
+TODO
 
 # General API
 * [get_ledger_id](#get_ledger_id)
 * [get_account_outputs](#get_account_outputs)
+* [get_account_parsed_outputs](#get_account_parsed_outputs)
 * [get_account_simple_siglocked](#get_account_simple_siglocked)
+* [get_outputs_for_amount](#get_outputs_for_amount)
+* [get_nonchain_balance](#get_nonchain_balance)
 * [get_chain_outputs](#get_chain_outputs)
 * [get_chain_output](#get_chain_output)
 * [get_output](#get_output)
-* [query_tx_status](#query_tx_status)
 * [query_inclusion_score](#query_inclusion_score)
 * [submit_tx](#submit_tx)
 * [sync_info](#sync_info)
@@ -241,6 +247,7 @@ curl -L -X GET 'http://localhost:8000/txapi/v1/get_vertex_dep?txid=8000001400017
 * [last_known_milestones](#last_known_milestones)
 * [get_mainchain](#get_mainchain)
 * [get_all_chains](#get_all_chains)
+* [get_delegations_by_sequencer](#get_delegations_by_sequencer)
 
 
 ## get_ledger_id_data
@@ -308,6 +315,9 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_account_outputs?accountable=a(0
 }
 ```
 
+## get_account_parsed_outputs
+TODO
+
 ## get_account_simple_siglocked
 GET outputs locked with simple AddressED25519 lock
 `/api/v1/get_account_simple_siglocked?addr=<EasyFL source form of the accountable lock constraint>`
@@ -327,6 +337,13 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_account_simple_siglocked?addr=a
 }
 ```
 
+## get_outputs_for_amount
+TODO
+
+## get_nonchain_balance
+TODO
+
+
 ## get_chain_outputs
 Get the chain outputs for the provided accountable
 `/api/v1/get_chain_outputs?accountable=<EasyFL source form of the accountable lock constraint>`
@@ -345,6 +362,7 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_chain_outputs?accountable=a(0x2
   "lrb_id": "80007fa50001a93dbaf389afa9faa00e1236d6d28671cf4a8e3824ae0d891340"
 }
 ```
+
 
 ## get_chain_output
 Get the chain output for the provided chain id
@@ -378,51 +396,6 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_output?id=80003d180001780694657
 {
   "output_data": "40060b45ab8800038d7fa6b1266d2345b3a0033d48aa6f02b3f37811ae82d9c383855d3d23373cbd28ab94639fdd94a4f02d2645c2a36393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc0002000d49d181028800038d7fa6b1266d1d504287626f6f742e62308400000515840000028f8800000000000000006151d7880000000000386580d10219960a241bda3e6475dc3c5ec4902d221f77c62cd8f90f77d212ee7ee7ebe169af56782638a96a8422e5ec87b5cd985e05aed0ef65405ff26fe7bc4a490a96eb767976a3158c29a7c81966de20076c23810281ff",
   "lrb_id": "80003d180001780694657bcff9b6a3ccd0e9146fad6e8692be33e1cf8c1d4c5a"
-}
-```
-
-## query_tx_status
-GET status for provided transacion id
-`/api/v1/query_tx_status?txid=<hex-encoded transaction ID>[&slots=<slot span>]`
-
-Example:
-
-``` bash
-curl -L -X GET 'http://localhost:8000/api/v1/query_tx_status?txid=8000e1ed00014ff2a17201cd31c0b05e7e63f8ed8a451d6fcaff23d4a0156544'
-```
-
-```json
-{
-  "txid_status": {
-    "id": "8000e1ed00014ff2a17201cd31c0b05e7e63f8ed8a451d6fcaff23d4a0156544",
-    "on_dag": false,
-    "in_storage": true,
-    "virtual_tx": true,
-    "deleted": false,
-    "status": "GOOD",
-    "flags": 13,
-    "err": null
-  },
-  "inclusion": {
-    "txid": "8000e1ed00014ff2a17201cd31c0b05e7e63f8ed8a451d6fcaff23d4a0156544",
-    "latest_slot": 58410,
-    "earliest_slot": 58410,
-    "inclusion": [
-      {
-        "branch_id": "8000e42a0001c7f9ef2587843a7b922a959355f418b0ce7bad88475ed4d86485",
-        "root_record": {
-          "root": "c9a865c08f99dbb6394a799218e52e4a4b9fe5c32ebeb1d7cfe798c0e5d9ba9a",
-          "sequencer_id": "6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc",
-          "ledger_coverage": 1999982687604168,
-          "slot_inflation": 8245162,
-          "supply": 1000006619616135
-        },
-        "included": true
-      }
-    ],
-    "lrbid": "8000e42a0001c7f9ef2587843a7b922a959355f418b0ce7bad88475ed4d86485",
-    "included_in_lrb": true
-  }
 }
 ```
 
@@ -695,3 +668,6 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_all_chains'
 }
 
 ```
+
+## get_delegations_by_sequencer
+TODO
