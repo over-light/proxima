@@ -19,7 +19,7 @@ type (
 	environment interface {
 		global.Logging
 		OnTransaction(fun func(tx *transaction.Transaction) bool)
-		OnTxDeleted(fun func(txid ledger.TransactionID)) // called whenever tx is GCed. Could be useful for the visualizer
+		OnTxDeleted(fun func(txid ledger.TransactionID) bool) // called whenever tx is GCed. Could be useful for the visualizer
 		TxBytesStore() global.TxBytesStore
 	}
 	wsServer struct {
@@ -165,6 +165,19 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 
 		// Send the transaction itself
 		respBin, err := json.MarshalIndent(vertexWD, "", "  ")
+		util.AssertNoError(err)
+
+		if err = conn.WriteMessage(websocket.TextMessage, respBin); err != nil {
+			srv.Log().Infof("[%s] web socket client disconnected, remote: %s, err = %v", TraceTag, r.RemoteAddr, err)
+		}
+		return err == nil // returns false to remove callback
+	})
+
+	srv.OnTxDeleted(func(txid ledger.TransactionID) bool {
+		vertex := &api.VertexDelete{
+			ID: txid.StringHex(),
+		}
+		respBin, err := json.MarshalIndent(vertex, "", "  ")
 		util.AssertNoError(err)
 
 		if err = conn.WriteMessage(websocket.TextMessage, respBin); err != nil {
