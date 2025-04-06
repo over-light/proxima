@@ -43,12 +43,16 @@ type (
 )
 
 func NewSlotData(slot ledger.Slot) *SlotData {
-	return &SlotData{
+	ret := &SlotData{
 		slot:                      slot,
 		seqTxSubmitted:            make([]ledger.TransactionID, 0),
 		proposalsByProposer:       make(map[string]int),
 		alreadyCheckedCombination: make(map[combinationHash]bool),
 	}
+
+	trackSlotData.RegisterPointer(ret)
+
+	return ret
 }
 
 func (s *SlotData) NewTarget() {

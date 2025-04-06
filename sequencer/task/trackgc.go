@@ -1,6 +1,7 @@
 package task
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -24,6 +25,10 @@ var (
 
 	trackProposals = trackgc.New[proposal](func(p *proposal) string {
 		return "proposal-" + p.hrString
+	})
+
+	trackSlotData = trackgc.New[SlotData](func(p *SlotData) string {
+		return fmt.Sprintf("slot-data-%d", p.slot)
 	})
 
 	registerMetricsOnce sync.Once
@@ -52,12 +57,17 @@ func registerGCMetricsOnce(env environment) {
 			Name: "proxima_trackgc_proposals",
 			Help: "not GCed object counter",
 		})
+		trackSlotDataGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "proxima_trackgc_slot_data",
+			Help: "not GCed object counter",
+		})
 
 		trackTasks.StartTrackingWithMetrics(trackTasksGauge, 3*time.Second)
 		trackProposers.StartTrackingWithMetrics(trackProposersGauge, 3*time.Second)
 		trackIncAttachers.StartTrackingWithMetrics(trackIncAttachersGauge, 3*time.Second)
 		trackProposals.StartTrackingWithMetrics(trackProposalsGauge, 3*time.Second)
+		trackSlotData.StartTrackingWithMetrics(trackSlotDataGauge, 3*time.Second)
 
-		reg.MustRegister(trackTasksGauge, trackProposersGauge, trackIncAttachersGauge, trackProposalsGauge)
+		reg.MustRegister(trackTasksGauge, trackProposersGauge, trackIncAttachersGauge, trackProposalsGauge, trackSlotDataGauge)
 	})
 }
