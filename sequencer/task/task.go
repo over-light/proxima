@@ -204,6 +204,7 @@ func (t *taskData) startProposers() {
 		go func() {
 			p.IncCounter("prop")
 			defer p.DecCounter("prop")
+			defer p.proposersWG.Done()
 
 			p.run()
 		}()

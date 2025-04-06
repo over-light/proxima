@@ -15,8 +15,6 @@ import (
 )
 
 func (p *proposer) run() {
-	defer p.proposersWG.Done()
-
 	var a *attacher.IncrementalAttacher
 	var forceExit bool
 	var err error
