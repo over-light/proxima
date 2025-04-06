@@ -107,9 +107,9 @@ func allProposingStrategies() []*proposerStrategy {
 // than others in the tippool for the current slot. Otherwise, returns nil
 func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
 	startTask := time.Now()
-	defer func() {
-		runTaskDurationGauge.Set(float64(time.Since(startTask) / time.Millisecond))
-	}()
+	defer func(start time.Time) {
+		runTaskDurationGauge.Set(float64(time.Since(start)) / float64(time.Millisecond))
+	}(startTask)
 
 	registerGCMetricsOnce(env)
 
