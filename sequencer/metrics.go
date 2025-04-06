@@ -15,6 +15,7 @@ type sequencerMetrics struct {
 	proposalsByStrategy     map[string]prometheus.Counter
 	bestProposalsByStrategy map[string]prometheus.Counter
 	backlogSize             prometheus.Gauge
+	ownMilestones           prometheus.Gauge
 }
 
 func (seq *Sequencer) registerMetrics() {
@@ -67,7 +68,14 @@ func (seq *Sequencer) registerMetrics() {
 		Name: "proxima_seq_backlog_size",
 		Help: "number of outputs in the own sequencer's backlog",
 	})
-	seq.MetricsRegistry().MustRegister(seq.metrics.backlogSize)
+	seq.metrics.ownMilestones = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "proxima_seq_own_milestones",
+		Help: "number of own milestones",
+	})
+	seq.MetricsRegistry().MustRegister(
+		seq.metrics.backlogSize,
+		seq.metrics.ownMilestones,
+	)
 
 }
 

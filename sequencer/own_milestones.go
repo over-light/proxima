@@ -111,6 +111,8 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 	}
 	//vid.Reference()
 	seq.ownMilestones[vid] = withTime
+
+	seq.metrics.ownMilestones.Set(float64(len(seq.ownMilestones)))
 }
 
 func (seq *Sequencer) purgeOwnMilestones(ttl time.Duration) (int, int) {
