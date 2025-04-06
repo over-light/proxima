@@ -109,6 +109,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 	startTask := time.Now()
 	defer func(start time.Time) {
 		runTaskDurationGauge.Set(float64(time.Since(start)) / float64(time.Millisecond))
+		fmt.Printf(">>>>>>>>>>>>>>>>>> Run task took %v\n", time.Since(startTask))
 	}(startTask)
 
 	registerGCMetricsOnce(env)
