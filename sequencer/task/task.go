@@ -106,6 +106,11 @@ func allProposingStrategies() []*proposerStrategy {
 // The best proposal is selected and returned. Function only returns transaction which is better
 // than others in the tippool for the current slot. Otherwise, returns nil
 func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
+	startTask := time.Now()
+	defer func() {
+		runTaskDurationGauge.Set(float64(time.Since(startTask) / time.Millisecond))
+	}()
+
 	registerGCMetricsOnce(env)
 
 	deadline := targetTs.Time()

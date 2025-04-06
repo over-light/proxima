@@ -34,6 +34,11 @@ var (
 	registerMetricsOnce sync.Once
 )
 
+var runTaskDurationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "proxima_seq_run_task_duration",
+	Help: "duration of running task in milliseconds",
+})
+
 func registerGCMetricsOnce(env environment) {
 	registerMetricsOnce.Do(func() {
 		reg := env.MetricsRegistry()
@@ -68,6 +73,13 @@ func registerGCMetricsOnce(env environment) {
 		trackProposals.StartTrackingWithMetrics(trackProposalsGauge, 3*time.Second)
 		trackSlotData.StartTrackingWithMetrics(trackSlotDataGauge, 3*time.Second)
 
-		reg.MustRegister(trackTasksGauge, trackProposersGauge, trackIncAttachersGauge, trackProposalsGauge, trackSlotDataGauge)
+		reg.MustRegister(
+			trackTasksGauge,
+			trackProposersGauge,
+			trackIncAttachersGauge,
+			trackProposalsGauge,
+			trackSlotDataGauge,
+			runTaskDurationGauge,
+		)
 	})
 }
