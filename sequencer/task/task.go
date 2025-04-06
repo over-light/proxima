@@ -54,6 +54,7 @@ type (
 	proposal struct {
 		tx                *transaction.Transaction
 		txMetadata        *txmetadata.TransactionMetadata
+		txSize            int
 		hrString          string
 		coverage          uint64
 		attacherName      string
@@ -172,7 +173,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 			return true
 		case p1.coverage == p2.coverage:
 			// out of two with equal coverage we select the one with less size
-			return len(p1.tx.Bytes()) > len(p2.tx.Bytes())
+			return p1.txSize > p2.txSize
 		}
 		return false
 	})

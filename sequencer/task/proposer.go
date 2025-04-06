@@ -80,7 +80,8 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 		return err
 	}
 	_proposal := &proposal{
-		tx: tx,
+		tx:     tx,
+		txSize: len(tx.Bytes()),
 		txMetadata: &txmetadata.TransactionMetadata{
 			SourceTypeNonPersistent: txmetadata.SourceTypeSequencer,
 			LedgerCoverage:          util.Ref(coverage),
