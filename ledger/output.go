@@ -94,7 +94,7 @@ func OutputFromHexString(hexStr string, validateOpt ...func(*Output) error) (*Ou
 
 func OutputFromBytesMain(data []byte) (*Output, Amount, Lock, error) {
 	d := make([]byte, len(data))
-	copy(d[:], data)
+	copy(d, data)
 	ret := &Output{
 		arr: lazybytes.ArrayFromBytesReadOnly(d, 256),
 	}

@@ -273,7 +273,7 @@ func (id *IdentityData) OriginChainID() ChainID {
 }
 
 func (id *IdentityData) IsPreBranchConsolidationTimestamp(ts Time) bool {
-	return ts.Tick() > MaxTick-id.PreBranchConsolidationTicks
+	return ts.Tick() > MaxTickValue-id.PreBranchConsolidationTicks
 }
 
 func (id *IdentityData) IsPostBranchConsolidationTimestamp(ts Time) bool {

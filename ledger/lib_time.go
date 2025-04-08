@@ -13,10 +13,10 @@ import (
 const (
 	SlotByteLength = 4
 	TimeByteLength = SlotByteLength + 1 // bytes
-	MaxSlot        = 0xffffffff >> 1    // 1 most significant bit must be 0
-	MaxTick        = 0xff
-	MaxTime        = (MaxSlot << 8) | MaxTick
-	TicksPerSlot   = MaxTick + 1
+	MaxSlot        = 0xffffffff         // 1 most significant bit must be 0
+	MaxTickValue   = 0x7f               // 127
+	MaxTime        = MaxSlot * TicksPerSlot
+	TicksPerSlot   = MaxTickValue + 1
 )
 
 func TickDuration() time.Duration {
@@ -31,16 +31,20 @@ type (
 	// Slot represents a particular time slot.
 	// Starting slot 0 at genesis
 	Slot uint32
-
+	Tick uint8
 	// Time (ledger time) is 5 bytes:
-	// - bytes [0:3] is slot (big endian). Most significant of the byte 0 in the slot must be 0
-	// - byte 4 is tick
-	Time [TimeByteLength]byte
+	// - bytes [0:3] is slot (big endian)
+	// - byte 4 is tick << 1. Bit 0 in tick must be 0
+	Time struct {
+		Slot
+		Tick
+	}
 )
 
 var (
 	NilLedgerTime      Time
 	errWrongDataLength = fmt.Errorf("wrong data length")
+	errWrongTickValue  = fmt.Errorf("wrong tick value")
 )
 
 // SlotFromBytes enforces 2 most significant bits of the first byte are 0
@@ -49,20 +53,16 @@ func SlotFromBytes(data []byte) (ret Slot, err error) {
 		err = errWrongDataLength
 		return
 	}
-	if 0b10000000&data[0] != 0 {
-		return 0, fmt.Errorf("most significant bit must be 0")
-	}
 	return Slot(binary.BigEndian.Uint32(data)), nil
 }
 
-func NewLedgerTime(slot Slot, t uint8) (ret Time) {
-	util.Assertf(slot <= MaxSlot, "NewLedgerTime: slot <= MaxSlot")
-	binary.BigEndian.PutUint32(ret[:4], uint32(slot))
-	ret[4] = t
+func NewLedgerTime(slot Slot, t Tick) (ret Time) {
+	util.Assertf(t <= MaxTickValue, "NewLedgerTime: invalid tick value %d", t)
+	ret = Time{Slot: slot, Tick: t}
 	return
 }
 
-func T(slot Slot, t uint8) Time {
+func T(slot Slot, t Tick) Time {
 	return NewLedgerTime(slot, t)
 }
 
@@ -75,12 +75,7 @@ func TimeNow() Time {
 }
 
 func ValidTime(ts Time) bool {
-	_, err := TimeFromBytes(ts[:])
-	return err == nil
-}
-
-func ValidSlot(slot Slot) bool {
-	return slot <= MaxSlot
+	return ts.Tick <= MaxTickValue
 }
 
 func TimeFromBytes(data []byte) (ret Time, err error) {
@@ -88,12 +83,14 @@ func TimeFromBytes(data []byte) (ret Time, err error) {
 		err = errWrongDataLength
 		return
 	}
-	var slot Slot
-	slot, err = SlotFromBytes(data[:4])
-	if err != nil {
+	if data[TimeByteLength-1]&0x01 != 0 {
+		err = errWrongTickValue
 		return
 	}
-	ret = NewLedgerTime(slot, data[TimeByteLength-1])
+	ret = Time{
+		Slot: Slot(binary.BigEndian.Uint32(data[:SlotByteLength])),
+		Tick: Tick(data[SlotByteLength] >> 1),
+	}
 	return
 }
 
@@ -103,9 +100,10 @@ func TimeFromTicksSinceGenesis(ticks int64) (ret Time, err error) {
 		err = fmt.Errorf("TimeFromTicksSinceGenesis: wrong int64")
 		return
 	}
-	var buf [8]byte
-	binary.BigEndian.PutUint64(buf[:], uint64(ticks))
-	copy(ret[:], buf[3:])
+	ret = Time{
+		Slot: Slot(ticks / TicksPerSlot),
+		Tick: Tick(ticks % TicksPerSlot),
+	}
 	return
 }
 
@@ -126,16 +124,8 @@ func (s Slot) TransactionIDPrefixes() (withSequencerFlag, withoutSequencerFlag [
 	return
 }
 
-func (t Time) Slot() Slot {
-	return Slot(binary.BigEndian.Uint32(t[:4]))
-}
-
-func (t Time) Tick() uint8 {
-	return t[TimeByteLength-1]
-}
-
 func (t Time) IsSlotBoundary() bool {
-	return t.Tick() == 0 && t != NilLedgerTime
+	return t.Tick == 0 && t != NilLedgerTime
 }
 
 func (t Time) UnixNano() int64 {
@@ -151,23 +141,26 @@ func (t Time) NextSlotBoundary() Time {
 	if t.IsSlotBoundary() {
 		return t
 	}
-	return NewLedgerTime(t.Slot()+1, 0)
+	util.Assertf(t.Slot < MaxSlot, "t.Slot < MaxSlot")
+	return NewLedgerTime(t.Slot+1, 0)
 }
 
 func (t Time) TicksToNextSlotBoundary() int {
 	if t.IsSlotBoundary() {
 		return 0
 	}
-	return TicksPerSlot - int(t.Tick())
+	return TicksPerSlot - int(t.Tick)
 }
 
 func (t Time) Bytes() []byte {
-	ret := t
+	ret := make([]byte, TimeByteLength)
+	binary.BigEndian.PutUint32(ret[:SlotByteLength], uint32(t.Slot))
+	ret[TimeByteLength-1] = uint8(t.Tick) << 1
 	return ret[:]
 }
 
 func (t Time) String() string {
-	return fmt.Sprintf("%d|%d", t.Slot(), t.Tick())
+	return fmt.Sprintf("%d|%d", t.Slot, t.Tick)
 }
 
 func (t Time) Source() string {
@@ -175,17 +168,16 @@ func (t Time) Source() string {
 }
 
 func (t Time) AsFileName() string {
-	return fmt.Sprintf("%d_%d", t.Slot(), t.Tick())
+	return fmt.Sprintf("%d_%d", t.Slot, t.Tick)
 }
 
 func (t Time) Short() string {
-	e := t.Slot() % 1000
-	return fmt.Sprintf(".%d|%d", e, t.Tick())
+	e := t.Slot % 1000
+	return fmt.Sprintf(".%d|%d", e, t.Tick)
 }
 
 func (t Time) After(t1 Time) bool {
-	return bytes.Compare(t[:], t1[:]) > 0
-	//return DiffTicks(t, t1) > 0
+	return t.TicksSinceGenesis() > t1.TicksSinceGenesis()
 }
 
 func (t Time) AfterOrEqual(t1 Time) bool {
@@ -193,8 +185,7 @@ func (t Time) AfterOrEqual(t1 Time) bool {
 }
 
 func (t Time) Before(t1 Time) bool {
-	return bytes.Compare(t[:], t1[:]) < 0
-	//return DiffTicks(t, t1) < 0
+	return t.TicksSinceGenesis() < t1.TicksSinceGenesis()
 }
 
 func (t Time) BeforeOrEqual(t1 Time) bool {
@@ -236,7 +227,6 @@ func (t Time) AddTicks(ticks int) Time {
 
 // AddSlots adds slots to timestamp
 func (t Time) AddSlots(slot Slot) Time {
-	util.Assertf(ValidSlot(slot), "ValidSlot(slot)")
 	return t.AddTicks(int(slot << 8))
 }
 

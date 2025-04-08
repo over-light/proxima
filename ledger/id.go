@@ -11,9 +11,6 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-// TODO refactor (breaking change!) to 127 ticks per slot and sequencer flag in transaction id paced as lowest bit in timestamp ticks
-//  The purpose would be to have more consistent sorting and lookup by transaction id
-
 const (
 	TransactionIDShortLength     = 27
 	TransactionIDLength          = TimeByteLength + TransactionIDShortLength

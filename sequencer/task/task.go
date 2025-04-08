@@ -125,8 +125,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 		ctx:          nil,
 		proposalChan: make(chan *proposal),
 		slotData:     slotData,
-		// proposals:    make([]*proposal, 0),
-		Name: fmt.Sprintf("%s[%s]", env.SequencerName(), targetTs.String()),
+		Name:         fmt.Sprintf("%s[%s]", env.SequencerName(), targetTs.String()),
 	}
 
 	trackTasks.RegisterPointer(task)
@@ -210,11 +209,12 @@ func (t *taskData) startProposers() {
 		p := t.newProposer(s)
 		t.proposersWG.Add(1)
 		go func() {
-			p.IncCounter("prop")
-			defer p.DecCounter("prop")
-			defer p.proposersWG.Done()
+			t.IncCounter("prop")
 
 			p.run()
+
+			t.proposersWG.Done()
+			t.DecCounter("prop")
 		}()
 	}
 }
