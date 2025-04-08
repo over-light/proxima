@@ -31,7 +31,7 @@ func (p *ProximaNode) initMultiStateLedger() {
 	p.Log().Infof("ledger constraint library hash: %s", hex.EncodeToString(h[:]))
 
 	p.snapshotBranchID = multistate.FetchSnapshotBranchID(p.multiStateDB)
-	p.Log().Infof("current slot: %d", ledger.TimeNow().Slot())
+	p.Log().Infof("current slot: %d", ledger.TimeNow().Slot)
 	p.Log().Infof("snapshot branch id: %s", p.snapshotBranchID.String())
 
 	p.RepeatInBackground("Badger_DB_GC_loop", 5*time.Minute, func() bool {

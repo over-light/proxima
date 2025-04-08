@@ -35,7 +35,7 @@ func runListCmd(_ *cobra.Command, args []string) {
 	}
 
 	glb.Infof("list transactions in the heaviest state for slot %d", slot)
-	glb.Infof("now is slot %d", ledger.TimeNow().Slot())
+	glb.Infof("now is slot %d", ledger.TimeNow().Slot)
 
 	branches := multistate.FetchLatestBranches(glb.StateStore())
 	rdr := multistate.MustNewReadable(glb.StateStore(), branches[0].Root)

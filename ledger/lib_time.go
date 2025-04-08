@@ -1,7 +1,6 @@
 package ledger
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -12,11 +11,13 @@ import (
 
 const (
 	SlotByteLength = 4
-	TimeByteLength = SlotByteLength + 1 // bytes
-	MaxSlot        = 0xffffffff         // 1 most significant bit must be 0
-	MaxTickValue   = 0x7f               // 127
-	MaxTime        = MaxSlot * TicksPerSlot
-	TicksPerSlot   = MaxTickValue + 1
+	TickByteIndex
+	SequencerBitMaskInTick = 0x01
+	TimeByteLength         = SlotByteLength + 1 // bytes
+	MaxSlot                = 0xffffffff         // 1 most significant bit must be 0
+	MaxTickValue           = 0x7f               // 127
+	MaxTime                = MaxSlot * TicksPerSlot
+	TicksPerSlot           = MaxTickValue + 1
 )
 
 func TickDuration() time.Duration {
@@ -27,14 +28,15 @@ func SlotDuration() time.Duration {
 	return L().ID.SlotDuration()
 }
 
+// serialized timestamp is 5 bytes:
+// - bytes 0-3 is big-endian slot
+// - byte 4 is ticks << 1, i.e. last bit of timestamp is always 0
+
 type (
 	// Slot represents a particular time slot.
 	// Starting slot 0 at genesis
 	Slot uint32
 	Tick uint8
-	// Time (ledger time) is 5 bytes:
-	// - bytes [0:3] is slot (big endian)
-	// - byte 4 is tick << 1. Bit 0 in tick must be 0
 	Time struct {
 		Slot
 		Tick
@@ -83,13 +85,13 @@ func TimeFromBytes(data []byte) (ret Time, err error) {
 		err = errWrongDataLength
 		return
 	}
-	if data[TimeByteLength-1]&0x01 != 0 {
+	if data[TickByteIndex]&SequencerBitMaskInTick != 0 {
 		err = errWrongTickValue
 		return
 	}
 	ret = Time{
 		Slot: Slot(binary.BigEndian.Uint32(data[:SlotByteLength])),
-		Tick: Tick(data[SlotByteLength] >> 1),
+		Tick: Tick(data[TickByteIndex] >> 1),
 	}
 	return
 }
@@ -107,9 +109,13 @@ func TimeFromTicksSinceGenesis(ticks int64) (ret Time, err error) {
 	return
 }
 
+func (s Slot) PutBytes(b []byte) {
+	binary.BigEndian.PutUint32(b, uint32(s))
+}
+
 func (s Slot) Bytes() []byte {
 	ret := make([]byte, SlotByteLength)
-	binary.BigEndian.PutUint32(ret, uint32(s))
+	s.PutBytes(ret)
 	return ret
 }
 
@@ -117,20 +123,12 @@ func (s Slot) Hex() string {
 	return fmt.Sprintf("0x%s", hex.EncodeToString(s.Bytes()))
 }
 
-func (s Slot) TransactionIDPrefixes() (withSequencerFlag, withoutSequencerFlag []byte) {
-	withSequencerFlag = s.Bytes()
-	withoutSequencerFlag = s.Bytes()
-	withSequencerFlag[0] |= SequencerTxFlagHigherByte
-	return
-}
-
 func (t Time) IsSlotBoundary() bool {
 	return t.Tick == 0 && t != NilLedgerTime
 }
 
 func (t Time) UnixNano() int64 {
-	return L().ID.GenesisTimeUnixNano() +
-		int64(t.Slot())*int64(SlotDuration()) + int64(TickDuration())*int64(t.Tick())
+	return L().ID.GenesisTime().Add(time.Duration(t.TicksSinceGenesis()) * TickDuration()).UnixNano()
 }
 
 func (t Time) Time() time.Time {
@@ -155,7 +153,7 @@ func (t Time) TicksToNextSlotBoundary() int {
 func (t Time) Bytes() []byte {
 	ret := make([]byte, TimeByteLength)
 	binary.BigEndian.PutUint32(ret[:SlotByteLength], uint32(t.Slot))
-	ret[TimeByteLength-1] = uint8(t.Tick) << 1
+	ret[TickByteIndex] = uint8(t.Tick) << 1
 	return ret[:]
 }
 
@@ -193,11 +191,11 @@ func (t Time) BeforeOrEqual(t1 Time) bool {
 }
 
 func (t Time) Hex() string {
-	return fmt.Sprintf("0x%s", hex.EncodeToString(t[:]))
+	return fmt.Sprintf("0x%s", hex.EncodeToString(t.Bytes()))
 }
 
 func (t Time) TicksSinceGenesis() int64 {
-	return int64(t.Slot())<<8 + int64(t.Tick())
+	return int64(t.Slot)*TicksPerSlot + int64(t.Tick)
 }
 
 // DiffTicks returns difference in ticks between two timestamps:

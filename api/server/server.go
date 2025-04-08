@@ -762,7 +762,7 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 
 			dlg[delegationID.StringHex()] = api.DelegationData{
 				Amount:      delegationOut.Output.Amount(),
-				SinceSlot:   uint32(dl.StartTime.Slot()),
+				SinceSlot:   uint32(dl.StartTime.Slot),
 				StartAmount: dl.StartAmount,
 			}
 		}

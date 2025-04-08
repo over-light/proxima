@@ -33,7 +33,7 @@ func runReliableBranchCmd(_ *cobra.Command, _ []string) {
 		glb.Infof("reliable branch has not been found")
 		os.Exit(1)
 	}
-	nowSlot := ledger.TimeNow().Slot()
+	nowSlot := ledger.TimeNow().Slot
 	glb.Infof("current slot is %d", nowSlot)
 	lrbID := lrb.Stem.ID.TransactionID()
 	glb.Infof("latest reliable branch (LRB) is %s (hex = %s)",

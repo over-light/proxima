@@ -16,7 +16,7 @@ func timelock: and(
 		selfIsProducedOutput, 
 		and( 
 			selfIsConsumedOutput,
-			lessOrEqualThan($0, timeSlotPrefix(txTimestampBytes))
+			lessOrEqualThan($0, txTimeSlot)
 		) 
 	)
 )

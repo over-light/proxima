@@ -100,8 +100,8 @@ func FetchSummarySupply(stateStore StateStore, nBack int) *SummarySupplyAndInfla
 		EndSupply:        branchData[0].Supply,
 		TotalInflation:   branchData[0].Supply - branchData[len(branchData)-1].Supply,
 		NumberOfBranches: len(branchData),
-		OldestSlot:       branchData[len(branchData)-1].Stem.Timestamp().Slot(),
-		LatestSlot:       branchData[0].Stem.Timestamp().Slot(),
+		OldestSlot:       branchData[len(branchData)-1].Stem.Timestamp().Slot,
+		LatestSlot:       branchData[0].Stem.Timestamp().Slot,
 		InfoPerSeqID:     make(map[ledger.ChainID]SequencerInfo),
 	}
 	// count branches per sequencer

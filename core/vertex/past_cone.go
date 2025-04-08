@@ -832,7 +832,7 @@ func (pc *PastCone) CoverageAndDelta() (coverage, delta uint64) {
 	if pc.tip != nil {
 		ts = pc.tip.Timestamp()
 	}
-	diffSlots := ts.Slot() - pc.baseline.Slot()
+	diffSlots := ts.Slot - pc.baseline.Slot()
 	if ts.IsSlotBoundary() {
 		coverage = (pc.baseline.GetLedgerCoverage() >> diffSlots) + delta
 	} else {

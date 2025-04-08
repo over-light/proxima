@@ -136,13 +136,13 @@ func makeTransactionLoop(par killChainParams) {
 			_, lrbid, err = clnt.GetLatestReliableBranch()
 			glb.AssertNoError(err)
 			glb.Infof("chain %s not found. LRB (latest reliable branch) is %s (%d slots behind from now)",
-				par.chainID.StringShort(), lrbid.String(), ledger.TimeNow().Slot()-lrbid.Slot())
+				par.chainID.StringShort(), lrbid.String(), ledger.TimeNow().Slot-lrbid.Slot())
 			return
 		}
 		glb.AssertNoError(err)
 
-		if ledger.TimeNow().Slot()-lrbid.Slot() > 2 {
-			glb.Infof("warning: LRB  (latest reliable branch) is %d slots behind from now. Node may not be synced", ledger.TimeNow().Slot()-lrbid.Slot())
+		if ledger.TimeNow().Slot-lrbid.Slot() > 2 {
+			glb.Infof("warning: LRB  (latest reliable branch) is %d slots behind from now. Node may not be synced", ledger.TimeNow().Slot-lrbid.Slot())
 		}
 		if !consumedOutputs.Contains(o.ID) {
 			ts := ledger.NextClosedDelegationTimestamp(par.chainID, o.Timestamp())

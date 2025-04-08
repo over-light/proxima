@@ -10,7 +10,7 @@ import (
 const (
 	BootstrapSequencerName = "boot"
 	// BoostrapSequencerIDHex is a constant
-	BoostrapSequencerIDHex = "6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc"
+	BoostrapSequencerIDHex = "8739faa34a6902e49bc16455bbd642fd3c649e8959d97089e43f214ca57ea0e5"
 )
 
 // BoostrapSequencerID is a constant

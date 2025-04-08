@@ -45,17 +45,17 @@ func (lib *Library) BranchInflationBonusFromRandomnessProof(proof []byte) uint64
 const inflationFunctionsSource = `
 
 // aux value
-// $0 predecessor timestamp
-// $1 successor timestamp
+// $0 predecessor timestamp bytes
+// $1 successor timestamp bytes
 func _adjustedDiffSlots :
 	add(
-       sub(timeSlotFromTimestamp($1), timeSlotFromTimestamp($0)),
-       if (isTimestampOnSlotBoundary($0), u64/1, u64/0)
+       sub(first4Bytes($1), first4Bytes($0)),
+       if (isTimestampBytesOnSlotBoundary($0), u64/1, u64/0)
     )
 
-// $0 - ledger time (timestamp) of the predecessor
+// $0 - ledger time (timestamp bytes) of the predecessor
 // $1 - amount on predecessor
-func _baseInflation : div($1, add(constAuxMinInflatableOnSlot0, slotsSinceOrigin($0)))
+func _baseInflation : div($1, add(constAuxMinInflatableOnSlot0, first4Bytes($0)))
 
 // $0 - ledger time (timestamp) of the predecessor
 // $1 - adjusted diff slots
@@ -75,7 +75,7 @@ func calcChainInflationAmount :
         not(lessThan($0, $1)),
         !!!calcChainInflationAmount_failed_wrong_timestamps,
    	    if(
-           isTimestampOnSlotBoundary($1),
+           isTimestampBytesOnSlotBoundary($1),
            u64/0,
            _calcChainInflationAmount($0, _adjustedDiffSlots($0, $1), $2)
         )

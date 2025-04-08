@@ -253,8 +253,8 @@ func upgrade0BaseConstants(id *IdentityData) []*easyfl.ExtendedFunctionData {
 		{"constGenesisControllerPublicKey", fmt.Sprintf("0x%s", hex.EncodeToString(id.GenesisControllerPublicKey))},
 		{"constGenesisTimeUnix", fmt.Sprintf("u64/%d", id.GenesisTimeUnix)},
 		{"constTickDuration", fmt.Sprintf("u64/%d", int64(id.TickDuration))},
-		{"constMaxTickValuePerSlot", "u64/255"},
-		{"ticksPerSlot64", "u64/256"},
+		{"constMaxTickValuePerSlot", "u64/127"},
+		{"ticksPerSlot64", "u64/128"},
 		// begin inflation-related
 		{"constSlotInflationBase", fmt.Sprintf("u64/%d", id.SlotInflationBase)},
 		{"constLinearInflationSlots", fmt.Sprintf("u64/%d", id.LinearInflationSlots)},
@@ -277,18 +277,16 @@ func upgrade0BaseConstants(id *IdentityData) []*easyfl.ExtendedFunctionData {
 
 var upgrade0BaseHelpers = []*easyfl.ExtendedFunctionData{
 	{"mustSize", "if(equalUint(len($0), $1), $0, !!!wrong_data_size)"},
-	{"mustValidTimeTick", "if(mustSize($0,1),$0,!!!wrong_ticks_value)"},
-	{"mustValidTimeSlot", "mustSize($0, timeSlotSizeBytes)"},
-	{"timeSlotPrefix", "slice($0, 0, 3)"}, // first 4 bytes of any array. It is not time slot yet
-	{"timeSlotFromTimeSlotPrefix", "bitwiseAND($0, 0x7fffffff)"},
-	{"timeTickFromTimestamp", "byte($0, 4)"},
-	{"timeSlotFromTimestamp", "timeSlotFromTimeSlotPrefix(slice($0,0,3))"},
-	{"timestamp", "concat(mustValidTimeSlot($0),mustValidTimeTick($1))"},
-	{"isTimestampOnSlotBoundary", "isZero(timeTickFromTimestamp($0))"},
-	// takes first 5 bytes and sets first bit to zero
-	{"timestampPrefix", "bitwiseAND(slice($0, 0, 4), 0x7fffffffff)"},
-	{"slotsSinceOrigin", "timeSlotFromTimeSlotPrefix(timeSlotPrefix($0))"},
-	{"ticksSinceOrigin", "add(mul(slotsSinceOrigin($0), ticksPerSlot64), timeTickFromTimestamp($0))"},
+	{"mustValidTimeTick", "if(and(equalUint(len($0),1), lessThan(uint64Bytes($0),constMaxTickValuePerSlot) ), $0, !!!wrong_ticks_value)"},
+	{"mustValidTimeSlot", "if(equalUint(len($0), timeSlotSizeBytes), $0, !!!wrong_slot_data)"},
+	{"mul8", "byte(mul($0,$1),7)"},
+	{"div8", "byte(div($0,$1),7)"},
+	{"timestampBytes", "concat(mustValidTimeSlot($0),mul8(mustValidTimeTick($1),2))"},
+	{"first4Bytes", "slice($0, 0, 3)"},                                        // first 4 bytes of any array
+	{"first5Bytes", "slice($0, 0, 4)"},                                        // first 5 bytes of any array
+	{"timestampBytesFromPrefix", "bitwiseAND(first5Bytes($0), 0xfffffffff6)"}, // kill last bit
+	{"timeTickFromTimestampBytes", "div8(byte($0, 4),2)"},
+	{"isTimestampBytesOnSlotBoundary", "isZero(timeTickFromTimestampBytes($0))"},
 }
 
 func (lib *Library) upgrade0WithBaseConstants(id *IdentityData) {
@@ -298,9 +296,9 @@ func (lib *Library) upgrade0WithBaseConstants(id *IdentityData) {
 
 	lib.appendInlineTests(func() {
 		// inline tests
-		libraryGlobal.MustEqual("timestamp(u32/255, 21)", NewLedgerTime(255, 21).Hex())
-		libraryGlobal.MustEqual("ticksBefore(timestamp(u32/100, 5), timestamp(u32/101, 10))", "u64/261")
-		libraryGlobal.MustError("mustValidTimeSlot(255)", "wrong data size")
+		libraryGlobal.MustEqual("timestampBytes(u32/255, 21)", NewLedgerTime(255, 21).Hex())
+		libraryGlobal.MustEqual("ticksBefore(timestampBytes(u32/100, 5), timestampBytes(u32/101, 10))", "u64/133")
+		libraryGlobal.MustError("mustValidTimeSlot(255)", "wrong slot data")
 		libraryGlobal.MustEqual("mustValidTimeSlot(u32/255)", Slot(255).Hex())
 		libraryGlobal.MustEqual("mustValidTimeTick(88)", "88")
 		libraryGlobal.MustEqual("constAuxMinInflatableOnSlot0", "u64/30303030")
@@ -353,15 +351,15 @@ var upgrade0WithFunctions = []*easyfl.ExtendedFunctionData{
 
 	{"consumedLockByInputIndex", "consumedConstraintByIndex(concat($0, lockConstraintIndex))"},
 	{"inputIDByIndex", "@Path(concat(pathToInputIDs,$0))"},
-	{"timestampOfInputByIndex", "timestampPrefix(inputIDByIndex($0))"},
-	{"timeSlotOfInputByIndex", "timeSlotFromTimeSlotPrefix(timeSlotPrefix(inputIDByIndex($0)))"},
+	{"timestampOfInputByIndex", "timestampBytesFromPrefix(inputIDByIndex($0))"},
+	{"timeSlotOfInputByIndex", "first4Bytes(inputIDByIndex($0))"},
 	// special transaction related
 	{"txBytes", "@Path(pathToTransaction)"},
 	{"txSignature", "@Path(pathToSignature)"},
 	{"txTimestampBytes", "@Path(pathToTimestamp)"},
 	{"txTotalProducedAmount", "@Path(pathToTotalProducedAmount)"},
-	{"txTimeSlot", "timeSlotPrefix(txTimestampBytes)"},
-	{"txTimeTick", "timeTickFromTimestamp(txTimestampBytes)"},
+	{"txTimeSlot", "first4Bytes(txTimestampBytes)"},
+	{"txTimeTick", "timeTickFromTimestampBytes(txTimestampBytes)"},
 	{"txSequencerOutputIndex", "byte(@Path(pathToSeqAndStemOutputIndices), 0)"},
 	{"txStemOutputIndex", "byte(@Path(pathToSeqAndStemOutputIndices), 1)"},
 	{"txEssenceBytes", "concat(" +
@@ -374,7 +372,6 @@ var upgrade0WithFunctions = []*easyfl.ExtendedFunctionData{
 	{"sequencerFlagON", "not(isZero(bitwiseAND(byte($0,0),0x80)))"},
 	{"isSequencerTransaction", "not(equal(txSequencerOutputIndex, 0xff))"},
 	{"isBranchTransaction", "and(isSequencerTransaction, not(equal(txStemOutputIndex, 0xff)))"},
-	{"isBranchOutputID", "and(sequencerFlagON($0), equal(timeTickFromTimestamp(timestampPrefix($0)),0))"},
 	// endorsements
 	{"numEndorsements", "ArrayLength8(@Path(pathToEndorsements))"},
 	{"numInputs", "ArrayLength8(@Path(pathToInputIDs))"},

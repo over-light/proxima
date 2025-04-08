@@ -68,7 +68,7 @@ func (p *ProximaNode) GetSyncInfo() *api.SyncInfo {
 	latestSlot, latestHealthySlot, synced := p.workflow.LatestBranchSlots()
 	lrb := p.GetLatestReliableBranch()
 	lrbSlot := uint32(0)
-	curSlot := uint32(ledger.TimeNow().Slot())
+	curSlot := uint32(ledger.TimeNow().Slot)
 	var cov uint64
 	if lrb == nil {
 		p.Log().Warnf("[sync] can't find latest reliable branch")

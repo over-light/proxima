@@ -158,7 +158,7 @@ func listSequencerDelegationInfo(supply uint64) {
 	totalDelegated := uint64(0)
 	totalDelegations := 0
 
-	slotNow := uint32(ledger.TimeNow().Slot())
+	slotNow := uint32(ledger.TimeNow().Slot)
 	for i, seqIDHex := range keys {
 		seqData := bySeq[seqIDHex]
 
@@ -169,7 +169,7 @@ func listSequencerDelegationInfo(supply uint64) {
 		doid, err := ledger.OutputIDFromHexString(seqData.SequencerOutputID)
 		glb.AssertNoError(err)
 		glb.Infof("%2d. %s (%s)\t   chain balance: %20s    total delegated: %20s (%d)    last active: %d slots ago",
-			i, seqIDHex, seqData.SequencerName, util.Th(seqData.Balance), util.Th(delegatedAmount), len(seqData.Delegations), ledger.TimeNow().Slot()-doid.Slot())
+			i, seqIDHex, seqData.SequencerName, util.Th(seqData.Balance), util.Th(delegatedAmount), len(seqData.Delegations), ledger.TimeNow().Slot-doid.Slot())
 		totalDelegated += delegatedAmount
 		totalDelegations += len(seqData.Delegations)
 

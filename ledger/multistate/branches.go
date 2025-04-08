@@ -192,12 +192,12 @@ func iterateAllRootRecords(store common.Traversable, fun func(branchTxID ledger.
 func iterateRootRecordsOfParticularSlots(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool, slots []ledger.Slot) {
 	prefix := [5]byte{rootRecordDBPartition, 0, 0, 0, 0}
 	for _, s := range slots {
-		slotPrefix := ledger.NewTransactionIDPrefix(s, true)
-		copy(prefix[1:], slotPrefix[:])
+		s.PutBytes(prefix[1:])
 
 		store.Iterator(prefix[:]).Iterate(func(k, data []byte) bool {
 			txid, err := ledger.TransactionIDFromBytes(k[1:])
 			util.AssertNoError(err)
+			util.Assertf(txid.IsBranchTransaction(), "txid.IsBranchTransaction()")
 
 			rootData, err := RootRecordFromBytes(data)
 			util.AssertNoError(err)

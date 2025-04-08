@@ -342,7 +342,7 @@ func (seq *Sequencer) doSequencerStep() bool {
 	seq.newTargetSet()
 
 	if seq.slotData == nil {
-		seq.slotData = task.NewSlotData(targetTs.Slot())
+		seq.slotData = task.NewSlotData(targetTs.Slot)
 	}
 
 	seq.Assertf(ledger.ValidSequencerPace(seq.lastSubmittedTs, targetTs), "target is closer than allowed pace (%d): %s -> %s",
@@ -433,8 +433,8 @@ func (seq *Sequencer) getNextTargetTime() ledger.Time {
 			nowis.AddTicks(1),
 		)
 	}
-	if targetAbsoluteMinimum.Tick() < ledger.L().ID.PostBranchConsolidationTicks {
-		targetAbsoluteMinimum = ledger.NewLedgerTime(targetAbsoluteMinimum.Slot(), ledger.L().ID.PostBranchConsolidationTicks)
+	if uint8(targetAbsoluteMinimum.Tick) < ledger.L().ID.PostBranchConsolidationTicks {
+		targetAbsoluteMinimum = ledger.NewLedgerTime(targetAbsoluteMinimum.Slot, ledger.Tick(ledger.L().ID.PostBranchConsolidationTicks))
 	}
 	nextSlotBoundary := nowis.NextSlotBoundary()
 

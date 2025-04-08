@@ -28,7 +28,7 @@ type (
 // default ledger constants
 
 const (
-	DefaultTickDuration = 40 * time.Millisecond
+	DefaultTickDuration = 80 * time.Millisecond
 
 	DustPerProxi = 1_000_000
 	//BaseTokenName        = "Proxi"
@@ -46,18 +46,16 @@ const (
 	DefaultBranchInflationBonusBase = 5_000_000
 	// used to enforce approx validity of defaults
 
-	TargetAnnualChainInflationRateUpper = 13
-	TargetAnnualChainInflationRateLower = 12
 	// -------------- end inflation-related
 
 	DefaultVBCost                   = 1
-	DefaultTransactionPace          = 25
-	DefaultTransactionPaceSequencer = 3
+	DefaultTransactionPace          = 12
+	DefaultTransactionPaceSequencer = 2
 	// DefaultMinimumAmountOnSequencer Reasonable limit could be 1/1000 of initial supply
 	DefaultMinimumAmountOnSequencer     = 1_000 * PRXI // this is testnet default
 	DefaultMaxNumberOfEndorsements      = 8
-	DefaultPreBranchConsolidationTicks  = 50
-	DefaultPostBranchConsolidationTicks = 25
+	DefaultPreBranchConsolidationTicks  = 25
+	DefaultPostBranchConsolidationTicks = 12
 )
 
 func init() {

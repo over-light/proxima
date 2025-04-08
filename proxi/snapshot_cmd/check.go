@@ -56,7 +56,7 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 	if foundAtDepth >= 0 {
 		glb.Infof("the snapshot:")
 		glb.Infof("      - is INCLUDED in the current LRB of the network. It CAN BE USED to start a node")
-		glb.Infof("      - is %d slots back from LRB and %d slots back from now", lrbID.Slot()-ssData.branchID.Slot(), ledger.TimeNow().Slot()-ssData.branchID.Slot())
+		glb.Infof("      - is %d slots back from LRB and %d slots back from now", lrbID.Slot()-ssData.branchID.Slot(), ledger.TimeNow().Slot-ssData.branchID.Slot())
 	} else {
 		glb.Infof("the snapshot is NOT INCLUDED in the current LRB of the network. It CANNOT BE USED to start a node")
 	}

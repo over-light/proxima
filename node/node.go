@@ -240,7 +240,7 @@ func (p *ProximaNode) goLoggingMemStats() {
 			diskSpace = fmt.Sprintf(", available disk space: %.2f GB", availableGB)
 		}
 		p.Log().Infof("[memstats] current slot: %d, [%s], uptime: %v, allocated memory: %.1f MB, GC counter: %d, Goroutines: %d%s",
-			ledger.TimeNow().Slot(),
+			ledger.TimeNow().Slot,
 			p.CounterLines().Join(","),
 			time.Since(p.started).Round(time.Second),
 			float32(memStats.Alloc*10/(1024*1024))/10,
@@ -273,7 +273,7 @@ func (p *ProximaNode) goLoggingSync() {
 		if lrb == nil {
 			p.Log().Warnf("[sync] can't find latest reliable branch")
 		} else {
-			curSlot := ledger.TimeNow().Slot()
+			curSlot := ledger.TimeNow().Slot
 			slotsBehind := curSlot - lrb.Stem.ID.Slot()
 			p.lrbSlotsBehind.Set(float64(slotsBehind))
 			msg := fmt.Sprintf("[sync] latest reliable branch is %d slots behind from now, current slot: %d, coverage: %s (%v)",

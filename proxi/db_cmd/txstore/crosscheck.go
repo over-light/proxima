@@ -39,7 +39,7 @@ func runReconcileCmd(_ *cobra.Command, args []string) {
 		glb.AssertNoError(err)
 	}
 
-	glb.Infof("now is slot %d", ledger.TimeNow().Slot())
+	glb.Infof("now is slot %d", ledger.TimeNow().Slot)
 
 	slot := multistate.FetchLatestCommittedSlot(glb.StateStore())
 	glb.Infof("latest committed slot is %d", slot)

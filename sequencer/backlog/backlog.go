@@ -146,7 +146,7 @@ func (b *TagAlongBacklog) checkCandidate(wOut vertex.WrappedOutput) bool {
 
 // CandidatesToEndorseSorted returns descending (by coverage) list of transactions which can be endorsed from the given timestamp
 func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*vertex.WrappedTx {
-	targetSlot := targetTs.Slot()
+	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesDescending(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {
 		if vid.BaselineBranch() == nil {
@@ -159,7 +159,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*ver
 
 // CandidatesToEndorseShuffled returns randomly ordered list of transactions which can be endorsed from the given timestamp
 func (b *TagAlongBacklog) CandidatesToEndorseShuffled(targetTs ledger.Time) []*vertex.WrappedTx {
-	targetSlot := targetTs.Slot()
+	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesShuffled(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {
 		if vid.BaselineBranch() == nil {
@@ -260,7 +260,7 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 		return fmt.Errorf("LoadSequencerStartTips: can't find latest reliable branch (LRB) with franction %s", global.FractionHealthyBranch.String())
 	}
 	loadedTxs := set.New[*vertex.WrappedTx]()
-	nowSlot := ledger.TimeNow().Slot()
+	nowSlot := ledger.TimeNow().Slot
 	brid := branchData.TxID()
 	b.Log().Infof("loading sequencer tips for %s from branch %s, %d slots back from (current slot is %d), bootstrap mode: %v",
 		seqID.StringShort(), brid.StringShort(), nowSlot-brid.Slot(), nowSlot, b.IsBootstrapMode())

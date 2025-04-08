@@ -142,7 +142,7 @@ func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
 	txid := vid.ID()
 	util.Assertf(d.GetVertexNoLock(txid) == nil, "d.GetVertexNoLock(vid.id())==nil")
-	vid.SlotWhenAdded = ledger.TimeNow().Slot()
+	vid.SlotWhenAdded = ledger.TimeNow().Slot
 	d.vertices[txid] = _vertexRecord{
 		Pointer:   weak.Make(vid),
 		WrappedTx: vid,
@@ -162,7 +162,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 	expired := make([]*vertex.WrappedTx, 0)
 	// collect those expired
 	d.WithGlobalWriteLock(func() {
-		slotNow := ledger.TimeNow().Slot()
+		slotNow := ledger.TimeNow().Slot
 		for txid, rec := range d.vertices {
 			if rec.Pointer.Value() == nil {
 				d.deleteNoLock(txid)
@@ -344,7 +344,7 @@ func (d *MemDAG) LatestBranchSlots() (slot, healthySlot ledger.Slot, synced bool
 		d.latestHealthyBranchSlot, healthyExists = multistate.FindLatestHealthySlot(d.StateStore(), global.FractionHealthyBranch)
 		util.Assertf(healthyExists, "assume healthy slot exists: FIX IT")
 	}
-	nowSlot := ledger.TimeNow().Slot()
+	nowSlot := ledger.TimeNow().Slot
 	// synced criterion. latest slot max 3 behind, latest healthy max 6 behind
 	slot, healthySlot = d.latestBranchSlot, d.latestHealthyBranchSlot
 	const (

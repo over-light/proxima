@@ -145,7 +145,7 @@ func TestTimelock(t *testing.T) {
 		par, err := u.MakeTransferInputData(privKey0, nil, ts)
 		require.NoError(t, err)
 
-		timelockSlot := ts.Slot() + 1
+		timelockSlot := ts.Slot + 1
 
 		par.WithAmount(200).
 			WithTargetLock(addr1).
@@ -159,7 +159,7 @@ func TestTimelock(t *testing.T) {
 
 		require.EqualValues(t, 200, u.Balance(addr1))
 
-		timelockSlot = ts.Slot() + (1 + 10)
+		timelockSlot = ts.Slot + (1 + 10)
 		par, err = u.MakeTransferInputData(privKey0, nil, ts.AddSlots(1))
 		require.NoError(t, err)
 		par.WithAmount(2000).
@@ -187,7 +187,7 @@ func TestTimelock(t *testing.T) {
 		t.Logf("failed tx with ts %s", par.Timestamp)
 
 		txTs = ts.AddSlots(14)
-		require.True(t, txTs.Slot() > timelockSlot)
+		require.True(t, txTs.Slot > timelockSlot)
 		par, err = u.MakeTransferInputData(priv1, nil, txTs)
 		require.NoError(t, err)
 		t.Logf("tx time: %s", par.Timestamp)
@@ -199,7 +199,7 @@ func TestTimelock(t *testing.T) {
 			tx, err1 := transaction.FromBytesMainChecksWithOpt(txBytes)
 			require.NoError(t, err1)
 			t.Logf("resulting tx ts: %s", tx.Timestamp())
-			require.True(t, tx.Timestamp().Slot() > timelockSlot)
+			require.True(t, tx.Timestamp().Slot > timelockSlot)
 		}
 		require.NoError(t, err)
 		require.EqualValues(t, 200, u.Balance(addr1))
@@ -219,7 +219,7 @@ func TestTimelock(t *testing.T) {
 		txBytes, err := txbuilder.MakeTransferTransaction(par.
 			WithAmount(200).
 			WithTargetLock(addr1).
-			WithConstraint(ledger.NewTimelock(ts.Slot() + 1)),
+			WithConstraint(ledger.NewTimelock(ts.Slot + 1)),
 		)
 		require.NoError(t, err)
 		t.Logf("tx with timelock len: %d", len(txBytes))
@@ -233,7 +233,7 @@ func TestTimelock(t *testing.T) {
 		err = u.DoTransfer(par.
 			WithAmount(2000).
 			WithTargetLock(addr1).
-			WithConstraint(ledger.NewTimelock(ts.Slot() + 11)),
+			WithConstraint(ledger.NewTimelock(ts.Slot + 11)),
 		)
 		require.NoError(t, err)
 
@@ -1144,7 +1144,7 @@ func TestDeadlineLock(t *testing.T) {
 	par, err := u.MakeTransferInputData(privKey0, nil, ts)
 	require.NoError(t, err)
 	deadlineLock := ledger.NewDeadlineLock(
-		ts.Slot()+10,
+		ts.Slot+10,
 		ledger.AddressED25519FromPublicKey(pubKey1),
 		ledger.AddressED25519FromPublicKey(pubKey0),
 	)

@@ -57,7 +57,7 @@ func (w *Workflow) SendToTippool(vid *vertex.WrappedTx) {
 }
 
 func (w *Workflow) IsSynced() bool {
-	slotNow := ledger.TimeNow().Slot()
+	slotNow := ledger.TimeNow().Slot
 	return slotNow == 0 || multistate.FirstHealthySlotIsNotBefore(w.StateStore(), slotNow-1, global.FractionHealthyBranch)
 }
 

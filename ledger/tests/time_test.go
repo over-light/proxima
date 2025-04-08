@@ -33,10 +33,10 @@ func TestTime(t *testing.T) {
 		ts1 := ledger.NewLedgerTime(120, 55)
 		t.Logf("%s", ts0)
 		t.Logf("%s", ts1)
-		require.EqualValues(t, 100, ts0.Slot())
-		require.EqualValues(t, 120, ts1.Slot())
-		require.EqualValues(t, 33, ts0.Tick())
-		require.EqualValues(t, 55, ts1.Tick())
+		require.EqualValues(t, 100, ts0.Slot)
+		require.EqualValues(t, 120, ts1.Slot)
+		require.EqualValues(t, 33, ts0.Tick)
+		require.EqualValues(t, 55, ts1.Tick)
 
 		diff := ledger.DiffTicks(ts0, ts1)
 		require.EqualValues(t, -(20*ledger.TicksPerSlot + 22), diff)
@@ -47,8 +47,8 @@ func TestTime(t *testing.T) {
 	})
 	t.Run("3", func(t *testing.T) {
 		ts := ledger.NewLedgerTime(100, 120)
-		require.EqualValues(t, 100, int(ts.Slot()))
-		require.EqualValues(t, 120, int(ts.Tick()))
+		require.EqualValues(t, 100, int(ts.Slot))
+		require.EqualValues(t, 120, int(ts.Tick))
 	})
 	t.Run("4", func(t *testing.T) {
 		ts0 := ledger.NewLedgerTime(100, 33)

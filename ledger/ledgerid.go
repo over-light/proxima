@@ -273,18 +273,18 @@ func (id *IdentityData) OriginChainID() ChainID {
 }
 
 func (id *IdentityData) IsPreBranchConsolidationTimestamp(ts Time) bool {
-	return ts.Tick() > MaxTickValue-id.PreBranchConsolidationTicks
+	return uint8(ts.Tick) > MaxTickValue-id.PreBranchConsolidationTicks
 }
 
 func (id *IdentityData) IsPostBranchConsolidationTimestamp(ts Time) bool {
-	return ts.Tick() >= id.PostBranchConsolidationTicks
+	return uint8(ts.Tick) >= id.PostBranchConsolidationTicks
 }
 
 func (id *IdentityData) EnsurePostBranchConsolidationConstraintTimestamp(ts Time) Time {
 	if id.IsPostBranchConsolidationTimestamp(ts) {
 		return ts
 	}
-	return NewLedgerTime(ts.Slot(), id.PostBranchConsolidationTicks)
+	return NewLedgerTime(ts.Slot, Tick(id.PostBranchConsolidationTicks))
 }
 
 func (id *IdentityData) String() string {

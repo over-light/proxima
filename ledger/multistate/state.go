@@ -322,29 +322,15 @@ func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *ledger.Trans
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	var prefixSeq, prefixNoSeq []byte
+	var iter common.KVIterator
 	if len(txidSlot) > 0 {
-		prefixSeq, prefixNoSeq = txidSlot[0].TransactionIDPrefixes()
+		iter = common.MakeTraversableReaderPartition(r.trie, TriePartitionCommittedTransactionID).Iterator(txidSlot[0].Bytes())
+	} else {
+		iter = common.MakeTraversableReaderPartition(r.trie, TriePartitionCommittedTransactionID).Iterator(nil)
 	}
-	// TODO refactor with Iterator()
-	iter := common.MakeTraversableReaderPartition(r.trie, TriePartitionCommittedTransactionID).Iterator(prefixNoSeq)
+
 	var slot ledger.Slot
-	exit := false
 
-	iter.Iterate(func(k, v []byte) bool {
-		txid, err := ledger.TransactionIDFromBytes(k[1:])
-		util.AssertNoError(err)
-		slot, err = ledger.SlotFromBytes(v)
-		util.AssertNoError(err)
-
-		exit = !fun(&txid, slot)
-		return !exit
-	})
-	if exit || len(txidSlot) == 0 {
-		return
-	}
-
-	iter = common.MakeTraversableReaderPartition(r.trie, TriePartitionCommittedTransactionID).Iterator(prefixSeq)
 	iter.Iterate(func(k, v []byte) bool {
 		txid, err := ledger.TransactionIDFromBytes(k[1:])
 		util.AssertNoError(err)

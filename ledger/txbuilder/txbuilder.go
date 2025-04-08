@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/ed25519"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/rand"
@@ -475,7 +474,7 @@ func MakeSimpleTransferTransaction(par *TransferData, disableEndorsementChecking
 
 func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndorsementChecking ...bool) ([]byte, *ledger.OutputWithID, error) {
 	if !ledger.ValidTime(par.Timestamp) {
-		return nil, nil, fmt.Errorf("MakeSimpleTransferTransactionWithRemainder: wrong timestamp bytes 0x%s", hex.EncodeToString(par.Timestamp[:]))
+		return nil, nil, fmt.Errorf("MakeSimpleTransferTransactionWithRemainder: wrong timestamp bytes 0x%s", par.Timestamp.Hex())
 	}
 
 	if par.ChainOutput != nil {
@@ -507,15 +506,15 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 	adjustedTs := ledger.MaximumTime(inputTs, par.Timestamp).
 		AddTicks(ledger.TransactionPace())
 
-	util.Assertf(ledger.ValidTime(adjustedTs), "ledger.ValidTime(adjustedTs): ts bytes 0x%s", hex.EncodeToString(adjustedTs[:]))
+	util.Assertf(ledger.ValidTime(adjustedTs), "ledger.ValidTime(adjustedTs): ts bytes 0x%s", adjustedTs.Hex)
 
 	for i := range par.Endorsements {
 		if len(disableEndorsementChecking) == 0 || !disableEndorsementChecking[0] {
-			if par.Endorsements[i].Slot() < adjustedTs.Slot() {
+			if par.Endorsements[i].Slot() < adjustedTs.Slot {
 				return nil, nil, fmt.Errorf("MakeSimpleTransferTransactionWithRemainder: can't endorse transaction from another time slot")
 			}
 		}
-		if par.Endorsements[i].Slot() > adjustedTs.Slot() {
+		if par.Endorsements[i].Slot() > adjustedTs.Slot {
 			// adjust timestamp to the endorsed slot
 			adjustedTs = ledger.NewLedgerTime(par.Endorsements[i].Slot(), 0)
 		}
@@ -754,11 +753,11 @@ func MakeChainTransferTransaction(par *TransferData, disableEndorsementChecking 
 
 	for i := range par.Endorsements {
 		if len(disableEndorsementChecking) == 0 || !disableEndorsementChecking[0] {
-			if par.Endorsements[i].Slot() < adjustedTs.Slot() {
+			if par.Endorsements[i].Slot() < adjustedTs.Slot {
 				return nil, fmt.Errorf("can't endorse transaction from another slot")
 			}
 		}
-		if par.Endorsements[i].Slot() > adjustedTs.Slot() {
+		if par.Endorsements[i].Slot() > adjustedTs.Slot {
 			// adjust timestamp to the endorsed slot
 			adjustedTs = ledger.NewLedgerTime(par.Endorsements[i].Slot(), 0)
 		}

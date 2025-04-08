@@ -3,6 +3,7 @@ package ledger
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,8 +18,6 @@ const (
 	OutputIDLength               = TransactionIDLength + 1
 	ChainIDLength                = 32
 	MaxOutputIndexPositionInTxID = 5
-
-	SequencerTxFlagHigherByte = byte(0b10000000)
 )
 
 type (
@@ -35,34 +34,28 @@ type (
 	// TransactionID :
 	// [0:5] - timestamp bytes
 	// [5:32] TransactionIDShort
+
+	// TransactionID is concatenation of <txid prefix> and TransactionIDShort
+	// <txid prefix> is 5 bytes prefix = tx timestamp 5 bytes with sequencer flag bit set in last bit of the last bytes
 	TransactionID [TransactionIDLength]byte
 	OutputID      [OutputIDLength]byte
 	// ChainID all-0 for origin
 	ChainID [ChainIDLength]byte
 )
 
+func NewTransactionID(ts Time, h TransactionIDShort, sequencerTxFlag bool) (ret TransactionID) {
+	copy(ret[:TimeByteLength], ts.Bytes())
+	copy(ret[TimeByteLength:], h[:])
+	if sequencerTxFlag {
+		ret[TickByteIndex] |= SequencerBitMaskInTick
+	}
+	return
+}
+
 func TransactionIDShortFromTxBytes(txBytes []byte, maxOutputIndex byte) (ret TransactionIDShort) {
 	h := blake2b.Sum256(txBytes)
 	ret[0] = maxOutputIndex
 	copy(ret[1:], h[:TransactionIDShortLength-1])
-	return
-}
-
-func NewTransactionID(ts Time, h TransactionIDShort, sequencerTxFlag bool) (ret TransactionID) {
-	if sequencerTxFlag {
-		ts[0] = ts[0] | SequencerTxFlagHigherByte
-	}
-	copy(ret[:TimeByteLength], ts[:])
-	copy(ret[TimeByteLength:], h[:])
-	return
-}
-
-// NewTransactionIDPrefix used for database iteration by prefix, i.e. all transaction IDs of specific slot
-func NewTransactionIDPrefix(slot Slot, sequencerTxFlag bool) (ret [4]byte) {
-	copy(ret[:], slot.Bytes())
-	if sequencerTxFlag {
-		ret[0] = ret[0] | SequencerTxFlagHigherByte
-	}
 	return
 }
 
@@ -121,21 +114,25 @@ func (txid *TransactionID) VeryShortID8() (ret TransactionIDVeryShort8) {
 }
 
 func (txid *TransactionID) Timestamp() (ret Time) {
-	copy(ret[:], txid[:TimeByteLength])
-	ret[0] &= ^SequencerTxFlagHigherByte // erase 1 most significant bit of the first byte
+	ret.Slot = txid.Slot()
+	ret.Tick = txid.Tick()
 	return
 }
 
 func (txid *TransactionID) Slot() Slot {
-	return txid.Timestamp().Slot()
+	return Slot(binary.BigEndian.Uint32(txid[:SlotByteLength]))
+}
+
+func (txid *TransactionID) Tick() Tick {
+	return Tick(txid[TickByteIndex] >> 1)
 }
 
 func (txid *TransactionID) IsSequencerMilestone() bool {
-	return txid[0]&SequencerTxFlagHigherByte != 0
+	return txid[TickByteIndex]&SequencerBitMaskInTick != 0
 }
 
 func (txid *TransactionID) IsBranchTransaction() bool {
-	return txid[0]&SequencerTxFlagHigherByte != 0 && txid[4] == 0
+	return txid.IsSequencerMilestone() && txid.Tick() == 0
 }
 
 func (txid *TransactionID) Bytes() []byte {
@@ -145,7 +142,7 @@ func (txid *TransactionID) Bytes() []byte {
 func timestampPrefixString(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
 	var s string
 	if seqMilestoneFlag {
-		if ts.Tick() == 0 {
+		if ts.Tick == 0 {
 			s = "br"
 		} else {
 			s = "sq"
@@ -160,7 +157,7 @@ func timestampPrefixString(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool
 func timestampPrefixStringAsFileName(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
 	var s string
 	if seqMilestoneFlag {
-		if ts.Tick() == 0 {
+		if ts.Tick == 0 {
 			s = "br"
 		} else {
 			s = "sq"
@@ -294,11 +291,11 @@ func OutputIDIndexFromBytes(data []byte) (ret byte, err error) {
 }
 
 func (oid *OutputID) IsSequencerTransaction() bool {
-	return oid[0]&SequencerTxFlagHigherByte != 0
+	return oid[TickByteIndex]&SequencerBitMaskInTick != 0
 }
 
 func (oid *OutputID) IsBranchTransaction() bool {
-	return oid[0]&SequencerTxFlagHigherByte != 0 && oid[4] == 0
+	return oid.IsSequencerTransaction() && oid[TickByteIndex]>>1 == 0
 }
 
 func (oid *OutputID) String() string {

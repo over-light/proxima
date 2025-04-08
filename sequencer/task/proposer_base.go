@@ -31,7 +31,7 @@ func baseProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		p.Log().Warnf("BaseProposer-%s: can't find own milestone output", p.Name)
 		return nil, true
 	}
-	if p.targetTs.IsSlotBoundary() && !extend.VID.IsBranchTransaction() && extend.VID.Slot()+1 != p.targetTs.Slot() {
+	if p.targetTs.IsSlotBoundary() && !extend.VID.IsBranchTransaction() && extend.VID.Slot()+1 != p.targetTs.Slot {
 		// latest output is beyond reach for the branch as next transaction
 		p.Tracef(TraceTagBaseProposerExit, "OUT base proposer %s: latest output is beyond reach: %s", p.Name, extend.IDStringShort())
 		return nil, true
@@ -49,7 +49,7 @@ func baseProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	if !p.targetTs.IsSlotBoundary() {
 		// target is not a branch target
 		p.Tracef(TraceTagBaseProposer, "%s target is not a branch target", p.Name)
-		if extend.Slot() != p.targetTs.Slot() {
+		if extend.Slot() != p.targetTs.Slot {
 			p.Tracef(TraceTagBaseProposerExit, "%s force exit: cross-slot %s", p.Name, extend.IDStringShort)
 			return nil, true
 		}

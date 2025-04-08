@@ -61,7 +61,7 @@ func displayBalanceTotals(outs []*ledger.OutputWithID, target ledger.Accountable
 			delegations[delegationID] = _delegation{
 				amount:     o.Output.Amount(),
 				inflation:  o.Output.Amount() - dl.StartAmount,
-				sinceSlot:  dl.StartTime.Slot(),
+				sinceSlot:  dl.StartTime.Slot,
 				lastActive: o.ID.Slot(),
 			}
 		}
@@ -92,7 +92,7 @@ func displayBalanceTotals(outs []*ledger.OutputWithID, target ledger.Accountable
 	for _, id := range ids {
 		d := delegations[id]
 
-		slots := ledger.TimeNow().Slot() - d.sinceSlot
+		slots := ledger.TimeNow().Slot - d.sinceSlot
 		perSlot := d.inflation / uint64(slots)
 		annualExtrapolationEarnings := uint64(ledger.L().ID.SlotsPerYear()) * perSlot
 		annualRate := 100 * float64(annualExtrapolationEarnings) / float64(d.amount-d.inflation)

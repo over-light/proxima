@@ -133,7 +133,7 @@ func BaseValidation() TxValidationOption {
 		if tx.timestamp, err = ledger.TimeFromBytes(tsBin); err != nil {
 			return err
 		}
-		if tx.sequencerMilestoneFlag && tx.timestamp.Tick() == 0 && outputIndexData[1] == 0xff {
+		if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
 			return fmt.Errorf("wrong stem output index")
 		}
 		totalAmountBin := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
@@ -208,7 +208,7 @@ func ScanSequencerData() TxValidationOption {
 		}
 
 		// ---  check stem output data
-		if tx.timestamp.Tick() != 0 {
+		if tx.timestamp.Tick != 0 {
 			// not a branch transaction
 			return nil
 		}
@@ -333,7 +333,7 @@ func CheckEndorsements() TxValidationOption {
 			return fmt.Errorf("non-sequencer tx can't contain endorsements: %s", tx.IDShortString())
 		}
 
-		txSlot := tx.Timestamp().Slot()
+		txSlot := tx.Timestamp().Slot
 		tx.ForEachEndorsement(func(_ byte, endorsedTxID ledger.TransactionID) bool {
 			if !endorsedTxID.IsSequencerMilestone() {
 				err = fmt.Errorf("tx %s contains endorsement of non-sequencer transaction: %s", tx.IDShortString(), endorsedTxID.StringShort())
@@ -432,7 +432,7 @@ func (tx *Transaction) IDStringHex() string {
 }
 
 func (tx *Transaction) Slot() ledger.Slot {
-	return tx.timestamp.Slot()
+	return tx.timestamp.Slot
 }
 
 func (tx *Transaction) Hash() ledger.TransactionIDShort {
@@ -449,7 +449,7 @@ func (tx *Transaction) IsSequencerMilestone() bool {
 }
 
 func (tx *Transaction) IsBranchTransaction() bool {
-	return tx.sequencerMilestoneFlag && tx.timestamp.Tick() == 0
+	return tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0
 }
 
 func (tx *Transaction) StemOutputData() *ledger.StemLock {

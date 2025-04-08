@@ -243,7 +243,7 @@ func NextOpenDelegationTimestamp(chainID ChainID, ts Time) (ret Time) {
 	if DiffTicks(ret, ts) < int64(DelegationLockPaceTicks()) {
 		ret = ts.AddTicks(int(DelegationLockPaceTicks()))
 	}
-	return NewLedgerTime(NextOpenDelegationSlot(chainID, ret.Slot()), ret.Tick())
+	return NewLedgerTime(NextOpenDelegationSlot(chainID, ret.Slot), ret.Tick)
 }
 
 func NextClosedDelegationSlot(chainID ChainID, slot Slot) Slot {
@@ -257,7 +257,7 @@ func NextClosedDelegationTimestamp(chainID ChainID, ts Time) (ret Time) {
 	if DiffTicks(ret, ts) < int64(DelegationLockPaceTicks()) {
 		ret = ts.AddTicks(int(DelegationLockPaceTicks()))
 	}
-	return NewLedgerTime(NextClosedDelegationSlot(chainID, ret.Slot()), ret.Tick())
+	return NewLedgerTime(NextClosedDelegationSlot(chainID, ret.Slot), ret.Tick)
 }
 
 var _delegationLockPace atomic.Uint64

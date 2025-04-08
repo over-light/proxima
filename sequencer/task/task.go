@@ -180,7 +180,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 	// check if newly generated non-branch transaction has coverage strongly bigger than previously generated
 	// non-branch transaction on the same slot
 	ownLatest := env.OwnLatestMilestoneOutput().VID
-	if !ownLatest.IsBranchTransaction() && ownLatest.Slot() == targetTs.Slot() && best.coverage <= ownLatest.GetLedgerCoverage() {
+	if !ownLatest.IsBranchTransaction() && ownLatest.Slot() == targetTs.Slot && best.coverage <= ownLatest.GetLedgerCoverage() {
 		return nil, nil, fmt.Errorf("%w (res: %s, best: %s, %s)",
 			ErrNotGoodEnough, util.Th(best.coverage), ownLatest.IDShortString(), util.Th(ownLatest.GetLedgerCoverage()))
 	}
@@ -284,7 +284,7 @@ func (t *taskData) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxIn
 		if !ok {
 			return true
 		}
-		if !ledger.IsOpenDelegationSlot(delegationID, a.TargetTs().Slot()) {
+		if !ledger.IsOpenDelegationSlot(delegationID, a.TargetTs().Slot) {
 			return true
 		}
 		if ledger.L().CalcChainInflationAmount(oid.Timestamp(), a.TargetTs(), o.Amount()) == 0 {
