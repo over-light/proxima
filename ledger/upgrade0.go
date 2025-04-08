@@ -301,6 +301,7 @@ func (lib *Library) upgrade0WithBaseConstants(id *IdentityData) {
 		libraryGlobal.MustError("mustValidTimeSlot(255)", "wrong slot data")
 		libraryGlobal.MustEqual("mustValidTimeSlot(u32/255)", Slot(255).Hex())
 		libraryGlobal.MustEqual("mustValidTimeTick(88)", "88")
+		libraryGlobal.MustError("mustValidTimeTick(200)", "'wrong ticks value'")
 		libraryGlobal.MustEqual("constAuxMinInflatableOnSlot0", "u64/30303030")
 	})
 }
