@@ -370,7 +370,7 @@ var upgrade0WithFunctions = []*easyfl.ExtendedFunctionData{
 		"@Path(pathToSeqAndStemOutputIndices), " +
 		"@Path(pathToInputCommitment), " +
 		"@Path(pathToEndorsements))"},
-	{"sequencerFlagON", "not(isZero(bitwiseAND(byte($0,0),0x80)))"},
+	{"sequencerFlagON", "not(isZero(bitwiseAND(byte($0,4),0x01)))"},
 	{"isSequencerTransaction", "not(equal(txSequencerOutputIndex, 0xff))"},
 	{"isBranchTransaction", "and(isSequencerTransaction, not(equal(txStemOutputIndex, 0xff)))"},
 	// endorsements

@@ -316,7 +316,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		const printTx = false
+		const printTx = true
 		if printTx {
 			t.Logf("----------- transaction ---------------\n%s",
 				transaction.LinesFromTransactionBytes(txBytes, loader).String())
@@ -404,8 +404,8 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 	t.Run("long", func(t *testing.T) {
 		//attacher.SetTraceOn()
 		const (
-			nConflicts = 2  // 5
-			howLong    = 64 // 65 violates pre-branch consolidation ticks
+			nConflicts = 5
+			howLong    = 30 // more violates pre-branch consolidation ticks
 		)
 		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong, true)
 		for _, txBytes := range testData.txBytesConflicting {
@@ -462,8 +462,8 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 	})
 	t.Run("long with sync", func(t *testing.T) {
 		const (
-			nConflicts = 2
-			howLong    = 64 // 65 violates pre-branch consolidation ticks
+			nConflicts = 5
+			howLong    = 30 // more violates pre-branch consolidation ticks
 		)
 		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong, true)
 		for _, txBytes := range testData.txBytesConflicting {
@@ -522,7 +522,6 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 	})
 }
 
-// FIXME
 func TestAttachConflictsNAttachersSeqStartTx(t *testing.T) {
 	//attacher.SetTraceOn()
 	const (
@@ -698,7 +697,7 @@ func TestAttachConflictsNAttachersOneForkBranches(t *testing.T) {
 	const (
 		nConflicts = 5  // 2
 		nChains    = 5  // 2
-		howLong    = 50 // 5 // 97 fails when crosses slot boundary
+		howLong    = 37 // more fails when crosses slot boundary
 		pullYN     = true
 	)
 
@@ -764,7 +763,7 @@ func TestAttachConflictsNAttachersOneForkBranchesConflict(t *testing.T) {
 	const (
 		nConflicts = 5
 		nChains    = 5
-		howLong    = 50 // 5 // 97 fails when crosses slot boundary
+		howLong    = 30 // 5 // 97 fails when crosses slot boundary
 		pullYN     = true
 	)
 
