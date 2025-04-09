@@ -954,3 +954,15 @@ func (tx *Transaction) LinesShort(prefix ...string) *lines.Lines {
 func (tx *Transaction) String() string {
 	return tx.LinesShort().String()
 }
+
+func LinesFromTransactionBytes(txBytes []byte, inputLoader func(i byte) (*ledger.Output, error), prefix ...string) *lines.Lines {
+	tx, err := FromBytes(txBytes)
+	if err != nil {
+		return lines.New(prefix...).Add("FromBytes returned: %v", err)
+	}
+	txCtx, err := TxContextFromTransaction(tx, inputLoader)
+	if err != nil {
+		return lines.New(prefix...).Add("TxContextFromTransaction returned: %v", err)
+	}
+	return txCtx.Lines(prefix...)
+}

@@ -48,7 +48,7 @@ func (w *workflowDummyEnvironment) TxBytesStore() global.TxBytesStore {
 	return w.txBytesStore
 }
 
-func (w *workflowDummyEnvironment) PullFromNPeers(nPeers int, txid ledger.TransactionID) int {
+func (w *workflowDummyEnvironment) PullFromNPeers(_ int, txid ledger.TransactionID) int {
 	w.Log().Warnf(">>>>>> PullFromNPeers not implemented: %s", txid.StringShort())
 	return 0
 }
@@ -97,15 +97,15 @@ func (p *workflowDummyEnvironment) LatestReliableState() (multistate.SugaredStat
 	return multistate.MakeSugared(multistate.MustNewReadable(p.stateStore, p.root, 0)), nil
 }
 
-func (p *workflowDummyEnvironment) CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int) {
+func (p *workflowDummyEnvironment) CheckTransactionInLRB(_ ledger.TransactionID, _ int) (lrbid ledger.TransactionID, foundAtDepth int) {
 	panic("not implemented")
 }
 
-func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(txid *ledger.TransactionID) vertex.TxIDStatusJSONAble {
+func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(_ *ledger.TransactionID) vertex.TxIDStatusJSONAble {
 	return vertex.TxIDStatusJSONAble{}
 }
 
-func (p *workflowDummyEnvironment) SubmitTxBytesFromAPI(txBytes []byte) {
+func (p *workflowDummyEnvironment) SubmitTxBytesFromAPI(_ []byte) {
 }
 
 func newWorkflowDummyEnvironment(stateStore multistate.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {
@@ -152,6 +152,7 @@ type workflowTestData struct {
 type longConflictTestData struct {
 	workflowTestData
 	txSequences     [][][]byte
+	txs             [][]*transaction.Transaction
 	terminalOutputs []*ledger.OutputWithID
 }
 
@@ -178,6 +179,11 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 		privKeyFaucet:  privKeys[2],
 		addrFaucet:     addrs[2],
 	}
+	t.Logf("genesis addr: %s", ledger.AddressED25519FromPrivateKey(ret.genesisPrivKey).String())
+	t.Logf("priv key addr: %s", ret.addr.String())
+	t.Logf("aux key addr: %s", ret.addrAux.String())
+	t.Logf("faucet addr: %s", ret.addrFaucet.String())
+
 	require.True(t, ledger.AddressED25519MatchesPrivateKey(ret.addr, ret.privKey))
 
 	stateStore := common.NewInMemoryKVStore()
@@ -286,7 +292,7 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 			},
 			ChainID: blake2b.Sum256(oid[:]),
 		}
-		td.t.Logf("chain origin %s : %s", oid.StringShort(), td.chainOrigins[idx].ChainID.String())
+		td.t.Logf("chain origin %s : %s, lock: %s", oid.StringShort(), td.chainOrigins[idx].ChainID.String(), td.chainOrigins[idx].Output.Lock().String())
 		return true
 	})
 }
@@ -314,7 +320,7 @@ func initWorkflowTestWithConflicts(t *testing.T, nConflicts int, nChains int, ta
 	ret.forkOutput, err = oDatas[0].Parse()
 	require.NoError(t, err)
 	require.EqualValues(t, initBalance, int(ret.forkOutput.Output.Amount()))
-	t.Logf("forked output id: %s", ret.forkOutput.IDShort())
+	t.Logf("forked output:\n%s", ret.forkOutput.Lines("      ").String())
 
 	oDatas, err = rdr.GetUTXOsInAccount(ret.addrAux.AccountID())
 	require.NoError(t, err)
@@ -458,7 +464,7 @@ func (td *longConflictTestData) makeSlotTransactions(howLongChain int, extendBeg
 	return ret
 }
 
-func (td *longConflictTestData) makeSlotTransactionsWithTagAlong(howLongChain int, extendBegin []*transaction.Transaction, inflate ...bool) [][]*transaction.Transaction {
+func (td *longConflictTestData) makeSlotTransactionsWithTagAlong(howLongChain int, extendBegin []*transaction.Transaction, _ ...bool) [][]*transaction.Transaction {
 	ret := make([][]*transaction.Transaction, len(extendBegin))
 	var extend *ledger.OutputWithChainID
 	var endorse ledger.TransactionID
@@ -578,11 +584,12 @@ func (td *workflowTestData) logDAGInfo(verbose ...bool) {
 	td.t.Logf("VERTICES in the latest slot %d\n%s", slot, td.wrk.LinesVerticesInSlotAndAfter(slot).String())
 }
 
-func initLongConflictTestData(t *testing.T, nConflicts int, nChains int, howLong int) *longConflictTestData {
+func initLongConflictTestData(t *testing.T, nConflicts int, nChains int, howLong int, chainTipToGenesisPrivKey ...bool) *longConflictTestData {
 	util.Assertf(nChains == 0 || nChains == nConflicts, "nChains == 0 || nChains == nConflicts")
 	ret := &longConflictTestData{
 		workflowTestData: *initWorkflowTestWithConflicts(t, nConflicts, nChains, false),
 		txSequences:      make([][][]byte, nConflicts),
+		txs:              make([][]*transaction.Transaction, nConflicts),
 		terminalOutputs:  make([]*ledger.OutputWithID, nConflicts),
 	}
 	ret.makeChainOrigins(nChains)
@@ -593,6 +600,7 @@ func initLongConflictTestData(t *testing.T, nConflicts int, nChains int, howLong
 
 	for seqNr, originOut := range ret.conflictingOutputs {
 		ret.txSequences[seqNr] = make([][]byte, howLong)
+		ret.txs[seqNr] = make([]*transaction.Transaction, howLong)
 		for i := 0; i < howLong; i++ {
 			if i == 0 {
 				prev = originOut
@@ -608,7 +616,11 @@ func initLongConflictTestData(t *testing.T, nConflicts int, nChains int, howLong
 				if nChains == 0 {
 					trd.WithTargetLock(ledger.ChainLockFromChainID(ret.bootstrapChainID))
 				} else {
-					trd.WithTargetLock(ledger.ChainLockFromChainID(ret.chainOrigins[seqNr%nChains].ChainID))
+					if i == howLong-1 && len(chainTipToGenesisPrivKey) > 0 && chainTipToGenesisPrivKey[0] {
+						trd.WithTargetLock(ledger.AddressED25519FromPrivateKey(td.genesisPrivKey))
+					} else {
+						trd.WithTargetLock(ledger.ChainLockFromChainID(ret.chainOrigins[seqNr%nChains].ChainID))
+					}
 				}
 			}
 			ret.txSequences[seqNr][i], err = txbuilder.MakeSimpleTransferTransaction(trd)
@@ -616,7 +628,7 @@ func initLongConflictTestData(t *testing.T, nConflicts int, nChains int, howLong
 
 			tx, err := transaction.FromBytesMainChecksWithOpt(ret.txSequences[seqNr][i])
 			require.NoError(t, err)
-
+			ret.txs[seqNr][i] = tx
 			prev = tx.MustProducedOutputWithIDAt(0)
 			if i == howLong-1 {
 				ret.terminalOutputs[seqNr] = prev
@@ -681,17 +693,17 @@ func (td *longConflictTestData) printTxIDs() {
 	td.t.Logf("Aux output: %s", td.auxOutput.ID.StringShort())
 	td.t.Logf("Conflicting outputs (%d):", len(td.conflictingOutputs))
 	for i, o := range td.conflictingOutputs {
-		td.t.Logf("%2d: conflicting chain start: %s", i, o.ID.StringShort())
-		for j, txBytes := range td.txSequences[i] {
-			txid, _, _ := transaction.IDAndTimestampFromTransactionBytes(txBytes)
-			td.t.Logf("      %2d : %s", j, txid.StringShort())
+		td.t.Logf("%2d: conflicting chain start:\n%s\n%s", i, o.ID.StringShort(), o.Output.Lines("  ").String())
+		for j := range td.txs[i] {
+			td.t.Logf("      %2d :%s", j, td.txs[i][j].IDShortString())
 		}
 	}
 	td.t.Logf("-------------- Sequencer chains-----------")
 	for i, seqChain := range td.seqChain {
 		td.t.Logf("seq chain #%d, len = %d", i, len(seqChain))
-		for j, tx := range seqChain {
-			td.t.Logf("       %2d : %s", j, tx.IDShortString())
+		for _, tx := range seqChain {
+			o := tx.MustProducedOutputAt(0)
+			td.t.Logf("       %s\n%s", tx.IDShortString(), o.Lines("  ").String())
 		}
 	}
 }
@@ -871,10 +883,6 @@ func (td *workflowTestData) startSequencersWithTimeout(maxSlots int, timeout ...
 		}
 		td.bootstrapSeq.Stop()
 	}()
-}
-
-func TestGenesisPrivKey() ed25519.PrivateKey {
-	return genesisPrivateKey
 }
 
 func StartTestEnv() (*workflowDummyEnvironment, *ledger.TransactionID, error) {
