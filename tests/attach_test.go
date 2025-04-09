@@ -332,7 +332,6 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		} else {
 			require.True(t, vertex.Good == vid.GetTxStatus())
 		}
-
 	})
 	t.Run("conflicting tx consumed", func(t *testing.T) {
 		//attacher.SetTraceOn()

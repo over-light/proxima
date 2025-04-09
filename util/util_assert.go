@@ -57,8 +57,9 @@ func IsNil(p interface{}) bool {
 func RequireErrorWith(t *testing.T, err error, fragments ...string) {
 	require.Error(t, err)
 	for _, f := range fragments {
-		if strings.Contains(err.Error(), f) {
-			require.Contains(t, err.Error(), f)
+		if !strings.Contains(err.Error(), f) {
+			t.Errorf("\n-------------- error does not contain required fragment -------------------\nERROR: %s\nREQUIRED FRAGMENT: '%s'", err.Error(), f)
+			return
 		}
 	}
 }
