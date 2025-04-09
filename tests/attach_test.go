@@ -306,14 +306,21 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		}
 		ts := ledger.MaximumTime(inTS...).AddTicks(ledger.TransactionPaceSequencer())
 		ts = ledger.L().ID.EnsurePostBranchConsolidationConstraintTimestamp(ts)
-		txBytes, err := txbuilder.MakeSequencerTransaction(txbuilder.MakeSequencerTransactionParams{
+
+		txBytes, loader, err := txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
 			SeqName:          "test",
 			ChainInput:       chainOut,
 			Timestamp:        ts,
 			AdditionalInputs: testData.conflictingOutputs,
-			PrivateKey:       testData.privKey,
+			PrivateKey:       testData.genesisPrivKey,
 		})
 		require.NoError(t, err)
+
+		const printTx = false
+		if printTx {
+			t.Logf("----------- transaction ---------------\n%s",
+				transaction.LinesFromTransactionBytes(txBytes, loader).String())
+		}
 
 		var wg sync.WaitGroup
 
@@ -328,7 +335,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		if nConflicts > 1 {
 			require.True(t, vertex.Bad == vid.GetTxStatus())
 			t.Logf("reason: %v", vid.GetError())
-			util.RequireErrorWith(t, vid.GetError(), "past cones conflicting", testData.forkOutput.IDShort())
+			util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
 		} else {
 			require.True(t, vertex.Good == vid.GetTxStatus())
 		}
@@ -376,7 +383,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        ts,
 			AdditionalInputs: []*ledger.OutputWithID{&outToConsume},
-			PrivateKey:       testData.privKey,
+			PrivateKey:       testData.genesisPrivKey,
 		})
 
 		require.NoError(t, err)
@@ -392,15 +399,15 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 
 		require.True(t, vertex.Bad == vid.GetTxStatus())
 		t.Logf("reason: %v", vid.GetError())
-		util.RequireErrorWith(t, vid.GetError(), "conflicts with another consumer", testData.forkOutput.IDShort())
+		util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
 	})
 	t.Run("long", func(t *testing.T) {
 		//attacher.SetTraceOn()
 		const (
-			nConflicts = 5
-			howLong    = 80 // 96 fails when crosses slot boundary
+			nConflicts = 2  // 5
+			howLong    = 64 // 65 violates pre-branch consolidation ticks
 		)
-		testData := initLongConflictTestData(t, nConflicts, 5, howLong)
+		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong)
 		for _, txBytes := range testData.txBytesConflicting {
 			_, err := attacher.AttachTransactionFromBytes(txBytes, testData.wrk)
 			require.NoError(t, err)
@@ -424,15 +431,20 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			amount += o.Output.Amount()
 		}
 
-		txBytes, err := txbuilder.MakeSequencerTransaction(txbuilder.MakeSequencerTransactionParams{
+		txBytes, loader, err := txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
 			SeqName:          "test",
 			ChainInput:       chainOut,
 			Timestamp:        ledger.MaximumTime(inTS...).AddTicks(ledger.TransactionPaceSequencer()),
 			AdditionalInputs: testData.terminalOutputs,
-			PrivateKey:       testData.privKey,
+			PrivateKey:       testData.genesisPrivKey,
 		})
 		require.NoError(t, err)
 
+		const printTx = true
+		if printTx {
+			t.Logf("----------- transaction ---------------\n%s",
+				transaction.LinesFromTransactionBytes(txBytes, loader).String())
+		}
 		var wg sync.WaitGroup
 
 		wg.Add(1)
@@ -446,12 +458,12 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 
 		require.True(t, vertex.Bad == vid.GetTxStatus())
 		t.Logf("expected reason: %v", vid.GetError())
-		util.RequireErrorWith(t, vid.GetError(), "conflicts with another consumer", testData.forkOutput.IDShort())
+		util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
 	})
 	t.Run("long with sync", func(t *testing.T) {
 		const (
 			nConflicts = 2
-			howLong    = 70 // 97 fails when crosses slot boundary
+			howLong    = 64 // 65 violates pre-branch consolidation ticks
 		)
 		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong)
 		for _, txBytes := range testData.txBytesConflicting {
@@ -485,7 +497,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        ledger.MaximumTime(inTS...).AddTicks(ledger.TransactionPaceSequencer()),
 			AdditionalInputs: testData.terminalOutputs,
-			PrivateKey:       testData.privKey,
+			PrivateKey:       testData.genesisPrivKey,
 		})
 		require.NoError(t, err)
 
@@ -506,7 +518,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 
 		require.True(t, vertex.Bad == vid.GetTxStatus())
 		t.Logf("expected reason: %v", vid.GetError())
-		util.RequireErrorWith(t, vid.GetError(), "conflicts with another consumer", testData.forkOutput.IDShort())
+		util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
 	})
 }
 

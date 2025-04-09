@@ -178,6 +178,11 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 		privKeyFaucet:  privKeys[2],
 		addrFaucet:     addrs[2],
 	}
+	t.Logf("genesis addr: %s", ledger.AddressED25519FromPrivateKey(ret.genesisPrivKey).String())
+	t.Logf("priv key addr: %s", ret.addr.String())
+	t.Logf("aux key addr: %s", ret.addrAux.String())
+	t.Logf("faucet addr: %s", ret.addrFaucet.String())
+
 	require.True(t, ledger.AddressED25519MatchesPrivateKey(ret.addr, ret.privKey))
 
 	stateStore := common.NewInMemoryKVStore()
@@ -286,7 +291,7 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 			},
 			ChainID: blake2b.Sum256(oid[:]),
 		}
-		td.t.Logf("chain origin %s : %s", oid.StringShort(), td.chainOrigins[idx].ChainID.String())
+		td.t.Logf("chain origin %s : %s, lock: %s", oid.StringShort(), td.chainOrigins[idx].ChainID.String(), td.chainOrigins[idx].Output.Lock().String())
 		return true
 	})
 }
@@ -314,7 +319,7 @@ func initWorkflowTestWithConflicts(t *testing.T, nConflicts int, nChains int, ta
 	ret.forkOutput, err = oDatas[0].Parse()
 	require.NoError(t, err)
 	require.EqualValues(t, initBalance, int(ret.forkOutput.Output.Amount()))
-	t.Logf("forked output id: %s", ret.forkOutput.IDShort())
+	t.Logf("forked output:\n%s", ret.forkOutput.Lines("      ").String())
 
 	oDatas, err = rdr.GetUTXOsInAccount(ret.addrAux.AccountID())
 	require.NoError(t, err)
@@ -608,7 +613,11 @@ func initLongConflictTestData(t *testing.T, nConflicts int, nChains int, howLong
 				if nChains == 0 {
 					trd.WithTargetLock(ledger.ChainLockFromChainID(ret.bootstrapChainID))
 				} else {
-					trd.WithTargetLock(ledger.ChainLockFromChainID(ret.chainOrigins[seqNr%nChains].ChainID))
+					if i == howLong-1 {
+						trd.WithTargetLock(ledger.AddressED25519FromPrivateKey(td.genesisPrivKey))
+					} else {
+						trd.WithTargetLock(ledger.ChainLockFromChainID(ret.chainOrigins[seqNr%nChains].ChainID))
+					}
 				}
 			}
 			ret.txSequences[seqNr][i], err = txbuilder.MakeSimpleTransferTransaction(trd)
