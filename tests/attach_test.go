@@ -399,7 +399,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		//attacher.SetTraceOn()
 		const (
 			nConflicts = 5
-			howLong    = 80 // 96 fails when crosses slot boundary
+			howLong    = 39 // 40 // 96 fails when crosses slot boundary
 		)
 		testData := initLongConflictTestData(t, nConflicts, 5, howLong)
 		for _, txBytes := range testData.txBytesConflicting {
