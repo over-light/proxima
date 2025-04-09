@@ -601,7 +601,6 @@ func TestAttachConflictsNAttachersSeqStartTxFee(t *testing.T) {
 	//testData.wrk.SaveGraph("utangle")
 }
 
-// TODO failing
 func TestAttachConflictsNAttachersOneFork(t *testing.T) {
 	const (
 		nConflicts = 5  // 2

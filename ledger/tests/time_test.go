@@ -87,10 +87,9 @@ func TestTime(t *testing.T) {
 	})
 	t.Run("7", func(t *testing.T) {
 		ts := ledger.NewLedgerTime(100, 99)
-		t.Logf("ts = %s", ts)
 		ts1 := ts.AddTicks(200)
-		t.Logf("ts1 = %s", ts1)
-		tsExpect := ledger.NewLedgerTime(101, 43)
+		t.Logf("%s + 200 = %s", ts, ts1)
+		tsExpect := ledger.NewLedgerTime(102, 43)
 		t.Logf("tsExpect = %s", tsExpect)
 		require.EqualValues(t, tsExpect, ts1)
 	})

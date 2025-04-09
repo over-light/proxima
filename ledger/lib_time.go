@@ -16,7 +16,7 @@ const (
 	TimeByteLength         = SlotByteLength + 1 // bytes
 	MaxSlot                = 0xffffffff         // 1 most significant bit must be 0
 	MaxTickValue           = 0x7f               // 127
-	MaxTime                = MaxSlot * TicksPerSlot
+	MaxTime                = MaxSlot*TicksPerSlot + MaxTickValue
 	TicksPerSlot           = MaxTickValue + 1
 )
 
@@ -102,10 +102,7 @@ func TimeFromTicksSinceGenesis(ticks int64) (ret Time, err error) {
 		err = fmt.Errorf("TimeFromTicksSinceGenesis: wrong int64")
 		return
 	}
-	ret = Time{
-		Slot: Slot(ticks / TicksPerSlot),
-		Tick: Tick(ticks % TicksPerSlot),
-	}
+	ret = NewLedgerTime(Slot(ticks/TicksPerSlot), Tick(ticks%TicksPerSlot))
 	return
 }
 

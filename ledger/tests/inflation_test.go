@@ -34,16 +34,16 @@ func TestInflation(t *testing.T) {
 		i := calc(ledger.T(0, 0), ledger.T(0, 1), ledger.DefaultInitialSupply)
 		require.EqualValues(t, ledger.L().ID.SlotInflationBase, i)
 
-		i = calc(ledger.T(0, 0), ledger.T(0, 100), ledger.DefaultInitialSupply)
+		i = calc(ledger.T(0, 0), ledger.T(0, 50), ledger.DefaultInitialSupply)
 		require.EqualValues(t, ledger.L().ID.SlotInflationBase, i)
 
-		i = calc(ledger.T(0, 0), ledger.T(0, 255), ledger.DefaultInitialSupply)
+		i = calc(ledger.T(0, 0), ledger.T(0, 127), ledger.DefaultInitialSupply)
 		require.EqualValues(t, ledger.L().ID.SlotInflationBase, i)
 
 		i = calc(ledger.T(0, 0), ledger.T(1, 0), ledger.DefaultInitialSupply)
 		require.EqualValues(t, 0, i)
 
-		i = calc(ledger.T(0, 1), ledger.T(0, 255), ledger.DefaultInitialSupply)
+		i = calc(ledger.T(0, 1), ledger.T(0, 127), ledger.DefaultInitialSupply)
 		require.EqualValues(t, 0, i)
 
 		i = calc(ledger.T(0, 1), ledger.T(1, 0), ledger.DefaultInitialSupply)
@@ -57,15 +57,14 @@ func TestInflation(t *testing.T) {
 			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 1), ledger.DefaultInitialSupply)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m, int(i))
 
-			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 255), ledger.DefaultInitialSupply)
+			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 127), ledger.DefaultInitialSupply)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m, i)
 
 			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 1), ledger.DefaultInitialSupply/100_000)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m/100_000, int(i))
 
-			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 255), ledger.DefaultInitialSupply/100_000)
+			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 127), ledger.DefaultInitialSupply/100_000)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m/100_000, i)
-
 		}
 	})
 }
