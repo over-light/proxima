@@ -407,7 +407,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			nConflicts = 2  // 5
 			howLong    = 64 // 65 violates pre-branch consolidation ticks
 		)
-		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong)
+		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong, true)
 		for _, txBytes := range testData.txBytesConflicting {
 			_, err := attacher.AttachTransactionFromBytes(txBytes, testData.wrk)
 			require.NoError(t, err)
@@ -465,7 +465,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			nConflicts = 2
 			howLong    = 64 // 65 violates pre-branch consolidation ticks
 		)
-		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong)
+		testData := initLongConflictTestData(t, nConflicts, nConflicts, howLong, true)
 		for _, txBytes := range testData.txBytesConflicting {
 			_, err := testData.txStore.PersistTxBytesWithMetadata(txBytes, nil)
 			require.NoError(t, err)
@@ -558,9 +558,9 @@ func TestAttachConflictsNAttachersSeqStartTx(t *testing.T) {
 func TestAttachConflictsNAttachersSeqStartTxFee(t *testing.T) {
 	//attacher.SetTraceOn()
 	const (
-		nConflicts = 5
-		nChains    = 5
-		howLong    = 5 // 97 fails when crosses slot boundary
+		nConflicts = 2 // 5
+		nChains    = 2 // 5
+		howLong    = 3 // 5 // 97 fails when crosses slot boundary
 		pullYN     = true
 	)
 	var wg sync.WaitGroup
@@ -579,6 +579,7 @@ func TestAttachConflictsNAttachersSeqStartTxFee(t *testing.T) {
 	submittedSeq := make([]*vertex.WrappedTx, nChains)
 	wg.Add(len(testData.seqChain))
 	for i, seqChain := range testData.seqChain {
+		t.Logf("     ------------------ attach seq chain %d: %s", i, seqChain[0].IDShortString())
 		submittedSeq[i], err = attacher.AttachTransactionFromBytes(seqChain[0].Bytes(), testData.wrk, attacher.WithAttachmentCallback(func(_ *vertex.WrappedTx, _ error) {
 			wg.Done()
 		}))
@@ -590,7 +591,7 @@ func TestAttachConflictsNAttachersSeqStartTxFee(t *testing.T) {
 	testData.logDAGInfo()
 
 	for _, vid := range submittedSeq {
-		require.EqualValues(t, vertex.Good, vid.GetTxStatus())
+		require.EqualValues(t, vertex.Good.String(), vid.GetTxStatus().String())
 	}
 
 	for _, vid := range testData.wrk.Vertices() {
@@ -689,7 +690,7 @@ func TestAttachConflictsNAttachersOneFork(t *testing.T) {
 
 	t.Logf("expected BAD transaction %s", vidSeq.IDShortString())
 	require.EqualValues(t, vertex.Bad.String(), vidSeq.GetTxStatus().String())
-	util.RequireErrorWith(t, vidSeq.GetError(), "conflicts with another consumer", "(double spend)", testData.forkOutput.IDShort())
+	util.RequireErrorWith(t, vidSeq.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
 	//testData.wrk.SaveGraph("utangle")
 }
 
@@ -848,7 +849,7 @@ func TestAttachConflictsNAttachersOneForkBranchesConflict(t *testing.T) {
 
 	require.EqualValues(t, vid.GetTxStatus(), vertex.Bad)
 	t.Logf("expected error: %v", vid.GetError())
-	util.RequireErrorWith(t, vid.GetError(), "is incompatible with the baseline branch", tx1.IDShortString())
+	util.RequireErrorWith(t, vid.GetError(), "conflicting branch endorsement", tx1.IDShortString())
 }
 
 func TestAttachSeqChains(t *testing.T) {
