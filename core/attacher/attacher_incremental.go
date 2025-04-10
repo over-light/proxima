@@ -20,14 +20,14 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 
 	for _, endorseVID := range endorse {
 		env.Assertf(endorseVID.IsSequencerMilestone(), "NewIncrementalAttacher: endorseVID.IsSequencerTransaction()")
-		env.Assertf(targetTs.Slot() == endorseVID.Slot(), "NewIncrementalAttacher: targetTs.Slot() == endorseVid.Slot()")
+		env.Assertf(targetTs.Slot == endorseVID.Slot(), "NewIncrementalAttacher: targetTs.Slot() == endorseVid.Slot()")
 		env.Assertf(ledger.ValidTransactionPace(endorseVID.Timestamp(), targetTs), "NewIncrementalAttacher: ledger.ValidTransactionPace(endorseVID.Timestamp(), targetTs)")
 	}
 	env.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). extend: %s, endorse: {%s}",
 		name, extend.IDStringShort, func() string { return vertex.VerticesLines(endorse).Join(",") })
 
 	var baselineDirection *vertex.WrappedTx
-	if targetTs.Tick() == 0 {
+	if targetTs.Tick == 0 {
 		// target is branch
 		env.Assertf(len(endorse) == 0, "NewIncrementalAttacher: len(endorse)==0")
 		if !extend.VID.IsSequencerMilestone() {
@@ -37,7 +37,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 		baselineDirection = extend.VID
 	} else {
 		// target is not branch
-		if extend.Slot() != targetTs.Slot() {
+		if extend.Slot() != targetTs.Slot {
 			// cross-slot, must have endorsement
 			if len(endorse) > 0 {
 				baselineDirection = endorse[0]

@@ -136,7 +136,7 @@ func BaseValidation() TxValidationOption {
 			return err
 		}
 		// validate stem output index. Must be 0xff if it is not a branch transaction
-		if tx.sequencerMilestoneFlag && tx.timestamp.Tick() == 0 && outputIndexData[1] == 0xff {
+		if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
 			return fmt.Errorf("wrong stem output index")
 		}
 		// parse total amount as uint68. Validity of sum is not checked here
@@ -215,7 +215,7 @@ func ParseSequencerData(tx *Transaction) error {
 	}
 
 	// ---  check stem output data
-	if tx.timestamp.Tick() != 0 {
+	if tx.timestamp.Tick != 0 {
 		// not a branch transaction
 		return nil
 	}
@@ -313,7 +313,6 @@ func ScanEndorsements(tx *Transaction) error {
 
 	unique := set.New[ledger.TransactionID]()
 	txTs := tx.Timestamp()
-	txSlot := txTs.Slot()
 
 	path := []byte{ledger.TxEndorsements, 0}
 	for i := 0; i < numEndorsements; i++ {
@@ -329,7 +328,7 @@ func ScanEndorsements(tx *Transaction) error {
 		}
 		unique.Insert(endorsementID)
 		// check cross-slot endorsements
-		if txSlot != endorsementID.Slot() {
+		if txTs.Slot != endorsementID.Slot() {
 			return fmt.Errorf("cross-slot endorsements are not allowed:  %s ->  %s", tx.IDShortString(), endorsementID.StringShort())
 		}
 		// check time pace
@@ -420,7 +419,7 @@ func (tx *Transaction) IDStringHex() string {
 }
 
 func (tx *Transaction) Slot() ledger.Slot {
-	return tx.timestamp.Slot()
+	return tx.timestamp.Slot
 }
 
 func (tx *Transaction) Hash() ledger.TransactionIDShort {
@@ -437,7 +436,7 @@ func (tx *Transaction) IsSequencerTransaction() bool {
 }
 
 func (tx *Transaction) IsBranchTransaction() bool {
-	return tx.sequencerMilestoneFlag && tx.timestamp.Tick() == 0
+	return tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0
 }
 
 func (tx *Transaction) StemOutputData() *ledger.StemLock {
