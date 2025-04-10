@@ -378,7 +378,7 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 	inputTxIDs := set.New[ledger.TransactionID]()
 	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
 		inputTxIDs.Insert(oid.TransactionID())
-		if tx.IsSequencerMilestone() {
+		if tx.IsSequencerTransaction() {
 			if *seqInputIdx == i {
 				seqTxID = oid.TransactionID()
 			}
@@ -394,7 +394,7 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		return ledger.LessTxID(txid1, txid2)
 	})
 
-	if tx.IsSequencerMilestone() {
+	if tx.IsSequencerTransaction() {
 		for i, txid := range sorted {
 			if txid == seqTxID {
 				ret.SequencerInputTxIndex = util.Ref(byte(i))
@@ -414,7 +414,7 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		return true
 	})
 
-	util.Assertf(!tx.IsSequencerMilestone() || ret.SequencerInputTxIndex != nil, "!tx.IsSequencerMilestone() || ret.SequencerInputTxIndex != nil")
+	util.Assertf(!tx.IsSequencerTransaction() || ret.SequencerInputTxIndex != nil, "!tx.IsSequencerTransaction() || ret.SequencerInputTxIndex != nil")
 	util.Assertf(!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil, "!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil")
 	return ret
 }

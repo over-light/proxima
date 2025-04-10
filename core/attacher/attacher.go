@@ -209,7 +209,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 					defined = true
 				}
 			case vertex.Good:
-				a.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerMilestone()")
+				a.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerTransaction()")
 				if !a.branchesCompatible(a.baseline, v.BaselineBranch) {
 					a.setError(fmt.Errorf("conflicting baseline of %s", vid.IDShortString()))
 					return
@@ -258,7 +258,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 // Otherwise, repetition reaches vertex.Bad vertex and exits
 // Returns OK (== not bad)
 func (a *attacher) attachVertexUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
-	a.Assertf(!v.Tx.IsSequencerMilestone() || a.baseline != nil, "!v.Tx.IsSequencerMilestone() || a.baseline != nil in %s", v.Tx.IDShortString)
+	a.Assertf(!v.Tx.IsSequencerTransaction() || a.baseline != nil, "!v.Tx.IsSequencerTransaction() || a.baseline != nil in %s", v.Tx.IDShortString)
 
 	if vidUnwrapped.GetTxStatusNoLock() == vertex.Bad {
 		a.setError(vidUnwrapped.GetErrorNoLock())
@@ -297,7 +297,7 @@ func (a *attacher) attachVertexUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.
 	if a.pastCone.Flags(vidUnwrapped).FlagsUp(vertex.FlagPastConeVertexInputsSolid) {
 		a.Assertf(a.allInputsDefined(v), "a.allInputsDefined(v)")
 
-		if !v.Tx.IsSequencerMilestone() {
+		if !v.Tx.IsSequencerTransaction() {
 			if !a.finalTouchNonSequencer(v, vidUnwrapped) {
 				a.Assertf(a.err != nil, "a.err!=nil")
 				return false

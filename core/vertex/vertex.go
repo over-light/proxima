@@ -168,7 +168,7 @@ func (v *Vertex) StemInputIndex() byte {
 }
 
 func (v *Vertex) SequencerInputIndex() byte {
-	util.Assertf(v.Tx.IsSequencerMilestone(), "sequencer milestone expected")
+	util.Assertf(v.Tx.IsSequencerTransaction(), "sequencer milestone expected")
 	return v.Tx.SequencerTransactionData().SequencerOutputData.ChainConstraint.PredecessorInputIndex
 }
 
@@ -216,7 +216,7 @@ func (v *DetachedVertex) Lines(prefix ...string) *lines.Lines {
 
 func (v *Vertex) Wrap() *WrappedTx {
 	var seqID *ledger.ChainID
-	if v.Tx.IsSequencerMilestone() {
+	if v.Tx.IsSequencerTransaction() {
 		seqID = util.Ref(v.Tx.SequencerTransactionData().SequencerID)
 	}
 	return _newVID(_vertex{Vertex: v}, v.Tx.ID(), seqID)

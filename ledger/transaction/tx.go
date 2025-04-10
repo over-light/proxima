@@ -23,7 +23,7 @@ import (
 type (
 	Transaction struct {
 		tree                     *lazybytes.Tree
-		txIDShort                ledger.TransactionIDShort
+		txid                     ledger.TransactionID
 		sequencerMilestoneFlag   bool
 		sender                   ledger.AddressED25519
 		timestamp                ledger.Time
@@ -46,14 +46,12 @@ type (
 
 // MainTxValidationOptions is all except Base, time bounds and input context validation
 var MainTxValidationOptions = []TxValidationOption{
-	ScanSequencerData(),
-	CheckSender(),
-	CheckNumElements(),
-	CheckTimePace(),
-	CheckEndorsements(),
-	CheckUniqueness(),
-	ScanOutputs(),
-	CheckSizeOfInputCommitment(),
+	ParseSequencerData,
+	CheckSender,
+	ScanInputs,
+	ScanEndorsements,
+	ScanOutputs,
+	CheckSizeOfInputCommitment,
 }
 
 func FromBytes(txBytes []byte, opt ...TxValidationOption) (*Transaction, error) {
@@ -119,15 +117,6 @@ func (tx *Transaction) SignatureBytes() []byte {
 	return tx.tree.BytesAtPath(Path(ledger.TxSignature))
 }
 
-func (tx *Transaction) ExplicitBaseline() (ledger.TransactionID, bool) {
-	if data := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline)); len(data) > 0 {
-		ret, err := ledger.TransactionIDFromBytes(data)
-		util.AssertNoError(err)
-		return ret, true
-	}
-	return ledger.TransactionID{}, false
-}
-
 // BaseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
 func BaseValidation() TxValidationOption {
 	return func(tx *Transaction) error {
@@ -135,34 +124,36 @@ func BaseValidation() TxValidationOption {
 		tsBin = tx.tree.BytesAtPath(Path(ledger.TxTimestamp))
 		var err error
 		outputIndexData := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
+
+		// check sequencer output index data. Enforce exactly 2 bytes
 		if len(outputIndexData) != 2 {
 			return fmt.Errorf("wrong sequencer output index data, must be 2 bytes")
 		}
+		// determine the sequencer flag
 		tx.sequencerMilestoneFlag = outputIndexData[0] != 0xff
+		// parse and validate timestamp
 		if tx.timestamp, err = ledger.TimeFromBytes(tsBin); err != nil {
 			return err
 		}
-		if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
+		// validate stem output index. Must be 0xff if it is not a branch transaction
+		if tx.sequencerMilestoneFlag && tx.timestamp.Tick() == 0 && outputIndexData[1] == 0xff {
 			return fmt.Errorf("wrong stem output index")
 		}
+		// parse total amount as uint68. Validity of sum is not checked here
 		totalAmountBin := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
 		if len(totalAmountBin) != 8 {
 			return fmt.Errorf("wrong total amount bytes, must be 8 bytes")
 		}
 		tx.totalAmount = binary.BigEndian.Uint64(totalAmountBin)
+
+		// check if number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
 		numProducedOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
 		if numProducedOutputs <= 0 || numProducedOutputs > 256 {
-			return fmt.Errorf("number of outputs can't be 0")
+			return fmt.Errorf("number of outputs must be positive and not exceed 256")
 		}
-		explicitBaselineData := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
-		if len(explicitBaselineData) > 0 {
-			_, err = ledger.TransactionIDFromBytes(explicitBaselineData)
-			if err != nil {
-				return fmt.Errorf("wrong explicit baseline: %w", err)
-			}
-		}
-		tx.txIDShort = ledger.TransactionIDShortFromTxBytes(tx.tree.Bytes(), byte(numProducedOutputs-1))
-
+		// parsing short txid. For full tx ID it will be concatenated with the
+		txidShort := ledger.TransactionIDShortFromTxBytes(tx.tree.Bytes(), byte(numProducedOutputs-1))
+		tx.txid = ledger.NewTransactionID(tx.timestamp, txidShort, tx.sequencerMilestoneFlag)
 		return nil
 	}
 }
@@ -186,223 +177,204 @@ func CheckTimestampUpperBound(upperBound time.Time) TxValidationOption {
 	}
 }
 
-func ScanSequencerData() TxValidationOption {
-	return func(tx *Transaction) error {
-		if !tx.sequencerMilestoneFlag {
-			return nil
-		}
-		outputIndexData := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
-		util.Assertf(len(outputIndexData) == 2, "len(outputIndexData) == 2")
-		sequencerOutputIndex, stemOutputIndex := outputIndexData[0], outputIndexData[1]
-
-		// -------------------- check sequencer output
-		if int(sequencerOutputIndex) >= tx.NumProducedOutputs() {
-			return fmt.Errorf("wrong sequencer output index")
-		}
-		out, err := tx.ProducedOutputWithIDAt(sequencerOutputIndex)
-		if err != nil {
-			return fmt.Errorf("ScanSequencerData: '%v' at produced output %d", err, sequencerOutputIndex)
-		}
-		seqOutputData, valid := out.Output.SequencerOutputData()
-		if !valid {
-			return fmt.Errorf("ScanSequencerData: invalid sequencer output data")
-		}
-
-		var sequencerID ledger.ChainID
-		if seqOutputData.ChainConstraint.IsOrigin() {
-			sequencerID = ledger.MakeOriginChainID(out.ID)
-		} else {
-			sequencerID = seqOutputData.ChainConstraint.ID
-		}
-
-		// it is a sequencer milestone transaction
-		tx.sequencerTransactionData = &SequencerTransactionData{
-			SequencerOutputData: seqOutputData,
-			SequencerID:         sequencerID,
-			StemOutputIndex:     stemOutputIndex,
-			StemOutputData:      nil,
-		}
-
-		// ---  check stem output data
-		if tx.timestamp.Tick != 0 {
-			// not a branch transaction
-			return nil
-		}
-		if stemOutputIndex == sequencerOutputIndex || int(stemOutputIndex) >= tx.NumProducedOutputs() {
-			return fmt.Errorf("ScanSequencerData: wrong stem output index")
-		}
-		outStem, err := tx.ProducedOutputWithIDAt(stemOutputIndex)
-		if err != nil {
-			return fmt.Errorf("ScanSequencerData stem: %v", err)
-		}
-		lock := outStem.Output.Lock()
-		if lock.Name() != ledger.StemLockName {
-			return fmt.Errorf("ScanSequencerData: not a stem lock")
-		}
-		tx.sequencerTransactionData.StemOutputData = lock.(*ledger.StemLock)
+// ParseSequencerData validates and parses sequencer data if relevant. Data is cached for frequent extraction
+func ParseSequencerData(tx *Transaction) error {
+	if !tx.sequencerMilestoneFlag {
 		return nil
 	}
-}
+	outputIndexData := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
+	util.Assertf(len(outputIndexData) == 2, "len(outputIndexData) == 2")
+	sequencerOutputIndex, stemOutputIndex := outputIndexData[0], outputIndexData[1]
 
-// CheckSender returns a signature validator. It also sets the sender field
-func CheckSender() TxValidationOption {
-	return func(tx *Transaction) error {
-		// mandatory sender signature
-		sigData := tx.SignatureBytes()
-		senderPubKey := ed25519.PublicKey(sigData[64:])
-		tx.sender = ledger.AddressED25519FromPublicKey(senderPubKey)
-		if !ed25519.Verify(senderPubKey, tx.EssenceBytes(), sigData[0:64]) {
-			return fmt.Errorf("invalid signature")
-		}
+	// check sequencer output
+	if int(sequencerOutputIndex) >= tx.NumProducedOutputs() {
+		return fmt.Errorf("wrong sequencer output index")
+	}
+	out, err := tx.ProducedOutputWithIDAt(sequencerOutputIndex)
+	if err != nil {
+		return fmt.Errorf("ParseSequencerData: '%v' at produced output %d", err, sequencerOutputIndex)
+	}
+	seqOutputData, valid := out.Output.SequencerOutputData()
+	if !valid {
+		return fmt.Errorf("ParseSequencerData: invalid sequencer output data")
+	}
+
+	var sequencerID ledger.ChainID
+	if seqOutputData.ChainConstraint.IsOrigin() {
+		sequencerID = ledger.MakeOriginChainID(out.ID)
+	} else {
+		sequencerID = seqOutputData.ChainConstraint.ID
+	}
+
+	// it is a sequencer milestone transaction
+	tx.sequencerTransactionData = &SequencerTransactionData{
+		SequencerOutputData: seqOutputData,
+		SequencerID:         sequencerID,
+		StemOutputIndex:     stemOutputIndex,
+		StemOutputData:      nil,
+	}
+
+	// ---  check stem output data
+	if tx.timestamp.Tick() != 0 {
+		// not a branch transaction
 		return nil
 	}
-}
-
-func CheckNumElements() TxValidationOption {
-	return func(tx *Transaction) error {
-		if tx.tree.NumElements(Path(ledger.TxOutputs)) <= 0 {
-			return fmt.Errorf("number of outputs can't be 0")
-		}
-
-		numInputs := tx.tree.NumElements(Path(ledger.TxInputIDs))
-		if numInputs <= 0 {
-			return fmt.Errorf("number of inputs can't be 0")
-		}
-
-		if numInputs != tx.tree.NumElements(Path(ledger.TxUnlockData)) {
-			return fmt.Errorf("number of unlock params must be equal to the number of inputs")
-		}
-
-		if tx.tree.NumElements(Path(ledger.TxEndorsements)) > int(ledger.L().ID.MaxNumberOfEndorsements) {
-			return fmt.Errorf("number of endorsements exceeds limit of %d", ledger.L().ID.MaxNumberOfEndorsements)
-		}
-		return nil
+	if stemOutputIndex == sequencerOutputIndex || int(stemOutputIndex) >= tx.NumProducedOutputs() {
+		return fmt.Errorf("ParseSequencerData: wrong stem output index")
 	}
-}
-
-func CheckUniqueness() TxValidationOption {
-	return func(tx *Transaction) error {
-		var err error
-		// check if inputs are unique
-		inps := set.New[ledger.OutputID]()
-		tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
-			if inps.Contains(oid) {
-				err = fmt.Errorf("repeating input @ %d", i)
-				return false
-			}
-			inps.Insert(oid)
-			return true
-		})
-		if err != nil {
-			return err
-		}
-
-		// check if endorsements are unique
-		endorsements := set.New[ledger.TransactionID]()
-		tx.ForEachEndorsement(func(i byte, txid ledger.TransactionID) bool {
-			if endorsements.Contains(txid) {
-				err = fmt.Errorf("repeating endorsement @ %d", i)
-				return false
-			}
-			endorsements.Insert(txid)
-			return true
-		})
-		if err != nil {
-			return err
-		}
-		return nil
+	outStem, err := tx.ProducedOutputWithIDAt(stemOutputIndex)
+	if err != nil {
+		return fmt.Errorf("ParseSequencerData stem: %v", err)
 	}
-}
-
-// CheckTimePace consumed outputs must satisfy time pace constraint
-func CheckTimePace() TxValidationOption {
-	return func(tx *Transaction) error {
-		var err error
-		ts := tx.Timestamp()
-		if tx.IsSequencerMilestone() {
-			tx.ForEachInput(func(_ byte, oid ledger.OutputID) bool {
-				if !ledger.ValidSequencerPace(oid.Timestamp(), ts) {
-					err = fmt.Errorf("timestamp of input violates sequencer time pace constraint: %s", oid.StringShort())
-					return false
-				}
-				return true
-			})
-		} else {
-			tx.ForEachInput(func(_ byte, oid ledger.OutputID) bool {
-				if !ledger.ValidTransactionPace(oid.Timestamp(), ts) {
-					err = fmt.Errorf("timestamp of input violates non-sequencer time pace constraint: %s", oid.StringShort())
-					return false
-				}
-				return true
-			})
-		}
-		return err
+	lock := outStem.Output.Lock()
+	if lock.Name() != ledger.StemLockName {
+		return fmt.Errorf("ParseSequencerData: not a stem lock")
 	}
+	tx.sequencerTransactionData.StemOutputData = lock.(*ledger.StemLock)
+	return nil
 }
 
-// CheckEndorsements endorsed transactions must be sequencer transaction from the current slot
-func CheckEndorsements() TxValidationOption {
-	return func(tx *Transaction) error {
-		var err error
-
-		if !tx.IsSequencerMilestone() && tx.NumEndorsements() > 0 {
-			return fmt.Errorf("non-sequencer tx can't contain endorsements: %s", tx.IDShortString())
-		}
-
-		txSlot := tx.Timestamp().Slot
-		tx.ForEachEndorsement(func(_ byte, endorsedTxID ledger.TransactionID) bool {
-			if !endorsedTxID.IsSequencerMilestone() {
-				err = fmt.Errorf("tx %s contains endorsement of non-sequencer transaction: %s", tx.IDShortString(), endorsedTxID.StringShort())
-				return false
-			}
-			if endorsedTxID.Slot() != txSlot {
-				err = fmt.Errorf("tx %s can't endorse tx from another slot: %s", tx.IDShortString(), endorsedTxID.StringShort())
-				return false
-			}
-			return true
-		})
-		return err
+// CheckSender parses and checks signature, sets the sender field
+func CheckSender(tx *Transaction) error {
+	// mandatory sender signature
+	sigData := tx.SignatureBytes()
+	senderPubKey := ed25519.PublicKey(sigData[64:])
+	tx.sender = ledger.AddressED25519FromPublicKey(senderPubKey)
+	if !ed25519.Verify(senderPubKey, tx.EssenceBytes(), sigData[0:64]) {
+		return fmt.Errorf("invalid signature")
 	}
+	return nil
 }
 
-// ScanOutputs validation option scans all inputs, enforces existence of mandatory constrains,
+// ScanInputs validation option scans all inputs, enforces existence of mandatory constrains,
 // computes total of outputs and total inflation
-func ScanOutputs() TxValidationOption {
-	return func(tx *Transaction) error {
-		numOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
-		var err error
-		var totalAmount uint64
-		var amount ledger.Amount
+func ScanInputs(tx *Transaction) error {
+	numInputs := tx.tree.NumElements(Path(ledger.TxInputIDs))
+	var err error
+	var oid ledger.OutputID
 
-		var o *ledger.Output
-		path := []byte{ledger.TxOutputs, 0}
-		for i := 0; i < numOutputs; i++ {
-			path[1] = byte(i)
-			o, amount, _, err = ledger.OutputFromBytesMain(tx.tree.BytesAtPath(path))
-			if err != nil {
-				return fmt.Errorf("scanning output #%d: '%v'", i, err)
-			}
-			if uint64(amount) > math.MaxUint64-totalAmount {
-				return fmt.Errorf("scanning output #%d: 'arithmetic overflow while calculating total of outputs'", i)
-			}
-			totalAmount += uint64(amount)
-			tx.totalInflation += o.Inflation()
-		}
-		if tx.totalAmount != totalAmount {
-			return fmt.Errorf("wrong total produced amount")
-		}
-		return nil
+	// enforce non-empty input set
+	if numInputs <= 0 {
+		return fmt.Errorf("number of inputs can't be 0")
 	}
+	// enforce exactly one unlock data for one input
+	if numInputs != tx.tree.NumElements(Path(ledger.TxUnlockData)) {
+		return fmt.Errorf("number of unlock datas must be equal to the number of inputs")
+	}
+
+	ts := tx.Timestamp()
+	isSequencer := tx.IsSequencerTransaction()
+	path := []byte{ledger.TxInputIDs, 0}
+	inps := set.New[ledger.OutputID]()
+
+	for i := 0; i < numInputs; i++ {
+		path[1] = byte(i)
+		// parse output ID
+		oid, err = ledger.OutputIDFromBytes(tx.tree.BytesAtPath(path))
+		if err != nil {
+			return fmt.Errorf("parsing input #%d: '%v'", i, err)
+		}
+		// check uniqueness
+		if inps.Contains(oid) {
+			return fmt.Errorf("repeating input #%d: %s", i, oid.StringShort())
+		}
+		inps.Insert(oid)
+		// check time pace constraint
+		if isSequencer {
+			if !ledger.ValidSequencerPace(oid.Timestamp(), ts) {
+				return fmt.Errorf("input #%d violates sequencer time pace constraint: %s", i, oid.StringShort())
+			}
+		} else {
+			if !ledger.ValidTransactionPace(oid.Timestamp(), ts) {
+				return fmt.Errorf("input #%d violates transaction time pace constraint: %s", i, oid.StringShort())
+			}
+		}
+	}
+	return nil
 }
 
-func CheckSizeOfInputCommitment() TxValidationOption {
-	return func(tx *Transaction) error {
-		data := tx.tree.BytesAtPath(Path(ledger.TxInputCommitment))
-		if len(data) != 32 {
-			return fmt.Errorf("input commitment must be 32-bytes long")
-		}
+// ScanEndorsements parses and checks validity of each endorsement
+func ScanEndorsements(tx *Transaction) error {
+	numEndorsements := tx.tree.NumElements(Path(ledger.TxEndorsements))
+	if numEndorsements == 0 {
 		return nil
 	}
+	// check max number of endorsements
+	if numEndorsements > int(ledger.L().ID.MaxNumberOfEndorsements) {
+		return fmt.Errorf("number of endorsements should not exceed %d", ledger.L().ID.MaxNumberOfEndorsements)
+	}
+	// enforce only sequencer transaction can endorse
+	if !tx.IsSequencerTransaction() {
+		return fmt.Errorf("non-sequencer transaction cannot contain endorsements")
+	}
+
+	var err error
+	var endorsementID ledger.TransactionID
+
+	unique := set.New[ledger.TransactionID]()
+	txTs := tx.Timestamp()
+	txSlot := txTs.Slot()
+
+	path := []byte{ledger.TxEndorsements, 0}
+	for i := 0; i < numEndorsements; i++ {
+		path[1] = byte(i)
+		// parse transaction ID
+		endorsementID, err = ledger.TransactionIDFromBytes(tx.tree.BytesAtPath(path))
+		if err != nil {
+			return fmt.Errorf("parsing endorsement #%d: '%v'", i, err)
+		}
+		// check uniqueness
+		if unique.Contains(endorsementID) {
+			return fmt.Errorf("repeating endorsement #%d: %s", i, endorsementID.StringShort())
+		}
+		unique.Insert(endorsementID)
+		// check cross-slot endorsements
+		if txSlot != endorsementID.Slot() {
+			return fmt.Errorf("cross-slot endorsements are not allowed:  %s ->  %s", tx.IDShortString(), endorsementID.StringShort())
+		}
+		// check time pace
+		if !ledger.ValidSequencerPace(endorsementID.Timestamp(), txTs) {
+			return fmt.Errorf("endorsement #%d violates sequencer time pace constraint: %s -> %s", i, txTs.String(), endorsementID.StringShort())
+		}
+	}
+	return nil
+}
+
+// ScanOutputs validation option scans all outputs, enforces existence of mandatory constrains,
+// computes total of outputs and total inflation
+func ScanOutputs(tx *Transaction) error {
+	numOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
+
+	var err error
+	var totalAmount uint64
+	var amount ledger.Amount
+
+	var o *ledger.Output
+	path := []byte{ledger.TxOutputs, 0}
+	for i := 0; i < numOutputs; i++ {
+		path[1] = byte(i)
+		o, amount, _, err = ledger.OutputFromBytesMain(tx.tree.BytesAtPath(path))
+		if err != nil {
+			return fmt.Errorf("scanning output #%d: '%v'", i, err)
+		}
+		if uint64(amount) > math.MaxUint64-totalAmount {
+			return fmt.Errorf("scanning output #%d: 'arithmetic overflow while calculating total of outputs'", i)
+		}
+		totalAmount += uint64(amount)
+		tx.totalInflation += o.Inflation()
+	}
+	if tx.totalAmount != totalAmount {
+		return fmt.Errorf("wrong total produced amount")
+	}
+	return nil
+}
+
+func CheckSizeOfInputCommitment(tx *Transaction) error {
+	data := tx.tree.BytesAtPath(Path(ledger.TxInputCommitment))
+	if len(data) != 32 {
+		return fmt.Errorf("input commitment must be 32-bytes long")
+	}
+	return nil
 }
 
 func ValidateOptionWithFullContext(inputLoaderByIndex func(i byte) (*ledger.Output, error)) TxValidationOption {
@@ -422,19 +394,24 @@ func ValidateOptionWithFullContext(inputLoaderByIndex func(i byte) (*ledger.Outp
 }
 
 func (tx *Transaction) ID() ledger.TransactionID {
-	return ledger.NewTransactionID(tx.timestamp, tx.txIDShort, tx.sequencerMilestoneFlag)
+	return tx.txid
+}
+
+func (tx *Transaction) IDRef() *ledger.TransactionID {
+	ret := tx.txid
+	return &ret
 }
 
 func (tx *Transaction) IDString() string {
-	return ledger.TransactionIDString(tx.timestamp, tx.txIDShort, tx.sequencerMilestoneFlag)
+	return ledger.TransactionIDString(tx.timestamp, tx.txid.ShortID(), tx.sequencerMilestoneFlag)
 }
 
 func (tx *Transaction) IDShortString() string {
-	return ledger.TransactionIDStringShort(tx.timestamp, tx.txIDShort, tx.sequencerMilestoneFlag)
+	return ledger.TransactionIDStringShort(tx.timestamp, tx.txid.ShortID(), tx.sequencerMilestoneFlag)
 }
 
 func (tx *Transaction) IDVeryShortString() string {
-	return ledger.TransactionIDStringVeryShort(tx.timestamp, tx.txIDShort, tx.sequencerMilestoneFlag)
+	return ledger.TransactionIDStringVeryShort(tx.timestamp, tx.txid.ShortID(), tx.sequencerMilestoneFlag)
 }
 
 func (tx *Transaction) IDStringHex() string {
@@ -443,11 +420,11 @@ func (tx *Transaction) IDStringHex() string {
 }
 
 func (tx *Transaction) Slot() ledger.Slot {
-	return tx.timestamp.Slot
+	return tx.timestamp.Slot()
 }
 
 func (tx *Transaction) Hash() ledger.TransactionIDShort {
-	return tx.txIDShort
+	return tx.txid.ShortID()
 }
 
 // SequencerTransactionData returns nil it is not a sequencer milestone
@@ -455,12 +432,12 @@ func (tx *Transaction) SequencerTransactionData() *SequencerTransactionData {
 	return tx.sequencerTransactionData
 }
 
-func (tx *Transaction) IsSequencerMilestone() bool {
+func (tx *Transaction) IsSequencerTransaction() bool {
 	return tx.sequencerMilestoneFlag
 }
 
 func (tx *Transaction) IsBranchTransaction() bool {
-	return tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0
+	return tx.sequencerMilestoneFlag && tx.timestamp.Tick() == 0
 }
 
 func (tx *Transaction) StemOutputData() *ledger.StemLock {
@@ -475,7 +452,7 @@ func (m *SequencerTransactionData) Short() string {
 }
 
 func (tx *Transaction) SequencerOutput() *ledger.OutputWithID {
-	util.Assertf(tx.IsSequencerMilestone(), "tx.IsSequencerMilestone()")
+	util.Assertf(tx.IsSequencerTransaction(), "tx.IsSequencerTransaction()")
 	return tx.MustProducedOutputWithIDAt(tx.SequencerTransactionData().SequencerOutputIndex)
 }
 
@@ -800,7 +777,7 @@ func (tx *Transaction) InputLoaderFromState(rdr multistate.StateReader) func(idx
 }
 
 func (tx *Transaction) SequencerAndStemInputData() (seqInputIdx *byte, stemInputIdx *byte, seqID *ledger.ChainID) {
-	if !tx.IsSequencerMilestone() {
+	if !tx.IsSequencerTransaction() {
 		return
 	}
 	seqMeta := tx.SequencerTransactionData()
@@ -935,7 +912,7 @@ func (tx *Transaction) LinesShort(prefix ...string) *lines.Lines {
 	ret.Add("Sender address: %s", tx.SenderAddress().String())
 	ret.Add("Total: %s", util.Th(tx.TotalAmount()))
 	ret.Add("Inflation: %s", util.Th(tx.InflationAmount()))
-	if tx.IsSequencerMilestone() {
+	if tx.IsSequencerTransaction() {
 		ret.Add("Sequencer output index: %d, Stem output index: %d", tx.sequencerTransactionData.SequencerOutputIndex, tx.sequencerTransactionData.StemOutputIndex)
 	}
 	ret.Add("Endorsements (%d):", tx.NumEndorsements())

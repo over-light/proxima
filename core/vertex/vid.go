@@ -77,7 +77,7 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 	_, isVirtualTx := vid._genericVertex.(_virtualTx)
 	util.Assertf(isVirtualTx, "ConvertVirtualTxToVertexNoLock: virtual tx target expected %s", vid.id.StringShort)
 	vid._put(_vertex{Vertex: v})
-	if v.Tx.IsSequencerMilestone() {
+	if v.Tx.IsSequencerTransaction() {
 		vid.SequencerID.Store(util.Ref(v.Tx.SequencerTransactionData().SequencerID))
 	}
 }
@@ -160,7 +160,7 @@ func (vid *WrappedTx) SetTxStatusGood(pastCone *PastConeBase, coverage uint64) {
 }
 
 func (vid *WrappedTx) SetSequencerAttachmentFinished() {
-	util.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerMilestone()")
+	util.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerTransaction()")
 
 	vid.mutex.Lock()
 	defer vid.mutex.Unlock()
@@ -367,7 +367,7 @@ func (vid *WrappedTx) MustSequencerIDAndStemID() (seqID ledger.ChainID, stemID l
 }
 
 func (vid *WrappedTx) SequencerWrappedOutput() (ret WrappedOutput) {
-	util.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerMilestone()")
+	util.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerTransaction()")
 
 	vid.RUnwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
@@ -1035,4 +1035,8 @@ func (vid *WrappedTx) DeepestPastConeReference(visited set.Set[*WrappedTx]) (ret
 		ret = retDep
 	}
 	return
+}
+
+func (vid *WrappedTx) ValidSequencerPace(targetTs ledger.Time) bool {
+	return ledger.ValidSequencerPace(vid.Timestamp(), targetTs)
 }
