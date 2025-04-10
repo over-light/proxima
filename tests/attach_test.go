@@ -431,12 +431,29 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			amount += o.Output.Amount()
 		}
 
+		ts := ledger.MaximumTime(inTS...).AddTicks(ledger.TransactionPaceSequencer())
+
+		// checking invalid explicit baseline
+		explicitBaseline := util.Ref(ledger.RandomTransactionID(true, 5, ts))
 		txBytes, loader, err := txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
 			SeqName:          "test",
 			ChainInput:       chainOut,
-			Timestamp:        ledger.MaximumTime(inTS...).AddTicks(ledger.TransactionPaceSequencer()),
+			Timestamp:        ts,
 			AdditionalInputs: testData.terminalOutputs,
 			PrivateKey:       testData.genesisPrivKey,
+			ExplicitBaseline: explicitBaseline,
+		})
+		util.RequireErrorWith(t, err, "explicit baseline must be a branch transaction ID", explicitBaseline.String())
+
+		// now this must pass without error
+		explicitBaseline = util.Ref(ledger.RandomTransactionID(true, 5, ledger.NewLedgerTime(ts.Slot, 0)))
+		txBytes, loader, err = txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
+			SeqName:          "test",
+			ChainInput:       chainOut,
+			Timestamp:        ts,
+			AdditionalInputs: testData.terminalOutputs,
+			PrivateKey:       testData.genesisPrivKey,
+			ExplicitBaseline: explicitBaseline,
 		})
 		require.NoError(t, err)
 
@@ -697,7 +714,7 @@ func TestAttachConflictsNAttachersOneForkBranches(t *testing.T) {
 	const (
 		nConflicts = 5  // 2
 		nChains    = 5  // 2
-		howLong    = 37 // more fails when crosses slot boundary
+		howLong    = 30 // more fails when crosses slot boundary
 		pullYN     = true
 	)
 

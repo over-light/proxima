@@ -36,6 +36,7 @@ type (
 		Timestamp            ledger.Time
 		InputCommitment      [32]byte
 		Endorsements         []ledger.TransactionID
+		ExplicitBaseline     *ledger.TransactionID
 		LocalLibraries       [][]byte
 	}
 
@@ -138,6 +139,10 @@ func (txb *TransactionBuilder) PushEndorsements(txid ...ledger.TransactionID) {
 	txb.TransactionData.Endorsements = append(txb.TransactionData.Endorsements, txid...)
 }
 
+func (txb *TransactionBuilder) PutExplicitBaseline(txid *ledger.TransactionID) {
+	txb.TransactionData.ExplicitBaseline = txid
+}
+
 func (txb *TransactionBuilder) ProduceOutput(o *ledger.Output) (byte, error) {
 	if !o.EnoughAmountForStorageDeposit() {
 		return 0, fmt.Errorf("not enough tokens for storage deposit: %d", o.Amount())
@@ -213,6 +218,10 @@ func (tx *transactionData) ToArray() *lazybytes.Array {
 	inputIDs := lazybytes.EmptyArray(256)
 	outputs := lazybytes.EmptyArray(256)
 	endorsements := lazybytes.EmptyArray(256)
+	var explicitBaseline []byte
+	if tx.ExplicitBaseline != nil {
+		explicitBaseline = tx.ExplicitBaseline[:]
+	}
 
 	for _, b := range tx.UnlockBlocks {
 		unlockParams.Push(b.Bytes())
@@ -244,6 +253,7 @@ func (tx *transactionData) ToArray() *lazybytes.Array {
 	elems[ledger.TxTotalProducedAmount] = totalBin[:]
 	elems[ledger.TxInputCommitment] = tx.InputCommitment[:]
 	elems[ledger.TxEndorsements] = endorsements
+	elems[ledger.TxExplicitBaseline] = explicitBaseline
 	elems[ledger.TxLocalLibraries] = lazybytes.MakeArrayFromDataReadOnly(tx.LocalLibraries...)
 	return lazybytes.MakeArrayReadOnly(elems...)
 }
@@ -281,6 +291,7 @@ type (
 		MarkAsSequencerTx bool
 		UnlockData        []*UnlockData
 		Endorsements      []ledger.TransactionID
+		ExplicitBaseline  *ledger.TransactionID
 		TagAlong          *TagAlongData
 	}
 
@@ -850,7 +861,7 @@ func GetChainAccount(chainID ledger.ChainID, srdr multistate.IndexedStateReader,
 
 // InsertSimpleChainTransition inserts a simple chain transition (surprise, surprise). Takes output with chain constraint from parameters,
 // Produces identical output, only modifies timestamp. Unlocks chain-input lock with signature reference
-func (txb *TransactionBuilder) InsertSimpleChainTransition(inChainData *ledger.OutputDataWithChainID, ts ledger.Time) error {
+func (txb *TransactionBuilder) InsertSimpleChainTransition(inChainData *ledger.OutputDataWithChainID, _ ledger.Time) error {
 	chainIN, err := ledger.OutputFromBytesReadOnly(inChainData.Data)
 	if err != nil {
 		return err

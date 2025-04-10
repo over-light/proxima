@@ -122,6 +122,16 @@ func (ctx *TxContext) InputCommitment() []byte {
 	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxInputCommitment))
 }
 
+func (ctx *TxContext) ExplicitBaseline() (ledger.TransactionID, bool) {
+	data := ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxExplicitBaseline))
+	if len(data) == 0 {
+		return ledger.TransactionID{}, false
+	}
+	ret, err := ledger.TransactionIDFromBytes(data)
+	util.AssertNoError(err)
+	return ret, true
+}
+
 func (ctx *TxContext) Signature() []byte {
 	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxSignature))
 }

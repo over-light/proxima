@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/yoseplee/vrf"
@@ -33,6 +34,8 @@ type MakeSequencerTransactionParams struct {
 	DelegationInflationMarginPromille int
 	// Endorsements
 	Endorsements []ledger.TransactionID
+	// ExplicitBaseline or nil if none
+	ExplicitBaseline *ledger.TransactionID
 	// chain controller
 	PrivateKey ed25519.PrivateKey
 	// InflateMainChain if true, calculates maximum inflation possible on main chain transition
@@ -75,9 +78,6 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	if err != nil {
 		return nil, nil, errP(fmt.Errorf("error while creating delegation transition: %w", err))
 	}
-	//fmt.Printf(">>>>>>>>>> delegationTotalIn, delegationTotalOut, delegationMargin == %s, %s, %s\n",
-	//	util.Th(delegationTotalIn), util.Th(delegationTotalOut), util.Th(delegationMargin),
-	//)
 	util.Assertf(delegationTotalIn <= delegationTotalOut+delegationMargin, "delegationTotalIn<=delegationTotalOut+delegationMargin")
 	delegationInflation := delegationTotalOut - delegationTotalIn + delegationMargin
 
@@ -278,13 +278,20 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		return nil, nil, errP(err)
 	}
 	txb.PushEndorsements(par.Endorsements...)
+	txb.PutExplicitBaseline(par.ExplicitBaseline)
 	txb.TransactionData.Timestamp = par.Timestamp
 	txb.TransactionData.SequencerOutputIndex = chainOutIndex
 	txb.TransactionData.StemOutputIndex = stemOutputIndex
 	txb.TransactionData.InputCommitment = txb.InputCommitment()
 	txb.SignED25519(par.PrivateKey)
 
-	return txb.TransactionData.Bytes(), txb.LoadInput, nil
+	txBytes := txb.TransactionData.Bytes()
+
+	if err = transaction.ValidateTxBytes(txBytes, txb.LoadInput); err != nil {
+		return nil, nil, errP("MakeSequencerTransaction: failed validate txBytes: %v", err)
+	}
+
+	return txBytes, txb.LoadInput, nil
 }
 
 func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, targetTs ledger.Time, delegationMarginPromille int) (

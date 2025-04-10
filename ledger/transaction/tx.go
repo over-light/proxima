@@ -44,18 +44,19 @@ type (
 	}
 )
 
-// MainTxValidationOptions is all except Base, time bounds and input context validation
+// MainTxValidationOptions is all except Base, time bounds and input context validation. Fastest first
 var MainTxValidationOptions = []TxValidationOption{
 	ParseSequencerData,
+	CheckExplicitBaseline,
+	CheckSizeOfInputCommitment,
 	CheckSender,
 	ScanInputs,
 	ScanEndorsements,
 	ScanOutputs,
-	CheckSizeOfInputCommitment,
 }
 
 func FromBytes(txBytes []byte, opt ...TxValidationOption) (*Transaction, error) {
-	ret, err := transactionFromBytes(txBytes, BaseValidation())
+	ret, err := transactionFromBytes(txBytes, BaseValidation)
 	if err != nil {
 		return nil, fmt.Errorf("transaction.FromBytes: basic parse failed: '%v'", err)
 	}
@@ -118,44 +119,42 @@ func (tx *Transaction) SignatureBytes() []byte {
 }
 
 // BaseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
-func BaseValidation() TxValidationOption {
-	return func(tx *Transaction) error {
-		var tsBin []byte
-		tsBin = tx.tree.BytesAtPath(Path(ledger.TxTimestamp))
-		var err error
-		outputIndexData := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
+func BaseValidation(tx *Transaction) error {
+	var tsBin []byte
+	tsBin = tx.tree.BytesAtPath(Path(ledger.TxTimestamp))
+	var err error
+	outputIndexData := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
 
-		// check sequencer output index data. Enforce exactly 2 bytes
-		if len(outputIndexData) != 2 {
-			return fmt.Errorf("wrong sequencer output index data, must be 2 bytes")
-		}
-		// determine the sequencer flag
-		tx.sequencerMilestoneFlag = outputIndexData[0] != 0xff
-		// parse and validate timestamp
-		if tx.timestamp, err = ledger.TimeFromBytes(tsBin); err != nil {
-			return err
-		}
-		// validate stem output index. Must be 0xff if it is not a branch transaction
-		if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
-			return fmt.Errorf("wrong stem output index")
-		}
-		// parse total amount as uint68. Validity of sum is not checked here
-		totalAmountBin := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
-		if len(totalAmountBin) != 8 {
-			return fmt.Errorf("wrong total amount bytes, must be 8 bytes")
-		}
-		tx.totalAmount = binary.BigEndian.Uint64(totalAmountBin)
-
-		// check if number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
-		numProducedOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
-		if numProducedOutputs <= 0 || numProducedOutputs > 256 {
-			return fmt.Errorf("number of outputs must be positive and not exceed 256")
-		}
-		// parsing short txid. For full tx ID it will be concatenated with the
-		txidShort := ledger.TransactionIDShortFromTxBytes(tx.tree.Bytes(), byte(numProducedOutputs-1))
-		tx.txid = ledger.NewTransactionID(tx.timestamp, txidShort, tx.sequencerMilestoneFlag)
-		return nil
+	// check sequencer output index data. Enforce exactly 2 bytes
+	if len(outputIndexData) != 2 {
+		return fmt.Errorf("wrong sequencer output index data, must be 2 bytes")
 	}
+	// determine the sequencer flag
+	tx.sequencerMilestoneFlag = outputIndexData[0] != 0xff
+	// parse and validate timestamp
+	if tx.timestamp, err = ledger.TimeFromBytes(tsBin); err != nil {
+		return err
+	}
+	// validate stem output index. Must be 0xff if it is not a branch transaction
+	if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
+		return fmt.Errorf("wrong stem output index")
+	}
+	// parse total amount as uint68. Validity of sum is not checked here
+	totalAmountBin := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
+	if len(totalAmountBin) != 8 {
+		return fmt.Errorf("wrong total amount bytes, must be 8 bytes")
+	}
+	tx.totalAmount = binary.BigEndian.Uint64(totalAmountBin)
+
+	// check if number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
+	numProducedOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
+	if numProducedOutputs <= 0 || numProducedOutputs > 256 {
+		return fmt.Errorf("number of outputs must be positive and not exceed 256")
+	}
+	// parsing short txid. For full tx ID it will be concatenated with the
+	txidShort := ledger.TransactionIDShortFromTxBytes(tx.tree.Bytes(), byte(numProducedOutputs-1))
+	tx.txid = ledger.NewTransactionID(tx.timestamp, txidShort, tx.sequencerMilestoneFlag)
+	return nil
 }
 
 func CheckTimestampLowerBound(lowerBound time.Time) TxValidationOption {
@@ -375,6 +374,26 @@ func CheckSizeOfInputCommitment(tx *Transaction) error {
 	}
 	return nil
 }
+func CheckExplicitBaseline(tx *Transaction) error {
+	data := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
+	if len(data) == 0 {
+		return nil
+	}
+	if !tx.IsSequencerTransaction() {
+		return fmt.Errorf("checking explicit baseline: can't only be set on a sequencer transaction")
+	}
+	txid, err := ledger.TransactionIDFromBytes(data)
+	if err != nil {
+		return fmt.Errorf("checking explicit baseline: %v", err)
+	}
+	if !txid.IsBranchTransaction() {
+		return fmt.Errorf("explicit baseline must be a branch transaction ID, got %s", txid.String())
+	}
+	if !ledger.ValidSequencerPace(txid.Timestamp(), tx.timestamp) {
+		return fmt.Errorf("explicit baseline violates sequencer pace constraint: %s", txid.String())
+	}
+	return nil
+}
 
 func ValidateOptionWithFullContext(inputLoaderByIndex func(i byte) (*ledger.Output, error)) TxValidationOption {
 	return func(tx *Transaction) error {
@@ -394,11 +413,6 @@ func ValidateOptionWithFullContext(inputLoaderByIndex func(i byte) (*ledger.Outp
 
 func (tx *Transaction) ID() ledger.TransactionID {
 	return tx.txid
-}
-
-func (tx *Transaction) IDRef() *ledger.TransactionID {
-	ret := tx.txid
-	return &ret
 }
 
 func (tx *Transaction) IDString() string {

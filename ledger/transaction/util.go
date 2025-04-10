@@ -61,6 +61,10 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 		ret.Add("     ED25519 sender address: %s", easyfl.Fmt(sender[:]))
 	}
 
+	if explicitBaseline, ok := ctx.ExplicitBaseline(); ok {
+		ret.Add("Explicit baseline: %s", explicitBaseline.String())
+	}
+
 	ret.Add("Endorsements (%d):", ctx.NumEndorsements())
 	ctx.ForEachEndorsement(func(idx byte, txid *ledger.TransactionID) bool {
 		ret.Add("  %d: %s", idx, txid.String())
@@ -136,4 +140,16 @@ func PickOutputFromListFunc(lst []*ledger.OutputWithID) func(oid ledger.OutputID
 		}
 		return lst[idx].Output.Bytes(), true
 	}
+}
+
+func ValidateTxBytes(txBytes []byte, loadInput func(i byte) (*ledger.Output, error)) error {
+	tx, err := FromBytes(txBytes, MainTxValidationOptions...)
+	if err != nil {
+		return err
+	}
+	ctx, err := TxContextFromTransaction(tx, loadInput)
+	if err != nil {
+		return err
+	}
+	return ctx.Validate()
 }
