@@ -134,7 +134,7 @@ func (srv *server) parseOutput(w http.ResponseWriter, r *http.Request) {
 	if cc, pos := o.ChainConstraint(); pos != 0xff {
 		var chainID ledger.ChainID
 		if cc.IsOrigin() {
-			chainID = ledger.MakeOriginChainID(&oid)
+			chainID = ledger.MakeOriginChainID(oid)
 		} else {
 			chainID = cc.ID
 		}
