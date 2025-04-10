@@ -269,7 +269,7 @@ func (id *IdentityData) TicksPerYear() int {
 
 func (id *IdentityData) OriginChainID() ChainID {
 	oid := GenesisOutputID()
-	return MakeOriginChainID(&oid)
+	return MakeOriginChainID(oid)
 }
 
 func (id *IdentityData) IsPreBranchConsolidationTimestamp(ts Time) bool {

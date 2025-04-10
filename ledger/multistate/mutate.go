@@ -45,7 +45,7 @@ type (
 )
 
 func (m *mutationDelOutput) mutate(trie *immutable.TrieUpdatable) error {
-	return deleteOutputFromTrie(trie, &m.ID)
+	return deleteOutputFromTrie(trie, m.ID)
 }
 
 func (m *mutationDelOutput) text() string {
@@ -61,7 +61,7 @@ func (m *mutationDelOutput) timestamp() ledger.Time {
 }
 
 func (m *mutationAddOutput) mutate(trie *immutable.TrieUpdatable) error {
-	return addOutputToTrie(trie, &m.ID, m.Output)
+	return addOutputToTrie(trie, m.ID, m.Output)
 }
 
 func (m *mutationAddOutput) text() string {
@@ -166,7 +166,7 @@ func (mut *Mutations) Lines(prefix ...string) *lines.Lines {
 	return ret
 }
 
-func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid *ledger.OutputID) error {
+func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID) error {
 	var stateKey [1 + ledger.OutputIDLength]byte
 	stateKey[0] = TriePartitionLedgerState
 	copy(stateKey[1:], oid[:])
@@ -191,7 +191,7 @@ func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid *ledger.OutputID) e
 	return nil
 }
 
-func addOutputToTrie(trie *immutable.TrieUpdatable, oid *ledger.OutputID, out *ledger.Output) error {
+func addOutputToTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID, out *ledger.Output) error {
 	var stateKey [1 + ledger.OutputIDLength]byte
 	stateKey[0] = TriePartitionLedgerState
 	copy(stateKey[1:], oid[:])
@@ -268,7 +268,7 @@ func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID ledger.ChainID) 
 	return nil
 }
 
-func makeAccountKey(id ledger.AccountID, oid *ledger.OutputID) []byte {
+func makeAccountKey(id ledger.AccountID, oid ledger.OutputID) []byte {
 	return common.Concat([]byte{TriePartitionAccounts, byte(len(id))}, id[:], oid[:])
 }
 

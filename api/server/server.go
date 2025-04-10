@@ -425,7 +425,7 @@ func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 
 	resp := &api.ChainOutput{}
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
-		o, err1 := rdr.GetChainOutput(&chainID)
+		o, err1 := rdr.GetChainOutput(chainID)
 		if err1 != nil {
 			return err1
 		}
@@ -510,7 +510,7 @@ func (srv *server) getOutput(w http.ResponseWriter, r *http.Request) {
 
 	resp := &api.OutputData{}
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
-		oData, found := rdr.GetUTXO(&oid)
+		oData, found := rdr.GetUTXO(oid)
 		if !found {
 			return errors.New(api.ErrGetOutputNotFound)
 		}

@@ -126,7 +126,7 @@ func (v *VirtualTransaction) sequencerID(txid ledger.TransactionID) (ret *ledger
 		idData := seqOData.ChainConstraint.ID
 		if idData == ledger.NilChainID {
 			oid := ledger.MustNewOutputID(txid, v.sequencerOutputIndices[0])
-			ret = util.Ref(ledger.MakeOriginChainID(&oid))
+			ret = util.Ref(ledger.MakeOriginChainID(oid))
 		} else {
 			ret = util.Ref(idData)
 		}

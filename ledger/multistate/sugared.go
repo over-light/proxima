@@ -34,7 +34,7 @@ func MustNewSugaredReadableState(store common.KVReader, root common.VCommitment,
 	return ret
 }
 
-func (s SugaredStateReader) GetOutputWithID(oid *ledger.OutputID) (*ledger.OutputWithID, error) {
+func (s SugaredStateReader) GetOutputWithID(oid ledger.OutputID) (*ledger.OutputWithID, error) {
 	oData, found := s.IndexedStateReader.GetUTXO(oid)
 	if !found {
 		return nil, ErrNotFound
@@ -45,12 +45,12 @@ func (s SugaredStateReader) GetOutputWithID(oid *ledger.OutputID) (*ledger.Outpu
 	}
 
 	return &ledger.OutputWithID{
-		ID:     *oid,
+		ID:     oid,
 		Output: ret,
 	}, nil
 }
 
-func (s SugaredStateReader) GetOutputErr(oid *ledger.OutputID) (*ledger.Output, error) {
+func (s SugaredStateReader) GetOutputErr(oid ledger.OutputID) (*ledger.Output, error) {
 	oData, found := s.IndexedStateReader.GetUTXO(oid)
 	if !found {
 		return nil, ErrNotFound
@@ -64,7 +64,7 @@ func (s SugaredStateReader) GetOutputErr(oid *ledger.OutputID) (*ledger.Output, 
 
 // GetOutput retrieves and parses output.
 // Warning: do not use in iteration bodies because of mutex lock
-func (s SugaredStateReader) GetOutput(oid *ledger.OutputID) *ledger.Output {
+func (s SugaredStateReader) GetOutput(oid ledger.OutputID) *ledger.Output {
 	ret, err := s.GetOutputErr(oid)
 	if err == nil {
 		return ret
@@ -73,7 +73,7 @@ func (s SugaredStateReader) GetOutput(oid *ledger.OutputID) *ledger.Output {
 	return nil
 }
 
-func (s SugaredStateReader) MustGetOutputWithID(oid *ledger.OutputID) *ledger.OutputWithID {
+func (s SugaredStateReader) MustGetOutputWithID(oid ledger.OutputID) *ledger.OutputWithID {
 	ret, err := s.GetOutputWithID(oid)
 	util.AssertNoError(err)
 	return ret
@@ -111,7 +111,7 @@ func (s SugaredStateReader) GetStemOutput() *ledger.OutputWithID {
 	return ret
 }
 
-func (s SugaredStateReader) GetChainOutput(chainID *ledger.ChainID) (*ledger.OutputWithID, error) {
+func (s SugaredStateReader) GetChainOutput(chainID ledger.ChainID) (*ledger.OutputWithID, error) {
 	oData, err := s.IndexedStateReader.GetUTXOForChainID(chainID)
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (s SugaredStateReader) GetChainOutput(chainID *ledger.ChainID) (*ledger.Out
 
 // GetChainTips return chain output and, if relevant, stem output for the chain id.
 // The stem output is nil if sequencer output is not in the branch
-func (s SugaredStateReader) GetChainTips(chainID *ledger.ChainID) (*ledger.OutputWithID, *ledger.OutputWithID, error) {
+func (s SugaredStateReader) GetChainTips(chainID ledger.ChainID) (*ledger.OutputWithID, *ledger.OutputWithID, error) {
 	oData, err := s.IndexedStateReader.GetUTXOForChainID(chainID)
 	if err != nil {
 		return nil, nil, err
@@ -172,7 +172,7 @@ func (s SugaredStateReader) NumOutputs(addr ledger.AccountID) int {
 	return len(outs)
 }
 
-func (s SugaredStateReader) BalanceOnChain(chainID *ledger.ChainID) uint64 {
+func (s SugaredStateReader) BalanceOnChain(chainID ledger.ChainID) uint64 {
 	o, err := s.GetChainOutput(chainID)
 	if err != nil {
 		return 0
@@ -188,7 +188,7 @@ func (s SugaredStateReader) GetOutputsDelegatedToAccount(addr ledger.Accountable
 			cc, idx := o.ChainConstraint()
 			chainID := cc.ID
 			if cc.IsOrigin() {
-				chainID = ledger.MakeOriginChainID(&oid)
+				chainID = ledger.MakeOriginChainID(oid)
 			}
 			util.Assertf(idx != 0xff, "inconsistency: chain constraint expected")
 			ret = append(ret, &ledger.OutputWithChainID{
@@ -243,7 +243,7 @@ func (s SugaredStateReader) IterateChainsInAccount(addr ledger.Accountable, fun 
 	return s.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
 		if cc, idx := o.ChainConstraint(); idx != 0xff {
 			if cc.IsOrigin() {
-				return fun(oid, o, ledger.MakeOriginChainID(&oid))
+				return fun(oid, o, ledger.MakeOriginChainID(oid))
 			}
 			return fun(oid, o, cc.ID)
 		}
@@ -265,7 +265,7 @@ func (s SugaredStateReader) GetAllChainsOld() (map[ledger.ChainID]ChainRecordInf
 
 	ret := make(map[ledger.ChainID]ChainRecordInfo)
 	for chainID, oid := range ids {
-		o := s.GetOutput(&oid)
+		o := s.GetOutput(oid)
 		if o == nil {
 			return nil, fmt.Errorf("inconsistency: cannot get chainID: %s, oid: %s", chainID.String(), oid.String())
 		}
@@ -302,7 +302,7 @@ func (s SugaredStateReader) IterateChainedOutputs(fun func(out ledger.OutputWith
 	}
 	var exit bool
 	for _, tip := range chainTips {
-		o := s.GetOutput(&tip.oid) // locks the reader each time
+		o := s.GetOutput(tip.oid) // locks the reader each time
 		if o == nil {
 			return fmt.Errorf("IterateChainedOutputs: inconsistency: cannot get chain output: %s, oid: %s",
 				tip.chainID.String(), tip.oid.String())

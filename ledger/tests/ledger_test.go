@@ -384,7 +384,7 @@ func TestChain1(t *testing.T) {
 	t.Run("create origin indexer", func(t *testing.T) {
 		chains := initTest2()
 		require.EqualValues(t, 1, len(chains))
-		chs, err := u.StateReader().GetUTXOForChainID(&chains[0].ChainID)
+		chs, err := u.StateReader().GetUTXOForChainID(chains[0].ChainID)
 		require.NoError(t, err)
 		o, err := ledger.OutputFromBytesReadOnly(chs.Data)
 		require.NoError(t, err)
@@ -400,7 +400,7 @@ func TestChain1(t *testing.T) {
 		chainID := chains[0].ChainID
 		// find chain output by chain id. It must be exactly one in the state
 		// chs is unparsed data
-		chs, err := u.StateReader().GetUTXOForChainID(&chainID)
+		chs, err := u.StateReader().GetUTXOForChainID(chainID)
 		require.NoError(t, err)
 
 		// parse raw output data
@@ -454,7 +454,7 @@ func TestChain1(t *testing.T) {
 		err = u.AddTransaction(txbytes)
 		require.NoError(t, err)
 
-		_, err = u.StateReader().GetUTXOForChainID(&chainID)
+		_, err = u.StateReader().GetUTXOForChainID(chainID)
 		require.True(t, errors.Is(err, multistate.ErrNotFound))
 
 		require.EqualValues(t, 1, u.NumUTXOs(u.GenesisControllerAddress()))
@@ -506,7 +506,7 @@ func TestChain2(t *testing.T) {
 		require.EqualValues(t, 1, len(chains))
 		theChainData := chains[0]
 		chainID := theChainData.ChainID
-		chs, err := u.StateReader().GetUTXOForChainID(&chainID)
+		chs, err := u.StateReader().GetUTXOForChainID(chainID)
 		require.NoError(t, err)
 
 		chainIN, err := chs.Parse()
@@ -576,7 +576,7 @@ func TestChain2(t *testing.T) {
 			return err
 		}
 
-		_, err = u.StateReader().GetUTXOForChainID(&chainID)
+		_, err = u.StateReader().GetUTXOForChainID(chainID)
 		require.NoError(t, err)
 
 		require.EqualValues(t, 1, u.NumUTXOs(u.GenesisControllerAddress()))
@@ -663,7 +663,7 @@ func TestChain3(t *testing.T) {
 	require.EqualValues(t, 1, len(chains))
 	theChainData := chains[0]
 	chainID := theChainData.ChainID
-	chs, err := u.StateReader().GetUTXOForChainID(&chainID)
+	chs, err := u.StateReader().GetUTXOForChainID(chainID)
 	require.NoError(t, err)
 
 	chainIN, err := chs.Parse()
@@ -698,7 +698,7 @@ func TestChain3(t *testing.T) {
 	err = u.AddTransaction(txbytes)
 	require.NoError(t, err)
 
-	_, err = u.StateReader().GetUTXOForChainID(&chainID)
+	_, err = u.StateReader().GetUTXOForChainID(chainID)
 	require.NoError(t, err)
 
 	require.EqualValues(t, 1, u.NumUTXOs(u.GenesisControllerAddress()))
@@ -748,7 +748,7 @@ func TestChainLock(t *testing.T) {
 		require.EqualValues(t, 0, onLocked)
 		require.EqualValues(t, 2000, onChainOut)
 
-		_, err = u.StateReader().GetUTXOForChainID(&chainID)
+		_, err = u.StateReader().GetUTXOForChainID(chainID)
 		require.NoError(t, err)
 
 		privKey1, _, addr1 = u.GenerateAddress(1)
@@ -940,7 +940,7 @@ func TestImmutable(t *testing.T) {
 	chainID := theChainData.ChainID
 
 	// -------------------------- make transition
-	chs, err := u.StateReader().GetUTXOForChainID(&chainID)
+	chs, err := u.StateReader().GetUTXOForChainID(chainID)
 	require.NoError(t, err)
 
 	chainIN, err := chs.Parse()
@@ -988,7 +988,7 @@ func TestImmutable(t *testing.T) {
 	require.NoError(t, err)
 
 	// -------------------------------- make transition #2
-	chs, err = u.StateReader().GetUTXOForChainID(&chainID)
+	chs, err = u.StateReader().GetUTXOForChainID(chainID)
 	require.NoError(t, err)
 
 	chainIN, err = chs.Parse()
@@ -1026,7 +1026,7 @@ func TestImmutable(t *testing.T) {
 	easyfl.RequireErrorWith(t, err, "'immutable' failed with error")
 
 	// --------------------------------- transit with wrong immutable data
-	chs, err = u.StateReader().GetUTXOForChainID(&chainID)
+	chs, err = u.StateReader().GetUTXOForChainID(chainID)
 	require.NoError(t, err)
 
 	chainIN, err = chs.Parse()
@@ -1071,7 +1071,7 @@ func TestImmutable(t *testing.T) {
 	easyfl.RequireErrorWith(t, err, "'immutable' failed with error")
 
 	// put it all correct
-	chs, err = u.StateReader().GetUTXOForChainID(&chainID)
+	chs, err = u.StateReader().GetUTXOForChainID(chainID)
 	require.NoError(t, err)
 
 	chainIN, err = chs.Parse()

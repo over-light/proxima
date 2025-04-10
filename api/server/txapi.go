@@ -115,7 +115,7 @@ func (srv *server) parseOutput(w http.ResponseWriter, r *http.Request) {
 
 	var o *ledger.Output
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
-		o = rdr.GetOutput(&oid)
+		o = rdr.GetOutput(oid)
 		if o == nil {
 			return fmt.Errorf("no found %s in LRB", oid.String())
 		}

@@ -120,7 +120,7 @@ func TestAttachBasic(t *testing.T) {
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
-		balChain = multistate.BalanceOnChainOutput(rdr, &bootstrapChainID)
+		balChain = multistate.BalanceOnChainOutput(rdr, bootstrapChainID)
 		require.EqualValues(t, ledger.DefaultInitialSupply-1_000_000-2_000_000, int(balChain))
 	})
 	t.Run("sync scenario", func(t *testing.T) {
@@ -192,7 +192,7 @@ func TestAttachBasic(t *testing.T) {
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
-		balChain = multistate.BalanceOnChainOutput(rdr, &bootstrapChainID)
+		balChain = multistate.BalanceOnChainOutput(rdr, bootstrapChainID)
 		require.EqualValues(t, ledger.DefaultInitialSupply-1_000_000-2_000_000, int(balChain))
 
 	})
@@ -264,7 +264,7 @@ func TestAttachBasic(t *testing.T) {
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
-		balChain = multistate.BalanceOnChainOutput(rdr, &bootstrapChainID)
+		balChain = multistate.BalanceOnChainOutput(rdr, bootstrapChainID)
 		require.EqualValues(t, ledger.DefaultInitialSupply-1_000_000-2_000_000, int(balChain))
 	})
 }

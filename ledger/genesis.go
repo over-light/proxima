@@ -31,7 +31,7 @@ func init() {
 	util.Assertf(BoostrapSequencerID == bootSeqIDDirect, "BoostrapSequencerID must be equal to the blake2b hash of genesis output id, got %s", hex.EncodeToString(bootSeqIDDirect[:]))
 	// more checks
 	oid := GenesisOutputID()
-	util.Assertf(MakeOriginChainID(&oid) == BoostrapSequencerID, "MakeOriginChainID(&oid) == BoostrapSequencerID")
+	util.Assertf(MakeOriginChainID(oid) == BoostrapSequencerID, "MakeOriginChainID(&oid) == BoostrapSequencerID")
 }
 
 func GenesisOutput(initialSupply uint64, controllerAddress AddressED25519) *OutputWithChainID {

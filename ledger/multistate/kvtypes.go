@@ -11,9 +11,9 @@ import (
 
 type (
 	StateReader interface {
-		GetUTXO(id *ledger.OutputID) ([]byte, bool)
-		HasUTXO(id *ledger.OutputID) bool
-		KnowsCommittedTransaction(txid *ledger.TransactionID) bool // all txids are kept in the state for some time
+		GetUTXO(id ledger.OutputID) ([]byte, bool)
+		HasUTXO(id ledger.OutputID) bool
+		KnowsCommittedTransaction(txid ledger.TransactionID) bool // all txids are kept in the state for some time
 	}
 
 	StateIndexReader interface {
@@ -24,7 +24,7 @@ type (
 		GetUTXOIDsInAccount(addr ledger.AccountID) ([]ledger.OutputID, error)
 		GetUTXOsInAccount(accountID ledger.AccountID) ([]*ledger.OutputDataWithID, error) // TODO leave Iterate.. only?
 
-		GetUTXOForChainID(id *ledger.ChainID) (*ledger.OutputDataWithID, error)
+		GetUTXOForChainID(id ledger.ChainID) (*ledger.OutputDataWithID, error)
 		Root() common.VCommitment
 		MustLedgerIdentityBytes() []byte // either state identity consistent or panic
 	}

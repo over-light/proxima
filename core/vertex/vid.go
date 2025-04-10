@@ -943,7 +943,7 @@ func (vid *WrappedTx) IsContainingBranchOf(vid1 *WrappedTx, getStateReader func(
 	if base := vid.BaselineBranch(); base == vid1 || (base != nil && base.BaselineBranch() == vid1) {
 		return true
 	}
-	return getStateReader().KnowsCommittedTransaction(&vid1.id)
+	return getStateReader().KnowsCommittedTransaction(vid1.id)
 }
 
 func (vid *WrappedTx) IDHasFragment(frag ...string) bool {

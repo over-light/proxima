@@ -270,7 +270,7 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 	loadedTxs.Insert(vidBranch)
 
 	// load sequencer output for the chain
-	chainOut, err := rdr.GetChainOutput(&seqID)
+	chainOut, err := rdr.GetChainOutput(seqID)
 	if err != nil {
 		return fmt.Errorf("LoadSequencerStartTips: can't load chain output for %s: %w", seqID.StringShort(), err)
 	}
@@ -288,7 +288,7 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 	oids, err := rdr.GetUTXOIDsInAccount(seqID.AsChainLock().AccountID())
 	util.AssertNoError(err)
 	for _, oid := range oids {
-		o := rdr.MustGetOutputWithID(&oid)
+		o := rdr.MustGetOutputWithID(oid)
 		wOut, err = attacher.AttachOutputWithID(o, b, attacher.WithInvokedBy("LoadSequencerStartTips"))
 		if err != nil {
 			return err

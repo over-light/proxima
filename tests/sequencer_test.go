@@ -66,7 +66,7 @@ func Test1Sequencer(t *testing.T) {
 		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
 		require.EqualValues(t, initBalance+tagAlongFee, int(rdr.BalanceOf(testData.addrAux.AccountID())))
 
-		initialBalanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
+		initialBalanceOnChain := rdr.BalanceOnChain(testData.bootstrapChainID)
 
 		auxOuts, err := rdr.GetOutputsForAccount(testData.addrAux.AccountID())
 		require.EqualValues(t, 1, len(auxOuts))
@@ -105,7 +105,7 @@ func Test1Sequencer(t *testing.T) {
 
 		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
 		for _, txid := range par.spammedTxIDs {
-			require.True(t, rdr.KnowsCommittedTransaction(&txid))
+			require.True(t, rdr.KnowsCommittedTransaction(txid))
 			//t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
 		}
 		targetBalance := rdr.BalanceOf(targetAddr.AccountID())
@@ -114,7 +114,7 @@ func Test1Sequencer(t *testing.T) {
 		balanceLeft := rdr.BalanceOf(testData.addrFaucet.AccountID())
 		require.EqualValues(t, initBalance-len(par.spammedTxIDs)*(sendAmount+tagAlongFee), int(balanceLeft))
 
-		balanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
+		balanceOnChain := rdr.BalanceOnChain(testData.bootstrapChainID)
 		inflation := int(balanceOnChain) - int(initialBalanceOnChain) + len(par.spammedTxIDs)*tagAlongFee
 		t.Logf("initialBalanceOnChain: %s", util.Th(initialBalanceOnChain))
 		t.Logf("earned: %s", util.Th(len(par.spammedTxIDs)*tagAlongFee))
@@ -158,7 +158,7 @@ func Test1Sequencer(t *testing.T) {
 		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
 		require.EqualValues(t, initBalance+tagAlongFee, int(rdr.BalanceOf(testData.addrAux.AccountID())))
 
-		initialBalanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
+		initialBalanceOnChain := rdr.BalanceOnChain(testData.bootstrapChainID)
 
 		auxOuts, err := rdr.GetOutputsForAccount(testData.addrAux.AccountID())
 		require.EqualValues(t, 1, len(auxOuts))
@@ -200,7 +200,7 @@ func Test1Sequencer(t *testing.T) {
 
 		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
 		for _, txid := range par.spammedTxIDs {
-			require.True(t, rdr.KnowsCommittedTransaction(&txid))
+			require.True(t, rdr.KnowsCommittedTransaction(txid))
 			//t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), )
 		}
 		targetBalance := rdr.BalanceOf(targetAddr.AccountID())
@@ -209,7 +209,7 @@ func Test1Sequencer(t *testing.T) {
 		balanceLeft := rdr.BalanceOf(testData.addrFaucet.AccountID())
 		require.EqualValues(t, initBalance-len(par.spammedTxIDs)*(sendAmount+tagAlongFee), int(balanceLeft))
 
-		balanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
+		balanceOnChain := rdr.BalanceOnChain(testData.bootstrapChainID)
 
 		rr = multistate.FetchLatestRootRecords(testData.wrk.StateStore())
 		require.True(t, len(rr) > 0)
@@ -363,7 +363,7 @@ func TestNSequencersTransfer(t *testing.T) {
 		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
 		for _, txid := range par.spammedTxIDs {
 			//require.True(t, rdr.KnowsCommittedTransaction(&txid))
-			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
+			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(txid))
 		}
 		//require.EqualValues(t, (maxBatches+1)*batchSize, len(par.spammedTxIDs))
 
@@ -404,7 +404,7 @@ func TestNSequencersTransfer(t *testing.T) {
 		}
 		tagAlongInitBalances := make(map[ledger.ChainID]uint64)
 		for _, seqID := range tagAlongSeqIDs {
-			tagAlongInitBalances[seqID] = rdr.BalanceOnChain(&seqID)
+			tagAlongInitBalances[seqID] = rdr.BalanceOnChain(seqID)
 		}
 
 		ctx, cancelSpam := context.WithTimeout(context.Background(), spammingTimeout)
@@ -437,8 +437,8 @@ func TestNSequencersTransfer(t *testing.T) {
 		t.Logf("%s", testData.wrk.Info())
 		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
 		for _, txid := range par.spammedTxIDs {
-			require.True(t, rdr.KnowsCommittedTransaction(&txid))
-			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
+			require.True(t, rdr.KnowsCommittedTransaction(txid))
+			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(txid))
 		}
 
 		testData.saveFullDAG(fmt.Sprintf("utangle_full_%d_1", nSequencers+1))
@@ -451,7 +451,7 @@ func TestNSequencersTransfer(t *testing.T) {
 		require.EqualValues(t, initBalance-len(par.spammedTxIDs)*(sendAmount+tagAlongFee), int(balanceLeft))
 
 		for seqID, initBal := range tagAlongInitBalances {
-			balanceOnChain := rdr.BalanceOnChain(&seqID)
+			balanceOnChain := rdr.BalanceOnChain(seqID)
 			t.Logf("%s tx: %d, init: %s, final: %s", seqID.StringShort(), par.perChainID[seqID], util.Th(initBal), util.Th(balanceOnChain))
 			//require.EqualValues(t, int(initBal)+par.perChainID[seqID]*tagAlongFee, int(balanceOnChain))
 		}

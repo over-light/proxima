@@ -194,7 +194,7 @@ func ScanSequencerData() TxValidationOption {
 
 		var sequencerID ledger.ChainID
 		if seqOutputData.ChainConstraint.IsOrigin() {
-			sequencerID = ledger.MakeOriginChainID(&out.ID)
+			sequencerID = ledger.MakeOriginChainID(out.ID)
 		} else {
 			sequencerID = seqOutputData.ChainConstraint.ID
 		}
@@ -671,11 +671,11 @@ func (tx *Transaction) ForEachOutputData(fun func(idx byte, oData []byte) bool) 
 // ForEachProducedOutput traverses all produced outputs
 // Inside callback function the correct outputID must be obtained with OutputID(idx byte) ledger.OutputID
 // because stem output ID has special form
-func (tx *Transaction) ForEachProducedOutput(fun func(idx byte, o *ledger.Output, oid *ledger.OutputID) bool) {
+func (tx *Transaction) ForEachProducedOutput(fun func(idx byte, o *ledger.Output, oid ledger.OutputID) bool) {
 	tx.ForEachOutputData(func(idx byte, oData []byte) bool {
 		o, _ := ledger.OutputFromBytesReadOnly(oData)
 		oid := tx.OutputID(idx)
-		if !fun(idx, o, &oid) {
+		if !fun(idx, o, oid) {
 			return false
 		}
 		return true
@@ -737,13 +737,13 @@ func OutputsWithIDFromTransactionBytes(txBytes []byte) ([]*ledger.OutputWithID, 
 	return ret, nil
 }
 
-func (tx *Transaction) ToString(fetchOutput func(oid *ledger.OutputID) ([]byte, bool)) string {
+func (tx *Transaction) ToString(fetchOutput func(oid ledger.OutputID) ([]byte, bool)) string {
 	ctx, err := TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
 		oid, err1 := tx.InputAt(i)
 		if err1 != nil {
 			return nil, err1
 		}
-		oData, ok := fetchOutput(&oid)
+		oData, ok := fetchOutput(oid)
 		if !ok {
 			return nil, fmt.Errorf("output %s has not been found", oid.StringShort())
 		}
@@ -767,10 +767,10 @@ func (tx *Transaction) ToStringWithInputLoaderByIndex(fetchOutput func(i byte) (
 	return ctx.String()
 }
 
-func (tx *Transaction) InputLoaderByIndex(fetchOutput func(oid *ledger.OutputID) ([]byte, bool)) func(byte) (*ledger.Output, error) {
+func (tx *Transaction) InputLoaderByIndex(fetchOutput func(oid ledger.OutputID) ([]byte, bool)) func(byte) (*ledger.Output, error) {
 	return func(idx byte) (*ledger.Output, error) {
 		inp := tx.MustInputAt(idx)
-		odata, ok := fetchOutput(&inp)
+		odata, ok := fetchOutput(inp)
 		if !ok {
 			return nil, fmt.Errorf("can't load input #%d: %s", idx, inp.String())
 		}
@@ -783,7 +783,7 @@ func (tx *Transaction) InputLoaderByIndex(fetchOutput func(oid *ledger.OutputID)
 }
 
 func (tx *Transaction) InputLoaderFromState(rdr multistate.StateReader) func(idx byte) (*ledger.Output, error) {
-	return tx.InputLoaderByIndex(func(oid *ledger.OutputID) ([]byte, bool) {
+	return tx.InputLoaderByIndex(func(oid ledger.OutputID) ([]byte, bool) {
 		return rdr.GetUTXO(oid)
 	})
 }
@@ -831,7 +831,7 @@ func (tx *Transaction) SequencerChainPredecessor() (*ledger.OutputID, byte) {
 
 func (tx *Transaction) FindChainOutput(chainID ledger.ChainID) *ledger.OutputWithID {
 	var ret *ledger.OutputWithID
-	tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid *ledger.OutputID) bool {
+	tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid ledger.OutputID) bool {
 		cc, idx := o.ChainConstraint()
 		if idx == 0xff {
 			return true
@@ -842,7 +842,7 @@ func (tx *Transaction) FindChainOutput(chainID ledger.ChainID) *ledger.OutputWit
 		}
 		if cID == chainID {
 			ret = &ledger.OutputWithID{
-				ID:     *oid,
+				ID:     oid,
 				Output: o,
 			}
 			return false
@@ -870,7 +870,7 @@ func (tx *Transaction) EndorsementsVeryShort() string {
 
 func (tx *Transaction) ProducedOutputsToString() string {
 	ret := make([]string, 0)
-	tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid *ledger.OutputID) bool {
+	tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid ledger.OutputID) bool {
 		ret = append(ret, fmt.Sprintf("  %d :", idx), o.ToString("    "))
 		return true
 	})
@@ -883,8 +883,8 @@ func (tx *Transaction) StateMutations() *multistate.Mutations {
 		ret.InsertDelOutputMutation(oid)
 		return true
 	})
-	tx.ForEachProducedOutput(func(_ byte, o *ledger.Output, oid *ledger.OutputID) bool {
-		ret.InsertAddOutputMutation(*oid, o)
+	tx.ForEachProducedOutput(func(_ byte, o *ledger.Output, oid ledger.OutputID) bool {
+		ret.InsertAddOutputMutation(oid, o)
 		return true
 	})
 	ret.InsertAddTxMutation(tx.ID(), tx.Slot(), byte(tx.NumProducedOutputs()-1))
@@ -906,10 +906,10 @@ func (tx *Transaction) Lines(inputLoaderByIndex func(i byte) (*ledger.Output, er
 
 func (tx *Transaction) ProducedOutputsWithTargetLock(lock ledger.Lock) []*ledger.OutputWithID {
 	ret := make([]*ledger.OutputWithID, 0)
-	tx.ForEachProducedOutput(func(_ byte, o *ledger.Output, oid *ledger.OutputID) bool {
+	tx.ForEachProducedOutput(func(_ byte, o *ledger.Output, oid ledger.OutputID) bool {
 		if ledger.EqualConstraints(lock, o.Lock()) {
 			ret = append(ret, &ledger.OutputWithID{
-				ID:     *oid,
+				ID:     oid,
 				Output: o,
 			})
 		}
@@ -943,7 +943,7 @@ func (tx *Transaction) LinesShort(prefix ...string) *lines.Lines {
 	if len(prefix) > 0 {
 		pref = prefix[0]
 	}
-	tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid *ledger.OutputID) bool {
+	tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid ledger.OutputID) bool {
 		ret.Add("%s", oid.StringShort())
 		ret.Append(o.Lines(pref + "    "))
 		return true

@@ -665,7 +665,7 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 
 	chainID := chainInConstraint.ID
 	if chainInConstraint.IsOrigin() {
-		chainID = ledger.MakeOriginChainID(&par.ChainInput.ID)
+		chainID = ledger.MakeOriginChainID(par.ChainInput.ID)
 	}
 
 	// make chain output
@@ -826,7 +826,7 @@ func NewUnlockBlock() *UnlockParams {
 }
 
 func GetChainAccount(chainID ledger.ChainID, srdr multistate.IndexedStateReader, desc ...bool) (*ledger.OutputWithChainID, []*ledger.OutputWithID, error) {
-	chainOutData, err := srdr.GetUTXOForChainID(&chainID)
+	chainOutData, err := srdr.GetUTXOForChainID(chainID)
 	if err != nil {
 		return nil, nil, err
 	}

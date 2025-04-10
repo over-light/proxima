@@ -200,7 +200,7 @@ func Test1SequencerPruner(t *testing.T) {
 		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
 		for _, txid := range par.spammedTxIDs {
 			//require.True(t, rdr.KnowsCommittedTransaction(&txid))
-			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
+			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(txid))
 		}
 		targetBalance := rdr.BalanceOf(targetAddr.AccountID())
 		require.EqualValues(t, maxBatches*batchSize*sendAmount, int(targetBalance))
@@ -331,7 +331,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
 		for _, txid := range par.spammedTxIDs {
 			//require.True(t, rdr.KnowsCommittedTransaction(&txid))
-			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
+			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(txid))
 		}
 		//require.EqualValues(t, (maxBatches+1)*batchSize, len(par.spammedTxIDs))
 
@@ -370,7 +370,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 		}
 		tagAlongInitBalances := make(map[ledger.ChainID]uint64)
 		for _, seqID := range tagAlongSeqIDs {
-			tagAlongInitBalances[seqID] = rdr.BalanceOnChain(&seqID)
+			tagAlongInitBalances[seqID] = rdr.BalanceOnChain(seqID)
 		}
 
 		ctx, cancelSpam := context.WithTimeout(context.Background(), spammingTimeout)
@@ -404,7 +404,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 		t.Logf("%s", testData.wrk.Info())
 		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
 		for _, txid := range par.spammedTxIDs {
-			require.True(t, rdr.KnowsCommittedTransaction(&txid))
+			require.True(t, rdr.KnowsCommittedTransaction(txid))
 			//t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
 		}
 
@@ -418,7 +418,7 @@ func TestNSequencersTransferPruner(t *testing.T) {
 		require.EqualValues(t, initBalance-len(par.spammedTxIDs)*sendAmount-par.numSpammedBatches*tagAlongFee, int(balanceLeft))
 
 		for seqID, initBal := range tagAlongInitBalances {
-			balanceOnChain := rdr.BalanceOnChain(&seqID)
+			balanceOnChain := rdr.BalanceOnChain(seqID)
 			t.Logf("%s tx: %d, init: %s, final: %s", seqID.StringShort(), par.perChainID[seqID], util.Th(initBal), util.Th(balanceOnChain))
 			// inflation etc...
 			//require.EqualValues(t, int(initBal)+par.perChainID[seqID]*tagAlongFee, int(balanceOnChain))
