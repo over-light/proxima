@@ -294,7 +294,7 @@ func FetchBranchDataByRoot(store common.KVReader, rootData RootRecord) BranchDat
 	rdr, err := NewSugaredReadableState(store, rootData.Root, 0)
 	util.AssertNoError(err)
 
-	seqOut, err := rdr.GetChainOutput(&rootData.SequencerID)
+	seqOut, err := rdr.GetChainOutput(rootData.SequencerID)
 	util.AssertNoError(err)
 
 	return BranchData{
@@ -414,7 +414,7 @@ func BranchKnowsTransaction(branchID, txid ledger.TransactionID, getStore func()
 		return false
 	}
 
-	return rdr.KnowsCommittedTransaction(&txid)
+	return rdr.KnowsCommittedTransaction(txid)
 }
 
 func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) bool) *BranchData {
@@ -581,7 +581,7 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 		}
 		// check if the branch is included in every reader
 		for _, rdr := range readers {
-			if !rdr.KnowsCommittedTransaction(branchID) {
+			if !rdr.KnowsCommittedTransaction(*branchID) {
 				// the transaction is not known by at least one of selected states,
 				// it is not a reliable branch, keep traversing back
 				return true
@@ -655,7 +655,7 @@ func CheckTransactionInLRB(store StateStoreReader, txid ledger.TransactionID, ma
 			return false
 		}
 		rdr := MustNewReadable(store, branch.Root, 0)
-		if !rdr.KnowsCommittedTransaction(&txid) {
+		if !rdr.KnowsCommittedTransaction(txid) {
 			return false
 		}
 		foundAtDepth++

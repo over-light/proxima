@@ -368,7 +368,7 @@ func (a *attacher) defineInTheStateStatus(vid *vertex.WrappedTx) {
 		return
 	}
 
-	if a.BaselineSugaredStateReader().KnowsCommittedTransaction(util.Ref(vid.ID())) {
+	if a.BaselineSugaredStateReader().KnowsCommittedTransaction(vid.ID()) {
 		a.pastCone.SetFlagsUp(vid, vertex.FlagPastConeVertexCheckedInTheState|vertex.FlagPastConeVertexInTheState|vertex.FlagPastConeVertexDefined)
 	} else {
 		// not on the state, so it is not defined
@@ -484,7 +484,7 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 
 func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID ledger.OutputID) bool {
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
-	o, err := a.BaselineSugaredStateReader().GetOutputWithID(&inputID)
+	o, err := a.BaselineSugaredStateReader().GetOutputWithID(inputID)
 	if errors.Is(err, multistate.ErrNotFound) {
 		a.setError(fmt.Errorf("output %s is already consumed", inputID.StringShort()))
 		return false

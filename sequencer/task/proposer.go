@@ -150,7 +150,7 @@ func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 			continue
 		}
 		rdr := multistate.MakeSugared(p.GetStateReaderForTheBranch(endorse.BaselineBranch().ID()))
-		seqOut, err := rdr.GetChainOutput(&seqID)
+		seqOut, err := rdr.GetChainOutput(seqID)
 		if errors.Is(err, multistate.ErrNotFound) {
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> GetChainOutput not found -- %s", p.Name)
 			continue

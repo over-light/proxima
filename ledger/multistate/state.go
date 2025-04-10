@@ -124,14 +124,14 @@ func MustNewUpdatable(store StateStore, root common.VCommitment) *Updatable {
 	return ret
 }
 
-func (r *Readable) GetUTXO(oid *ledger.OutputID) ([]byte, bool) {
+func (r *Readable) GetUTXO(oid ledger.OutputID) ([]byte, bool) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	return r._getUTXO(oid)
 }
 
-func (r *Readable) _getUTXO(oid *ledger.OutputID, partition ...*common.ReaderPartition) ([]byte, bool) {
+func (r *Readable) _getUTXO(oid ledger.OutputID, partition ...*common.ReaderPartition) ([]byte, bool) {
 	var part *common.ReaderPartition
 	if len(partition) > 0 {
 		part = partition[0]
@@ -148,7 +148,7 @@ func (r *Readable) _getUTXO(oid *ledger.OutputID, partition ...*common.ReaderPar
 	return ret, true
 }
 
-func (r *Readable) HasUTXO(oid *ledger.OutputID) bool {
+func (r *Readable) HasUTXO(oid ledger.OutputID) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -159,7 +159,7 @@ func (r *Readable) HasUTXO(oid *ledger.OutputID) bool {
 }
 
 // KnowsCommittedTransaction transaction IDs are purged after some time, so the result may be
-func (r *Readable) KnowsCommittedTransaction(txid *ledger.TransactionID) bool {
+func (r *Readable) KnowsCommittedTransaction(txid ledger.TransactionID) bool {
 	part := common.MakeReaderPartition(r.trie, TriePartitionCommittedTransactionID)
 	defer part.Dispose()
 
@@ -216,7 +216,7 @@ func (r *Readable) IterateUTXOsInAccount(addr ledger.AccountID, fun func(oid led
 	defer partition.Dispose()
 
 	return r.IterateUTXOIDsInAccount(addr, func(oid ledger.OutputID) bool {
-		if odata, found := r._getUTXO(&oid, partition); found {
+		if odata, found := r._getUTXO(oid, partition); found {
 			return fun(oid, odata)
 		}
 		return true
@@ -247,14 +247,14 @@ func (r *Readable) IterateUTXOIDsInAccount(addr ledger.AccountID, fun func(oid l
 	return err
 }
 
-func (r *Readable) GetUTXOForChainID(id *ledger.ChainID) (*ledger.OutputDataWithID, error) {
+func (r *Readable) GetUTXOForChainID(id ledger.ChainID) (*ledger.OutputDataWithID, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	return r._getUTXOForChainID(id)
 }
 
-func (r *Readable) _getUTXOForChainID(id *ledger.ChainID) (*ledger.OutputDataWithID, error) {
+func (r *Readable) _getUTXOForChainID(id ledger.ChainID) (*ledger.OutputDataWithID, error) {
 	chainPartition := common.MakeReaderPartition(r.trie, TriePartitionChainID)
 	outID := chainPartition.Get(id[:])
 	defer chainPartition.Dispose()
@@ -266,7 +266,7 @@ func (r *Readable) _getUTXOForChainID(id *ledger.ChainID) (*ledger.OutputDataWit
 	if err != nil {
 		return nil, err
 	}
-	outData, found := r._getUTXO(&oid)
+	outData, found := r._getUTXO(oid)
 
 	if !found {
 		return nil, ErrNotFound
@@ -295,10 +295,10 @@ func (r *Readable) GetStem() (ledger.Slot, []byte) {
 	r.trie.Iterator(accountPrefix).IterateKeys(func(k []byte) bool {
 		util.Assertf(count == 0, "inconsistency: must be exactly 1 index record for stem output")
 		count++
-		id, err := ledger.OutputIDFromBytes(k[len(accountPrefix):])
+		oid, err := ledger.OutputIDFromBytes(k[len(accountPrefix):])
 		util.AssertNoError(err)
-		retSlot = id.Slot()
-		retBytes, found = r._getUTXO(&id, partition)
+		retSlot = oid.Slot()
+		retBytes, found = r._getUTXO(oid, partition)
 		util.Assertf(found, "can't find stem output")
 		return true
 	})
@@ -371,7 +371,7 @@ func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
 		oid, err = ledger.OutputIDFromBytes(k[2+k[1]:])
 		util.AssertNoError(err)
 
-		oData, found := r._getUTXO(&oid, partition)
+		oData, found := r._getUTXO(oid, partition)
 		util.Assertf(found, "can't get output")
 
 		_, amount, lock, err := ledger.OutputFromBytesMain(oData)

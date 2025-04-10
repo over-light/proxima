@@ -57,7 +57,7 @@ func NewUTXODB(genesisPrivateKey ed25519.PrivateKey, trace ...bool) *UTXODB {
 	originChainID, genesisRoot := multistate.InitStateStore(*initLedgerParams, stateStore)
 	rdr := multistate.MustNewSugaredReadableState(stateStore, genesisRoot)
 
-	genesisOut, err := rdr.GetChainOutput(&originChainID)
+	genesisOut, err := rdr.GetChainOutput(originChainID)
 	util.AssertNoError(err)
 
 	genesisStemOut := rdr.GetStemOutput()
@@ -519,8 +519,8 @@ func (u *UTXODB) OriginDistributionTransactionString() string {
 	genesisStemOutputID := ledger.GenesisStemOutputID()
 	genesisOutputID := ledger.GenesisOutputID()
 
-	return transaction.ParseBytesToString(u.originDistributionTxBytes, func(oid *ledger.OutputID) ([]byte, bool) {
-		switch *oid {
+	return transaction.ParseBytesToString(u.originDistributionTxBytes, func(oid ledger.OutputID) ([]byte, bool) {
+		switch oid {
 		case genesisOutputID:
 			return u.genesisOutput.Bytes(), true
 		case genesisStemOutputID:

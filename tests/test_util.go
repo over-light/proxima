@@ -281,13 +281,13 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 	}
 
 	td.chainOrigins = make([]*ledger.OutputWithChainID, n)
-	td.chainOriginsTx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid *ledger.OutputID) bool {
+	td.chainOriginsTx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid ledger.OutputID) bool {
 		if int(idx) >= n {
 			return true
 		}
 		td.chainOrigins[idx] = &ledger.OutputWithChainID{
 			OutputWithID: ledger.OutputWithID{
-				ID:     *oid,
+				ID:     oid,
 				Output: o,
 			},
 			ChainID: blake2b.Sum256(oid[:]),

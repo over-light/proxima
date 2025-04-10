@@ -336,7 +336,7 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 		return true
 	})
 
-	tx.ForEachProducedOutput(func(i byte, o *ledger.Output, oid *ledger.OutputID) bool {
+	tx.ForEachProducedOutput(func(i byte, o *ledger.Output, oid ledger.OutputID) bool {
 		ret.Outputs[i] = ParsedOutput{
 			Data:        hex.EncodeToString(o.Bytes()),
 			Constraints: o.LinesPlain().Slice(),

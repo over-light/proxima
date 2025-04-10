@@ -166,7 +166,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 
 	seqID := chainInConstraint.ID
 	if chainInConstraint.IsOrigin() {
-		seqID = ledger.MakeOriginChainID(&par.ChainInput.ID)
+		seqID = ledger.MakeOriginChainID(par.ChainInput.ID)
 	}
 
 	var chainOutConstraintIdx byte
@@ -308,7 +308,7 @@ func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, ta
 		}
 		chainID := cc.ID
 		if cc.IsOrigin() {
-			chainID = ledger.MakeOriginChainID(&in.ID)
+			chainID = ledger.MakeOriginChainID(in.ID)
 		}
 		if !ledger.IsOpenDelegationSlot(chainID, targetTs.Slot()) {
 			// only considering delegated outputs which can be consumed in the target slot

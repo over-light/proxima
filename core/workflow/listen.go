@@ -14,7 +14,7 @@ func (w *Workflow) ListenToAccount(account ledger.Accountable, fun func(wOut ver
 		var _indices [256]byte
 		indices := _indices[:0]
 		vid.RUnwrap(vertex.UnwrapOptions{Vertex: func(v *vertex.Vertex) {
-			v.Tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid *ledger.OutputID) bool {
+			v.Tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid ledger.OutputID) bool {
 				if ledger.BelongsToAccount(o.Lock(), account) && o.Lock().Name() != ledger.StemLockName {
 					indices = append(indices, idx)
 				}

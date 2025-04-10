@@ -93,8 +93,8 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 		if cc, i := out.ChainConstraint(); i != 0xff {
 			var cid ledger.ChainID
 			if cc.IsOrigin() {
-				oid := ledger.MustNewOutputID(txid, idx)
-				cid = ledger.MakeOriginChainID(&oid)
+				oid1 := ledger.MustNewOutputID(txid, idx)
+				cid = ledger.MakeOriginChainID(oid1)
 			} else {
 				cid = cc.ID
 			}
@@ -118,7 +118,7 @@ func UnlockDataToString(data []byte) string {
 	return arr.ParsedString()
 }
 
-func ParseBytesToString(txBytes []byte, fetchOutput func(oid *ledger.OutputID) ([]byte, bool)) string {
+func ParseBytesToString(txBytes []byte, fetchOutput func(oid ledger.OutputID) ([]byte, bool)) string {
 	ctx, err := TxContextFromTransferableBytes(txBytes, fetchOutput)
 	if err != nil {
 		return err.Error()
@@ -126,10 +126,10 @@ func ParseBytesToString(txBytes []byte, fetchOutput func(oid *ledger.OutputID) (
 	return ctx.String()
 }
 
-func PickOutputFromListFunc(lst []*ledger.OutputWithID) func(oid *ledger.OutputID) ([]byte, bool) {
-	return func(oid *ledger.OutputID) ([]byte, bool) {
+func PickOutputFromListFunc(lst []*ledger.OutputWithID) func(oid ledger.OutputID) ([]byte, bool) {
+	return func(oid ledger.OutputID) ([]byte, bool) {
 		idx := slices.IndexFunc(lst, func(o *ledger.OutputWithID) bool {
-			return o.ID == *oid
+			return o.ID == oid
 		})
 		if idx < 0 {
 			return nil, false

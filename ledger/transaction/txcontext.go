@@ -70,7 +70,7 @@ func TxContextFromState(tx *Transaction, rdr multistate.SugaredStateReader) (*Tx
 		if err != nil {
 			return nil, err
 		}
-		ret := rdr.GetOutput(&oid)
+		ret := rdr.GetOutput(oid)
 		if ret == nil {
 			return nil, fmt.Errorf("can't load consumed output")
 		}
@@ -79,7 +79,7 @@ func TxContextFromState(tx *Transaction, rdr multistate.SugaredStateReader) (*Tx
 }
 
 // TxContextFromTransferableBytes constructs lazybytes.Tree from transaction bytes and consumed outputs
-func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid *ledger.OutputID) ([]byte, bool), traceOption ...int) (*TxContext, error) {
+func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid ledger.OutputID) ([]byte, bool), traceOption ...int) (*TxContext, error) {
 	tx, err := FromBytes(txBytes, ScanSequencerData(), ScanOutputs())
 	if err != nil {
 		return nil, err

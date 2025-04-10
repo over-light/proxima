@@ -299,7 +299,7 @@ func (d *MemDAG) WaitUntilTransactionInHeaviestState(txid ledger.TransactionID, 
 	}
 	for {
 		rdr, baseline := d.HeaviestStateForLatestTimeSlotWithBaseline()
-		if rdr.KnowsCommittedTransaction(&txid) {
+		if rdr.KnowsCommittedTransaction(txid) {
 			return baseline, nil
 		}
 		if time.Now().After(deadline) {

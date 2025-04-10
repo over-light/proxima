@@ -540,7 +540,7 @@ func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, sta
 					if cc, ccIdx := o.ChainConstraint(); ccIdx != 0xff {
 						chainID := cc.ID
 						if cc.IsOrigin() {
-							chainID = ledger.MakeOriginChainID(&oid)
+							chainID = ledger.MakeOriginChainID(oid)
 						}
 						// chain output deleted
 						deletedChainIDs.Insert(chainID)
@@ -564,7 +564,7 @@ func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, sta
 				if cc, ccIdx := o.ChainConstraint(); ccIdx != 0xff {
 					chainID := cc.ID
 					if cc.IsOrigin() {
-						chainID = ledger.MakeOriginChainID(&oid)
+						chainID = ledger.MakeOriginChainID(oid)
 					}
 					producedChainIDs.Insert(chainID)
 				}
@@ -631,7 +631,7 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, getStateReader func() mult
 		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
 			// if vertex is in the state of the appended past cone, it will be in the state of the new baseline
 			// When vertex not in appended baseline, check if it didn't become known in the new one
-			if baselineStateReader.KnowsCommittedTransaction(&vid.id) {
+			if baselineStateReader.KnowsCommittedTransaction(vid.id) {
 				flags |= FlagPastConeVertexCheckedInTheState | FlagPastConeVertexInTheState
 			}
 		}
@@ -801,7 +801,7 @@ func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedS
 			allConsumersAreInTheState = false
 			if inTheState {
 				oid := wOut.DecodeID()
-				if !stateReader.HasUTXO(&oid) {
+				if !stateReader.HasUTXO(oid) {
 					return &wOut, false, 0
 				}
 				coverageDelta += vid.MustOutputAt(idx).Amount()

@@ -69,7 +69,7 @@ func TestInitOrigin(t *testing.T) {
 	stemBack := rdr.GetStemOutput()
 	require.EqualValues(t, ledger.GenesisStemOutputID(), stemBack.ID)
 
-	initSupplyOut, err := rdr.GetChainOutput(&bootstrapSeqID)
+	initSupplyOut, err := rdr.GetChainOutput(bootstrapSeqID)
 	require.NoError(t, err)
 	require.EqualValues(t, ledger.GenesisOutputID(), initSupplyOut.ID)
 

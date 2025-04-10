@@ -75,7 +75,7 @@ func ScanGenesisState(stateStore StateStore) (*ledger.IdentityData, common.VComm
 	stateID := ledger.MustIdentityDataFromBytes(rdr.MustLedgerIdentityBytes())
 
 	genesisOid := ledger.GenesisOutputID()
-	out, err := rdr.GetOutputErr(&genesisOid)
+	out, err := rdr.GetOutputErr(genesisOid)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetOutputErr(%s): %w", genesisOid.StringShort(), err)
 	}
