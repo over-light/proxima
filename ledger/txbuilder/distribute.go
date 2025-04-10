@@ -141,5 +141,5 @@ func MustDistributeInitialSupplyExt(stateStore multistate.StateStore, originPriv
 		Supply:          stateID.InitialSupply,
 		NumTransactions: 1,
 	})
-	return txBytes, *tx.IDRef()
+	return txBytes, tx.ID()
 }

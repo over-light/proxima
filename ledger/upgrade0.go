@@ -57,8 +57,8 @@ const (
 
 // Transaction tree
 const (
-	TxUnlockData = byte(iota)
-	TxInputIDs
+	TxInputIDs = byte(iota)
+	TxUnlockData
 	TxOutputs
 	TxSignature
 	TxSequencerAndStemOutputIndices
@@ -66,6 +66,7 @@ const (
 	TxTotalProducedAmount
 	TxInputCommitment
 	TxEndorsements
+	TxExplicitBaseline
 	TxLocalLibraries
 	TxTreeIndexMax
 )
@@ -81,6 +82,7 @@ var (
 	PathToSequencerAndStemOutputIndices = lazybytes.Path(TransactionBranch, TxSequencerAndStemOutputIndices)
 	PathToInputCommitment               = lazybytes.Path(TransactionBranch, TxInputCommitment)
 	PathToEndorsements                  = lazybytes.Path(TransactionBranch, TxEndorsements)
+	PathToExplicitBaseline              = lazybytes.Path(TransactionBranch, TxExplicitBaseline)
 	PathToLocalLibraries                = lazybytes.Path(TransactionBranch, TxLocalLibraries)
 	PathToTimestamp                     = lazybytes.Path(TransactionBranch, TxTimestamp)
 	PathToTotalProducedAmount           = lazybytes.Path(TransactionBranch, TxTotalProducedAmount)
@@ -324,6 +326,7 @@ var upgrade0WithFunctions = []*easyfl.ExtendedFunctionData{
 	{"pathToSeqAndStemOutputIndices", fmt.Sprintf("0x%s", PathToSequencerAndStemOutputIndices.Hex())},
 	{"pathToInputCommitment", fmt.Sprintf("0x%s", PathToInputCommitment.Hex())},
 	{"pathToEndorsements", fmt.Sprintf("0x%s", PathToEndorsements.Hex())},
+	{"pathToExplicitBaseline", fmt.Sprintf("0x%s", PathToExplicitBaseline.Hex())},
 	{"pathToLocalLibrary", fmt.Sprintf("0x%s", PathToLocalLibraries.Hex())},
 	{"pathToTimestamp", fmt.Sprintf("0x%s", PathToTimestamp.Hex())},
 	{"pathToTotalProducedAmount", fmt.Sprintf("0x%s", PathToTotalProducedAmount.Hex())},

@@ -119,6 +119,15 @@ func (tx *Transaction) SignatureBytes() []byte {
 	return tx.tree.BytesAtPath(Path(ledger.TxSignature))
 }
 
+func (tx *Transaction) ExplicitBaseline() (ledger.TransactionID, bool) {
+	if data := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline)); len(data) > 0 {
+		ret, err := ledger.TransactionIDFromBytes(data)
+		util.AssertNoError(err)
+		return ret, true
+	}
+	return ledger.TransactionID{}, false
+}
+
 // BaseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
 func BaseValidation() TxValidationOption {
 	return func(tx *Transaction) error {
@@ -144,6 +153,13 @@ func BaseValidation() TxValidationOption {
 		numProducedOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
 		if numProducedOutputs <= 0 || numProducedOutputs > 256 {
 			return fmt.Errorf("number of outputs can't be 0")
+		}
+		explicitBaselineData := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
+		if len(explicitBaselineData) > 0 {
+			_, err = ledger.TransactionIDFromBytes(explicitBaselineData)
+			if err != nil {
+				return fmt.Errorf("wrong explicit baseline: %w", err)
+			}
 		}
 		tx.txIDShort = ledger.TransactionIDShortFromTxBytes(tx.tree.Bytes(), byte(numProducedOutputs-1))
 
@@ -407,11 +423,6 @@ func ValidateOptionWithFullContext(inputLoaderByIndex func(i byte) (*ledger.Outp
 
 func (tx *Transaction) ID() ledger.TransactionID {
 	return ledger.NewTransactionID(tx.timestamp, tx.txIDShort, tx.sequencerMilestoneFlag)
-}
-
-func (tx *Transaction) IDRef() *ledger.TransactionID {
-	ret := ledger.NewTransactionID(tx.timestamp, tx.txIDShort, tx.sequencerMilestoneFlag)
-	return &ret
 }
 
 func (tx *Transaction) IDString() string {
