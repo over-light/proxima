@@ -279,7 +279,7 @@ func upgrade0BaseConstants(id *IdentityData) []*easyfl.ExtendedFunctionData {
 
 var upgrade0BaseHelpers = []*easyfl.ExtendedFunctionData{
 	{"mustSize", "if(equalUint(len($0), $1), $0, !!!wrong_data_size)"},
-	{"mustValidTimeTick", "if(and(equalUint(len($0),1), lessThan(uint64Bytes($0),constMaxTickValuePerSlot) ), $0, !!!wrong_ticks_value)"},
+	{"mustValidTimeTick", "if(and(equalUint(len($0),1), lessThan(uint8Bytes($0),constMaxTickValuePerSlot) ), $0, !!!wrong_ticks_value)"},
 	{"mustValidTimeSlot", "if(equalUint(len($0), timeSlotSizeBytes), $0, !!!wrong_slot_data)"},
 	{"mul8", "byte(mul($0,$1),7)"},
 	{"div8", "byte(div($0,$1),7)"},

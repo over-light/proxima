@@ -73,7 +73,7 @@ or(
    equal(numInputs, 1),
    require(
 		lessOrEqualThan(
-			uint64Bytes(txTimeTick),
+			uint8Bytes(txTimeTick),
 			sub(
 				constMaxTickValuePerSlot,
 				constPreBranchConsolidationTicks
@@ -87,7 +87,7 @@ func checkPostBranchConsolidationTicks :
    require(
        or(
           isBranchTransaction,
-          lessOrEqualThan(constPostBranchConsolidationTicks, uint64Bytes(txTimeTick))
+          lessOrEqualThan(constPostBranchConsolidationTicks, uint8Bytes(txTimeTick))
 	   ),
        !!!sequencer_transaction_violates_post_branch_consolidation_ticks_constraint
    )
