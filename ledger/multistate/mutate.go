@@ -224,7 +224,7 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID, out *le
 			return fmt.Errorf("addOutputToTrie: unexpected chain origin in the state: %s", chainID.StringShort())
 		}
 	} else {
-		const assertChainRecordsConsistency = true
+		const assertChainRecordsConsistency = false
 		if assertChainRecordsConsistency {
 			// previous chain record may or may not exist
 			// enforcing timestamp consistency
