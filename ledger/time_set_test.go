@@ -17,6 +17,6 @@ func TestTimeConstSet(t *testing.T) {
 	t.Logf("\n%s", L().ID.TimeConstantsToString())
 	require.EqualValues(t, d, TickDuration())
 	t.Logf("------------------\n%s", id.String())
-	t.Logf("------------------\n" + string(id.YAML()))
-	t.Logf("------------------\n" + L().ID.TimeConstantsToString())
+	t.Logf("------------------\n%s", string(id.YAML()))
+	t.Logf("------------------\n%s", L().ID.TimeConstantsToString())
 }

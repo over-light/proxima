@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
@@ -9,20 +10,12 @@ import (
 )
 
 const amountSource = `
-
-// ensuring endorsements are allowed only in sequencer transactions
-func noEndorsingForNonSequencerTransaction : 
+// $0 - amount up to 8 bytes big-endian. Will be expanded to 8 bytes by padding
+func amount: 
 if(
-	and(selfIsProducedOutput, not(isZero(numEndorsements))),
-	require(isSequencerTransaction, !!!endorsements_are_allowed_only_in_sequencer_transactions),
-	true
-)
-
-// $0 - amount uint64 big-endian
-func amount: and(
-    equal(selfBlockIndex,0), // amount must be at block 0
-	mustSize($0,8),             // length must be 8
-	noEndorsingForNonSequencerTransaction  // suboptimal, redundant repeating run on each produced output 
+   and(equal(selfBlockIndex,0), lessOrEqualThan(len($0), u64/8)),
+   uint8Bytes($0),
+   !!!amount_constraint_must_be_at_index_0
 )
 
 // utility function which extracts amount value from the output by evaluating it
@@ -49,7 +42,7 @@ func selfMustStandardAmount: selfMustAmountAtLeast(
 
 const (
 	AmountConstraintName = "amount"
-	amountTemplate       = AmountConstraintName + "(u64/%d)"
+	amountTemplate       = AmountConstraintName + "(0x%s)"
 )
 
 type Amount uint64
@@ -59,7 +52,9 @@ func (a Amount) Name() string {
 }
 
 func (a Amount) Source() string {
-	return fmt.Sprintf(amountTemplate, uint64(a))
+	var bin [8]byte
+	binary.BigEndian.PutUint64(bin[:], uint64(a))
+	return fmt.Sprintf(amountTemplate, hex.EncodeToString(TrimPrefixZeroBytes(bin[:])))
 }
 
 func (a Amount) Bytes() []byte {
@@ -86,7 +81,10 @@ func initTestAmountConstraint() {
 	sym, _, args, err := L().ParseBytecodeOneLevel(example.Bytes(), 1)
 	util.AssertNoError(err)
 	amountBin := easyfl.StripDataPrefix(args[0])
-	util.Assertf(sym == AmountConstraintName && len(amountBin) == 8 && binary.BigEndian.Uint64(amountBin) == 1337, "'amount' consistency check failed")
+	util.Assertf(sym == AmountConstraintName && len(amountBin) <= 8, "'amount' consistency check 1 failed")
+	value, err := Uint64FromBytes(amountBin)
+	util.AssertNoError(err)
+	util.Assertf(value == 1337, "amount' consistency check 2 failed")
 }
 
 func AmountFromBytes(data []byte) (Amount, error) {
@@ -98,10 +96,11 @@ func AmountFromBytes(data []byte) (Amount, error) {
 		return 0, fmt.Errorf("not an 'amount' constraint")
 	}
 	amountBin := easyfl.StripDataPrefix(args[0])
-	if len(amountBin) != 8 {
-		return 0, fmt.Errorf("wrong data length")
+	ret, err := Uint64FromBytes(amountBin)
+	if err != nil {
+		return 0, err
 	}
-	return Amount(binary.BigEndian.Uint64(amountBin)), nil
+	return Amount(ret), nil
 }
 
 func (a Amount) Amount() uint64 {
