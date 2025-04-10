@@ -336,7 +336,7 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 		}
 		chainID := cc.ID
 		if cc.IsOrigin() {
-			chainID = ledger.MakeOriginChainID(&oid)
+			chainID = ledger.MakeOriginChainID(oid)
 		}
 
 		ret = append(ret, &ledger.OutputWithChainID{
