@@ -152,7 +152,7 @@ func (w *Workflow) TxIn(tx *transaction.Transaction, opts ...TxInOption) error {
 
 	if options.txMetadata.SourceTypeNonPersistent != txmetadata.SourceTypeTxStore {
 		// persisting all raw transactions which pass pre-validation
-		w.MustPersistTxBytesWithMetadata(tx.Bytes(), &options.txMetadata)
+		w.MustPersistTxBytesWithMetadata(tx.Bytes(), &options.txMetadata, tx.ID())
 	}
 
 	// passes transaction to attacher

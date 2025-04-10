@@ -47,8 +47,8 @@ func (w *Workflow) GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.Tra
 	w.peers.GossipTxBytesToPeers(txBytes, metadata, except...)
 }
 
-func (w *Workflow) MustPersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata) {
-	_, err := w.TxBytesStore().PersistTxBytesWithMetadata(txBytes, metadata)
+func (w *Workflow) MustPersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid ...ledger.TransactionID) {
+	_, err := w.TxBytesStore().PersistTxBytesWithMetadata(txBytes, metadata, txid...)
 	util.AssertNoError(err)
 }
 

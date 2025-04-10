@@ -71,10 +71,17 @@ func _makeBuckets(lastSize int) []float64 {
 	}
 	return ret
 }
-func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata) (ledger.TransactionID, error) {
-	txid, err := transaction.IDFromTransactionBytes(txBytes)
-	if err != nil {
-		return ledger.TransactionID{}, err
+
+func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txidOpt ...ledger.TransactionID) (ledger.TransactionID, error) {
+	var txid ledger.TransactionID
+	var err error
+	if len(txidOpt) > 0 {
+		txid = txidOpt[0]
+	} else {
+		txid, err = transaction.IDFromTransactionBytes(txBytes)
+		if err != nil {
+			return ledger.TransactionID{}, err
+		}
 	}
 	if s.s.Has(txid[:]) {
 		return txid, nil
@@ -121,7 +128,7 @@ func NewDummyTxBytesStore() DummyTxBytesStore {
 	return DummyTxBytesStore{}
 }
 
-func (d DummyTxBytesStore) PersistTxBytesWithMetadata(_ []byte, _ *txmetadata.TransactionMetadata) (ledger.TransactionID, error) {
+func (d DummyTxBytesStore) PersistTxBytesWithMetadata(_ []byte, _ *txmetadata.TransactionMetadata, _ ...ledger.TransactionID) (ledger.TransactionID, error) {
 	return ledger.TransactionID{}, nil
 }
 
