@@ -153,7 +153,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*ver
 			fmt.Printf("vid.BaselineBranch() == nil: %s\n", vid.IDShortString())
 			return false
 		}
-		return vid.Slot() == targetSlot && seqID != ownSeqID
+		return vid.Slot() == targetSlot && seqID != ownSeqID && ledger.ValidSequencerPace(vid.Timestamp(), targetTs)
 	})
 }
 
@@ -165,7 +165,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseShuffled(targetTs ledger.Time) []*v
 		if vid.BaselineBranch() == nil {
 			return false
 		}
-		return vid.Slot() == targetSlot && seqID != ownSeqID
+		return vid.Slot() == targetSlot && seqID != ownSeqID && ledger.ValidSequencerPace(vid.Timestamp(), targetTs)
 	})
 }
 

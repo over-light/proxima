@@ -150,11 +150,12 @@ func (a *IncrementalAttacher) insertVirtuallyConsumedOutput(wOut vertex.WrappedO
 	return nil
 }
 
-// InsertEndorsement preserves consistency in case of failure
+// InsertEndorsement preserves consistency in case of failure. Assumes valid pace, otherwise crashes
 func (a *IncrementalAttacher) InsertEndorsement(endorsement *vertex.WrappedTx) error {
 	a.Assertf(!a.IsClosed(), "a.IsClosed()")
-	a.Assertf(endorsement.ValidSequencerPace(a.targetTs), "IncrmentalAttacher(%s).InsertEndorsement: invalid sequencer pace in %s",
-		a.name, endorsement.IDShortString)
+	if !endorsement.ValidSequencerPace(a.targetTs) {
+		return fmt.Errorf("IncrementalAttacher(%s).InsertEndorsement: invalid sequencer pace in %s", a.name, endorsement.IDShortString)
+	}
 
 	if a.pastCone.IsKnown(endorsement) {
 		return fmt.Errorf("endorsing makes no sense: %s is already in the past cone", endorsement.IDShortString())
@@ -189,8 +190,9 @@ func (a *IncrementalAttacher) InsertInput(wOut vertex.WrappedOutput) (bool, erro
 	util.Assertf(!a.IsClosed(), "a.IsClosed()")
 	util.AssertNoError(a.err)
 
-	a.Assertf(wOut.VID.ValidSequencerPace(a.targetTs), "IncrmentalAttacher(%s).InsertInput: invalid sequencer pace in %s",
-		a.name, wOut.IDStringShort)
+	if !wOut.VID.ValidSequencerPace(a.targetTs) {
+		return false, fmt.Errorf("IncrementalAttacher(%s).InsertInput: invalid sequencer pace in %s", a.name, wOut.IDStringShort())
+	}
 
 	// save state for possible rollback because in case of fail the side effect makes attacher inconsistent
 	a.pastCone.BeginDelta()
