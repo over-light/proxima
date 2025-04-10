@@ -19,7 +19,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 		ledger.TransactionPaceSequencer(), extend.Timestamp().String, targetTs.String)
 
 	for _, endorseVID := range endorse {
-		env.Assertf(endorseVID.IsSequencerMilestone(), "NewIncrementalAttacher: endorseVID.IsSequencerMilestone()")
+		env.Assertf(endorseVID.IsSequencerMilestone(), "NewIncrementalAttacher: endorseVID.IsSequencerTransaction()")
 		env.Assertf(targetTs.Slot() == endorseVID.Slot(), "NewIncrementalAttacher: targetTs.Slot() == endorseVid.Slot()")
 		env.Assertf(ledger.ValidTransactionPace(endorseVID.Timestamp(), targetTs), "NewIncrementalAttacher: ledger.ValidTransactionPace(endorseVID.Timestamp(), targetTs)")
 	}
@@ -152,7 +152,10 @@ func (a *IncrementalAttacher) insertVirtuallyConsumedOutput(wOut vertex.WrappedO
 
 // InsertEndorsement preserves consistency in case of failure
 func (a *IncrementalAttacher) InsertEndorsement(endorsement *vertex.WrappedTx) error {
-	util.Assertf(!a.IsClosed(), "a.IsClosed()")
+	a.Assertf(!a.IsClosed(), "a.IsClosed()")
+	a.Assertf(endorsement.ValidSequencerPace(a.targetTs), "IncrmentalAttacher(%s).InsertEndorsement: invalid sequencer pace in %s",
+		a.name, endorsement.IDShortString)
+
 	if a.pastCone.IsKnown(endorsement) {
 		return fmt.Errorf("endorsing makes no sense: %s is already in the past cone", endorsement.IDShortString())
 	}
@@ -185,6 +188,9 @@ func (a *IncrementalAttacher) insertEndorsement(endorsement *vertex.WrappedTx) e
 func (a *IncrementalAttacher) InsertInput(wOut vertex.WrappedOutput) (bool, error) {
 	util.Assertf(!a.IsClosed(), "a.IsClosed()")
 	util.AssertNoError(a.err)
+
+	a.Assertf(wOut.VID.ValidSequencerPace(a.targetTs), "IncrmentalAttacher(%s).InsertInput: invalid sequencer pace in %s",
+		a.name, wOut.IDStringShort)
 
 	// save state for possible rollback because in case of fail the side effect makes attacher inconsistent
 	a.pastCone.BeginDelta()
@@ -282,7 +288,7 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		if tx != nil {
 			err = fmt.Errorf("%w:\n%s", err, tx.ToStringWithInputLoaderByIndex(inputLoader))
 		}
-		a.Log().Fatalf("IncrementalAttacher.MakeSequencerTransaction: %v", err) // should produce correct transaction
+		a.Log().Fatalf("IncrementalAttacher(%s).MakeSequencerTransaction: %v", a.name, err) // should produce correct transaction
 		return nil, err
 	}
 

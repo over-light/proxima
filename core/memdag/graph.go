@@ -68,7 +68,7 @@ func makeGraphNode(vid *vertex.WrappedTx, gr graph.Graph[string, string], seqDic
 	}
 	vid.RUnwrap(vertex.UnwrapOptions{
 		Vertex: func(v *vertex.Vertex) {
-			if v.Tx.IsSequencerMilestone() {
+			if v.Tx.IsSequencerTransaction() {
 				attr = sequencerNodeAttributes(v, lc, seqDict)
 			}
 			switch status {

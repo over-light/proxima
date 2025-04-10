@@ -217,12 +217,12 @@ func DiffTicks(t1, t2 Time) int64 {
 	return t1.TicksSinceGenesis() - t2.TicksSinceGenesis()
 }
 
-// ValidTransactionPace return true is subsequent input and target non-sequencer tx timestamps make a valid pace
+// ValidTransactionPace return true if input and target non-sequencer tx timestamps make a valid pace
 func ValidTransactionPace(t1, t2 Time) bool {
 	return DiffTicks(t2, t1) >= int64(TransactionPace())
 }
 
-// ValidSequencerPace return true is subsequent input and target sequencer tx timestamps make a valid pace
+// ValidSequencerPace return true if input and target sequencer tx timestamps make a valid pace
 func ValidSequencerPace(t1, t2 Time) bool {
 	return DiffTicks(t2, t1) >= int64(TransactionPaceSequencer())
 }
