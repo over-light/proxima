@@ -99,23 +99,15 @@ func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *verte
 
 const TraceTagSolidifySequencerBaseline = "seqBase"
 
-// _getSnapshotBranch returns vertex for the snapshot branch. It always exists, because it is fetched from the
-// root record
-func (a *attacher) _getSnapshotBranch() *vertex.WrappedTx {
-	ret := AttachTxID(a.SnapshotBranchID(), a, WithInvokedBy(a.name))
-	a.Assertf(ret.GetTxStatus() == vertex.Good, "_getSnapshotBranch: inconsistency")
-	return ret
-}
-
 func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
 	defer a.Tracef(TraceTagSolidifySequencerBaseline, "OUT for %s", v.Tx.IDShortString)
 
-	brid := a.SnapshotBranchID()
-	if brid.Timestamp().AfterOrEqual(vidUnwrapped.Timestamp()) {
+	snapID := a.SnapshotBranchID()
+	if snapID.Timestamp().AfterOrEqual(vidUnwrapped.Timestamp()) {
 		// If attacher is before the snapshot, baseline needs special treatment
 		// Set baseline equal to the snapshot branch
-		v.BaselineBranch = a._getSnapshotBranch()
+		v.BaselineBranch = AttachTxID(snapID, a, WithInvokedBy(a.name))
 		a.Log().Infof("%s: snapshot branch %s was assumed as the baseline for the transaction %s",
 			a.name, v.BaselineBranch.IDShortString(), vidUnwrapped.IDShortString())
 		return true
