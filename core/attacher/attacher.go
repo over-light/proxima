@@ -99,9 +99,25 @@ func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *verte
 
 const TraceTagSolidifySequencerBaseline = "seqBase"
 
+func (a *attacher) handleExplicitBaseline(v *vertex.Vertex) *vertex.WrappedTx {
+	explicitBaselineID, exists := v.Tx.ExplicitBaseline()
+	if !exists {
+		return nil
+	}
+	_, found := multistate.FetchRootRecord(a.StateStore(), explicitBaselineID)
+	if !found {
+		return nil
+	}
+	return AttachTxID(explicitBaselineID, a, WithInvokedBy(a.name))
+}
+
 func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
 	defer a.Tracef(TraceTagSolidifySequencerBaseline, "OUT for %s", v.Tx.IDShortString)
+
+	if v.BaselineBranch = a.handleExplicitBaseline(v); v.BaselineBranch != nil {
+		return true
+	}
 
 	snapID := a.SnapshotBranchID()
 	if snapID.Timestamp().AfterOrEqual(vidUnwrapped.Timestamp()) {
