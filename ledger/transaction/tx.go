@@ -371,6 +371,7 @@ func CheckSizeOfInputCommitment(tx *Transaction) error {
 	}
 	return nil
 }
+
 func CheckExplicitBaseline(tx *Transaction) error {
 	data := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
 	if len(data) == 0 {
@@ -440,6 +441,16 @@ func (tx *Transaction) Hash() ledger.TransactionIDShort {
 // SequencerTransactionData returns nil it is not a sequencer milestone
 func (tx *Transaction) SequencerTransactionData() *SequencerTransactionData {
 	return tx.sequencerTransactionData
+}
+
+func (tx *Transaction) ExplicitBaseline() (ledger.TransactionID, bool) {
+	data := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
+	if len(data) == 0 {
+		return ledger.TransactionID{}, false
+	}
+	ret, err := ledger.TransactionIDFromBytes(data)
+	util.AssertNoError(err)
+	return ret, true
 }
 
 func (tx *Transaction) IsSequencerTransaction() bool {
