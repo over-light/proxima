@@ -104,8 +104,7 @@ func (a *attacher) handleExplicitBaseline(v *vertex.Vertex) *vertex.WrappedTx {
 	if !exists {
 		return nil
 	}
-	_, found := multistate.FetchRootRecord(a.StateStore(), explicitBaselineID)
-	if !found {
+	if _, found := multistate.FetchRootRecord(a.StateStore(), explicitBaselineID); !found {
 		return nil
 	}
 	return AttachTxID(explicitBaselineID, a, WithInvokedBy(a.name))
