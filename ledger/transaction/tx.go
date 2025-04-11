@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"strings"
@@ -139,13 +138,11 @@ func BaseValidation(tx *Transaction) error {
 	if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
 		return fmt.Errorf("wrong stem output index")
 	}
-	// parse total amount as uint68. Validity of sum is not checked here
-	totalAmountBin := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
-	if len(totalAmountBin) != 8 {
-		return fmt.Errorf("wrong total amount bytes, must be 8 bytes")
+	// parse total amount as trimmed-prefix uint68. Validity of the sum is not checked here
+	tx.totalAmount, err = ledger.Uint64FromBytes(tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount)))
+	if err != nil {
+		return fmt.Errorf("wrong total amount in transaction: %v", err)
 	}
-	tx.totalAmount = binary.BigEndian.Uint64(totalAmountBin)
-
 	// check if number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
 	numProducedOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
 	if numProducedOutputs <= 0 || numProducedOutputs > 256 {

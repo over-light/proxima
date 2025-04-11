@@ -3,7 +3,6 @@ package txbuilder
 import (
 	"crypto"
 	"crypto/ed25519"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"math/rand"
@@ -240,9 +239,6 @@ func (tx *transactionData) ToArray() *lazybytes.Array {
 	for _, o := range tx.Outputs {
 		total += o.Amount()
 	}
-	var totalBin [8]byte
-	binary.BigEndian.PutUint64(totalBin[:], total)
-
 	elems := make([]any, ledger.TxTreeIndexMax)
 	elems[ledger.TxUnlockData] = unlockParams
 	elems[ledger.TxInputIDs] = inputIDs
@@ -250,7 +246,7 @@ func (tx *transactionData) ToArray() *lazybytes.Array {
 	elems[ledger.TxSignature] = tx.Signature
 	elems[ledger.TxSequencerAndStemOutputIndices] = []byte{tx.SequencerOutputIndex, tx.StemOutputIndex}
 	elems[ledger.TxTimestamp] = tx.Timestamp.Bytes()
-	elems[ledger.TxTotalProducedAmount] = totalBin[:]
+	elems[ledger.TxTotalProducedAmount] = ledger.TrimmedPrefixUint64(total)
 	elems[ledger.TxInputCommitment] = tx.InputCommitment[:]
 	elems[ledger.TxEndorsements] = endorsements
 	elems[ledger.TxExplicitBaseline] = explicitBaseline

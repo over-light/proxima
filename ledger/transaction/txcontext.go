@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
@@ -245,10 +244,12 @@ func (ctx *TxContext) SequencerAndStemOutputIndices() (byte, byte) {
 	return ret[0], ret[1]
 }
 
+func (ctx *TxContext) TotalAmountStoredBin() []byte {
+	return ctx.tree.BytesAtPath(ledger.PathToTotalProducedAmount)
+}
+
 func (ctx *TxContext) TotalAmountStored() uint64 {
-	ret := ctx.tree.BytesAtPath(ledger.PathToTotalProducedAmount)
-	util.Assertf(len(ret) == 8, "len(ret)==8")
-	return binary.BigEndian.Uint64(ret)
+	return ledger.MustUint64FromBytes(ctx.TotalAmountStoredBin())
 }
 
 func (ctx *TxContext) TotalInflation() uint64 {

@@ -44,7 +44,7 @@ func TestOutput(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, outBack.Bytes(), out.Bytes())
 		t.Logf("output: %d bytes", len(out.Bytes()))
-		t.Logf("output: %s", out.Lines().String())
+		t.Logf("output:\n%s", out.Lines().String())
 
 		_, err = ledger.AddressED25519FromBytes(outBack.Lock().Bytes())
 		require.NoError(t, err)

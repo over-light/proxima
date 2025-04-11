@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/proxima/util"
@@ -24,6 +25,7 @@ func MustUint64FromBytes(data []byte) uint64 {
 	return ret
 }
 
+// TrimPrefixZeroBytes returns sub-slice without leading zeroes
 func TrimPrefixZeroBytes(data []byte) []byte {
 	for i := 0; i < len(data); i++ {
 		if data[i] != 0 {
@@ -31,4 +33,18 @@ func TrimPrefixZeroBytes(data []byte) []byte {
 		}
 	}
 	return nil
+}
+
+func Uint64To8Bytes(v uint64) (ret [8]byte) {
+	binary.BigEndian.PutUint64(ret[:], v)
+	return
+}
+
+func TrimmedPrefixUint64(v uint64) []byte {
+	ret := Uint64To8Bytes(v)
+	return TrimPrefixZeroBytes(ret[:])
+}
+
+func TrimmedPrefixUint64Hex(v uint64) string {
+	return hex.EncodeToString(TrimmedPrefixUint64(v))
 }

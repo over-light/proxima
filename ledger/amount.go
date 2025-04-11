@@ -1,8 +1,6 @@
 package ledger
 
 import (
-	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
@@ -12,32 +10,27 @@ import (
 const amountSource = `
 // $0 - amount up to 8 bytes big-endian. Will be expanded to 8 bytes by padding
 func amount: 
-if(
-   and(equal(selfBlockIndex,0), lessOrEqualThan(len($0), u64/8)),
-   uint8Bytes($0),
-   !!!amount_constraint_must_be_at_index_0
-)
+   require(
+       // constraint must be at index 0 and arg0 must no more than 8 byte-long 
+       and(equal(selfBlockIndex,0), lessOrEqualThan(len($0), u64/8)), 
+       !!!amount_constraint_must_be_at_index_0_and_len_arg0<=8
+   )
 
-// utility function which extracts amount value from the output by evaluating it
+// utility function which extracts amount value 8 bytes from the output by evaluating its arg0
 // $0 - output bytes
-func amountValue : evalArgumentBytecode(@Array8($0, amountConstraintIndex), #amount,0)
+func amountValue : uint8Bytes(evalArgumentBytecode(@Array8($0, amountConstraintIndex), #amount,0))
 
 func selfAmountValue: amountValue(selfOutputBytes)
-
-// utility function
-func selfMustAmountAtLeast : if(
-	lessThan(selfAmountValue, $0),
-	!!!amount_on_output_is_smaller_than_allowed_minimum,
-	true
-)
 
 // $0 number of output bytes
 func storageDeposit : mul(constVBCost16,$0)
 
-func selfMustStandardAmount: selfMustAmountAtLeast(
-    storageDeposit(len(selfOutputBytes))
-)
-
+// enforces storage deposit
+func selfMustStandardAmount: 
+	require(
+		not(lessThan(selfAmountValue, storageDeposit(len(selfOutputBytes)))),
+		!!!amount_on_output_is_smaller_than_allowed_minimum
+	)
 `
 
 const (
@@ -51,10 +44,10 @@ func (a Amount) Name() string {
 	return AmountConstraintName
 }
 
+// arg 0 is trimmed-prefix big-endian bytes uin64
+
 func (a Amount) Source() string {
-	var bin [8]byte
-	binary.BigEndian.PutUint64(bin[:], uint64(a))
-	return fmt.Sprintf(amountTemplate, hex.EncodeToString(TrimPrefixZeroBytes(bin[:])))
+	return fmt.Sprintf(amountTemplate, TrimmedPrefixUint64Hex(uint64(a)))
 }
 
 func (a Amount) Bytes() []byte {

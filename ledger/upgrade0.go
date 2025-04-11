@@ -361,7 +361,7 @@ var upgrade0WithFunctions = []*easyfl.ExtendedFunctionData{
 	{"txBytes", "@Path(pathToTransaction)"},
 	{"txSignature", "@Path(pathToSignature)"},
 	{"txTimestampBytes", "@Path(pathToTimestamp)"},
-	{"txTotalProducedAmount", "@Path(pathToTotalProducedAmount)"},
+	{"txTotalProducedAmount", "uint8Bytes(@Path(pathToTotalProducedAmount))"},
 	{"txTimeSlot", "first4Bytes(txTimestampBytes)"},
 	{"txTimeTick", "timeTickFromTimestampBytes(txTimestampBytes)"},
 	{"txSequencerOutputIndex", "byte(@Path(pathToSeqAndStemOutputIndices), 0)"},

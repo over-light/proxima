@@ -2,7 +2,6 @@ package ledger
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
@@ -12,7 +11,7 @@ import (
 const (
 	InflationConstraintName = "inflation"
 	// (0) chain constraint index, (1) inflation amount or randomness proof
-	inflationConstraintTemplate = InflationConstraintName + "(u64/%d, %d)"
+	inflationConstraintTemplate = InflationConstraintName + "(0x%s, %d)"
 )
 
 type InflationConstraint struct {
@@ -41,7 +40,7 @@ func (i *InflationConstraint) String() string {
 }
 
 func (i *InflationConstraint) Source() string {
-	return fmt.Sprintf(inflationConstraintTemplate, i.InflationAmount, i.ChainConstraintIndex)
+	return fmt.Sprintf(inflationConstraintTemplate, TrimmedPrefixUint64Hex(i.InflationAmount), i.ChainConstraintIndex)
 }
 
 func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
@@ -53,12 +52,9 @@ func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
 		return nil, fmt.Errorf("InflationConstraintFromBytes: not an inflation constraint script")
 	}
 	amountBin := easyfl.StripDataPrefix(args[0])
-	var amount uint64
-	if len(amountBin) != 0 {
-		if len(amountBin) != 8 {
-			return nil, fmt.Errorf("InflationConstraintFromBytes: wrong ChainConstraintIndex parameter")
-		}
-		amount = binary.BigEndian.Uint64(amountBin)
+	amount, err := Uint64FromBytes(amountBin)
+	if err != nil {
+		return nil, err
 	}
 	cci := easyfl.StripDataPrefix(args[1])
 	if len(cci) != 1 || cci[0] == 0xff {
@@ -116,13 +112,13 @@ func inflation : or(
            isBranchTransaction,
                    // branch tx. Enforce inflation is calculated from the VRF proof
            require(
-                equal( $0, branchInflationBonusFromRandomnessProof(_producedVRFProof) ),
+                equal( uint8Bytes($0), branchInflationBonusFromRandomnessProof(_producedVRFProof) ),
                 !!!invalid_branch_inflation_bonus
            ),
                    // not branch tx. Enforce valid chain inflation amount
            require(
 	    		lessOrEqualThan(
-                    $0,
+                    uint8Bytes($0),
                     _calcChainInflationAmountForPredecessor(selfChainPredecessorInputIndex($1))
 			    ),
 			    !!!invalid_chain_inflation_amount
