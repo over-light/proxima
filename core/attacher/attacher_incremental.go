@@ -12,7 +12,10 @@ import (
 	"github.com/lunfardo314/proxima/util/lines"
 )
 
-const TraceTagIncrementalAttacher = "incAttach"
+const (
+	TraceTagIncrementalAttacher                     = "incAttach"
+	TraceTagIncrementalAttacherWithExplicitBaseline = "incAttachExplicitBL"
+)
 
 func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (*IncrementalAttacher, error) {
 	env.Assertf(ledger.ValidSequencerPace(extend.Timestamp(), targetTs), "NewIncrementalAttacher: target is closer than allowed pace (%d): %s -> %s",
@@ -66,6 +69,43 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 	}
 
 	if err := ret.initIncrementalAttacher(baseline, targetTs, extend, endorse...); err != nil {
+		ret.Close()
+		return nil, err
+	}
+	if conflict := ret.Check(); conflict != nil {
+		ret.Close()
+		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to create incremental attacher extending  %s: double-spend (conflict) %s in the past cone",
+			name, extend.IDStringShort(), conflict.IDStringShort())
+	}
+	return ret, nil
+}
+
+func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, baselineID ledger.TransactionID) (*IncrementalAttacher, error) {
+	env.Assertf(baselineID.IsBranchTransaction(), "baselineID.IsBranchTransaction()")
+	env.Assertf(!targetTs.IsSlotBoundary(), "!targetTs.IsSlotBoundary()")
+	env.Assertf(int(targetTs.Slot)-int(baselineID.Slot()) >= 1, "int(targetTs.Slot)-int(baselineID.Slot())>=1")
+	env.Assertf(ledger.ValidSequencerPace(extend.Timestamp(), targetTs), "NewIncrementalAttacher: target is closer than allowed pace (%d): %s -> %s",
+		ledger.TransactionPaceSequencer(), extend.Timestamp().String, targetTs.String)
+
+	env.Tracef(TraceTagIncrementalAttacherWithExplicitBaseline, "NewIncrementalAttacherWithExpliciteBaseline(%s). extend: %s, explicit baseline: %s",
+		name, extend.IDStringShort, baselineID.StringShort)
+
+	baseline := AttachTxID(baselineID, env, WithInvokedBy(name))
+	if baseline.GetTxStatus() != vertex.Good {
+		// may happen when baselineDirection is virtualTx
+		return nil, fmt.Errorf("NewIncrementalAttacherWithExplicitBaseline %s: extend: %s, failed to attach GOOD explict baseline branch of %s",
+			name, extend.IDStringShort(), baselineID.StringShort())
+	}
+
+	ret := &IncrementalAttacher{
+		attacher:           newPastConeAttacher(env, nil, targetTs, name),
+		endorse:            make([]*vertex.WrappedTx, 0),
+		inputs:             make([]vertex.WrappedOutput, 0),
+		targetTs:           targetTs,
+		explicitBaselineID: util.Ref(baselineID),
+	}
+
+	if err := ret.initIncrementalAttacher(baseline, targetTs, extend); err != nil {
 		ret.Close()
 		return nil, err
 	}
@@ -216,6 +256,10 @@ func (a *IncrementalAttacher) InsertInput(wOut vertex.WrappedOutput) (bool, erro
 func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKey ed25519.PrivateKey, cmdParser SequencerCommandParser) (*transaction.Transaction, error) {
 	util.Assertf(!a.IsClosed(), "!a.IsDisposed()")
 
+	if a.explicitBaselineID != nil {
+		return a.makeSequencerTransactionWithExplicitBaseline(seqName, privateKey)
+	}
+
 	tagAlongInputs := make([]*ledger.OutputWithID, 0, len(a.inputs))
 	otherOutputs := make([]*ledger.Output, 0)
 	delegationInputs := make([]*ledger.OutputWithChainID, 0)
@@ -299,6 +343,38 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 	a.slotInflation += tx.InflationAmount()
 
 	//a.Log().Infof("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n%s\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", a.dumpLines().String())
+	return tx, nil
+}
+
+func (a *IncrementalAttacher) makeSequencerTransactionWithExplicitBaseline(seqName string, privateKey ed25519.PrivateKey) (*transaction.Transaction, error) {
+	a.Assertf(len(a.endorse) == 0, "len(a.endorse)==0")
+	a.Assertf(len(a.inputs) == 1, "a.inputs==1")
+
+	chainIn := a.inputs[0].OutputWithID()
+	txBytes, inputLoader, err := txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
+		SeqName:          seqName,
+		ChainInput:       chainIn.MustAsChainOutput(),
+		Timestamp:        a.targetTs,
+		PrivateKey:       privateKey,
+		InflateMainChain: true,
+		ExplicitBaseline: a.explicitBaselineID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	tx, err := transaction.FromBytes(txBytes, append(transaction.MainTxValidationOptions, transaction.ValidateOptionWithFullContext(inputLoader))...)
+	if err != nil {
+		if tx != nil {
+			err = fmt.Errorf("%w:\n%s", err, tx.ToStringWithInputLoaderByIndex(inputLoader))
+		}
+		a.Log().Fatalf("IncrementalAttacher(%s).MakeSequencerTransaction: %v", a.name, err) // should produce correct transaction
+		return nil, err
+	}
+
+	a.slotInflation = a.pastCone.CalculateSlotInflation()
+	// in the incremental attacher we must add inflation on the branch
+	a.slotInflation += tx.InflationAmount()
+
 	return tx, nil
 }
 

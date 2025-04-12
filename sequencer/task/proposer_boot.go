@@ -1,26 +1,33 @@
 package task
 
 import (
-	"time"
-
 	"github.com/lunfardo314/proxima/core/attacher"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/global"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 
-// Base proposer generates branches and bootstraps sequencer when no other sequencers are around
+// boot proposer generates non-branch transaction proposals with LRB as explicit baseline
+// when own latest milestone is more than 1 slot in the past from now
+// The purpose of it is to bootstrap the network. When network starts from scratch, all start UTXOs of sequencers
+// are in the past. It makes impossible to issue sequencer transaction with implicit baseline,
+// because there's no what to endorse.
+// With boot proposer, sequencer issues non-branch transactions by bypassing endorsement and setting explicit
+// baseline branch. Thus, transaction can be solidified and when several sequencers are issuing bootstrap transactions,
+// the next ones can endorse it and ledger coverage start groving.
+// After the bootstrap phase, the boot proposer becomes idle
 
 const (
 	TraceTagBootProposer = "propose-boot"
 )
 
-//func init() {
-//	registerProposerStrategy(&proposerStrategy{
-//		Name:             "boot",
-//		ShortName:        "x",
-//		GenerateProposal: bootProposeGenerator,
-//	})
-//}
+func init() {
+	registerProposerStrategy(&proposerStrategy{
+		Name:             "boot",
+		ShortName:        "x",
+		GenerateProposal: bootProposeGenerator,
+	})
+}
 
 func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	p.Tracef(TraceTagBootProposer, "IN base proposer %s", p.Name)
@@ -30,71 +37,28 @@ func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		p.Log().Warnf("BootProposer-%s: can't find own milestone output", p.Name)
 		return nil, true
 	}
-	if p.targetTs.IsSlotBoundary() && !extend.VID.IsBranchTransaction() && extend.VID.Slot()+1 != p.targetTs.Slot {
-		// latest output is beyond reach for the branch as next transaction
-		p.Tracef(TraceTagBaseProposerExit, "OUT base proposer %s: latest output is beyond reach: %s", p.Name, extend.IDStringShort())
+
+	if p.targetTs.IsSlotBoundary() || extend.VID.Slot()+1 >= p.targetTs.Slot {
+		// idle phase of the base proposer
 		return nil, true
 	}
 
-	if !ledger.ValidSequencerPace(extend.Timestamp(), p.targetTs) {
-		// it means proposer is obsolete, abandon it
-		p.Tracef(TraceTagBaseProposerExit, "force exit in %s: own latest milestone and target ledger time does not make valid pace %s",
-			p.Name, extend.IDStringShort)
+	lrb := multistate.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
+	if extend.VID == nil {
+		p.Log().Warnf("BootProposer-%s: can't find latest reliable branch", p.Name)
 		return nil, true
 	}
 
-	p.Tracef(TraceTagBaseProposer, "%s extending %s", p.Name, extend.IDStringShort)
-	// own latest milestone exists
-	if !p.targetTs.IsSlotBoundary() {
-		// target is not a branch target
-		p.Tracef(TraceTagBaseProposer, "%s target is not a branch target", p.Name)
-		if extend.Slot() != p.targetTs.Slot {
-			p.Tracef(TraceTagBaseProposerExit, "%s force exit: cross-slot %s", p.Name, extend.IDStringShort)
-			return nil, true
-		}
-		p.Tracef(TraceTagBaseProposer, "%s target is not a branch and it is on the same slot", p.Name)
-		if !extend.VID.IsSequencerMilestone() {
-			p.Tracef(TraceTagBaseProposerExit, "%s force exit: not-sequencer %s", p.Name, extend.IDStringShort)
-			return nil, true
-		}
-		// proposer optimization: if backlog and extended output didn't change since last target,
-		// makes no sense to continue with proposals.
-		noChanges := p.slotData.lastExtendedOutputIDB0 == extend.DecodeID() &&
-			!p.Backlog().ArrivedOutputsSince(p.slotData.lastTimeBacklogCheckedB0)
-		p.slotData.lastTimeBacklogCheckedB0 = time.Now()
-		if noChanges {
-			p.Tracef(TraceTagBaseProposerExit, "%s 'no changes extend' = %s", p.Name, extend.IDStringShort)
-			return nil, true
-		}
-	}
-
-	p.Tracef(TraceTagBaseProposer, "%s predecessor %s is sequencer milestone with coverage %s",
-		p.Name, extend.IDStringShort, extend.VID.GetLedgerCoverageString)
-
-	a, err := attacher.NewIncrementalAttacher(p.Name, p.environment, p.targetTs, extend)
+	a, err := attacher.NewIncrementalAttacherWithExplicitBaseline(p.Name, p.environment, p.targetTs, extend, lrb.Stem.ID.TransactionID())
 	if err != nil {
-		p.Tracef(TraceTagBaseProposerExit, "%s can't create attacher: '%v'", p.Name, err)
+		p.Tracef(TraceTagBootProposer, "%s can't create attacher: '%v'", p.Name, err)
 		return nil, true
 	}
-	p.Tracef(TraceTagBaseProposer, "%s created attacher with baseline %s, cov: %s",
+	p.Tracef(TraceTagBootProposer, "%s created attacher with baseline %s, cov: %s",
 		p.Name, a.BaselineBranch().IDShortString, func() string { return util.Th(a.LedgerCoverage()) },
 	)
-	if p.targetTs.IsSlotBoundary() {
-		p.Tracef(TraceTagBaseProposer, "%s making branch, no tag-along, extending %s cov: %s, attacher %s cov: %s",
-			p.Name,
-			extend.IDStringShort, func() string { return util.Th(extend.VID.GetLedgerCoverage()) },
-			a.Name(), func() string { return util.Th(a.LedgerCoverage()) },
-		)
-	} else {
-		p.Tracef(TraceTagBaseProposer, "%s making non-branch, extending %s, collecting and inserting tag-along inputs", p.Name, extend.IDStringShort)
 
-		p.insertInputs(a)
-	}
-
-	p.slotData.lastExtendedOutputIDB0 = extend.DecodeID()
-	// only need one proposal when extending a branch
-	stopProposing := extend.VID.IsBranchTransaction()
-	p.Tracef(TraceTagBaseProposerExit, "exit with proposal in %s: extend = %s",
+	p.Tracef(TraceTagBootProposer, "exit with proposal in %s: extend = %s",
 		p.Name, extend.IDStringShort)
-	return a, stopProposing
+	return a, true
 }
