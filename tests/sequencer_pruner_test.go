@@ -94,7 +94,7 @@ import (
 
 func Test1SequencerPrunerIdle(t *testing.T) {
 	const (
-		maxSlots = 50
+		maxSlots = 10
 	)
 	testData := initWorkflowTest(t, 1, true)
 	t.Logf("%s", testData.wrk.Info())

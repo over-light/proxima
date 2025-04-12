@@ -63,7 +63,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		return nil, nil, errP("too many inputs. Max 256")
 	case par.StemInput != nil && par.Timestamp.Tick != 0:
 		return nil, nil, errP("wrong timestamp for branch transaction: %s", par.Timestamp.String())
-	case par.Timestamp.Slot > par.ChainInput.ID.Slot() && par.Timestamp.Tick != 0 && len(par.Endorsements) == 0:
+	case par.Timestamp.Slot > par.ChainInput.ID.Slot() && par.Timestamp.Tick != 0 && len(par.Endorsements) == 0 && par.ExplicitBaseline == nil:
 		return nil, nil, errP("cross-slot sequencer tx must endorse another sequencer tx: chain input ts: %s, target: %s",
 			par.ChainInput.ID.Timestamp(), par.Timestamp)
 	case !par.ChainInput.ID.IsSequencerTransaction() && par.StemInput == nil && len(par.Endorsements) == 0:
@@ -288,7 +288,9 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	txBytes := txb.TransactionData.Bytes()
 
 	if err = transaction.ValidateTxBytes(txBytes, txb.LoadInput); err != nil {
-		return nil, nil, errP("failed validate txBytes: %v", err)
+		err = fmt.Errorf("%v\n-----------------------\n%s", err, transaction.LinesFromTransactionBytes(txBytes, txb.LoadInput).String())
+		panic(err)
+		//return nil, nil, errP("failed validate txBytes: %v", err)
 	}
 
 	return txBytes, txb.LoadInput, nil

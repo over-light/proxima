@@ -15,13 +15,14 @@ const (
 	TraceTagBaseProposerExit = "propose-base-exit"
 )
 
-func init() {
-	registerProposerStrategy(&proposerStrategy{
-		Name:             "base",
-		ShortName:        "b0",
-		GenerateProposal: baseProposeGenerator,
-	})
-}
+//
+//func init() {
+//	registerProposerStrategy(&proposerStrategy{
+//		Name:             "base",
+//		ShortName:        "b0",
+//		GenerateProposal: baseProposeGenerator,
+//	})
+//}
 
 func baseProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	p.Tracef(TraceTagBaseProposerExit, "IN base proposer %s", p.Name)

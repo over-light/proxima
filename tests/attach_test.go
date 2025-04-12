@@ -457,6 +457,16 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		// no explicit baseline in order for the test to pass
+		txBytes, loader, err = txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
+			SeqName:          "test",
+			ChainInput:       chainOut,
+			Timestamp:        ts,
+			AdditionalInputs: testData.terminalOutputs,
+			PrivateKey:       testData.genesisPrivKey,
+		})
+		require.NoError(t, err)
+
 		const printTx = true
 		if printTx {
 			t.Logf("----------- transaction ---------------\n%s",

@@ -47,7 +47,8 @@ require(
 		//  and(isBranchTransaction, sequencerFlagON(inputIDByIndex($0))),  
         //  <<<<<<< modified Oct 4, 2023. Otherwise sequencer can't start from pure chain'
 		isBranchTransaction, 
-		not(isZero(numEndorsements))
+		not(isZero(numEndorsements)),
+		not(isZero(txExplicitBaseline))
 	), 
 	!!!sequencer_tx_has_incorrect_cross_slot_chain_predecessor_or_does_not_have_any_endorsements
 )

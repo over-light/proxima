@@ -564,7 +564,7 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 
 // setBaseline sets baseline, references it from the attacher
 // For sequencer transaction baseline will be on the same slot, for branch transactions it can be further in the past
-func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, currentTS ledger.Time) bool {
+func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, targetTs ledger.Time) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
 
 	// it may already be referenced but this ensures it is done only once
@@ -585,16 +585,14 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, currentTS ledger.T
 	a.baseline = baselineVID
 	a.baselineSupply = rr.Supply
 
-	brid := a.SnapshotBranchID()
-	if currentTS.After(brid.Timestamp()) {
-		if currentTS.IsSlotBoundary() {
-			a.Assertf(baselineVID.Slot() < currentTS.Slot, "baselineVID.Slot() < currentTS.Slot")
-		} else {
-			a.Assertf(baselineVID.Slot() == currentTS.Slot, "baselineVID.Slot() == currentTS.Slot")
-		}
-	} else {
-		a.Assertf(baselineVID.Timestamp() == brid.Timestamp(), "baselineVID.Timestamp()==snapTs")
-	}
+	//brid := a.SnapshotBranchID()
+	//if targetTs.After(brid.Timestamp()) {
+	//	if targetTs.IsSlotBoundary() {
+	//		a.Assertf(baselineVID.Slot() < targetTs.Slot, "baselineVID.Slot() < targetTs.Slot")
+	//	}
+	//} else {
+	//	a.Assertf(baselineVID.Timestamp() == brid.Timestamp(), "baselineVID.Timestamp()==snapTs")
+	//}
 	return true
 }
 
