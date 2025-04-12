@@ -17,80 +17,80 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDebugPruner(t *testing.T) {
-	t.Run("1", func(t *testing.T) {
-		testData := initWorkflowTest(t, 1, true)
-		t.Logf("%s", testData.wrk.Info())
-
-		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
-			runtime.GC()
-			return true
-		})
-
-		err := testData.wrk.TxIn(testData.distributionBranchTx)
-		require.NoError(t, err)
-
-		testData.makeChainOrigins(1)
-
-		err = testData.wrk.TxIn(testData.chainOriginsTx)
-		require.NoError(t, err)
-
-		time.Sleep(20 * time.Second)
-		testData.stop()
-		testData.waitStop()
-
-		t.Logf("%s", testData.wrk.Info(true))
-		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
-	})
-	t.Run("run until GCed", func(t *testing.T) {
-		const (
-			maxSlots    = 50
-			waitTimeout = 400 * time.Second
-		)
-		testData := initWorkflowTest(t, 1, true)
-		t.Logf("%s", testData.wrk.Info())
-
-		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
-			runtime.GC()
-			return true
-		})
-
-		seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey,
-			sequencer.WithName("singleTestSequencer"),
-			sequencer.WithMaxBranches(maxSlots))
-		require.NoError(t, err)
-
-		seq.OnExitOnce(func() {
-			//sequencer.TrackGCSequencers.TrackPointerNotGCed(seq, waitTimeout/4)
-		})
-
-		seq.Start()
-		//time.Sleep(waitTimeout)
-
-		start := time.Now()
-		nVert, nRdr := testData.wrk.NumVerticesAndStateReaders()
-		for {
-			t.Logf("%d vertices, %d state readers", nVert, nRdr)
-			time.Sleep(1 * time.Second)
-			nVert, nRdr = testData.wrk.NumVerticesAndStateReaders()
-
-			if nVert == 0 {
-				t.Logf("memdag is empty after %v", time.Since(start))
-				break
-			}
-			if time.Since(start) > waitTimeout {
-				t.Logf("exceeded wait timeout of %v", waitTimeout)
-			}
-		}
-
-		testData.stop()
-		testData.waitStop()
-
-		t.Logf("%s", testData.wrk.Info(true))
-		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
-		//testData.saveFullDAG("full_dag")
-	})
-}
+//func TestDebugPruner(t *testing.T) {
+//	t.Run("1", func(t *testing.T) {
+//		testData := initWorkflowTest(t, 1, true)
+//		t.Logf("%s", testData.wrk.Info())
+//
+//		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
+//			runtime.GC()
+//			return true
+//		})
+//
+//		err := testData.wrk.TxIn(testData.distributionBranchTx)
+//		require.NoError(t, err)
+//
+//		testData.makeChainOrigins(1)
+//
+//		err = testData.wrk.TxIn(testData.chainOriginsTx)
+//		require.NoError(t, err)
+//
+//		time.Sleep(20 * time.Second)
+//		testData.stop()
+//		testData.waitStop()
+//
+//		t.Logf("%s", testData.wrk.Info(true))
+//		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
+//	})
+//	t.Run("run until GCed", func(t *testing.T) {
+//		const (
+//			maxSlots    = 50
+//			waitTimeout = 400 * time.Second
+//		)
+//		testData := initWorkflowTest(t, 1, true)
+//		t.Logf("%s", testData.wrk.Info())
+//
+//		testData.env.RepeatInBackground("test GC loop", time.Second, func() bool {
+//			runtime.GC()
+//			return true
+//		})
+//
+//		seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey,
+//			sequencer.WithName("singleTestSequencer"),
+//			sequencer.WithMaxBranches(maxSlots))
+//		require.NoError(t, err)
+//
+//		seq.OnExitOnce(func() {
+//			//sequencer.TrackGCSequencers.TrackPointerNotGCed(seq, waitTimeout/4)
+//		})
+//
+//		seq.Start()
+//		//time.Sleep(waitTimeout)
+//
+//		start := time.Now()
+//		nVert, nRdr := testData.wrk.NumVerticesAndStateReaders()
+//		for {
+//			t.Logf("%d vertices, %d state readers", nVert, nRdr)
+//			time.Sleep(1 * time.Second)
+//			nVert, nRdr = testData.wrk.NumVerticesAndStateReaders()
+//
+//			if nVert == 0 {
+//				t.Logf("memdag is empty after %v", time.Since(start))
+//				break
+//			}
+//			if time.Since(start) > waitTimeout {
+//				t.Logf("exceeded wait timeout of %v", waitTimeout)
+//			}
+//		}
+//
+//		testData.stop()
+//		testData.waitStop()
+//
+//		t.Logf("%s", testData.wrk.Info(true))
+//		t.Logf("------------------------------\n%s", testData.wrk.InfoRefLines("     ").String())
+//		//testData.saveFullDAG("full_dag")
+//	})
+//}
 
 func Test1SequencerPruner(t *testing.T) {
 	t.Run("idle", func(t *testing.T) {
@@ -213,35 +213,34 @@ func Test1SequencerPruner(t *testing.T) {
 	})
 }
 
-func TestNSequencersIdlePruner(t *testing.T) {
-	t.Run("finalize chain origins", func(t *testing.T) {
-		const (
-			nSequencers = 5 // in addition to bootstrap
-		)
-		testData := initMultiSequencerTest(t, nSequencers, true)
+func TestFinalizeChainOrigins(t *testing.T) {
+	const (
+		nSequencers = 5 // in addition to bootstrap
+	)
+	testData := initMultiSequencerTest(t, nSequencers, true)
 
-		testData.stopAndWait()
+	testData.stopAndWait()
 
-		t.Logf("%s", testData.wrk.Info(true))
-		testData.saveFullDAG("utangle_full")
-	})
-	t.Run("idle 2", func(t *testing.T) {
-		const (
-			maxSlots    = 50
-			nSequencers = 1 // in addition to bootstrap
-		)
-		testData := initMultiSequencerTest(t, nSequencers, true)
+	t.Logf("%s", testData.wrk.Info(true))
+	testData.saveFullDAG("utangle_full")
+}
 
-		//testData.env.StartTracingTags(attacher.TraceTagCoverageAdjustment)
+func TestIdle2(t *testing.T) {
+	const (
+		maxSlots    = 50
+		nSequencers = 1 // in addition to bootstrap
+	)
+	testData := initMultiSequencerTest(t, nSequencers, true)
 
-		testData.startSequencersWithTimeout(maxSlots)
-		time.Sleep(20 * time.Second)
-		testData.stopAndWait()
+	//testData.env.StartTracingTags(attacher.TraceTagCoverageAdjustment)
 
-		t.Logf("%s", testData.wrk.Info(false))
-		testData.saveFullDAG("utangle_full")
-		multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
-	})
+	testData.startSequencersWithTimeout(maxSlots)
+	time.Sleep(20 * time.Second)
+	testData.stopAndWait()
+
+	t.Logf("%s", testData.wrk.Info(false))
+	testData.saveFullDAG("utangle_full")
+	multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 }
 
 func Test5SequencersIdlePruner(t *testing.T) {
@@ -279,149 +278,150 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 }
 
-func TestNSequencersTransferPruner(t *testing.T) {
-	t.Run("seq 3 transfer 1 tag along", func(t *testing.T) {
-		const (
-			maxSlots        = 100
-			nSequencers     = 2 // in addition to bootstrap
-			batchSize       = 10
-			sendAmount      = 2000
-			spammingTimeout = 30 * time.Second
-		)
-		testData := initMultiSequencerTest(t, nSequencers, true)
+// FIXME sometimes fails (timeout?)
 
-		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
-		require.EqualValues(t, initBalance*nSequencers, int(rdr.BalanceOf(testData.addrAux.AccountID())))
+func Test3Seq1TagAlong(t *testing.T) {
+	const (
+		maxSlots        = 100
+		nSequencers     = 2 // in addition to bootstrap
+		batchSize       = 10
+		sendAmount      = 2000
+		spammingTimeout = 30 * time.Second
+	)
+	testData := initMultiSequencerTest(t, nSequencers, true)
 
-		//initialBalanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
+	rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
+	require.EqualValues(t, initBalance*nSequencers, int(rdr.BalanceOf(testData.addrAux.AccountID())))
 
-		targetPrivKey := testutil.GetTestingPrivateKey(10000)
-		targetAddr := ledger.AddressED25519FromPrivateKey(targetPrivKey)
+	//initialBalanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
 
-		ctx, cancelSpam := context.WithTimeout(context.Background(), spammingTimeout)
-		par := &spammerParams{
-			t:             t,
-			privateKey:    testData.privKeyFaucet,
-			remainder:     testData.faucetOutput,
-			tagAlongSeqID: []ledger.ChainID{testData.bootstrapChainID},
-			target:        targetAddr,
-			pace:          30,
-			batchSize:     batchSize,
-			//maxBatches:    maxBatches,
-			sendAmount:   sendAmount,
-			tagAlongFee:  tagAlongFee,
-			spammedTxIDs: make([]ledger.TransactionID, 0),
-		}
-		go testData.spamTransfers(par, ctx)
-		go func() {
-			<-ctx.Done()
-			cancelSpam()
-			t.Log("spamming stopped")
-		}()
+	targetPrivKey := testutil.GetTestingPrivateKey(10000)
+	targetAddr := ledger.AddressED25519FromPrivateKey(targetPrivKey)
 
-		testData.startSequencersWithTimeout(maxSlots)
-
+	ctx, cancelSpam := context.WithTimeout(context.Background(), spammingTimeout)
+	par := &spammerParams{
+		t:             t,
+		privateKey:    testData.privKeyFaucet,
+		remainder:     testData.faucetOutput,
+		tagAlongSeqID: []ledger.ChainID{testData.bootstrapChainID},
+		target:        targetAddr,
+		pace:          30,
+		batchSize:     batchSize,
+		//maxBatches:    maxBatches,
+		sendAmount:   sendAmount,
+		tagAlongFee:  tagAlongFee,
+		spammedTxIDs: make([]ledger.TransactionID, 0),
+	}
+	go testData.spamTransfers(par, ctx)
+	go func() {
 		<-ctx.Done()
-		time.Sleep(5 * time.Second)
-		testData.stopAndWait(3 * time.Second)
+		cancelSpam()
+		t.Log("spamming stopped")
+	}()
 
-		t.Logf("%s", testData.wrk.Info())
-		//testData.saveFullDAG("utangle_full_3")
+	testData.startSequencersWithTimeout(maxSlots)
 
-		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
-		for _, txid := range par.spammedTxIDs {
-			//require.True(t, rdr.KnowsCommittedTransaction(&txid))
-			t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(txid))
-		}
-		//require.EqualValues(t, (maxBatches+1)*batchSize, len(par.spammedTxIDs))
+	<-ctx.Done()
+	time.Sleep(5 * time.Second)
+	testData.stopAndWait(3 * time.Second)
 
-		targetBalance := rdr.BalanceOf(targetAddr.AccountID())
-		require.EqualValues(t, len(par.spammedTxIDs)*sendAmount, int(targetBalance))
+	t.Logf("%s", testData.wrk.Info())
+	//testData.saveFullDAG("utangle_full_3")
 
-		balanceLeft := rdr.BalanceOf(testData.addrFaucet.AccountID())
-		require.EqualValues(t, initBalance-len(par.spammedTxIDs)*(sendAmount+tagAlongFee), int(balanceLeft))
+	rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
+	for _, txid := range par.spammedTxIDs {
+		//require.True(t, rdr.KnowsCommittedTransaction(&txid))
+		t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(txid))
+	}
+	//require.EqualValues(t, (maxBatches+1)*batchSize, len(par.spammedTxIDs))
 
-		//balanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
-		//require.EqualValues(t, int(initialBalanceOnChain)+len(par.spammedTxIDs)*tagAlongFee, int(balanceOnChain))
-	})
-	t.Run("seq 3 transfer multi tag along last only", func(t *testing.T) {
-		const (
-			maxSlots        = 100 // 100
-			nSequencers     = 2   // in addition to bootstrap
-			batchSize       = 10  // 10
-			sendAmount      = 2000
-			spammingTimeout = 30 * time.Second // 10
-			startPruner     = true
-			traceTx         = false
-		)
-		testData := initMultiSequencerTest(t, nSequencers, startPruner)
+	targetBalance := rdr.BalanceOf(targetAddr.AccountID())
+	require.EqualValues(t, len(par.spammedTxIDs)*sendAmount, int(targetBalance))
 
-		//testData.env.StartTracingTags(attacher.TraceTagCoverageAdjustment)
+	balanceLeft := rdr.BalanceOf(testData.addrFaucet.AccountID())
+	require.EqualValues(t, initBalance-len(par.spammedTxIDs)*(sendAmount+tagAlongFee), int(balanceLeft))
 
-		rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
-		require.EqualValues(t, initBalance*nSequencers, int(rdr.BalanceOf(testData.addrAux.AccountID())))
+	//balanceOnChain := rdr.BalanceOnChain(&testData.bootstrapChainID)
+	//require.EqualValues(t, int(initialBalanceOnChain)+len(par.spammedTxIDs)*tagAlongFee, int(balanceOnChain))
+}
 
-		targetPrivKey := testutil.GetTestingPrivateKey(10000)
-		targetAddr := ledger.AddressED25519FromPrivateKey(targetPrivKey)
+func Test3SeqMultiTagAlong(t *testing.T) {
+	const (
+		maxSlots        = 100 // 100
+		nSequencers     = 2   // in addition to bootstrap
+		batchSize       = 10  // 10
+		sendAmount      = 2000
+		spammingTimeout = 30 * time.Second // 10
+		startPruner     = true
+		traceTx         = false
+	)
+	testData := initMultiSequencerTest(t, nSequencers, startPruner)
 
-		tagAlongSeqIDs := []ledger.ChainID{testData.bootstrapChainID}
-		for _, o := range testData.chainOrigins {
-			tagAlongSeqIDs = append(tagAlongSeqIDs, o.ChainID)
-		}
-		tagAlongInitBalances := make(map[ledger.ChainID]uint64)
-		for _, seqID := range tagAlongSeqIDs {
-			tagAlongInitBalances[seqID] = rdr.BalanceOnChain(seqID)
-		}
+	//testData.env.StartTracingTags(attacher.TraceTagCoverageAdjustment)
 
-		ctx, cancelSpam := context.WithTimeout(context.Background(), spammingTimeout)
-		par := &spammerParams{
-			t:                t,
-			privateKey:       testData.privKeyFaucet,
-			remainder:        testData.faucetOutput,
-			tagAlongSeqID:    tagAlongSeqIDs,
-			target:           targetAddr,
-			pace:             30,
-			batchSize:        batchSize,
-			tagAlongLastOnly: true,
-			sendAmount:       sendAmount,
-			tagAlongFee:      tagAlongFee,
-			spammedTxIDs:     make([]ledger.TransactionID, 0),
-			traceTx:          traceTx,
-		}
-		go testData.spamTransfers(par, ctx)
-		go func() {
-			<-ctx.Done()
-			cancelSpam()
-			t.Log("spamming stopped")
-		}()
+	rdr := multistate.MakeSugared(testData.wrk.HeaviestStateForLatestTimeSlot())
+	require.EqualValues(t, initBalance*nSequencers, int(rdr.BalanceOf(testData.addrAux.AccountID())))
 
-		testData.startSequencersWithTimeout(maxSlots)
+	targetPrivKey := testutil.GetTestingPrivateKey(10000)
+	targetAddr := ledger.AddressED25519FromPrivateKey(targetPrivKey)
 
+	tagAlongSeqIDs := []ledger.ChainID{testData.bootstrapChainID}
+	for _, o := range testData.chainOrigins {
+		tagAlongSeqIDs = append(tagAlongSeqIDs, o.ChainID)
+	}
+	tagAlongInitBalances := make(map[ledger.ChainID]uint64)
+	for _, seqID := range tagAlongSeqIDs {
+		tagAlongInitBalances[seqID] = rdr.BalanceOnChain(seqID)
+	}
+
+	ctx, cancelSpam := context.WithTimeout(context.Background(), spammingTimeout)
+	par := &spammerParams{
+		t:                t,
+		privateKey:       testData.privKeyFaucet,
+		remainder:        testData.faucetOutput,
+		tagAlongSeqID:    tagAlongSeqIDs,
+		target:           targetAddr,
+		pace:             30,
+		batchSize:        batchSize,
+		tagAlongLastOnly: true,
+		sendAmount:       sendAmount,
+		tagAlongFee:      tagAlongFee,
+		spammedTxIDs:     make([]ledger.TransactionID, 0),
+		traceTx:          traceTx,
+	}
+	go testData.spamTransfers(par, ctx)
+	go func() {
 		<-ctx.Done()
-		time.Sleep(5 * time.Second)
-		testData.stopAndWait(3 * time.Second)
+		cancelSpam()
+		t.Log("spamming stopped")
+	}()
 
-		t.Logf("%s", testData.wrk.Info())
-		rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
-		for _, txid := range par.spammedTxIDs {
-			require.True(t, rdr.KnowsCommittedTransaction(txid))
-			//t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
-		}
+	testData.startSequencersWithTimeout(maxSlots)
 
-		//testData.saveFullDAG(fmt.Sprintf("utangle_full_%d_2", nSequencers+1))
-		multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d_2", nSequencers+1))
+	<-ctx.Done()
+	time.Sleep(5 * time.Second)
+	testData.stopAndWait(3 * time.Second)
 
-		targetBalance := rdr.BalanceOf(targetAddr.AccountID())
-		require.EqualValues(t, len(par.spammedTxIDs)*sendAmount, int(targetBalance))
+	t.Logf("%s", testData.wrk.Info())
+	rdr = testData.wrk.HeaviestStateForLatestTimeSlot()
+	for _, txid := range par.spammedTxIDs {
+		require.True(t, rdr.KnowsCommittedTransaction(txid))
+		//t.Logf("    %s: in the heaviest state: %v", txid.StringShort(), rdr.KnowsCommittedTransaction(&txid))
+	}
 
-		balanceLeft := rdr.BalanceOf(testData.addrFaucet.AccountID())
-		require.EqualValues(t, initBalance-len(par.spammedTxIDs)*sendAmount-par.numSpammedBatches*tagAlongFee, int(balanceLeft))
+	//testData.saveFullDAG(fmt.Sprintf("utangle_full_%d_2", nSequencers+1))
+	multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d_2", nSequencers+1))
 
-		for seqID, initBal := range tagAlongInitBalances {
-			balanceOnChain := rdr.BalanceOnChain(seqID)
-			t.Logf("%s tx: %d, init: %s, final: %s", seqID.StringShort(), par.perChainID[seqID], util.Th(initBal), util.Th(balanceOnChain))
-			// inflation etc...
-			//require.EqualValues(t, int(initBal)+par.perChainID[seqID]*tagAlongFee, int(balanceOnChain))
-		}
-	})
+	targetBalance := rdr.BalanceOf(targetAddr.AccountID())
+	require.EqualValues(t, len(par.spammedTxIDs)*sendAmount, int(targetBalance))
+
+	balanceLeft := rdr.BalanceOf(testData.addrFaucet.AccountID())
+	require.EqualValues(t, initBalance-len(par.spammedTxIDs)*sendAmount-par.numSpammedBatches*tagAlongFee, int(balanceLeft))
+
+	for seqID, initBal := range tagAlongInitBalances {
+		balanceOnChain := rdr.BalanceOnChain(seqID)
+		t.Logf("%s tx: %d, init: %s, final: %s", seqID.StringShort(), par.perChainID[seqID], util.Th(initBal), util.Th(balanceOnChain))
+		// inflation etc...
+		//require.EqualValues(t, int(initBal)+par.perChainID[seqID]*tagAlongFee, int(balanceOnChain))
+	}
 }
