@@ -30,7 +30,7 @@ func init() {
 }
 
 func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
-	p.Tracef(TraceTagBootProposer, "IN base proposer %s", p.Name)
+	//p.Tracef(TraceTagBootProposer, "IN base proposer %s", p.Name)
 
 	extend := p.OwnLatestMilestoneOutput()
 	if extend.VID == nil {
@@ -40,6 +40,7 @@ func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 
 	if p.targetTs.IsSlotBoundary() || extend.VID.Slot()+1 >= p.targetTs.Slot {
 		// idle phase of the base proposer
+		p.Tracef(TraceTagBootProposer, "idle phase(%s). target: %s, extend: %s", p.Name, p.targetTs.String, extend.IDStringShort)
 		return nil, true
 	}
 
@@ -58,7 +59,6 @@ func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		p.Name, a.BaselineBranch().IDShortString, func() string { return util.Th(a.LedgerCoverage()) },
 	)
 
-	p.Tracef(TraceTagBootProposer, "exit with proposal in %s: extend = %s",
-		p.Name, extend.IDStringShort)
+	p.Tracef(TraceTagBootProposer, "exit with proposal in %s: extend = %s", p.Name, extend.IDStringShort)
 	return a, true
 }

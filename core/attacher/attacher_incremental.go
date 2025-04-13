@@ -83,7 +83,8 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, baselineID ledger.TransactionID) (*IncrementalAttacher, error) {
 	env.Assertf(baselineID.IsBranchTransaction(), "baselineID.IsBranchTransaction()")
 	env.Assertf(!targetTs.IsSlotBoundary(), "!targetTs.IsSlotBoundary()")
-	env.Assertf(int(targetTs.Slot)-int(baselineID.Slot()) >= 1, "int(targetTs.Slot)-int(baselineID.Slot())>=1")
+	env.Assertf(int(targetTs.Slot)-int(extend.Slot()) >= 1, "int(targetTs.Slot)(%s)-int(extend.Slot())(%s)>=1",
+		targetTs.String, extend.IDStringShort)
 	env.Assertf(ledger.ValidSequencerPace(extend.Timestamp(), targetTs), "NewIncrementalAttacher: target is closer than allowed pace (%d): %s -> %s",
 		ledger.TransactionPaceSequencer(), extend.Timestamp().String, targetTs.String)
 

@@ -238,14 +238,15 @@ type (
 
 	// VertexWithDependencies primary purpose is streaming vertices for DAG visualization
 	VertexWithDependencies struct {
-		ID                    string   `json:"id"`                // transaction ID in hex form
-		TotalAmount           uint64   `json:"a"`                 // total produced amount on transaction
-		TotalInflation        uint64   `json:"i,omitempty"`       // total inflation on transaction
-		SequencerID           string   `json:"seqid,omitempty"`   // "" (omitted) for non-seq. Useful for coloring
-		SequencerInputTxIndex *byte    `json:"seqidx,omitempty"`  // sequencer predecessor tx index for sequencer predecessor tx in the Inputs list, otherwise nil
-		StemInputTxIndex      *byte    `json:"stemidx,omitempty"` // stem predecessor (branch) tx index for stem predecessor tx in the Inputs list, otherwise nil
-		Inputs                []string `json:"in"`                // list of input IDs (not empty)
-		Endorsements          []string `json:"endorse,omitempty"` // list of endorsements (can be nil)
+		ID                    string   `json:"id"`                          // transaction ID in hex form
+		TotalAmount           uint64   `json:"a"`                           // total produced amount on transaction
+		TotalInflation        uint64   `json:"i,omitempty"`                 // total inflation on transaction
+		SequencerID           string   `json:"seqid,omitempty"`             // "" (omitted) for non-seq. Useful for coloring
+		SequencerInputTxIndex *byte    `json:"seqidx,omitempty"`            // sequencer predecessor tx index for sequencer predecessor tx in the Inputs list, otherwise nil
+		StemInputTxIndex      *byte    `json:"stemidx,omitempty"`           // stem predecessor (branch) tx index for stem predecessor tx in the Inputs list, otherwise nil
+		Inputs                []string `json:"in"`                          // list of input IDs (not empty)
+		Endorsements          []string `json:"endorse,omitempty"`           // list of endorsements (can be nil)
+		ExplicitBaseline      string   `json:"explicit_baseline,omitempty"` // explicit baseline ID, if available
 	}
 
 	VertexDelete struct {
@@ -413,6 +414,10 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ret.Endorsements[i] = txid.StringHex()
 		return true
 	})
+
+	if etxid, ok := tx.ExplicitBaseline(); ok {
+		ret.ExplicitBaseline = etxid.StringHex()
+	}
 
 	util.Assertf(!tx.IsSequencerTransaction() || ret.SequencerInputTxIndex != nil, "!tx.IsSequencerTransaction() || ret.SequencerInputTxIndex != nil")
 	util.Assertf(!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil, "!tx.IsBranchTransaction() || ret.StemInputTxIndex != nil")
