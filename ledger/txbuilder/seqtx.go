@@ -289,8 +289,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 
 	if err = transaction.ValidateTxBytes(txBytes, txb.LoadInput); err != nil {
 		err = fmt.Errorf("%v\n-----------------------\n%s", err, transaction.LinesFromTransactionBytes(txBytes, txb.LoadInput).String())
-		panic(err)
-		//return nil, nil, errP("failed validate txBytes: %v", err)
+		return nil, nil, errP("failed validate txBytes: %v", err)
 	}
 
 	return txBytes, txb.LoadInput, nil
