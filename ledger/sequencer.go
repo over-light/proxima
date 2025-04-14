@@ -117,7 +117,7 @@ func sequencer: and(
 
 const (
 	SequencerConstraintName     = "sequencer"
-	sequencerConstraintTemplate = SequencerConstraintName + "(%d, 0x%s)"
+	sequencerConstraintTemplate = SequencerConstraintName + "(%d, z64/%d)"
 )
 
 type SequencerConstraint struct {
@@ -147,7 +147,7 @@ func (s *SequencerConstraint) String() string {
 }
 
 func (s *SequencerConstraint) Source() string {
-	return fmt.Sprintf(sequencerConstraintTemplate, s.ChainConstraintIndex, TrimmedPrefixUint64Hex(s.TotalProducedAmount))
+	return fmt.Sprintf(sequencerConstraintTemplate, s.ChainConstraintIndex, s.TotalProducedAmount)
 }
 
 func SequencerConstraintFromBytes(data []byte) (*SequencerConstraint, error) {
@@ -164,7 +164,7 @@ func SequencerConstraintFromBytes(data []byte) (*SequencerConstraint, error) {
 	}
 	cci := cciBin[0]
 
-	total, err := Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
+	total, err := easyfl.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
 	if err != nil {
 		return nil, fmt.Errorf("SequencerConstraintFromBytes: %v", err)
 	}
@@ -191,7 +191,7 @@ func initTestSequencerConstraint() {
 	util.Assertf(len(cciBin) == 1, "len(cciBin) == 1")
 	util.Assertf(cciBin[0] == 4, "cciBin[0] == 4")
 
-	total, err := Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
+	total, err := easyfl.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
 	util.AssertNoError(err)
 	util.Assertf(total == 1337, "binary.BigEndian.Uint64(totalBin) == 1337")
 }

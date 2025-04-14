@@ -35,7 +35,7 @@ func selfMustStandardAmount:
 
 const (
 	AmountConstraintName = "amount"
-	amountTemplate       = AmountConstraintName + "(0x%s)"
+	amountTemplate       = AmountConstraintName + "(z64/%d)"
 )
 
 type Amount uint64
@@ -47,7 +47,7 @@ func (a Amount) Name() string {
 // arg 0 is trimmed-prefix big-endian bytes uin64
 
 func (a Amount) Source() string {
-	return fmt.Sprintf(amountTemplate, TrimmedPrefixUint64Hex(uint64(a)))
+	return fmt.Sprintf(amountTemplate, uint64(a))
 }
 
 func (a Amount) Bytes() []byte {
@@ -75,7 +75,7 @@ func initTestAmountConstraint() {
 	util.AssertNoError(err)
 	amountBin := easyfl.StripDataPrefix(args[0])
 	util.Assertf(sym == AmountConstraintName && len(amountBin) <= 8, "'amount' consistency check 1 failed")
-	value, err := Uint64FromBytes(amountBin)
+	value, err := easyfl.Uint64FromBytes(amountBin)
 	util.AssertNoError(err)
 	util.Assertf(value == 1337, "amount' consistency check 2 failed")
 }
@@ -89,7 +89,7 @@ func AmountFromBytes(data []byte) (Amount, error) {
 		return 0, fmt.Errorf("not an 'amount' constraint")
 	}
 	amountBin := easyfl.StripDataPrefix(args[0])
-	ret, err := Uint64FromBytes(amountBin)
+	ret, err := easyfl.Uint64FromBytes(amountBin)
 	if err != nil {
 		return 0, err
 	}

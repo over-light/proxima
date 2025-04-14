@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
@@ -139,7 +140,7 @@ func BaseValidation(tx *Transaction) error {
 		return fmt.Errorf("wrong stem output index")
 	}
 	// parse total amount as trimmed-prefix uint68. Validity of the sum is not checked here
-	tx.totalAmount, err = ledger.Uint64FromBytes(tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount)))
+	tx.totalAmount, err = easyfl.Uint64FromBytes(tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount)))
 	if err != nil {
 		return fmt.Errorf("wrong total amount in transaction: %v", err)
 	}

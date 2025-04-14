@@ -11,7 +11,7 @@ import (
 const (
 	InflationConstraintName = "inflation"
 	// (0) chain constraint index, (1) inflation amount or randomness proof
-	inflationConstraintTemplate = InflationConstraintName + "(0x%s, %d)"
+	inflationConstraintTemplate = InflationConstraintName + "(z64/%d, %d)"
 )
 
 type InflationConstraint struct {
@@ -40,7 +40,7 @@ func (i *InflationConstraint) String() string {
 }
 
 func (i *InflationConstraint) Source() string {
-	return fmt.Sprintf(inflationConstraintTemplate, TrimmedPrefixUint64Hex(i.InflationAmount), i.ChainConstraintIndex)
+	return fmt.Sprintf(inflationConstraintTemplate, i.InflationAmount, i.ChainConstraintIndex)
 }
 
 func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
@@ -52,7 +52,7 @@ func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
 		return nil, fmt.Errorf("InflationConstraintFromBytes: not an inflation constraint script")
 	}
 	amountBin := easyfl.StripDataPrefix(args[0])
-	amount, err := Uint64FromBytes(amountBin)
+	amount, err := easyfl.Uint64FromBytes(amountBin)
 	if err != nil {
 		return nil, err
 	}

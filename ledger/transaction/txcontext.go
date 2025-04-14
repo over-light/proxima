@@ -249,7 +249,7 @@ func (ctx *TxContext) TotalAmountStoredBin() []byte {
 }
 
 func (ctx *TxContext) TotalAmountStored() uint64 {
-	return ledger.MustUint64FromBytes(ctx.TotalAmountStoredBin())
+	return easyfl.MustUint64FromBytes(ctx.TotalAmountStoredBin())
 }
 
 func (ctx *TxContext) TotalInflation() uint64 {
