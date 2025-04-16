@@ -106,16 +106,16 @@ func (lib *Library) upgrade0(id *IdentityData) {
 var (
 	upgrade0EmbedFunctionsShort = []*easyfl.EmbeddedFunctionData{
 		// data context access
-		{"@", 0, evalPath},
-		{"@Path", 1, evalAtPath},
+		{"@", 0, evalPath, "returns path in the transaction of the validity constraint being evaluated"},
+		{"@Path", 1, evalAtPath, "returns element of the transaction at path $0"},
 	}
 	upgrade0EmbedFunctionsLong = []*easyfl.EmbeddedFunctionData{
-		{"@Array8", 2, evalAtArray8},
-		{"ArrayLength8", 1, evalNumElementsOfArray},
-		{"ticksBefore", 2, evalTicksBefore64},
+		{"@Array8", 2, evalAtArray8, "returns element of the serialized lazy array at index $0"},
+		{"ArrayLength8", 1, evalNumElementsOfArray, "returns number of elements of lazy array as 1-byte long value"},
+		{"ticksBefore", 2, evalTicksBefore64, "number of ticks between timestamps $0 and $1 as big-endian uint64 if $0 is before $1, or 0x otherwise"},
 		// TODO: replace Verifiable Random Function (VRF) with verified implementation, for example from Algorand
 		// Parameters; (publicKey, proof, message)
-		{"vrfVerify", 3, evalVRFVerify},
+		{"vrfVerify", 3, evalVRFVerify, "Verifiable Random Function (VRF) verification, where $0 is public key, $1 is proof, $2 is message"},
 	}
 )
 
@@ -251,44 +251,44 @@ func evalTicksBefore64(par *easyfl.CallParams) []byte {
 // upgrade0BaseConstants extension with base constants from ledger identity
 func upgrade0BaseConstants(id *IdentityData) []*easyfl.ExtendedFunctionData {
 	return []*easyfl.ExtendedFunctionData{
-		{"constInitialSupply", fmt.Sprintf("u64/%d", id.InitialSupply)},
-		{"constGenesisControllerPublicKey", fmt.Sprintf("0x%s", hex.EncodeToString(id.GenesisControllerPublicKey))},
-		{"constGenesisTimeUnix", fmt.Sprintf("u64/%d", id.GenesisTimeUnix)},
-		{"constTickDuration", fmt.Sprintf("u64/%d", int64(id.TickDuration))},
-		{"constMaxTickValuePerSlot", "u64/127"},
-		{"ticksPerSlot64", "u64/128"},
+		{"constInitialSupply", fmt.Sprintf("u64/%d", id.InitialSupply), ""},
+		{"constGenesisControllerPublicKey", fmt.Sprintf("0x%s", hex.EncodeToString(id.GenesisControllerPublicKey)), ""},
+		{"constGenesisTimeUnix", fmt.Sprintf("u64/%d", id.GenesisTimeUnix), ""},
+		{"constTickDuration", fmt.Sprintf("u64/%d", int64(id.TickDuration)), ""},
+		{"constMaxTickValuePerSlot", "u64/127", ""},
+		{"ticksPerSlot64", "u64/128", ""},
 		// begin inflation-related
-		{"constSlotInflationBase", fmt.Sprintf("u64/%d", id.SlotInflationBase)},
-		{"constLinearInflationSlots", fmt.Sprintf("u64/%d", id.LinearInflationSlots)},
-		{"constBranchInflationBonusBase", fmt.Sprintf("u64/%d", id.BranchInflationBonusBase)},
-		{"constAuxMinInflatableOnSlot0", fmt.Sprintf("u64/%d", id.InitialSupply/id.SlotInflationBase)}, // helper constant div(constInitialSupply, constSlotInflationBase)
+		{"constSlotInflationBase", fmt.Sprintf("u64/%d", id.SlotInflationBase), ""},
+		{"constLinearInflationSlots", fmt.Sprintf("u64/%d", id.LinearInflationSlots), ""},
+		{"constBranchInflationBonusBase", fmt.Sprintf("u64/%d", id.BranchInflationBonusBase), ""},
+		{"constAuxMinInflatableOnSlot0", fmt.Sprintf("u64/%d", id.InitialSupply/id.SlotInflationBase), ""}, // helper constant div(constInitialSupply, constSlotInflationBase)
 
 		// end inflation-related
-		{"constMinimumAmountOnSequencer", fmt.Sprintf("u64/%d", id.MinimumAmountOnSequencer)},
-		{"constMaxNumberOfEndorsements", fmt.Sprintf("u64/%d", id.MaxNumberOfEndorsements)},
-		{"constPreBranchConsolidationTicks", fmt.Sprintf("u64/%d", id.PreBranchConsolidationTicks)},
-		{"constPostBranchConsolidationTicks", fmt.Sprintf("u64/%d", id.PostBranchConsolidationTicks)},
+		{"constMinimumAmountOnSequencer", fmt.Sprintf("u64/%d", id.MinimumAmountOnSequencer), ""},
+		{"constMaxNumberOfEndorsements", fmt.Sprintf("u64/%d", id.MaxNumberOfEndorsements), ""},
+		{"constPreBranchConsolidationTicks", fmt.Sprintf("u64/%d", id.PreBranchConsolidationTicks), ""},
+		{"constPostBranchConsolidationTicks", fmt.Sprintf("u64/%d", id.PostBranchConsolidationTicks), ""},
 
-		{"constTransactionPace", fmt.Sprintf("u64/%d", id.TransactionPace)},
-		{"constTransactionPaceSequencer", fmt.Sprintf("u64/%d", id.TransactionPaceSequencer)},
-		{"constVBCost16", fmt.Sprintf("u16/%d", id.VBCost)}, // change to 64
-		{"timeSlotSizeBytes", fmt.Sprintf("%d", SlotByteLength)},
-		{"timestampByteSize", fmt.Sprintf("%d", TimeByteLength)},
+		{"constTransactionPace", fmt.Sprintf("u64/%d", id.TransactionPace), ""},
+		{"constTransactionPaceSequencer", fmt.Sprintf("u64/%d", id.TransactionPaceSequencer), ""},
+		{"constVBCost16", fmt.Sprintf("u16/%d", id.VBCost), ""}, // change to 64
+		{"timeSlotSizeBytes", fmt.Sprintf("%d", SlotByteLength), ""},
+		{"timestampByteSize", fmt.Sprintf("%d", TimeByteLength), ""},
 	}
 }
 
 var upgrade0BaseHelpers = []*easyfl.ExtendedFunctionData{
-	{"mustSize", "if(equalUint(len($0), $1), $0, !!!wrong_data_size)"},
-	{"mustValidTimeTick", "if(and(equalUint(len($0),1), lessThan(uint8Bytes($0),constMaxTickValuePerSlot) ), $0, !!!wrong_ticks_value)"},
-	{"mustValidTimeSlot", "if(equalUint(len($0), timeSlotSizeBytes), $0, !!!wrong_slot_data)"},
-	{"mul8", "byte(mul($0,$1),7)"},
-	{"div8", "byte(div($0,$1),7)"},
-	{"timestampBytes", "concat(mustValidTimeSlot($0),mul8(mustValidTimeTick($1),2))"},
-	{"first4Bytes", "slice($0, 0, 3)"},                                        // first 4 bytes of any array
-	{"first5Bytes", "slice($0, 0, 4)"},                                        // first 5 bytes of any array
-	{"timestampBytesFromPrefix", "bitwiseAND(first5Bytes($0), 0xfffffffff6)"}, // kill last bit
-	{"timeTickFromTimestampBytes", "div8(byte($0, 4),2)"},
-	{"isTimestampBytesOnSlotBoundary", "isZero(timeTickFromTimestampBytes($0))"},
+	{"mustSize", "if(equalUint(len($0), $1), $0, !!!wrong_data_size)", ""},
+	{"mustValidTimeTick", "if(and(equalUint(len($0),1), lessThan(uint8Bytes($0),constMaxTickValuePerSlot) ), $0, !!!wrong_ticks_value)", ""},
+	{"mustValidTimeSlot", "if(equalUint(len($0), timeSlotSizeBytes), $0, !!!wrong_slot_data)", ""},
+	{"mul8", "byte(mul($0,$1),7)", ""},
+	{"div8", "byte(div($0,$1),7)", ""},
+	{"timestampBytes", "concat(mustValidTimeSlot($0),mul8(mustValidTimeTick($1),2))", ""},
+	{"first4Bytes", "slice($0, 0, 3)", ""},                                        // first 4 bytes of any array
+	{"first5Bytes", "slice($0, 0, 4)", ""},                                        // first 5 bytes of any array
+	{"timestampBytesFromPrefix", "bitwiseAND(first5Bytes($0), 0xfffffffff6)", ""}, // kill last bit
+	{"timeTickFromTimestampBytes", "div8(byte($0, 4),2)", ""},
+	{"isTimestampBytesOnSlotBoundary", "isZero(timeTickFromTimestampBytes($0))", ""},
 }
 
 func (lib *Library) upgrade0WithBaseConstants(id *IdentityData) {
@@ -317,106 +317,106 @@ func (lib *Library) upgrade0WithExtensions(id *IdentityData) *Library {
 }
 
 var upgrade0WithFunctions = []*easyfl.ExtendedFunctionData{
-	{"pathToTransaction", fmt.Sprintf("%d", TransactionBranch)},
-	{"pathToConsumedOutputs", fmt.Sprintf("0x%s", PathToConsumedOutputs.Hex())},
-	{"pathToProducedOutputs", fmt.Sprintf("0x%s", PathToProducedOutputs.Hex())},
-	{"pathToUnlockParams", fmt.Sprintf("0x%s", PathToUnlockParams.Hex())},
-	{"pathToInputIDs", fmt.Sprintf("0x%s", PathToInputIDs.Hex())},
-	{"pathToSignature", fmt.Sprintf("0x%s", PathToSignature.Hex())},
-	{"pathToSeqAndStemOutputIndices", fmt.Sprintf("0x%s", PathToSequencerAndStemOutputIndices.Hex())},
-	{"pathToInputCommitment", fmt.Sprintf("0x%s", PathToInputCommitment.Hex())},
-	{"pathToEndorsements", fmt.Sprintf("0x%s", PathToEndorsements.Hex())},
-	{"pathToExplicitBaseline", fmt.Sprintf("0x%s", PathToExplicitBaseline.Hex())},
-	{"pathToLocalLibrary", fmt.Sprintf("0x%s", PathToLocalLibraries.Hex())},
-	{"pathToTimestamp", fmt.Sprintf("0x%s", PathToTimestamp.Hex())},
-	{"pathToTotalProducedAmount", fmt.Sprintf("0x%s", PathToTotalProducedAmount.Hex())},
+	{"pathToTransaction", fmt.Sprintf("%d", TransactionBranch), ""},
+	{"pathToConsumedOutputs", fmt.Sprintf("0x%s", PathToConsumedOutputs.Hex()), ""},
+	{"pathToProducedOutputs", fmt.Sprintf("0x%s", PathToProducedOutputs.Hex()), ""},
+	{"pathToUnlockParams", fmt.Sprintf("0x%s", PathToUnlockParams.Hex()), ""},
+	{"pathToInputIDs", fmt.Sprintf("0x%s", PathToInputIDs.Hex()), ""},
+	{"pathToSignature", fmt.Sprintf("0x%s", PathToSignature.Hex()), ""},
+	{"pathToSeqAndStemOutputIndices", fmt.Sprintf("0x%s", PathToSequencerAndStemOutputIndices.Hex()), ""},
+	{"pathToInputCommitment", fmt.Sprintf("0x%s", PathToInputCommitment.Hex()), ""},
+	{"pathToEndorsements", fmt.Sprintf("0x%s", PathToEndorsements.Hex()), ""},
+	{"pathToExplicitBaseline", fmt.Sprintf("0x%s", PathToExplicitBaseline.Hex()), ""},
+	{"pathToLocalLibrary", fmt.Sprintf("0x%s", PathToLocalLibraries.Hex()), ""},
+	{"pathToTimestamp", fmt.Sprintf("0x%s", PathToTimestamp.Hex()), ""},
+	{"pathToTotalProducedAmount", fmt.Sprintf("0x%s", PathToTotalProducedAmount.Hex()), ""},
 	// mandatory block indices in the output
-	{"amountConstraintIndex", fmt.Sprintf("%d", ConstraintIndexAmount)},
-	{"lockConstraintIndex", fmt.Sprintf("%d", ConstraintIndexLock)},
+	{"amountConstraintIndex", fmt.Sprintf("%d", ConstraintIndexAmount), ""},
+	{"lockConstraintIndex", fmt.Sprintf("%d", ConstraintIndexLock), ""},
 	// mandatory constraints and values
 	// $0 is output binary as lazy array
-	{"amountConstraint", "@Array8($0, amountConstraintIndex)"},
-	{"lockConstraint", "@Array8($0, lockConstraintIndex)"},
+	{"amountConstraint", "@Array8($0, amountConstraintIndex)", ""},
+	{"lockConstraint", "@Array8($0, lockConstraintIndex)", ""},
 	// recognize what kind of path is at $0
-	{"isPathToConsumedOutput", "hasPrefix($0, pathToConsumedOutputs)"},
-	{"isPathToProducedOutput", "hasPrefix($0, pathToProducedOutputs)"},
+	{"isPathToConsumedOutput", "hasPrefix($0, pathToConsumedOutputs)", ""},
+	{"isPathToProducedOutput", "hasPrefix($0, pathToProducedOutputs)", ""},
 	// make branch path by index $0
-	{"consumedOutputPathByIndex", "concat(pathToConsumedOutputs,$0)"},
-	{"unlockParamsPathByIndex", "concat(pathToUnlockParams,$0)"},
-	{"producedOutputPathByIndex", "concat(pathToProducedOutputs,$0)"},
+	{"consumedOutputPathByIndex", "concat(pathToConsumedOutputs,$0)", ""},
+	{"unlockParamsPathByIndex", "concat(pathToUnlockParams,$0)", ""},
+	{"producedOutputPathByIndex", "concat(pathToProducedOutputs,$0)", ""},
 	// takes 1-byte $0 as output index
-	{"consumedOutputByIndex", "@Path(consumedOutputPathByIndex($0))"},
-	{"unlockParamsByIndex", "@Path(unlockParamsPathByIndex($0))"},     // TODO by output index
-	{"producedOutputByIndex", "@Path(producedOutputPathByIndex($0))"}, // TODO by output index
+	{"consumedOutputByIndex", "@Path(consumedOutputPathByIndex($0))", ""},
+	{"unlockParamsByIndex", "@Path(unlockParamsPathByIndex($0))", ""},
+	{"producedOutputByIndex", "@Path(producedOutputPathByIndex($0))", ""},
 	// takes $0 'constraint index' as 2 bytes: 0 for output index, 1 for block index
-	{"producedConstraintByIndex", "@Array8(producedOutputByIndex(byte($0,0)), byte($0,1))"},
-	{"consumedConstraintByIndex", "@Array8(consumedOutputByIndex(byte($0,0)), byte($0,1))"},
-	{"unlockParamsByConstraintIndex", "@Array8(unlockParamsByIndex(byte($0,0)), byte($0,1))"}, // 2-byte index (outIdx, constrIdx)
+	{"producedConstraintByIndex", "@Array8(producedOutputByIndex(byte($0,0)), byte($0,1))", ""},
+	{"consumedConstraintByIndex", "@Array8(consumedOutputByIndex(byte($0,0)), byte($0,1))", ""},
+	{"unlockParamsByConstraintIndex", "@Array8(unlockParamsByIndex(byte($0,0)), byte($0,1))", ""}, // 2-byte index (outIdx, constrIdx)
 
-	{"consumedLockByInputIndex", "consumedConstraintByIndex(concat($0, lockConstraintIndex))"},
-	{"inputIDByIndex", "@Path(concat(pathToInputIDs,$0))"},
-	{"timestampOfInputByIndex", "timestampBytesFromPrefix(inputIDByIndex($0))"},
-	{"timeSlotOfInputByIndex", "first4Bytes(inputIDByIndex($0))"},
+	{"consumedLockByInputIndex", "consumedConstraintByIndex(concat($0, lockConstraintIndex))", ""},
+	{"inputIDByIndex", "@Path(concat(pathToInputIDs,$0))", ""},
+	{"timestampOfInputByIndex", "timestampBytesFromPrefix(inputIDByIndex($0))", ""},
+	{"timeSlotOfInputByIndex", "first4Bytes(inputIDByIndex($0))", ""},
 	// special transaction related
-	{"txBytes", "@Path(pathToTransaction)"},
-	{"txSignature", "@Path(pathToSignature)"},
-	{"txTimestampBytes", "@Path(pathToTimestamp)"},
-	{"txExplicitBaseline", "@Path(pathToExplicitBaseline)"},
-	{"txTotalProducedAmount", "uint8Bytes(@Path(pathToTotalProducedAmount))"},
-	{"txTimeSlot", "first4Bytes(txTimestampBytes)"},
-	{"txTimeTick", "timeTickFromTimestampBytes(txTimestampBytes)"},
-	{"txSequencerOutputIndex", "byte(@Path(pathToSeqAndStemOutputIndices), 0)"},
-	{"txStemOutputIndex", "byte(@Path(pathToSeqAndStemOutputIndices), 1)"},
+	{"txBytes", "@Path(pathToTransaction)", ""},
+	{"txSignature", "@Path(pathToSignature)", ""},
+	{"txTimestampBytes", "@Path(pathToTimestamp)", ""},
+	{"txExplicitBaseline", "@Path(pathToExplicitBaseline)", ""},
+	{"txTotalProducedAmount", "uint8Bytes(@Path(pathToTotalProducedAmount))", ""},
+	{"txTimeSlot", "first4Bytes(txTimestampBytes)", ""},
+	{"txTimeTick", "timeTickFromTimestampBytes(txTimestampBytes)", ""},
+	{"txSequencerOutputIndex", "byte(@Path(pathToSeqAndStemOutputIndices), 0)", ""},
+	{"txStemOutputIndex", "byte(@Path(pathToSeqAndStemOutputIndices), 1)", ""},
 	{"txEssenceBytes", "concat(" +
 		"@Path(pathToInputIDs), " +
 		"@Path(pathToProducedOutputs), " +
 		"@Path(pathToTimestamp), " +
 		"@Path(pathToSeqAndStemOutputIndices), " +
 		"@Path(pathToInputCommitment), " +
-		"@Path(pathToEndorsements))"},
-	{"sequencerFlagON", "not(isZero(bitwiseAND(byte($0,4),0x01)))"},
-	{"isSequencerTransaction", "not(equal(txSequencerOutputIndex, 0xff))"},
-	{"isBranchTransaction", "and(isSequencerTransaction, not(equal(txStemOutputIndex, 0xff)))"},
+		"@Path(pathToEndorsements))", ""},
+	{"sequencerFlagON", "not(isZero(bitwiseAND(byte($0,4),0x01)))", ""},
+	{"isSequencerTransaction", "not(equal(txSequencerOutputIndex, 0xff))", ""},
+	{"isBranchTransaction", "and(isSequencerTransaction, not(equal(txStemOutputIndex, 0xff)))", ""},
 	// endorsements
-	{"numEndorsements", "ArrayLength8(@Path(pathToEndorsements))"},
-	{"numInputs", "ArrayLength8(@Path(pathToInputIDs))"},
+	{"numEndorsements", "ArrayLength8(@Path(pathToEndorsements))", ""},
+	{"numInputs", "ArrayLength8(@Path(pathToInputIDs))", ""},
 	// functions with prefix 'self' are invocation context specific, i.e. they use function '@' to calculate
 	// local values which depend on the invoked constraint
-	{"selfOutputPath", "slice(@,0,2)"},
-	{"selfSiblingConstraint", "@Array8(@Path(selfOutputPath), $0)"},
-	{"selfOutputBytes", "@Path(selfOutputPath)"},
-	{"selfNumConstraints", "ArrayLength8(selfOutputBytes)"},
+	{"selfOutputPath", "slice(@,0,2)", ""},
+	{"selfSiblingConstraint", "@Array8(@Path(selfOutputPath), $0)", ""},
+	{"selfOutputBytes", "@Path(selfOutputPath)", ""},
+	{"selfNumConstraints", "ArrayLength8(selfOutputBytes)", ""},
 	// unlock param branch (0 - transaction, 0 unlock params)
 	// invoked output block
-	{"self", "@Path(@)"},
+	{"self", "@Path(@)", ""},
 	// bytecode prefix of the invoked constraint. It is needed to avoid forward references in the EasyFL code
-	{"selfBytecodePrefix", "parsePrefixBytecode(self)"},
-	{"selfIsConsumedOutput", "isPathToConsumedOutput(@)"},
-	{"selfIsProducedOutput", "isPathToProducedOutput(@)"},
+	{"selfBytecodePrefix", "parsePrefixBytecode(self)", ""},
+	{"selfIsConsumedOutput", "isPathToConsumedOutput(@)", ""},
+	{"selfIsProducedOutput", "isPathToProducedOutput(@)", ""},
 	// output index of the invocation
-	{"selfOutputIndex", "byte(@, 2)"},
+	{"selfOutputIndex", "byte(@, 2)", ""},
 	// block index of the invocation
-	{"selfBlockIndex", "tail(@, 3)"},
+	{"selfBlockIndex", "tail(@, 3)", ""},
 	// branch (2 bytes) of the constraint invocation
-	{"selfBranch", "slice(@,0,1)"},
+	{"selfBranch", "slice(@,0,1)", ""},
 	// output index || block index
-	{"selfConstraintIndex", "slice(@, 2, 3)"},
+	{"selfConstraintIndex", "slice(@, 2, 3)", ""},
 	// data of a constraint
-	{"constraintData", "tail($0,1)"},
+	{"constraintData", "tail($0,1)", ""},
 	// invocation output data
-	{"selfConstraintData", "constraintData(self)"},
+	{"selfConstraintData", "constraintData(self)", ""},
 	// unlock parameters of the invoked consumed constraint
-	{"selfUnlockParameters", "@Path(concat(pathToUnlockParams, selfConstraintIndex))"},
+	{"selfUnlockParameters", "@Path(concat(pathToUnlockParams, selfConstraintIndex))", ""},
 	// path referenced by the reference unlock params
-	{"selfReferencedPath", "concat(selfBranch, selfUnlockParameters, selfBlockIndex)"},
+	{"selfReferencedPath", "concat(selfBranch, selfUnlockParameters, selfBlockIndex)", ""},
 	// returns unlock block of the sibling
-	{"selfSiblingUnlockBlock", "@Array8(@Path(concat(pathToUnlockParams, selfOutputIndex)), $0)"},
+	{"selfSiblingUnlockBlock", "@Array8(@Path(concat(pathToUnlockParams, selfOutputIndex)), $0)", ""},
 	// returns selfUnlockParameters if blake2b hash of it is equal to the given hash, otherwise nil
-	{"selfHashUnlock", "if(equal($0, blake2b(selfUnlockParameters)),selfUnlockParameters,nil)"},
+	{"selfHashUnlock", "if(equal($0, blake2b(selfUnlockParameters)),selfUnlockParameters,nil)", ""},
 	// takes ED25519 signature from full signature, first 64 bytes
-	{"signatureED25519", "slice($0, 0, 63)"},
+	{"signatureED25519", "slice($0, 0, 63)", ""},
 	// takes ED25519 public key from full signature
-	{"publicKeyED25519", "slice($0, 64, 95)"},
+	{"publicKeyED25519", "slice($0, 64, 95)", ""},
 }
 
 func (lib *Library) upgrade0WithGeneralFunctions() {
