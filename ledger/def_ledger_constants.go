@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const _upgradeLedgerConstants = `
+const __definitionsLedgerConstantsYAML = `
 # definitions of main ledger constants
 functions:
    -
@@ -84,6 +84,6 @@ functions:
       source: 5
 `
 
-func _upgradeLedgerConstantsYAML(genesisPublicKey ed25519.PublicKey, genesisTime uint64) []byte {
-	return []byte(fmt.Sprintf(_upgradeLedgerConstants, hex.EncodeToString(genesisPublicKey), genesisTime))
+func _definitionsLedgerConstantsYAML(genesisPublicKey ed25519.PublicKey, genesisTime uint64) []byte {
+	return []byte(fmt.Sprintf(__definitionsLedgerConstantsYAML, hex.EncodeToString(genesisPublicKey), genesisTime))
 }

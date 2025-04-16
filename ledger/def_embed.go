@@ -21,7 +21,7 @@ func _embeddedFunctions(lib *Library) map[string]easyfl.EmbeddedFunction {
 	}
 }
 
-const _upgradeEmbeddedYAML string = `
+const _definitionsEmbeddedYAML string = `
 functions:
 # short
    -

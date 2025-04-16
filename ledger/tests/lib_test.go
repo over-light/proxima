@@ -35,3 +35,9 @@ func TestLedgerToYAML(t *testing.T) {
 		t.Logf("\n%s", string(yamlData))
 	})
 }
+
+//func TestLedgerToYAMLFile(t *testing.T) {
+//	yamlData := ledger.L().ToYAML(true, "# ------------------- Proxima ledger definitions COMPILED -------------------------")
+//	_ = os.WriteFile("ledger.yaml", yamlData, 0644)
+//
+//}

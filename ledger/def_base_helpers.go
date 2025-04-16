@@ -1,6 +1,6 @@
 package ledger
 
-const _upgradeBaseHelpers = `
+const _definitionsBaseHelpersYAML = `
 # definitions of base helper functions
 functions:
    -
