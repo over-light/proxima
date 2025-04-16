@@ -96,37 +96,9 @@ const (
 )
 
 func (lib *Library) upgrade0(id *IdentityData) {
-	lib.upgrade0WithEmbedded()
+	lib.mustUpgradeWithEmbedded()
 	lib.upgrade0WithExtensions(id)
 
-}
-
-//==================================== embedded
-
-var (
-	upgrade0EmbedFunctionsShort = []*easyfl.EmbeddedFunctionData{
-		// data context access
-		{"@", 0, evalPath, "returns path in the transaction of the validity constraint being evaluated"},
-		{"@Path", 1, evalAtPath, "returns element of the transaction at path $0"},
-	}
-	upgrade0EmbedFunctionsLong = []*easyfl.EmbeddedFunctionData{
-		{"@Array8", 2, evalAtArray8, "returns element of the serialized lazy array at index $0"},
-		{"ArrayLength8", 1, evalNumElementsOfArray, "returns number of elements of lazy array as 1-byte long value"},
-		{"ticksBefore", 2, evalTicksBefore64, "number of ticks between timestamps $0 and $1 as big-endian uint64 if $0 is before $1, or 0x otherwise"},
-		// TODO: replace Verifiable Random Function (VRF) with verified implementation, for example from Algorand
-		// Parameters; (publicKey, proof, message)
-		{"vrfVerify", 3, evalVRFVerify, "Verifiable Random Function (VRF) verification, where $0 is public key, $1 is proof, $2 is message"},
-	}
-)
-
-func (lib *Library) upgrade0WithEmbedded() {
-	lib.UpgradeWithEmbeddedShort(upgrade0EmbedFunctionsShort...)
-	lib.UpgradeWthEmbeddedLong(upgrade0EmbedFunctionsLong...)
-	lib.UpgradeWthEmbeddedLong(&easyfl.EmbeddedFunctionData{
-		Sym:            "callLocalLibrary",
-		RequiredNumPar: -1,
-		EmbeddedFun:    lib.evalCallLocalLibrary,
-	})
 }
 
 // DataContext is the data structure passed to the eval call. It contains:
