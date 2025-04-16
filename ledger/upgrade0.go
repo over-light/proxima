@@ -1,15 +1,12 @@
 package ledger
 
 import (
-	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/unitrie/common"
-	"github.com/yoseplee/vrf"
 )
 
 // This file contains all upgrade prescriptions to the base ledger provided by the EasyFL. It is the "version 0" of the ledger.
@@ -96,8 +93,31 @@ const (
 )
 
 func (lib *Library) upgrade0(id *IdentityData) {
-	lib.mustUpgradeWithEmbedded()
-	lib.upgrade0WithExtensions(id)
+	lib.ID = id
+
+	err := lib.UpgradeFromYAML([]byte(_upgradeEmbeddedYAML), _embeddedFunctions(lib))
+	util.AssertNoError(err)
+
+	// add main ledger constants
+	err = lib.UpgradeFromYAML(_upgradeLedgerConstantsYAML(id.GenesisControllerPublicKey, uint64(id.GenesisTimeUnix)))
+	util.AssertNoError(err)
+
+	// add base helpers
+	err = lib.UpgradeFromYAML([]byte(_upgradeBaseHelpers))
+	util.AssertNoError(err)
+
+	lib.appendInlineTests(func() {
+		// inline tests
+		libraryGlobal.MustEqual("timestampBytes(u32/255, 21)", NewLedgerTime(255, 21).Hex())
+		libraryGlobal.MustEqual("ticksBefore(timestampBytes(u32/100, 5), timestampBytes(u32/101, 10))", "u64/133")
+		libraryGlobal.MustError("mustValidTimeSlot(255)", "wrong slot data")
+		libraryGlobal.MustEqual("mustValidTimeSlot(u32/255)", Slot(255).Hex())
+		libraryGlobal.MustEqual("mustValidTimeTick(88)", "88")
+		libraryGlobal.MustError("mustValidTimeTick(200)", "'wrong ticks value'")
+		libraryGlobal.MustEqual("div(constInitialSupply, constSlotInflationBase)", "u64/30303030")
+	})
+
+	lib.upgrade0WithExtensions()
 
 }
 
@@ -125,163 +145,8 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 	c.path = common.Concat(path.Bytes())
 }
 
-// embedded functions
-
-func evalPath(par *easyfl.CallParams) []byte {
-	return par.AllocData([]byte(par.DataContext().(*DataContext).Path())...)
-}
-
-func evalAtPath(par *easyfl.CallParams) []byte {
-	return par.AllocData(par.DataContext().(*DataContext).DataTree().BytesAtPath(par.Arg(0))...)
-}
-
-func evalAtArray8(par *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(par.Arg(0))
-	idx := par.Arg(1)
-	if len(idx) != 1 {
-		panic("evalAtArray8: 1-byte value expected")
-	}
-	return arr.At(int(idx[0]))
-}
-
-func evalNumElementsOfArray(par *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(par.Arg(0))
-	return par.AllocData(byte(arr.NumElements()))
-}
-
-// evalVRFVerify: embedded VRF verifier. Dependency on unverified external crypto library
-// arg 0 - pubkey
-// arg 1 - proof
-// arg 2 - msg
-func evalVRFVerify(par *easyfl.CallParams) []byte {
-	var ok bool
-	err := util.CatchPanicOrError(func() error {
-		var err1 error
-		ok, err1 = vrf.Verify(par.Arg(0), par.Arg(1), par.Arg(2))
-		return err1
-	})
-	if err != nil {
-		par.Trace("'vrfVerify embedded' failed with: %v", err)
-	}
-	if err == nil && ok {
-		return par.AllocData(0xff)
-	}
-	return nil
-}
-
-// CompileLocalLibrary compiles local library and serializes it as lazy array
-func (lib *Library) CompileLocalLibrary(source string) ([]byte, error) {
-	libBin, err := lib.Library.CompileLocalLibrary(source)
-	if err != nil {
-		return nil, err
-	}
-	ret := lazybytes.MakeArrayFromDataReadOnly(libBin...)
-	return ret.Bytes(), nil
-}
-
-// arg 0 - local library binary (as lazy array)
-// arg 1 - 1-byte index of then function in the library
-// arg 2 ... arg 15 optional arguments
-func (lib *Library) evalCallLocalLibrary(ctx *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(ctx.Arg(0))
-	libData := arr.Parsed()
-	idx := ctx.Arg(1)
-	if len(idx) != 1 || int(idx[0]) >= len(libData) {
-		ctx.TracePanic("evalCallLocalLibrary: wrong function index")
-	}
-	ret := lib.CallLocalLibrary(ctx.Slice(2, ctx.Arity()), libData, int(idx[0]))
-	ctx.Trace("evalCallLocalLibrary: lib#%d -> %s", idx[0], easyfl.Fmt(ret))
-	return ret
-}
-
-// arg 0 and arg 1 are timestamps (5 bytes each)
-// returns:
-// nil, if ts1 is before ts0
-// number of ticks between ts0 and ts1 otherwise, as big-endian uint64
-func evalTicksBefore64(par *easyfl.CallParams) []byte {
-	ts0bin, ts1bin := par.Arg(0), par.Arg(1)
-	ts0, err := TimeFromBytes(ts0bin)
-	if err != nil {
-		par.TracePanic("evalTicksBefore64: %v", err)
-	}
-	ts1, err := TimeFromBytes(ts1bin)
-	if err != nil {
-		par.TracePanic("evalTicksBefore64: %v", err)
-	}
-	diff := DiffTicks(ts1, ts0)
-	if diff < 0 {
-		// ts1 is before ts0
-		return nil
-	}
-	ret := par.Alloc(8)
-	binary.BigEndian.PutUint64(ret, uint64(diff))
-	return ret
-}
-
-//============================================ extensions
-
-// upgrade0BaseConstants extension with base constants from ledger identity
-func upgrade0BaseConstants(id *IdentityData) []*easyfl.ExtendedFunctionData {
-	return []*easyfl.ExtendedFunctionData{
-		{"constInitialSupply", fmt.Sprintf("u64/%d", id.InitialSupply), ""},
-		{"constGenesisControllerPublicKey", fmt.Sprintf("0x%s", hex.EncodeToString(id.GenesisControllerPublicKey)), ""},
-		{"constGenesisTimeUnix", fmt.Sprintf("u64/%d", id.GenesisTimeUnix), ""},
-		{"constTickDuration", fmt.Sprintf("u64/%d", int64(id.TickDuration)), ""},
-		{"constMaxTickValuePerSlot", "u64/127", ""},
-		{"ticksPerSlot64", "u64/128", ""},
-		// begin inflation-related
-		{"constSlotInflationBase", fmt.Sprintf("u64/%d", id.SlotInflationBase), ""},
-		{"constLinearInflationSlots", fmt.Sprintf("u64/%d", id.LinearInflationSlots), ""},
-		{"constBranchInflationBonusBase", fmt.Sprintf("u64/%d", id.BranchInflationBonusBase), ""},
-		{"constAuxMinInflatableOnSlot0", fmt.Sprintf("u64/%d", id.InitialSupply/id.SlotInflationBase), ""}, // helper constant div(constInitialSupply, constSlotInflationBase)
-
-		// end inflation-related
-		{"constMinimumAmountOnSequencer", fmt.Sprintf("u64/%d", id.MinimumAmountOnSequencer), ""},
-		{"constMaxNumberOfEndorsements", fmt.Sprintf("u64/%d", id.MaxNumberOfEndorsements), ""},
-		{"constPreBranchConsolidationTicks", fmt.Sprintf("u64/%d", id.PreBranchConsolidationTicks), ""},
-		{"constPostBranchConsolidationTicks", fmt.Sprintf("u64/%d", id.PostBranchConsolidationTicks), ""},
-
-		{"constTransactionPace", fmt.Sprintf("u64/%d", id.TransactionPace), ""},
-		{"constTransactionPaceSequencer", fmt.Sprintf("u64/%d", id.TransactionPaceSequencer), ""},
-		{"constVBCost16", fmt.Sprintf("u16/%d", id.VBCost), ""}, // change to 64
-		{"timeSlotSizeBytes", fmt.Sprintf("%d", SlotByteLength), ""},
-		{"timestampByteSize", fmt.Sprintf("%d", TimeByteLength), ""},
-	}
-}
-
-var upgrade0BaseHelpers = []*easyfl.ExtendedFunctionData{
-	{"mustSize", "if(equalUint(len($0), $1), $0, !!!wrong_data_size)", ""},
-	{"mustValidTimeTick", "if(and(equalUint(len($0),1), lessThan(uint8Bytes($0),constMaxTickValuePerSlot) ), $0, !!!wrong_ticks_value)", ""},
-	{"mustValidTimeSlot", "if(equalUint(len($0), timeSlotSizeBytes), $0, !!!wrong_slot_data)", ""},
-	{"mul8", "byte(mul($0,$1),7)", ""},
-	{"div8", "byte(div($0,$1),7)", ""},
-	{"timestampBytes", "concat(mustValidTimeSlot($0),mul8(mustValidTimeTick($1),2))", ""},
-	{"first4Bytes", "slice($0, 0, 3)", ""},                                        // first 4 bytes of any array
-	{"first5Bytes", "slice($0, 0, 4)", ""},                                        // first 5 bytes of any array
-	{"timestampBytesFromPrefix", "bitwiseAND(first5Bytes($0), 0xfffffffff6)", ""}, // kill last bit
-	{"timeTickFromTimestampBytes", "div8(byte($0, 4),2)", ""},
-	{"isTimestampBytesOnSlotBoundary", "isZero(timeTickFromTimestampBytes($0))", ""},
-}
-
-func (lib *Library) upgrade0WithBaseConstants(id *IdentityData) {
-	lib.ID = id
-	lib.UpgradeWithExtensions(upgrade0BaseConstants(id)...)
-	lib.UpgradeWithExtensions(upgrade0BaseHelpers...)
-
-	lib.appendInlineTests(func() {
-		// inline tests
-		libraryGlobal.MustEqual("timestampBytes(u32/255, 21)", NewLedgerTime(255, 21).Hex())
-		libraryGlobal.MustEqual("ticksBefore(timestampBytes(u32/100, 5), timestampBytes(u32/101, 10))", "u64/133")
-		libraryGlobal.MustError("mustValidTimeSlot(255)", "wrong slot data")
-		libraryGlobal.MustEqual("mustValidTimeSlot(u32/255)", Slot(255).Hex())
-		libraryGlobal.MustEqual("mustValidTimeTick(88)", "88")
-		libraryGlobal.MustError("mustValidTimeTick(200)", "'wrong ticks value'")
-		libraryGlobal.MustEqual("constAuxMinInflatableOnSlot0", "u64/30303030")
-	})
-}
-
-func (lib *Library) upgrade0WithExtensions(id *IdentityData) *Library {
-	lib.upgrade0WithBaseConstants(id)
+func (lib *Library) upgrade0WithExtensions() *Library {
+	// TODO
 	lib.upgrade0WithGeneralFunctions()
 	lib.upgrade0WithConstraints()
 

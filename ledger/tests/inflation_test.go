@@ -15,12 +15,12 @@ import (
 func TestInflation(t *testing.T) {
 	t.Logf("slotInflationBase: %s", util.Th(ledger.L().ID.SlotInflationBase))
 	t.Logf("linearInflationSlots: %s", util.Th(ledger.L().ID.LinearInflationSlots))
-	r, err := ledger.L().EvalFromSource(nil, "constAuxMinInflatableOnSlot0")
+	r, err := ledger.L().EvalFromSource(nil, "div(constInitialSupply, constSlotInflationBase)")
 	require.NoError(t, err)
 	minAmountOnSlot := func(n int) uint64 {
 		return binary.BigEndian.Uint64(r) + uint64(n)
 	}
-	t.Logf("constAuxMinInflatableOnSlot0: %s", util.Th(minAmountOnSlot(0)))
+	t.Logf("div(constInitialSupply, constSlotInflationBase): %s", util.Th(minAmountOnSlot(0)))
 
 	t.Run("1", func(t *testing.T) {
 		ledger.L().MustEqual("constGenesisTimeUnix", fmt.Sprintf("u64/%d", ledger.L().ID.GenesisTimeUnix))
