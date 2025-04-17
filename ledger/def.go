@@ -1,9 +1,9 @@
 package ledger
 
 import (
+	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/lazybytes"
 )
 
 // This file contains all upgrade prescriptions to the base ledger provided by the EasyFL. It is the "version 0" of the ledger.

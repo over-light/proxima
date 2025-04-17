@@ -8,9 +8,9 @@ import (
 	"slices"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/proxima/util/lines"
 	"golang.org/x/crypto/blake2b"
 )
