@@ -93,7 +93,7 @@ const (
 func (lib *Library) upgrade0(id *IdentityData) {
 	lib.ID = id
 
-	err := lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), _embeddedFunctions(lib))
+	err := lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), EmbeddedFunctions(lib.Library))
 	util.AssertNoError(err)
 
 	// add main ledger constants

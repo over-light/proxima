@@ -19,13 +19,13 @@ var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
 	"vrfVerify":    evalVRFVerify,
 }
 
-func _embeddedFunctions(lib *Library) func(string) easyfl.EmbeddedFunction {
+func EmbeddedFunctions(lib *easyfl.Library) func(string) easyfl.EmbeddedFunction {
 	return func(sym string) easyfl.EmbeddedFunction {
 		if ef, found := _unboundedEmbedded[sym]; found {
 			return ef
 		}
 		if sym == "callLocalLibrary" {
-			return makeEvalCallLocalLibraryEmbeddedFunc(lib.Library)
+			return makeEvalCallLocalLibraryEmbeddedFunc(lib)
 		}
 		return nil
 	}
@@ -150,7 +150,6 @@ func makeEvalCallLocalLibraryEmbeddedFunc(lib *easyfl.Library) easyfl.EmbeddedFu
 // returns:
 // nil, if ts1 is before ts0
 // number of ticks between ts0 and ts1 otherwise, as big-endian uint64
-// TODO get rid if dependency on ledger package L()
 func evalTicksBefore64(par *easyfl.CallParams) []byte {
 	ts0bin, ts1bin := par.Arg(0), par.Arg(1)
 	ts0, err := base.TimeFromBytes(ts0bin)
