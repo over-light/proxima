@@ -7,6 +7,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -76,7 +77,7 @@ func (d *MemDAG) InfoRefLines(prefix ...string) *lines.Lines {
 	return ln
 }
 
-func (d *MemDAG) VerticesInSlotAndAfter(slot ledger.Slot) []*vertex.WrappedTx {
+func (d *MemDAG) VerticesInSlotAndAfter(slot base.Slot) []*vertex.WrappedTx {
 	ret := d.VerticesFiltered(func(txid ledger.TransactionID) bool {
 		return txid.Slot() >= slot
 	})
@@ -86,25 +87,25 @@ func (d *MemDAG) VerticesInSlotAndAfter(slot ledger.Slot) []*vertex.WrappedTx {
 	return ret
 }
 
-func (d *MemDAG) LinesVerticesInSlotAndAfter(slot ledger.Slot) *lines.Lines {
+func (d *MemDAG) LinesVerticesInSlotAndAfter(slot base.Slot) *lines.Lines {
 	return vertex.VerticesLines(d.VerticesInSlotAndAfter(slot))
 }
 
-func (d *MemDAG) _timeSlotsOrdered(descOrder ...bool) []ledger.Slot {
+func (d *MemDAG) _timeSlotsOrdered(descOrder ...bool) []base.Slot {
 	desc := false
 	if len(descOrder) > 0 {
 		desc = descOrder[0]
 	}
-	slots := set.New[ledger.Slot]()
+	slots := set.New[base.Slot]()
 	for br := range d.stateReaders {
 		slots.Insert(br.Slot())
 	}
 	if desc {
-		return util.KeysSorted(slots, func(e1, e2 ledger.Slot) bool {
+		return util.KeysSorted(slots, func(e1, e2 base.Slot) bool {
 			return e1 > e2
 		})
 	}
-	return util.KeysSorted(slots, func(e1, e2 ledger.Slot) bool {
+	return util.KeysSorted(slots, func(e1, e2 base.Slot) bool {
 		return e1 < e2
 	})
 }

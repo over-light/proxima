@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
 type DeadlineLock struct {
-	Deadline         Slot
+	Deadline         base.Slot
 	ConstraintMain   Accountable
 	ConstraintExpiry Accountable
 }
@@ -18,7 +19,7 @@ const (
 	deadlineLockTemplate = DeadlineLockName + "(u32/%d, %s, %s)"
 )
 
-func NewDeadlineLock(deadline Slot, main, expiry Accountable) *DeadlineLock {
+func NewDeadlineLock(deadline base.Slot, main, expiry Accountable) *DeadlineLock {
 	return &DeadlineLock{
 		Deadline:         deadline,
 		ConstraintMain:   main,
@@ -82,10 +83,10 @@ func DeadlineLockFromBytes(data []byte) (*DeadlineLock, error) {
 	}
 	ret := &DeadlineLock{}
 	slotBin := easyfl.StripDataPrefix(args[0])
-	if sym != DeadlineLockName || len(slotBin) != SlotByteLength {
+	if sym != DeadlineLockName || len(slotBin) != base.SlotByteLength {
 		return nil, fmt.Errorf("can't parse deadline lock")
 	}
-	slot, err := SlotFromBytes(slotBin)
+	slot, err := base.SlotFromBytes(slotBin)
 	if err != nil {
 		return nil, err
 	}

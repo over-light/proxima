@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/unitrie/common"
@@ -28,8 +29,8 @@ type (
 
 	SummarySupplyAndInflation struct {
 		NumberOfBranches int
-		OldestSlot       ledger.Slot
-		LatestSlot       ledger.Slot
+		OldestSlot       base.Slot
+		LatestSlot       base.Slot
 		BeginSupply      uint64
 		EndSupply        uint64
 		TotalInflation   uint64

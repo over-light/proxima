@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/spf13/viper"
@@ -18,7 +19,7 @@ type (
 		Pace                      int // pace in ticks
 		MaxTagAlongInputs         int
 		MaxInputs                 int
-		MaxTargetTs               ledger.Time
+		MaxTargetTs               base.LedgerTime
 		MaxBranches               int
 		EnsureSyncedBeforeStart   bool
 		DelayStart                time.Duration
@@ -46,7 +47,7 @@ func defaultConfigOptions() *ConfigOptions {
 		Pace:                      ledger.TransactionPaceSequencer(),
 		MaxTagAlongInputs:         defaultMaxTagAlongInputs,
 		MaxInputs:                 defaultMaxInputs,
-		MaxTargetTs:               ledger.NilLedgerTime,
+		MaxTargetTs:               base.NilLedgerTime,
 		MaxBranches:               math.MaxInt,
 		DelayStart:                ledger.SlotDuration(),
 		BacklogTagAlongTTLSlots:   minimumBacklogTagAlongTTLSlots,

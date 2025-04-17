@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -63,24 +64,24 @@ func FilterOutputsSortByAmount(outs []*ledger.OutputWithID, filter func(o *ledge
 	return ret
 }
 
-func ParseAndSortOutputDataUpToAmount(outs []*ledger.OutputDataWithID, amount uint64, filter func(oid *ledger.OutputID, o *ledger.Output) bool, desc ...bool) ([]*ledger.OutputWithID, uint64, ledger.Time, error) {
+func ParseAndSortOutputDataUpToAmount(outs []*ledger.OutputDataWithID, amount uint64, filter func(oid *ledger.OutputID, o *ledger.Output) bool, desc ...bool) ([]*ledger.OutputWithID, uint64, base.LedgerTime, error) {
 	outsWitID, err := ParseAndSortOutputData(outs, filter, desc...)
 	if err != nil {
-		return nil, 0, ledger.NilLedgerTime, err
+		return nil, 0, base.NilLedgerTime, err
 	}
-	retTs := ledger.NilLedgerTime
+	retTs := base.NilLedgerTime
 	retSum := uint64(0)
 	retOuts := make([]*ledger.OutputWithID, 0, len(outs))
 	for _, o := range outsWitID {
 		retSum += o.Output.Amount()
-		retTs = ledger.MaximumTime(retTs, o.Timestamp())
+		retTs = base.MaximumTime(retTs, o.Timestamp())
 		retOuts = append(retOuts, o)
 		if retSum >= amount {
 			break
 		}
 	}
 	if retSum < amount {
-		return nil, 0, ledger.NilLedgerTime, fmt.Errorf("not enough tokens")
+		return nil, 0, base.NilLedgerTime, fmt.Errorf("not enough tokens")
 	}
 	return retOuts, retSum, retTs, nil
 }

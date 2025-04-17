@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
@@ -43,9 +44,9 @@ func runReconcileCmd(_ *cobra.Command, args []string) {
 
 	slot := multistate.FetchLatestCommittedSlot(glb.StateStore())
 	glb.Infof("latest committed slot is %d", slot)
-	var downToSlot ledger.Slot
+	var downToSlot base.Slot
 	if int(slot) > slotsBack {
-		downToSlot = slot - ledger.Slot(slotsBack)
+		downToSlot = slot - base.Slot(slotsBack)
 	}
 
 	branches := multistate.FetchLatestBranches(glb.StateStore())
@@ -55,7 +56,7 @@ func runReconcileCmd(_ *cobra.Command, args []string) {
 	nSlots := 0
 	start := time.Now()
 	for ; slot >= downToSlot; slot-- {
-		rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, slot ledger.Slot) bool {
+		rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, slot base.Slot) bool {
 			if !glb.TxBytesStore().HasTxBytes(txid) {
 				glb.Infof("transaction %s not in the txStore: hex id = %s", txid.String(), txid.StringHex())
 			}

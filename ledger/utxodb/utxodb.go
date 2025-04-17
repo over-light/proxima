@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
@@ -285,8 +286,8 @@ func (u *UTXODB) GenerateAddressesWithFaucetAmount(startIndex int, n int, amount
 	return retPriv, retPub, retAddr
 }
 
-func (u *UTXODB) MakeTransferInputData(privKey ed25519.PrivateKey, sourceAccount ledger.Accountable, ts ledger.Time, desc ...bool) (*txbuilder.TransferData, error) {
-	if ts == ledger.NilLedgerTime {
+func (u *UTXODB) MakeTransferInputData(privKey ed25519.PrivateKey, sourceAccount ledger.Accountable, ts base.LedgerTime, desc ...bool) (*txbuilder.TransferData, error) {
+	if ts == base.NilLedgerTime {
 		ts = ledger.TimeNow()
 	}
 	ret := txbuilder.NewTransferData(privKey, sourceAccount, ts)
@@ -339,7 +340,7 @@ func (u *UTXODB) TransferTokensReturnTx(privKey ed25519.PrivateKey, targetLock l
 }
 
 func (u *UTXODB) transferTokens(privKey ed25519.PrivateKey, targetLock ledger.Lock, amount uint64) ([]byte, error) {
-	par, err := u.MakeTransferInputData(privKey, nil, ledger.NilLedgerTime)
+	par, err := u.MakeTransferInputData(privKey, nil, base.NilLedgerTime)
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +440,7 @@ func (u *UTXODB) DoTransfer(par *txbuilder.TransferData) error {
 	return err
 }
 
-func (u *UTXODB) MakeNewChain(amount uint64, privateKey ed25519.PrivateKey, chainController ledger.Lock, timestamp ...ledger.Time) (*ledger.OutputWithChainID, error) {
+func (u *UTXODB) MakeNewChain(amount uint64, privateKey ed25519.PrivateKey, chainController ledger.Lock, timestamp ...base.LedgerTime) (*ledger.OutputWithChainID, error) {
 	ts := ledger.TimeNow()
 	if len(timestamp) > 0 {
 		ts = timestamp[0]
@@ -492,7 +493,7 @@ func (u *UTXODB) TxToString(txBytes []byte) string {
 }
 
 // CreateChainOrigin takes all tokens from controller address and puts them on the chain output
-func (u *UTXODB) CreateChainOrigin(controllerPrivateKey ed25519.PrivateKey, ts ledger.Time) (*ledger.OutputWithChainID, error) {
+func (u *UTXODB) CreateChainOrigin(controllerPrivateKey ed25519.PrivateKey, ts base.LedgerTime) (*ledger.OutputWithChainID, error) {
 	controllerAddress := ledger.AddressED25519FromPrivateKey(controllerPrivateKey)
 	amount := u.Balance(controllerAddress)
 	td, err := u.MakeTransferInputData(controllerPrivateKey, controllerAddress, ts)

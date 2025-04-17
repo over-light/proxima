@@ -6,6 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/api/client"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -168,9 +169,9 @@ func doSpamming(cfg spammerConfig) {
 	}
 }
 
-func maxTimestamp(outs []*ledger.OutputWithID) (ret ledger.Time) {
+func maxTimestamp(outs []*ledger.OutputWithID) (ret base.LedgerTime) {
 	for _, o := range outs {
-		ret = ledger.MaximumTime(ret, o.Timestamp())
+		ret = base.MaximumTime(ret, o.Timestamp())
 	}
 	return
 }
@@ -197,7 +198,7 @@ func prepareBundle(walletData glb.WalletData, cfg spammerConfig) ([][]byte, ledg
 		if i == numTx-1 {
 			fee = cfg.tagAlongFee
 		}
-		ts := ledger.MaximumTime(maxTimestamp(lastOuts).AddTicks(cfg.pace), ledger.TimeNow())
+		ts := base.MaximumTime(maxTimestamp(lastOuts).AddTicks(cfg.pace), ledger.TimeNow())
 		txBytes, err := client.MakeTransferTransaction(client.MakeTransferTransactionParams{
 			Inputs:        lastOuts,
 			Target:        cfg.target.AsLock(),

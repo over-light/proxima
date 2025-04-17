@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -162,7 +163,7 @@ func makeTransactionLoop(par killChainParams) {
 			err = clnt.SubmitTransaction(tx.Bytes())
 			glb.AssertNoError(err)
 
-			lrbBehindTicks := ledger.DiffTicks(lrbid.Timestamp(), ledger.TimeNow())
+			lrbBehindTicks := base.DiffTicks(lrbid.Timestamp(), ledger.TimeNow())
 			glb.Infof("attempt #%d. Submitted transaction %s. LRB (latest reliable branch) is %d ticks, %d slots, %v behind. ",
 				attempt, tx.IDString(), lrbBehindTicks, lrbBehindTicks/256, time.Duration(lrbBehindTicks)*ledger.TickDuration())
 			glb.Verbosef("-------------- transaction --------------\n%s", tx.String())

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/stretchr/testify/require"
 	"github.com/yoseplee/vrf"
 )
@@ -16,7 +17,7 @@ import (
 func TestVrfPackage(t *testing.T) {
 	pubKey, privKey, err := ed25519.GenerateKey(nil)
 	require.NoError(t, err)
-	s := ledger.Slot(12345)
+	s := base.Slot(12345)
 	pi, _, err := vrf.Prove(pubKey, privKey, s.Bytes())
 	require.NoError(t, err)
 	t.Logf("pi (%d): %s", len(pi), hex.EncodeToString(pi))
@@ -24,7 +25,7 @@ func TestVrfPackage(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 
-	sWrong := ledger.Slot(123)
+	sWrong := base.Slot(123)
 	ok, err = vrf.Verify(pubKey, pi, sWrong.Bytes())
 	require.NoError(t, err)
 	require.False(t, ok)
@@ -42,7 +43,7 @@ func TestVrfLibExtension(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		pubKey, privKey, err := ed25519.GenerateKey(nil)
 		require.NoError(t, err)
-		slot := ledger.Slot(12345)
+		slot := base.Slot(12345)
 		proof, _, err := vrf.Prove(pubKey, privKey, slot.Bytes())
 		require.NoError(t, err)
 
@@ -64,7 +65,7 @@ func TestVrfLibExtension(t *testing.T) {
 	t.Run("fail 1", func(t *testing.T) {
 		pubKey, privKey, err := ed25519.GenerateKey(nil)
 		require.NoError(t, err)
-		slot := ledger.Slot(12345)
+		slot := base.Slot(12345)
 		proof, _, err := vrf.Prove(pubKey, privKey, slot.Bytes())
 		require.NoError(t, err)
 		ok, err := vrf.Verify(pubKey, proof, slot.Bytes())
@@ -87,7 +88,7 @@ func TestVrfLibExtension(t *testing.T) {
 	t.Run("fail 2", func(t *testing.T) {
 		pubKey, privKey, err := ed25519.GenerateKey(nil)
 		require.NoError(t, err)
-		slot := ledger.Slot(12345)
+		slot := base.Slot(12345)
 		proof, _, err := vrf.Prove(pubKey, privKey, slot.Bytes())
 		require.NoError(t, err)
 		ok, err := vrf.Verify(pubKey, proof, slot.Bytes())
@@ -95,7 +96,7 @@ func TestVrfLibExtension(t *testing.T) {
 		require.True(t, ok)
 
 		// modify slot
-		slotWrong := ledger.Slot(12346)
+		slotWrong := base.Slot(12346)
 		ok, err = vrf.Verify(pubKey, proof, slotWrong.Bytes())
 		require.True(t, !ok || err != nil)
 

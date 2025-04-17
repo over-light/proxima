@@ -9,6 +9,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"golang.org/x/crypto/blake2b"
@@ -19,7 +20,7 @@ import (
 type (
 	SlotData struct {
 		mutex               sync.RWMutex
-		slot                ledger.Slot
+		slot                base.Slot
 		numTargets          int
 		seqTxSubmitted      []ledger.TransactionID
 		branchSubmitted     *ledger.TransactionID
@@ -42,7 +43,7 @@ type (
 	combinationHash [8]byte
 )
 
-func NewSlotData(slot ledger.Slot) *SlotData {
+func NewSlotData(slot base.Slot) *SlotData {
 	ret := &SlotData{
 		slot:                      slot,
 		seqTxSubmitted:            make([]ledger.TransactionID, 0),

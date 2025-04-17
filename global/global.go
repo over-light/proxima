@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazyargs"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -338,8 +339,8 @@ func (l *Global) Infof2(template string, args ...any) {
 	l.InfofAtLevel(2, template, args...)
 }
 
-func (l *Global) ClockCatchUpWithLedgerTime(ts ledger.Time) {
-	time.Sleep(time.Until(ts.Time()))
+func (l *Global) ClockCatchUpWithLedgerTime(ts base.LedgerTime) {
+	time.Sleep(time.Until(ledger.ClockTime(ts)))
 
 	for ledger.TimeNow().BeforeOrEqual(ts) {
 		time.Sleep(5 * time.Millisecond)

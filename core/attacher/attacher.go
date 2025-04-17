@@ -7,6 +7,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazyargs"
@@ -14,7 +15,7 @@ import (
 	"github.com/lunfardo314/unitrie/common"
 )
 
-func newPastConeAttacher(env Environment, tip *vertex.WrappedTx, targetTs ledger.Time, name string) attacher {
+func newPastConeAttacher(env Environment, tip *vertex.WrappedTx, targetTs base.LedgerTime, name string) attacher {
 	ret := attacher{
 		Environment: env,
 		name:        name,
@@ -564,7 +565,7 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 
 // setBaseline sets baseline, references it from the attacher
 // For sequencer transaction baseline will be on the same slot, for branch transactions it can be further in the past
-func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, targetTs ledger.Time) bool {
+func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, targetTs base.LedgerTime) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
 
 	// it may already be referenced but this ensures it is done only once

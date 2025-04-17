@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/lunfardo314/unitrie/common"
@@ -16,21 +17,21 @@ func TestOriginBase(t *testing.T) {
 	gtxid := ledger.GenesisTransactionID()
 	fmt.Printf("hex: %s\n", gtxid.StringHex())
 	fmt.Printf("full: %s\n", gtxid.String())
-	rndtxid := ledger.RandomTransactionID(false, 1, ledger.NewLedgerTime(1337, 50))
+	rndtxid := ledger.RandomTransactionID(false, 1, base.NewLedgerTime(1337, 50))
 	fmt.Printf("raw hexadecimal (non-sequencer): %s\n", rndtxid.StringHex())
 	fmt.Printf("full human readable (non-sequencer): %s\n", rndtxid.String())
 	fmt.Printf("short (trimmed) human readable (non-sequencer): %s\n", rndtxid.StringShort())
 
-	rndtxid = ledger.RandomTransactionID(true, 1, ledger.NewLedgerTime(1337, 0))
+	rndtxid = ledger.RandomTransactionID(true, 1, base.NewLedgerTime(1337, 0))
 	fmt.Printf("raw hexadecimal branch transaction ID %s\n", rndtxid.StringHex())
 	fmt.Printf("full human readable branch transaction ID: %s\n", rndtxid.String())
 	fmt.Printf("short (trimmed) human readable branch transaction ID: %s\n", rndtxid.StringShort())
-	rndtxid = ledger.RandomTransactionID(true, 1, ledger.NewLedgerTime(1337, 50))
+	rndtxid = ledger.RandomTransactionID(true, 1, base.NewLedgerTime(1337, 50))
 	fmt.Printf("short (trimmed) human readable non-branch sequencer transaction ID: %s\n", rndtxid.StringShort())
 
 	const supply = 10_000_000_000
 	addr := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey())
-	genesisTimeSlot := ledger.Slot(1337)
+	genesisTimeSlot := base.Slot(1337)
 	gOut := ledger.GenesisOutput(supply, addr)
 	t.Logf("Genesis: suppy = %d, genesis slot = %d:\n", supply, genesisTimeSlot)
 	t.Logf("   Genesis outputID: %s", gOut.ID.String())

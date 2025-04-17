@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/lunfardo314/unitrie/immutable"
@@ -277,14 +278,14 @@ func (r *Readable) _getUTXOForChainID(id ledger.ChainID) (*ledger.OutputDataWith
 	}, nil
 }
 
-func (r *Readable) GetStem() (ledger.Slot, []byte) {
+func (r *Readable) GetStem() (base.Slot, []byte) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	accountPrefix := common.Concat(TriePartitionAccounts, byte(len(ledger.StemAccountID)), ledger.StemAccountID)
 
 	var found bool
-	var retSlot ledger.Slot
+	var retSlot base.Slot
 	var retBytes []byte
 
 	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
@@ -318,7 +319,7 @@ func (r *Readable) Iterator(prefix []byte) common.KVIterator {
 
 // IterateKnownCommittedTransactions iterates transaction IDs in the state. Optionally, iteration is restricted
 // for a slot. In that case first iterates non-sequencer transactions, the sequencer transactions
-func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *ledger.TransactionID, slot ledger.Slot) bool, txidSlot ...ledger.Slot) {
+func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *ledger.TransactionID, slot base.Slot) bool, txidSlot ...base.Slot) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -329,12 +330,12 @@ func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *ledger.Trans
 		iter = common.MakeTraversableReaderPartition(r.trie, TriePartitionCommittedTransactionID).Iterator(nil)
 	}
 
-	var slot ledger.Slot
+	var slot base.Slot
 
 	iter.Iterate(func(k, v []byte) bool {
 		txid, err := ledger.TransactionIDFromBytes(k[1:])
 		util.AssertNoError(err)
-		slot, err = ledger.SlotFromBytes(v)
+		slot, err = base.SlotFromBytes(v)
 		util.AssertNoError(err)
 
 		return fun(&txid, slot)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -28,21 +29,21 @@ func WriteRootRecord(w common.KVWriter, branchTxID ledger.TransactionID, rootDat
 	}, []byte{rootRecordDBPartition}, branchTxID[:])
 }
 
-func WriteLatestSlotRecord(w common.KVWriter, slot ledger.Slot) {
+func WriteLatestSlotRecord(w common.KVWriter, slot base.Slot) {
 	w.Set([]byte{latestSlotDBPartition}, slot.Bytes())
 }
 
-func WriteEarliestSlotRecord(w common.KVWriter, slot ledger.Slot) {
+func WriteEarliestSlotRecord(w common.KVWriter, slot base.Slot) {
 	w.Set([]byte{earliestSlotDBPartition}, slot.Bytes())
 }
 
 // FetchLatestCommittedSlot fetches latest recorded slot
-func FetchLatestCommittedSlot(store common.KVReader) ledger.Slot {
+func FetchLatestCommittedSlot(store common.KVReader) base.Slot {
 	bin := store.Get([]byte{latestSlotDBPartition})
 	if len(bin) == 0 {
 		return 0
 	}
-	ret, err := ledger.SlotFromBytes(bin)
+	ret, err := base.SlotFromBytes(bin)
 	util.AssertNoError(err)
 	return ret
 }
@@ -50,10 +51,10 @@ func FetchLatestCommittedSlot(store common.KVReader) ledger.Slot {
 // FetchEarliestSlot return earliest slot among roots in the multi-state DB.
 // It is set when multi-state DB is initialized and then remains immutable. For genesis database it is 0,
 // For DB created from snapshot it is slot of the snapshot
-func FetchEarliestSlot(store common.KVReader) ledger.Slot {
+func FetchEarliestSlot(store common.KVReader) base.Slot {
 	bin := store.Get([]byte{earliestSlotDBPartition})
 	util.Assertf(len(bin) > 0, "internal error: earliest state is not set")
-	ret, err := ledger.SlotFromBytes(bin)
+	ret, err := base.SlotFromBytes(bin)
 	util.AssertNoError(err)
 	return ret
 }
@@ -189,7 +190,7 @@ func iterateAllRootRecords(store common.Traversable, fun func(branchTxID ledger.
 	})
 }
 
-func iterateRootRecordsOfParticularSlots(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool, slots []ledger.Slot) {
+func iterateRootRecordsOfParticularSlots(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool, slots []base.Slot) {
 	prefix := [5]byte{rootRecordDBPartition, 0, 0, 0, 0}
 	for _, s := range slots {
 		s.PutBytes(prefix[1:])
@@ -210,7 +211,7 @@ func iterateRootRecordsOfParticularSlots(store common.Traversable, fun func(bran
 // IterateRootRecords iterates root records in the store:
 // - if len(optSlot) > 0, it iterates specific slots
 // - if len(optSlot) == 0, it iterates all records in the store
-func IterateRootRecords(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool, optSlot ...ledger.Slot) {
+func IterateRootRecords(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool, optSlot ...base.Slot) {
 	if len(optSlot) == 0 {
 		iterateAllRootRecords(store, fun)
 	}
@@ -268,7 +269,7 @@ func FetchAllRootRecords(store common.Traversable) []RootRecord {
 }
 
 // FetchRootRecords returns root records for particular slots in the DB
-func FetchRootRecords(store common.Traversable, slots ...ledger.Slot) []RootRecord {
+func FetchRootRecords(store common.Traversable, slots ...base.Slot) []RootRecord {
 	if len(slots) == 0 {
 		return nil
 	}
@@ -353,7 +354,7 @@ func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*Br
 		IterateRootRecords(store, func(branchTxID ledger.TransactionID, rd RootRecord) bool {
 			rootData[branchTxID] = rd
 			return true
-		}, util.MakeRange(latestSlot-ledger.Slot(nBack), latestSlot)...)
+		}, util.MakeRange(latestSlot-base.Slot(nBack), latestSlot)...)
 	}
 
 	sortedTxIDs := util.KeysSorted(rootData, func(k1, k2 ledger.TransactionID) bool {
@@ -420,7 +421,7 @@ func BranchKnowsTransaction(branchID, txid ledger.TransactionID, getStore func()
 func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) bool) *BranchData {
 	var ret BranchData
 	found := false
-	IterateSlotsBack(store, func(slot ledger.Slot, roots []RootRecord) bool {
+	IterateSlotsBack(store, func(slot base.Slot, roots []RootRecord) bool {
 		for _, rootRecord := range roots {
 			ret = FetchBranchDataByRoot(store, rootRecord)
 			if found = filter(&ret); found {
@@ -438,7 +439,7 @@ func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) boo
 // FindLatestHealthySlot finds latest slot, which has at least one branch
 // with coverage > numerator/denominator * 2 * totalSupply
 // Returns false flag if not found
-func FindLatestHealthySlot(store StateStoreReader, fraction global.Fraction) (ledger.Slot, bool) {
+func FindLatestHealthySlot(store StateStoreReader, fraction global.Fraction) (base.Slot, bool) {
 	ret := FindFirstBranch(store, func(branch *BranchData) bool {
 		return branch.IsHealthy(fraction)
 	})
@@ -455,8 +456,8 @@ func (br *BranchData) IsHealthy(fraction global.Fraction) bool {
 // FirstHealthySlotIsNotBefore determines if first healthy slot is not before tha refSlot.
 // Usually refSlot is just few slots back, so the operation does not require
 // each time traversing unbounded number of slots
-func FirstHealthySlotIsNotBefore(store StateStoreReader, refSlot ledger.Slot, fraction global.Fraction) (ret bool) {
-	IterateSlotsBack(store, func(slot ledger.Slot, roots []RootRecord) bool {
+func FirstHealthySlotIsNotBefore(store StateStoreReader, refSlot base.Slot, fraction global.Fraction) (ret bool) {
+	IterateSlotsBack(store, func(slot base.Slot, roots []RootRecord) bool {
 		if slot < refSlot {
 			return false
 		}
@@ -472,7 +473,7 @@ func FirstHealthySlotIsNotBefore(store StateStoreReader, refSlot ledger.Slot, fr
 }
 
 // IterateSlotsBack iterates  descending slots from latest committed slot down to the earliest available
-func IterateSlotsBack(store StateStoreReader, fun func(slot ledger.Slot, roots []RootRecord) bool) {
+func IterateSlotsBack(store StateStoreReader, fun func(slot base.Slot, roots []RootRecord) bool) {
 	earliest := FetchEarliestSlot(store)
 	slot := FetchLatestCommittedSlot(store)
 	for {
@@ -493,7 +494,7 @@ func IterateSlotsBack(store StateStoreReader, fun func(slot ledger.Slot, roots [
 func FindRootsFromLatestHealthySlot(store StateStoreReader, fraction global.Fraction) ([]RootRecord, bool) {
 	var rootsFound []RootRecord
 
-	IterateSlotsBack(store, func(slot ledger.Slot, roots []RootRecord) bool {
+	IterateSlotsBack(store, func(slot base.Slot, roots []RootRecord) bool {
 		if len(roots) == 0 {
 			return true
 		}

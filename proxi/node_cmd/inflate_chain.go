@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	txb "github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -38,10 +39,10 @@ func runInflateChainCmd(_ *cobra.Command, args []string) {
 
 	chainID, err := ledger.ChainIDFromHexString(args[0])
 	glb.AssertNoError(err)
-	inflateChain(ledger.Slot(periodInSlots), chainID)
+	inflateChain(base.Slot(periodInSlots), chainID)
 }
 
-func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID) {
+func inflateChain(chainTransitionPeriodSlots base.Slot, chainId ledger.ChainID) {
 	walletData := glb.GetWalletData()
 	tagAlongSeq := glb.GetTagAlongSequencerID()
 	tagAlongFee := glb.GetTagAlongFee()
@@ -50,7 +51,7 @@ func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID
 	glb.AssertNoError(err)
 	glb.Assertf(!chainOutput.ID.IsSequencerTransaction(), "must be non-sequencer output")
 
-	estimated := ledger.L().CalcChainInflationAmount(ledger.NewLedgerTime(0, 1), ledger.NewLedgerTime(chainTransitionPeriodSlots, 1), chainOutput.Output.Amount())
+	estimated := ledger.L().CalcChainInflationAmount(base.NewLedgerTime(0, 1), base.NewLedgerTime(chainTransitionPeriodSlots, 1), chainOutput.Output.Amount())
 	msg := lines.New().
 		Add("will be inflating chain %s every %d slots", chainId.StringShort(), chainTransitionPeriodSlots).
 		Add("Initial chain balance is %s, Tag-along fee to %s is %d", util.Th(chainOutput.Output.Amount()), tagAlongSeq.StringShort(), tagAlongFee).
@@ -91,7 +92,7 @@ func inflateChain(chainTransitionPeriodSlots ledger.Slot, chainId ledger.ChainID
 
 		txid, err := transaction.IDFromTransactionBytes(txBytes)
 		glb.AssertNoError(err)
-		sleepFor := time.Until(tsOut.Time())
+		sleepFor := time.Until(ledger.ClockTime(tsOut))
 		glb.Infof("--------------\nwill be submitting next chain transaction %s in %v", txid.String(), sleepFor)
 		estimate := int64(0)
 		if tagAlongFee < inflation {

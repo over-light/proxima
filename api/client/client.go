@@ -17,6 +17,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
@@ -794,7 +795,7 @@ func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*trans
 	if err != nil {
 		return nil, [32]byte{}, err
 	}
-	ts = ledger.MaximumTime(ts1.AddTicks(ledger.TransactionPace()), ts)
+	ts = base.MaximumTime(ts1.AddTicks(ledger.TransactionPace()), ts)
 
 	err = txb.PutStandardInputUnlocks(len(inps))
 	util.AssertNoError(err)
@@ -933,7 +934,7 @@ type MakeTransferTransactionParams struct {
 	PrivateKey    ed25519.PrivateKey
 	TagAlongSeqID *ledger.ChainID
 	TagAlongFee   uint64
-	Timestamp     ledger.Time
+	Timestamp     base.LedgerTime
 }
 
 func MakeTransferTransaction(par MakeTransferTransactionParams) ([]byte, error) {

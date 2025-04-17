@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
@@ -20,7 +21,7 @@ type MakeSequencerTransactionParams struct {
 	//
 	StemInput *ledger.OutputWithID // it is branch tx if != nil
 	// timestamp of the transaction
-	Timestamp ledger.Time
+	Timestamp base.LedgerTime
 	// minimum fee
 	MinimumFee uint64
 	// additional inputs to consume. Must be unlockable by chain
@@ -266,7 +267,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		default:
 			return nil, nil, errP("unsupported type of additional input: %s", lockName)
 		}
-		tsIn = ledger.MaximumTime(tsIn, o.Timestamp())
+		tsIn = base.MaximumTime(tsIn, o.Timestamp())
 	}
 
 	if !ledger.ValidSequencerPace(tsIn, par.Timestamp) {
@@ -295,7 +296,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	return txBytes, txb.LoadInput, nil
 }
 
-func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, targetTs ledger.Time, delegationMarginPromille int) (
+func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, targetTs base.LedgerTime, delegationMarginPromille int) (
 	ret []*ledger.Output,
 	retTotalIn uint64,
 	retTotalOut uint64,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
@@ -63,7 +64,7 @@ type (
 		Ctx() context.Context // global context of the node. Canceling means stopping the node
 		Stop()
 		IsShuttingDown() bool
-		ClockCatchUpWithLedgerTime(ts ledger.Time)
+		ClockCatchUpWithLedgerTime(ts base.LedgerTime)
 		MarkWorkProcessStarted(name string)
 		MarkWorkProcessStopped(name string)
 		RepeatInBackground(name string, period time.Duration, fun func() bool, skipFirst ...bool) // runs background goroutine

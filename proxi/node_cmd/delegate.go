@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -80,7 +81,7 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 	_, inTs, err := txb.ConsumeOutputs(walletOutputs...)
 	glb.AssertNoError(err)
 
-	ts := ledger.MaximumTime(inTs, ledger.TimeNow())
+	ts := base.MaximumTime(inTs, ledger.TimeNow())
 
 	for i := range walletOutputs {
 		if i == 0 {

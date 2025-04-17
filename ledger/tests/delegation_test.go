@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/ledger/utxodb"
@@ -19,7 +20,7 @@ func TestIsOpenDelegationWindow(t *testing.T) {
 	nOpen := 0
 	nClosed := 0
 	for i := 0; i < 60; i++ {
-		isOpen := ledger.IsOpenDelegationSlot(chainID, ledger.Slot(i))
+		isOpen := ledger.IsOpenDelegationSlot(chainID, base.Slot(i))
 		t.Logf("s = %d, open = %v", i, isOpen)
 		if isOpen {
 			nOpen++
@@ -60,7 +61,7 @@ func TestDelegationSigLock(t *testing.T) {
 		err = u.TokensFromFaucet(addr[1], tokensFromFaucet1)
 		require.NoError(t, err)
 
-		par, err := u.MakeTransferInputData(privKey[0], nil, ledger.NilLedgerTime)
+		par, err := u.MakeTransferInputData(privKey[0], nil, base.NilLedgerTime)
 		require.NoError(t, err)
 
 		delegationLock = ledger.NewDelegationLock(addr[0], addr[1], 2, ledger.TimeNow(), delegatedTokens)
@@ -98,7 +99,7 @@ func TestDelegationSigLock(t *testing.T) {
 		return chainID
 	}
 
-	transitDelegation := func(ts ledger.Time, inflate bool, nextDelegationAmount uint64, unlockByOwner bool, printtTx ...bool) error {
+	transitDelegation := func(ts base.LedgerTime, inflate bool, nextDelegationAmount uint64, unlockByOwner bool, printtTx ...bool) error {
 		cc, idx := delegatedOutput.Output.ChainConstraint()
 		require.True(t, idx != 0xff)
 		require.True(t, cc.IsOrigin())
@@ -331,7 +332,7 @@ func TestDelegationChainLock(t *testing.T) {
 		require.EqualValues(t, tokensOnTargetChain, onChain)
 		require.EqualValues(t, 0, lockedInChain)
 
-		par, err := u.MakeTransferInputData(privKey[0], nil, ledger.NilLedgerTime)
+		par, err := u.MakeTransferInputData(privKey[0], nil, base.NilLedgerTime)
 		require.NoError(t, err)
 
 		delegationLock = ledger.NewDelegationLock(addr[0], targetChainID.AsChainLock(), 2, ledger.TimeNow(), delegatedTokens)
@@ -371,7 +372,7 @@ func TestDelegationChainLock(t *testing.T) {
 		return chainID
 	}
 
-	transitDelegationWithChain := func(ts ledger.Time, inflate bool, nextDelegationAmount uint64, printtTx ...bool) error {
+	transitDelegationWithChain := func(ts base.LedgerTime, inflate bool, nextDelegationAmount uint64, printtTx ...bool) error {
 		txb := txbuilder.New()
 
 		// target chain output transition

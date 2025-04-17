@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/sequencer/backlog"
 	"github.com/lunfardo314/proxima/util"
@@ -33,7 +34,7 @@ type (
 		Backlog() *backlog.TagAlongBacklog
 		IsConsumedInThePastPath(wOut vertex.WrappedOutput, ms *vertex.WrappedTx) bool
 		AddOwnMilestone(vid *vertex.WrappedTx)
-		FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOutput, targetTs ledger.Time) []vertex.WrappedOutput
+		FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOutput, targetTs base.LedgerTime) []vertex.WrappedOutput
 		MaxInputs() (int, int)
 		LatestMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
 		EvidenceProposal(strategyShortName string)
@@ -42,7 +43,7 @@ type (
 
 	taskData struct {
 		environment
-		targetTs     ledger.Time
+		targetTs     base.LedgerTime
 		ctx          context.Context
 		proposersWG  sync.WaitGroup
 		proposalChan chan *proposal
@@ -106,7 +107,7 @@ func allProposingStrategies() []*proposerStrategy {
 // Each proposer generates proposals and writes it to the channel of the taskData.
 // The best proposal is selected and returned. Function only returns transaction which is better
 // than others in the tippool for the current slot. Otherwise, returns nil
-func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
+func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
 	startTask := time.Now()
 	defer func(start time.Time) {
 		runTaskDurationGauge.Set(float64(time.Since(start)) / float64(time.Millisecond))
@@ -114,7 +115,7 @@ func Run(env environment, targetTs ledger.Time, slotData *SlotData) (*transactio
 
 	registerGCMetricsOnce(env)
 
-	deadline := targetTs.Time()
+	deadline := ledger.ClockTime(targetTs)
 	nowis := time.Now()
 	env.Tracef(TraceTagTask, "RunTask: target: %s, deadline: %s, nowis: %s",
 		targetTs.String, deadline.Format("15:04:05.999"), nowis.Format("15:04:05.999"))

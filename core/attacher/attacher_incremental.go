@@ -6,6 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
@@ -17,7 +18,7 @@ const (
 	TraceTagIncrementalAttacherWithExplicitBaseline = "incAttachExplicitBL"
 )
 
-func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (*IncrementalAttacher, error) {
+func NewIncrementalAttacher(name string, env Environment, targetTs base.LedgerTime, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (*IncrementalAttacher, error) {
 	env.Assertf(ledger.ValidSequencerPace(extend.Timestamp(), targetTs), "NewIncrementalAttacher: target is closer than allowed pace (%d): %s -> %s",
 		ledger.TransactionPaceSequencer(), extend.Timestamp().String, targetTs.String)
 
@@ -80,7 +81,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs ledger.Time, 
 	return ret, nil
 }
 
-func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, targetTs ledger.Time, extend vertex.WrappedOutput, baselineID ledger.TransactionID) (*IncrementalAttacher, error) {
+func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, targetTs base.LedgerTime, extend vertex.WrappedOutput, baselineID ledger.TransactionID) (*IncrementalAttacher, error) {
 	env.Assertf(baselineID.IsBranchTransaction(), "baselineID.IsBranchTransaction()")
 	env.Assertf(!targetTs.IsSlotBoundary(), "!targetTs.IsSlotBoundary()")
 	env.Assertf(int(targetTs.Slot)-int(extend.Slot()) >= 1, "int(targetTs.Slot)(%s)-int(extend.Slot())(%s)>=1",
@@ -133,7 +134,7 @@ func (a *IncrementalAttacher) IsClosed() bool {
 	return a.closed
 }
 
-func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx, targetTs ledger.Time, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
+func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx, targetTs base.LedgerTime, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
 	if !a.setBaseline(baseline, targetTs) {
 		return fmt.Errorf("NewIncrementalAttacher: failed to set baseline branch of %s", extend.IDStringShort())
 	}
@@ -379,7 +380,7 @@ func (a *IncrementalAttacher) makeSequencerTransactionWithExplicitBaseline(seqNa
 	return tx, nil
 }
 
-func (a *IncrementalAttacher) TargetTs() ledger.Time {
+func (a *IncrementalAttacher) TargetTs() base.LedgerTime {
 	return a.targetTs
 }
 

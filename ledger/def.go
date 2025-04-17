@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/unitrie/common"
@@ -111,10 +112,10 @@ func (lib *Library) upgrade0(id *IdentityData) {
 
 	lib.appendInlineTests(func() {
 		// inline tests
-		libraryGlobal.MustEqual("timestampBytes(u32/255, 21)", NewLedgerTime(255, 21).Hex())
+		libraryGlobal.MustEqual("timestampBytes(u32/255, 21)", base.NewLedgerTime(255, 21).Hex())
 		libraryGlobal.MustEqual("ticksBefore(timestampBytes(u32/100, 5), timestampBytes(u32/101, 10))", "u64/133")
 		libraryGlobal.MustError("mustValidTimeSlot(255)", "wrong slot data")
-		libraryGlobal.MustEqual("mustValidTimeSlot(u32/255)", Slot(255).Hex())
+		libraryGlobal.MustEqual("mustValidTimeSlot(u32/255)", base.Slot(255).Hex())
 		libraryGlobal.MustEqual("mustValidTimeTick(88)", "88")
 		libraryGlobal.MustError("mustValidTimeTick(200)", "'wrong ticks value'")
 		libraryGlobal.MustEqual("div(constInitialSupply, constSlotInflationBase)", "u64/30303030")

@@ -9,6 +9,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -292,7 +293,7 @@ func (vid *WrappedTx) IsSequencerMilestone() bool {
 	return vid.id.IsSequencerMilestone()
 }
 
-func (vid *WrappedTx) Timestamp() ledger.Time {
+func (vid *WrappedTx) Timestamp() base.LedgerTime {
 	return vid.id.Timestamp()
 }
 
@@ -300,7 +301,7 @@ func (vid *WrappedTx) Before(vid1 *WrappedTx) bool {
 	return vid.Timestamp().Before(vid1.Timestamp())
 }
 
-func (vid *WrappedTx) Slot() ledger.Slot {
+func (vid *WrappedTx) Slot() base.Slot {
 	return vid.id.Slot()
 }
 
@@ -1037,6 +1038,6 @@ func (vid *WrappedTx) DeepestPastConeReference(visited set.Set[*WrappedTx]) (ret
 	return
 }
 
-func (vid *WrappedTx) ValidSequencerPace(targetTs ledger.Time) bool {
+func (vid *WrappedTx) ValidSequencerPace(targetTs base.LedgerTime) bool {
 	return ledger.ValidSequencerPace(vid.Timestamp(), targetTs)
 }

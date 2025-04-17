@@ -9,6 +9,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
@@ -26,7 +27,7 @@ type (
 		txid                     ledger.TransactionID
 		sequencerMilestoneFlag   bool
 		sender                   ledger.AddressED25519
-		timestamp                ledger.Time
+		timestamp                base.LedgerTime
 		totalAmount              uint64                    // persisted in tx
 		totalInflation           uint64                    // calculated
 		sequencerTransactionData *SequencerTransactionData // if != nil it is sequencer milestone transaction
@@ -87,10 +88,10 @@ func transactionFromBytes(txBytes []byte, opts ...TxValidationOption) (*Transact
 	return ret, nil
 }
 
-func IDAndTimestampFromTransactionBytes(txBytes []byte) (ledger.TransactionID, ledger.Time, error) {
+func IDAndTimestampFromTransactionBytes(txBytes []byte) (ledger.TransactionID, base.LedgerTime, error) {
 	tx, err := FromBytes(txBytes)
 	if err != nil {
-		return ledger.TransactionID{}, ledger.Time{}, err
+		return ledger.TransactionID{}, base.LedgerTime{}, err
 	}
 	return tx.ID(), tx.Timestamp(), nil
 }
@@ -132,7 +133,7 @@ func BaseValidation(tx *Transaction) error {
 	// determine the sequencer flag
 	tx.sequencerMilestoneFlag = outputIndexData[0] != 0xff
 	// parse and validate timestamp
-	if tx.timestamp, err = ledger.TimeFromBytes(tsBin); err != nil {
+	if tx.timestamp, err = base.TimeFromBytes(tsBin); err != nil {
 		return err
 	}
 	// validate stem output index. Must be 0xff if it is not a branch transaction
@@ -157,7 +158,7 @@ func BaseValidation(tx *Transaction) error {
 
 func CheckTimestampLowerBound(lowerBound time.Time) TxValidationOption {
 	return func(tx *Transaction) error {
-		if tx.timestamp.Time().Before(lowerBound) {
+		if ledger.ClockTime(tx.timestamp).Before(lowerBound) {
 			return fmt.Errorf("transaction is too old")
 		}
 		return nil
@@ -166,7 +167,7 @@ func CheckTimestampLowerBound(lowerBound time.Time) TxValidationOption {
 
 func CheckTimestampUpperBound(upperBound time.Time) TxValidationOption {
 	return func(tx *Transaction) error {
-		ts := tx.timestamp.Time()
+		ts := ledger.ClockTime(tx.timestamp)
 		if ts.After(upperBound) {
 			return fmt.Errorf("transaction is %d msec too far in the future", int64(ts.Sub(upperBound))/int64(time.Millisecond))
 		}
@@ -431,7 +432,7 @@ func (tx *Transaction) IDStringHex() string {
 	return id.StringHex()
 }
 
-func (tx *Transaction) Slot() ledger.Slot {
+func (tx *Transaction) Slot() base.Slot {
 	return tx.timestamp.Slot
 }
 
@@ -487,12 +488,12 @@ func (tx *Transaction) SenderAddress() ledger.AddressED25519 {
 	return tx.sender
 }
 
-func (tx *Transaction) Timestamp() ledger.Time {
+func (tx *Transaction) Timestamp() base.LedgerTime {
 	return tx.timestamp
 }
 
 func (tx *Transaction) TimestampTime() time.Time {
-	return tx.timestamp.Time()
+	return ledger.ClockTime(tx.timestamp)
 }
 
 func (tx *Transaction) TotalAmount() uint64 {

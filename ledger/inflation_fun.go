@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -27,7 +28,7 @@ func __precompiledChainInflation() (ret *easyfl.Expression) {
 
 // CalcChainInflationAmount interprets EasyFl formula. Return chain inflation amount for given in and out ledger times,
 // input amount of tokens and delayed
-func (lib *Library) CalcChainInflationAmount(inTs, outTs Time, inAmount uint64) uint64 {
+func (lib *Library) CalcChainInflationAmount(inTs, outTs base.LedgerTime, inAmount uint64) uint64 {
 	var amountBin [8]byte
 	binary.BigEndian.PutUint64(amountBin[:], inAmount)
 	ret := easyfl.EvalExpression(nil, __precompiledChainInflation(), inTs.Bytes(), outTs.Bytes(), amountBin[:])

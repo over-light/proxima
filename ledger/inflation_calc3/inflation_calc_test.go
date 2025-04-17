@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 )
@@ -91,7 +92,7 @@ func TestInflation3Final(t *testing.T) {
 
 	startTime := time.Now()
 	for s := 0; s < slotsPerYear*years; s++ {
-		ts := ledger.NewLedgerTime(ledger.Slot(s), 5)
+		ts := base.NewLedgerTime(base.Slot(s), 5)
 		inflationSlot := ledger.L().CalcChainInflationAmount(ts, ts.AddSlots(1), supply)
 
 		if s > 0 && s%slotsPerYear == 0 {

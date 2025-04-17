@@ -6,6 +6,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/ledger/utxodb"
@@ -239,7 +240,7 @@ func TestChainSuccessorTransaction(t *testing.T) {
 		_, _, _, err = txbuilder.MakeChainSuccessorTransaction(&par)
 		require.NoError(t, err)
 
-		par.Timestamp = ledger.NewLedgerTime(100000, 0)
+		par.Timestamp = base.NewLedgerTime(100000, 0)
 		_, _, _, err = txbuilder.MakeChainSuccessorTransaction(&par)
 		util.RequireErrorWith(t, err, "timestamp is on slot boundary")
 

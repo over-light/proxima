@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/yoseplee/vrf"
@@ -24,7 +25,7 @@ func _embeddedFunctions(lib *Library) func(string) easyfl.EmbeddedFunction {
 			return ef
 		}
 		if sym == "callLocalLibrary" {
-			return lib.evalCallLocalLibrary
+			return makeEvalCallLocalLibraryEmbeddedFunc(lib.Library)
 		}
 		return nil
 	}
@@ -118,6 +119,7 @@ func evalVRFVerify(par *easyfl.CallParams) []byte {
 }
 
 // CompileLocalLibrary compiles local library and serializes it as lazy array
+// TODO move to easyfl together with lazybytes
 func (lib *Library) CompileLocalLibrary(source string) ([]byte, error) {
 	libBin, err := lib.Library.CompileLocalLibrary(source)
 	if err != nil {
@@ -127,36 +129,39 @@ func (lib *Library) CompileLocalLibrary(source string) ([]byte, error) {
 	return ret.Bytes(), nil
 }
 
-// arg 0 - local library binary (as lazy array)
-// arg 1 - 1-byte index of then function in the library
-// arg 2 ... arg 15 optional arguments
-func (lib *Library) evalCallLocalLibrary(ctx *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(ctx.Arg(0))
-	libData := arr.Parsed()
-	idx := ctx.Arg(1)
-	if len(idx) != 1 || int(idx[0]) >= len(libData) {
-		ctx.TracePanic("evalCallLocalLibrary: wrong function index")
+func makeEvalCallLocalLibraryEmbeddedFunc(lib *easyfl.Library) easyfl.EmbeddedFunction {
+	return func(ctx *easyfl.CallParams) []byte {
+		// arg 0 - local library binary (as lazy array)
+		// arg 1 - 1-byte index of then function in the library
+		// arg 2 ... arg 15 optional arguments
+		arr := lazybytes.ArrayFromBytesReadOnly(ctx.Arg(0))
+		libData := arr.Parsed()
+		idx := ctx.Arg(1)
+		if len(idx) != 1 || int(idx[0]) >= len(libData) {
+			ctx.TracePanic("evalCallLocalLibrary: wrong function index")
+		}
+		ret := lib.CallLocalLibrary(ctx.Slice(2, ctx.Arity()), libData, int(idx[0]))
+		ctx.Trace("evalCallLocalLibrary: lib#%d -> %s", idx[0], easyfl.Fmt(ret))
+		return ret
 	}
-	ret := lib.CallLocalLibrary(ctx.Slice(2, ctx.Arity()), libData, int(idx[0]))
-	ctx.Trace("evalCallLocalLibrary: lib#%d -> %s", idx[0], easyfl.Fmt(ret))
-	return ret
 }
 
 // arg 0 and arg 1 are timestamps (5 bytes each)
 // returns:
 // nil, if ts1 is before ts0
 // number of ticks between ts0 and ts1 otherwise, as big-endian uint64
+// TODO get rid if dependency on ledger package L()
 func evalTicksBefore64(par *easyfl.CallParams) []byte {
 	ts0bin, ts1bin := par.Arg(0), par.Arg(1)
-	ts0, err := TimeFromBytes(ts0bin)
+	ts0, err := base.TimeFromBytes(ts0bin)
 	if err != nil {
 		par.TracePanic("evalTicksBefore64: %v", err)
 	}
-	ts1, err := TimeFromBytes(ts1bin)
+	ts1, err := base.TimeFromBytes(ts1bin)
 	if err != nil {
 		par.TracePanic("evalTicksBefore64: %v", err)
 	}
-	diff := DiffTicks(ts1, ts0)
+	diff := base.DiffTicks(ts1, ts0)
 	if diff < 0 {
 		// ts1 is before ts0
 		return nil

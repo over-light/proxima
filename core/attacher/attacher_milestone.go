@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/checkpoints"
 )
@@ -68,7 +69,7 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 	env.Assertf(vid.IsSequencerMilestone(), "newMilestoneAttacher: %s is not a sequencer milestone", vid.IDShortString)
 
 	ret := &milestoneAttacher{
-		attacher: newPastConeAttacher(env, vid, ledger.Time{}, vid.IDShortString()),
+		attacher: newPastConeAttacher(env, vid, base.LedgerTime{}, vid.IDShortString()),
 		vid:      vid,
 		metadata: metadata,
 		pokeChan: make(chan struct{}),

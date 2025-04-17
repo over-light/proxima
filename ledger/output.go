@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -507,7 +508,7 @@ func (o *OutputWithID) MustAsChainOutput() *OutputWithChainID {
 	return ret
 }
 
-func (o *OutputWithID) Timestamp() Time {
+func (o *OutputWithID) Timestamp() base.LedgerTime {
 	return o.ID.Timestamp()
 }
 

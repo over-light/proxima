@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	transaction2 "github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -21,7 +22,7 @@ func MakeTransactionSequence(howLong int, firstUTXO *ledger.OutputWithID, privK 
 		SenderPublicKey:  pubK,
 		SourceAccount:    addr,
 		Inputs:           []*ledger.OutputWithID{firstUTXO},
-		Timestamp:        ledger.NilLedgerTime,
+		Timestamp:        base.NilLedgerTime,
 		Lock:             addr,
 		Amount:           firstUTXO.Output.Amount(),
 	}

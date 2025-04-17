@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/unitrie/common"
@@ -17,7 +18,7 @@ type (
 		mutate(trie *immutable.TrieUpdatable) error
 		text() string
 		sortOrder() byte
-		timestamp() ledger.Time
+		timestamp() base.LedgerTime
 	}
 
 	mutationAddOutput struct {
@@ -31,7 +32,7 @@ type (
 
 	mutationAddTx struct {
 		ID              ledger.TransactionID
-		TimeSlot        ledger.Slot
+		TimeSlot        base.Slot
 		LastOutputIndex byte
 	}
 
@@ -56,7 +57,7 @@ func (m *mutationDelOutput) sortOrder() byte {
 	return 0
 }
 
-func (m *mutationDelOutput) timestamp() ledger.Time {
+func (m *mutationDelOutput) timestamp() base.LedgerTime {
 	return m.ID.Timestamp()
 }
 
@@ -72,7 +73,7 @@ func (m *mutationAddOutput) sortOrder() byte {
 	return 1
 }
 
-func (m *mutationAddOutput) timestamp() ledger.Time {
+func (m *mutationAddOutput) timestamp() base.LedgerTime {
 	return m.ID.Timestamp()
 }
 
@@ -88,7 +89,7 @@ func (m *mutationAddTx) sortOrder() byte {
 	return 2
 }
 
-func (m *mutationAddTx) timestamp() ledger.Time {
+func (m *mutationAddTx) timestamp() base.LedgerTime {
 	return m.ID.Timestamp()
 }
 
@@ -104,8 +105,8 @@ func (m *mutationDelChain) sortOrder() byte {
 	return 3
 }
 
-func (m *mutationDelChain) timestamp() ledger.Time {
-	return ledger.NewLedgerTime(0xffffffff, 0xff)
+func (m *mutationDelChain) timestamp() base.LedgerTime {
+	return base.NewLedgerTime(0xffffffff, 0xff)
 }
 
 func NewMutations() *Mutations {
@@ -136,7 +137,7 @@ func (mut *Mutations) InsertDelOutputMutation(id ledger.OutputID) {
 	mut.mut = append(mut.mut, &mutationDelOutput{ID: id})
 }
 
-func (mut *Mutations) InsertAddTxMutation(id ledger.TransactionID, slot ledger.Slot, lastOutputIndex byte) {
+func (mut *Mutations) InsertAddTxMutation(id ledger.TransactionID, slot base.Slot, lastOutputIndex byte) {
 	mut.mut = append(mut.mut, &mutationAddTx{
 		ID:              id,
 		TimeSlot:        slot,
@@ -244,7 +245,7 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID, out *le
 	return nil
 }
 
-func addTxToTrie(trie *immutable.TrieUpdatable, txid *ledger.TransactionID, slot ledger.Slot, lastOutputIndex byte) error {
+func addTxToTrie(trie *immutable.TrieUpdatable, txid *ledger.TransactionID, slot base.Slot, lastOutputIndex byte) error {
 	var stateKey [1 + ledger.TransactionIDLength]byte
 	stateKey[0] = TriePartitionCommittedTransactionID
 	copy(stateKey[1:], txid[:])

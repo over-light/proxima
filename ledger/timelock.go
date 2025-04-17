@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -27,11 +28,11 @@ const (
 	timelockTemplate = TimelockName + "(u32/%d)"
 )
 
-type Timelock Slot
+type Timelock base.Slot
 
 var NilTimelock = Timelock(0)
 
-func NewTimelock(timeSlot Slot) Timelock {
+func NewTimelock(timeSlot base.Slot) Timelock {
 	return Timelock(timeSlot)
 }
 
@@ -60,7 +61,7 @@ func TimelockFromBytes(data []byte) (Timelock, error) {
 		return NilTimelock, fmt.Errorf("not a timelock constraint")
 	}
 	tlBin := easyfl.StripDataPrefix(args[0])
-	ret, err := SlotFromBytes(tlBin)
+	ret, err := base.SlotFromBytes(tlBin)
 	if err != nil {
 		return NilTimelock, err
 	}
@@ -78,7 +79,7 @@ func initTestTimelockConstraint() {
 	sym, _, args, err := L().ParseBytecodeOneLevel(example.Bytes(), 1)
 	util.AssertNoError(err)
 	tlBin := easyfl.StripDataPrefix(args[0])
-	e, err := SlotFromBytes(tlBin)
+	e, err := base.SlotFromBytes(tlBin)
 	util.AssertNoError(err)
 
 	util.Assertf(sym == TimelockName && e == 1337, "inconsistency in 'timelock'")

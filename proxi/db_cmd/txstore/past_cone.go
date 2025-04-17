@@ -5,6 +5,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/memdag"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +32,7 @@ func runPastConeCmd(_ *cobra.Command, args []string) {
 	slotsBack, err := strconv.Atoi(args[1])
 	glb.AssertNoError(err)
 	glb.Assertf(slotsBack >= 1 && int(txid.Slot()) >= slotsBack, "wrong second parameter '%s'", args[1])
-	oldestSlot := txid.Slot() - ledger.Slot(slotsBack)
+	oldestSlot := txid.Slot() - base.Slot(slotsBack)
 
 	fname := txid.AsFileNameShort()
 	glb.Infof("writing past cone of %s to '%s'", txid.StringShort(), fname)

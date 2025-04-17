@@ -16,6 +16,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/txinput_queue"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/util/set"
@@ -41,7 +42,7 @@ type (
 		*memdag.MemDAG
 		cfg          *ConfigParams
 		peers        *peering.Peers
-		earliestSlot ledger.Slot // cached, immutable
+		earliestSlot base.Slot // cached, immutable
 		// queues and daemons
 		pullTxServer *pull_tx_server.PullTxServer
 		poker        *poker.Poker

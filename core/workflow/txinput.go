@@ -158,7 +158,7 @@ func (w *Workflow) TxIn(tx *transaction.Transaction, opts ...TxInOption) error {
 	// passes transaction to attacher
 	// - immediately if timestamp is in the past
 	// - with delay if timestamp is in the future
-	txTime := txid.Timestamp().Time()
+	txTime := ledger.ClockTime(txid.Timestamp())
 
 	attachOpts := []attacher.AttachTxOption{
 		attacher.WithTransactionMetadata(&options.txMetadata),

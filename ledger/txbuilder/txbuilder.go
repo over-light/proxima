@@ -11,6 +11,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -33,7 +34,7 @@ type (
 		Signature            []byte
 		SequencerOutputIndex byte
 		StemOutputIndex      byte
-		Timestamp            ledger.Time
+		Timestamp            base.LedgerTime
 		InputCommitment      [32]byte
 		Endorsements         []ledger.TransactionID
 		ExplicitBaseline     *ledger.TransactionID
@@ -54,7 +55,7 @@ func New() *TransactionBuilder {
 			UnlockBlocks:         make([]*UnlockParams, 0),
 			SequencerOutputIndex: 0xff,
 			StemOutputIndex:      0xff,
-			Timestamp:            ledger.NilLedgerTime,
+			Timestamp:            base.NilLedgerTime,
 			InputCommitment:      [32]byte{},
 			Endorsements:         make([]ledger.TransactionID, 0),
 			LocalLibraries:       make([][]byte, 0),
@@ -88,19 +89,19 @@ func (txb *TransactionBuilder) ConsumeOutputWithID(o *ledger.OutputWithID) (byte
 }
 
 // ConsumeOutputs returns total sum and maximal timestamp
-func (txb *TransactionBuilder) ConsumeOutputs(outs ...*ledger.OutputWithID) (uint64, ledger.Time, error) {
+func (txb *TransactionBuilder) ConsumeOutputs(outs ...*ledger.OutputWithID) (uint64, base.LedgerTime, error) {
 	retTotal := uint64(0)
-	retTs := ledger.NilLedgerTime
+	retTs := base.NilLedgerTime
 	for _, o := range outs {
 		if _, err := txb.ConsumeOutput(o.Output, o.ID); err != nil {
-			return 0, ledger.NilLedgerTime, err
+			return 0, base.NilLedgerTime, err
 		}
 		// safe arithmetics
 		if o.Output.Amount() > math.MaxUint64-retTotal {
-			return 0, ledger.NilLedgerTime, fmt.Errorf("arithmetic overflow when calculating total ")
+			return 0, base.NilLedgerTime, fmt.Errorf("arithmetic overflow when calculating total ")
 		}
 		retTotal += o.Output.Amount()
-		retTs = ledger.MaximumTime(retTs, o.Timestamp())
+		retTs = base.MaximumTime(retTs, o.Timestamp())
 	}
 	return retTotal, retTs, nil
 }
@@ -279,7 +280,7 @@ type (
 		SourceAccount     ledger.Accountable
 		Inputs            []*ledger.OutputWithID
 		ChainOutput       *ledger.OutputWithChainID
-		Timestamp         ledger.Time // takes ledger.TimeFromClockTime(time.Now()) if ledger.NilLedgerTime
+		Timestamp         base.LedgerTime // takes ledger.TimeFromClockTime(time.Now()) if ledger.NilLedgerTime
 		Lock              ledger.Lock
 		Amount            uint64
 		AdjustToMinimum   bool
@@ -297,7 +298,7 @@ type (
 		// predecessor
 		ChainInput *ledger.OutputWithChainID
 		// timestamp of the target transaction
-		Timestamp ledger.Time
+		Timestamp base.LedgerTime
 		// some amount sent to the target lock. It can be a tag-along output. Remainder goes to the chain
 		WithdrawTarget ledger.Lock
 		WithdrawAmount uint64
@@ -321,7 +322,7 @@ type (
 	}
 )
 
-func NewTransferData(senderKey ed25519.PrivateKey, sourceAccount ledger.Accountable, ts ledger.Time) *TransferData {
+func NewTransferData(senderKey ed25519.PrivateKey, sourceAccount ledger.Accountable, ts base.LedgerTime) *TransferData {
 	sourcePubKey := senderKey.Public().(ed25519.PublicKey)
 	if util.IsNil(sourceAccount) {
 		sourceAccount = ledger.AddressED25519FromPublicKey(sourcePubKey)
@@ -481,7 +482,7 @@ func MakeSimpleTransferTransaction(par *TransferData, disableEndorsementChecking
 }
 
 func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndorsementChecking ...bool) ([]byte, *ledger.OutputWithID, error) {
-	if !ledger.ValidTime(par.Timestamp) {
+	if !base.ValidTime(par.Timestamp) {
 		return nil, nil, fmt.Errorf("MakeSimpleTransferTransactionWithRemainder: wrong timestamp bytes 0x%s", par.Timestamp.Hex())
 	}
 
@@ -511,10 +512,10 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 	}
 	util.Assertf(availableTokens == checkTotal, "availableTokens == checkTotal")
 
-	adjustedTs := ledger.MaximumTime(inputTs, par.Timestamp).
+	adjustedTs := base.MaximumTime(inputTs, par.Timestamp).
 		AddTicks(ledger.TransactionPace())
 
-	util.Assertf(ledger.ValidTime(adjustedTs), "ledger.ValidTime(adjustedTs): ts bytes 0x%s", adjustedTs.Hex)
+	util.Assertf(base.ValidTime(adjustedTs), "ledger.ValidTime(adjustedTs): ts bytes 0x%s", adjustedTs.Hex)
 
 	for i := range par.Endorsements {
 		if len(disableEndorsementChecking) == 0 || !disableEndorsementChecking[0] {
@@ -524,7 +525,7 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 		}
 		if par.Endorsements[i].Slot() > adjustedTs.Slot {
 			// adjust timestamp to the endorsed slot
-			adjustedTs = ledger.NewLedgerTime(par.Endorsements[i].Slot(), 0)
+			adjustedTs = base.NewLedgerTime(par.Endorsements[i].Slot(), 0)
 		}
 	}
 
@@ -756,7 +757,7 @@ func MakeChainTransferTransaction(par *TransferData, disableEndorsementChecking 
 		return nil, err
 	}
 	util.Assertf(availableTokens == checkAmount+par.ChainOutput.Output.Amount(), "availableTokens == checkAmount")
-	adjustedTs := ledger.MaximumTime(inputTs, par.ChainOutput.Timestamp()).
+	adjustedTs := base.MaximumTime(inputTs, par.ChainOutput.Timestamp()).
 		AddTicks(ledger.TransactionPace())
 
 	for i := range par.Endorsements {
@@ -767,7 +768,7 @@ func MakeChainTransferTransaction(par *TransferData, disableEndorsementChecking 
 		}
 		if par.Endorsements[i].Slot() > adjustedTs.Slot {
 			// adjust timestamp to the endorsed slot
-			adjustedTs = ledger.NewLedgerTime(par.Endorsements[i].Slot(), 0)
+			adjustedTs = base.NewLedgerTime(par.Endorsements[i].Slot(), 0)
 		}
 	}
 
@@ -858,7 +859,7 @@ func GetChainAccount(chainID ledger.ChainID, srdr multistate.IndexedStateReader,
 
 // InsertSimpleChainTransition inserts a simple chain transition (surprise, surprise). Takes output with chain constraint from parameters,
 // Produces identical output, only modifies timestamp. Unlocks chain-input lock with signature reference
-func (txb *TransactionBuilder) InsertSimpleChainTransition(inChainData *ledger.OutputDataWithChainID, _ ledger.Time) error {
+func (txb *TransactionBuilder) InsertSimpleChainTransition(inChainData *ledger.OutputDataWithChainID, _ base.LedgerTime) error {
 	chainIN, err := ledger.OutputFromBytesReadOnly(inChainData.Data)
 	if err != nil {
 		return err

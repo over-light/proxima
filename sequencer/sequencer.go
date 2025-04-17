@@ -14,6 +14,7 @@ import (
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/sequencer/backlog"
@@ -59,7 +60,7 @@ type (
 
 		milestoneCount  int
 		branchCount     int
-		lastSubmittedTs ledger.Time
+		lastSubmittedTs base.LedgerTime
 		infoMutex       sync.RWMutex
 		info            Info
 		//
@@ -236,7 +237,7 @@ func (seq *Sequencer) ensureFirstMilestone() bool {
 	}
 	seq.AddOwnMilestone(startOutput.VID)
 
-	if sleepDuration := time.Until(startOutput.Timestamp().Time()); sleepDuration > 0 {
+	if sleepDuration := time.Until(ledger.ClockTime(startOutput.Timestamp())); sleepDuration > 0 {
 		seq.log.Warnf("will delay start for %v to sync ledger time with the clock", sleepDuration)
 		seq.ClockCatchUpWithLedgerTime(startOutput.Timestamp())
 	}
@@ -351,7 +352,7 @@ func (seq *Sequencer) doSequencerStep() bool {
 	seq.Assertf(targetTs.After(seq.lastSubmittedTs), "wrong target ts %s: should be after previous submitted %s",
 		targetTs.String, seq.lastSubmittedTs.String)
 
-	if seq.config.MaxTargetTs != ledger.NilLedgerTime && targetTs.After(seq.config.MaxTargetTs) {
+	if seq.config.MaxTargetTs != base.NilLedgerTime && targetTs.After(seq.config.MaxTargetTs) {
 		seq.log.Infof("next target ts %s is after maximum ts %s -> stopping", targetTs, seq.config.MaxTargetTs)
 		return false
 	}
@@ -413,28 +414,28 @@ func (seq *Sequencer) doSequencerStep() bool {
 	return true
 }
 
-func (seq *Sequencer) getNextTargetTime() ledger.Time {
+func (seq *Sequencer) getNextTargetTime() base.LedgerTime {
 	// wait to catch up with ledger time
 	seq.ClockCatchUpWithLedgerTime(seq.lastSubmittedTs)
 
 	nowis := ledger.TimeNow()
 
-	if ledger.DiffTicks(nowis.NextSlotBoundary(), nowis) < int64(ledger.L().ID.PreBranchConsolidationTicks) {
+	if base.DiffTicks(nowis.NextSlotBoundary(), nowis) < int64(ledger.L().ID.PreBranchConsolidationTicks) {
 		return nowis.NextSlotBoundary()
 	}
 
-	var targetAbsoluteMinimum ledger.Time
+	var targetAbsoluteMinimum base.LedgerTime
 
 	if seq.lastSubmittedTs.IsSlotBoundary() {
 		targetAbsoluteMinimum = seq.lastSubmittedTs.AddTicks(int(ledger.L().ID.PostBranchConsolidationTicks))
 	} else {
-		targetAbsoluteMinimum = ledger.MaximumTime(
+		targetAbsoluteMinimum = base.MaximumTime(
 			seq.lastSubmittedTs.AddTicks(seq.config.Pace),
 			nowis.AddTicks(1),
 		)
 	}
 	if uint8(targetAbsoluteMinimum.Tick) < ledger.L().ID.PostBranchConsolidationTicks {
-		targetAbsoluteMinimum = ledger.NewLedgerTime(targetAbsoluteMinimum.Slot, ledger.Tick(ledger.L().ID.PostBranchConsolidationTicks))
+		targetAbsoluteMinimum = base.NewLedgerTime(targetAbsoluteMinimum.Slot, base.Tick(ledger.L().ID.PostBranchConsolidationTicks))
 	}
 	nextSlotBoundary := nowis.NextSlotBoundary()
 
@@ -443,13 +444,13 @@ func (seq *Sequencer) getNextTargetTime() ledger.Time {
 	}
 	// absolute minimum is before the next slot boundary, take the time now as a baseline
 	minimumTicksAheadFromNow := (seq.config.Pace * 2) / 3 // seq.config.Pace
-	targetAbsoluteMinimum = ledger.MaximumTime(targetAbsoluteMinimum, nowis.AddTicks(minimumTicksAheadFromNow))
+	targetAbsoluteMinimum = base.MaximumTime(targetAbsoluteMinimum, nowis.AddTicks(minimumTicksAheadFromNow))
 	if !targetAbsoluteMinimum.Before(nextSlotBoundary) {
 		return targetAbsoluteMinimum
 	}
 
 	if targetAbsoluteMinimum.TicksToNextSlotBoundary() <= seq.config.Pace {
-		return ledger.MaximumTime(nextSlotBoundary, targetAbsoluteMinimum)
+		return base.MaximumTime(nextSlotBoundary, targetAbsoluteMinimum)
 	}
 
 	return targetAbsoluteMinimum
@@ -603,15 +604,15 @@ func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {
 	return vertex.WrappedOutput{}
 }
 
-func (seq *Sequencer) generateMilestoneForTarget(targetTs ledger.Time) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
-	deadline := targetTs.Time()
+func (seq *Sequencer) generateMilestoneForTarget(targetTs base.LedgerTime) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
+	deadline := ledger.ClockTime(targetTs)
 	nowis := time.Now()
 	seq.Tracef(TraceTag, "generateMilestoneForTarget: target: %s, deadline: %s, nowis: %s",
 		targetTs.String, deadline.Format("15:04:05.999"), nowis.Format("15:04:05.999"))
 
 	if behind := deadline.Sub(nowis); behind < -2*ledger.L().ID.TickDuration {
 		return nil, nil, fmt.Errorf("sequencer: target %s (%v) is before current clock by %v: too late to generate milestone",
-			targetTs.String(), targetTs.Time().Format("15:04:05.999"), behind)
+			targetTs.String(), ledger.ClockTime(targetTs).Format("15:04:05.999"), behind)
 	}
 	return task.Run(seq, targetTs, seq.slotData)
 }

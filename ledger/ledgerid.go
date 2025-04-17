@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"golang.org/x/crypto/blake2b"
@@ -245,14 +246,14 @@ func (id *IdentityData) TimeToTicksSinceGenesis(nowis time.Time) int64 {
 	return int64(timeSinceGenesis / id.TickDuration)
 }
 
-func (id *IdentityData) LedgerTimeFromClockTime(nowis time.Time) Time {
-	ret, err := TimeFromTicksSinceGenesis(id.TimeToTicksSinceGenesis(nowis))
+func (id *IdentityData) LedgerTimeFromClockTime(nowis time.Time) base.LedgerTime {
+	ret, err := base.TimeFromTicksSinceGenesis(id.TimeToTicksSinceGenesis(nowis))
 	util.AssertNoError(err)
 	return ret
 }
 
 func (id *IdentityData) SlotDuration() time.Duration {
-	return id.TickDuration * time.Duration(TicksPerSlot)
+	return id.TickDuration * time.Duration(base.TicksPerSlot)
 }
 
 func (id *IdentityData) SlotsPerDay() int {
@@ -264,7 +265,7 @@ func (id *IdentityData) SlotsPerYear() int {
 }
 
 func (id *IdentityData) TicksPerYear() int {
-	return id.SlotsPerYear() * TicksPerSlot
+	return id.SlotsPerYear() * base.TicksPerSlot
 }
 
 func (id *IdentityData) OriginChainID() ChainID {
@@ -272,19 +273,19 @@ func (id *IdentityData) OriginChainID() ChainID {
 	return MakeOriginChainID(oid)
 }
 
-func (id *IdentityData) IsPreBranchConsolidationTimestamp(ts Time) bool {
-	return uint8(ts.Tick) > MaxTickValue-id.PreBranchConsolidationTicks
+func (id *IdentityData) IsPreBranchConsolidationTimestamp(ts base.LedgerTime) bool {
+	return uint8(ts.Tick) > base.MaxTickValue-id.PreBranchConsolidationTicks
 }
 
-func (id *IdentityData) IsPostBranchConsolidationTimestamp(ts Time) bool {
+func (id *IdentityData) IsPostBranchConsolidationTimestamp(ts base.LedgerTime) bool {
 	return uint8(ts.Tick) >= id.PostBranchConsolidationTicks
 }
 
-func (id *IdentityData) EnsurePostBranchConsolidationConstraintTimestamp(ts Time) Time {
+func (id *IdentityData) EnsurePostBranchConsolidationConstraintTimestamp(ts base.LedgerTime) base.LedgerTime {
 	if id.IsPostBranchConsolidationTimestamp(ts) {
 		return ts
 	}
-	return NewLedgerTime(ts.Slot, Tick(id.PostBranchConsolidationTicks))
+	return base.NewLedgerTime(ts.Slot, base.Tick(id.PostBranchConsolidationTicks))
 }
 
 func (id *IdentityData) String() string {
@@ -299,7 +300,7 @@ func (id *IdentityData) Lines(prefix ...string) *lines.Lines {
 		Add("Genesis controller public key: %s", hex.EncodeToString(id.GenesisControllerPublicKey)).
 		Add("Genesis controller address (calculated): %s", id.GenesisControlledAddress().String()).
 		Add("Genesis Unix time: %d (%s)", id.GenesisTimeUnix, id.GenesisTime().Format(time.RFC3339)).
-		Add("Time tick duration: %v", id.TickDuration).
+		Add("ClockTime tick duration: %v", id.TickDuration).
 		Add("Slot inflation base (constant C): %s", util.Th(id.SlotInflationBase)).
 		Add("Linear inflation slots (constant lambda): %s", util.Th(id.LinearInflationSlots)).
 		Add("Constant initial supply/slot inflation base: %s", util.Th(id.InitialSupply/id.SlotInflationBase)).
@@ -346,7 +347,7 @@ func (id *IdentityData) TimeConstantsToString() string {
 	//	"nowis.UnixNano()(%d)-timestampNowis.UnixNano()(%d) = %d < int64(TickDuration())(%d)",
 	//	nowis.UnixNano(), timestampNowis.UnixNano(), nowis.UnixNano()-timestampNowis.UnixNano(), int64(TickDuration()))
 
-	maxYears := MaxSlot / (id.SlotsPerDay() * 365)
+	maxYears := base.MaxSlot / (id.SlotsPerDay() * 365)
 	return lines.New().
 		Add("TickDuration = %v", id.TickDuration).
 		Add("SlotDuration = %v", id.SlotDuration()).
@@ -360,10 +361,10 @@ func (id *IdentityData) TimeConstantsToString() string {
 		Add("GenesisTimeUnixNano = %d", id.GenesisTimeUnixNano()).
 		Add("ticks since genesis: %d", id.TimeToTicksSinceGenesis(nowis)).
 		Add("timestampNowis = %s ", timestampNowis.String()).
-		Add("timestampNowis.Time() = %v ", timestampNowis.Time()).
-		Add("timestampNowis.Time().UnixNano() = %v ", timestampNowis.Time().UnixNano()).
-		Add("timestampNowis.UnixNano() = %v ", timestampNowis.UnixNano()).
-		Add("rounding: nowis.UnixNano() - timestampNowis.UnixNano() = %d", nowis.UnixNano()-timestampNowis.UnixNano()).
+		Add("timestampNowis.ClockTime() = %v ", ClockTime(timestampNowis)).
+		Add("timestampNowis.ClockTime().UnixNano() = %v ", ClockTime(timestampNowis).UnixNano()).
+		Add("timestampNowis.UnixNano() = %v ", UnixNanoFromLedgerTime(timestampNowis)).
+		Add("rounding: nowis.UnixNano() - timestampNowis.UnixNano() = %d", nowis.UnixNano()-UnixNanoFromLedgerTime(timestampNowis)).
 		Add("tick duration nano = %d", int64(TickDuration())).
 		String()
 }
@@ -441,7 +442,7 @@ func GenesisTransactionIDShort() (ret TransactionIDShort) {
 
 // GenesisTransactionID independent on any ledger constants
 func GenesisTransactionID() TransactionID {
-	return NewTransactionID(Time{}, GenesisTransactionIDShort(), true)
+	return NewTransactionID(base.LedgerTime{}, GenesisTransactionIDShort(), true)
 }
 
 // GenesisOutputID independent on ledger constants, except GenesisOutputIndex which is byte(0)

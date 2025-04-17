@@ -10,6 +10,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
@@ -145,7 +146,7 @@ func (b *TagAlongBacklog) checkCandidate(wOut vertex.WrappedOutput) bool {
 }
 
 // CandidatesToEndorseSorted returns descending (by coverage) list of transactions which can be endorsed from the given timestamp
-func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*vertex.WrappedTx {
+func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs base.LedgerTime) []*vertex.WrappedTx {
 	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesDescending(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {
@@ -158,7 +159,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs ledger.Time) []*ver
 }
 
 // CandidatesToEndorseShuffled returns randomly ordered list of transactions which can be endorsed from the given timestamp
-func (b *TagAlongBacklog) CandidatesToEndorseShuffled(targetTs ledger.Time) []*vertex.WrappedTx {
+func (b *TagAlongBacklog) CandidatesToEndorseShuffled(targetTs base.LedgerTime) []*vertex.WrappedTx {
 	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesShuffled(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
@@ -231,9 +232,9 @@ func (ctx *TxContext) InputID(idx byte) ledger.OutputID {
 	return ret
 }
 
-func (ctx *TxContext) MustTimestampData() ([]byte, ledger.Time) {
+func (ctx *TxContext) MustTimestampData() ([]byte, base.LedgerTime) {
 	ret := ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxTimestamp))
-	retTs, err := ledger.TimeFromBytes(ret)
+	retTs, err := base.TimeFromBytes(ret)
 	util.AssertNoError(err)
 	return ret, retTs
 }

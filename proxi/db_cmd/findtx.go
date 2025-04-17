@@ -5,6 +5,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/unitrie/common"
@@ -42,9 +43,9 @@ func runFindTxCmd(_ *cobra.Command, _ []string) {
 
 	glb.Assertf(findInSlot != 0 || findWithHexFragment != "", "at least one of slot or fragment must be specified")
 
-	var filterSlots []ledger.Slot
+	var filterSlots []base.Slot
 	if findInSlot != 0 {
-		filterSlots = []ledger.Slot{ledger.Slot(findInSlot)}
+		filterSlots = []base.Slot{base.Slot(findInSlot)}
 	}
 
 	var root common.VCommitment
@@ -76,7 +77,7 @@ func runFindTxCmd(_ *cobra.Command, _ []string) {
 	rdr := multistate.MustNewReadable(glb.StateStore(), root)
 	nTx := 0
 	nFound := 0
-	rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, _ ledger.Slot) bool {
+	rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, _ base.Slot) bool {
 		if findWithHexFragment == "" || strings.Contains(txid.String(), findWithHexFragment) {
 			glb.Infof("%6d   %s    %s", nFound, txid.StringHex(), txid.String())
 			nFound++

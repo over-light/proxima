@@ -4,13 +4,14 @@ import (
 	"crypto/ed25519"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 )
 
 type EndChainParams struct {
 	// transaction timestamp. Not adjusted
-	Timestamp ledger.Time
+	Timestamp base.LedgerTime
 	// chain output data
 	ChainIn *ledger.OutputWithChainID
 	// controlling private key

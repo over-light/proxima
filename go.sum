@@ -253,14 +253,8 @@ github.com/libp2p/go-reuseport v0.4.0 h1:nR5KU7hD0WxXCJbmw7r2rhRYruNRl2koHw8fQsc
 github.com/libp2p/go-reuseport v0.4.0/go.mod h1:ZtI03j/wO5hZVDFo2jKywN6bYKWLOy8Se6DrI2E1cLU=
 github.com/libp2p/go-yamux/v5 v5.0.0 h1:2djUh96d3Jiac/JpGkKs4TO49YhsfLopAoryfPmf+Po=
 github.com/libp2p/go-yamux/v5 v5.0.0/go.mod h1:en+3cdX51U0ZslwRdRLrvQsdayFt3TSUKvBGErzpWbU=
-github.com/lunfardo314/easyfl v0.0.0-20250416074823-f9937276f3ae h1:bhwWuJdZPofWnF3MQnLPtXvC0WcQTDggTrB+Ki2P3o8=
-github.com/lunfardo314/easyfl v0.0.0-20250416074823-f9937276f3ae/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
-github.com/lunfardo314/easyfl v0.0.0-20250416093758-e3e04bac500f h1:K7T5xBqCZpnn2K1usDuFxgIlPcn/32ETRMbNWYcbFEo=
-github.com/lunfardo314/easyfl v0.0.0-20250416093758-e3e04bac500f/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
-github.com/lunfardo314/easyfl v0.0.0-20250416095810-d37ef98a2b5e h1:TB4uTiIxzsgeJpnTepDqHURbWI48EssHVa8fXkvOYoI=
-github.com/lunfardo314/easyfl v0.0.0-20250416095810-d37ef98a2b5e/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
-github.com/lunfardo314/easyfl v0.0.0-20250417072833-a849a7705d21 h1:6yQt1z7a33S9i0QILW+U5b1GGZvEv3x2aCE4n6bV7ac=
-github.com/lunfardo314/easyfl v0.0.0-20250417072833-a849a7705d21/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
+github.com/lunfardo314/easyfl v0.0.0-20250417101811-e2f1e51a7c0c h1:0OMTtqgtaC3wXcZFDXXvXjvQqEPztONOVQick8/mXN8=
+github.com/lunfardo314/easyfl v0.0.0-20250417101811-e2f1e51a7c0c/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
 github.com/lunfardo314/unitrie v0.0.0-20241201105640-bfb0b026a9cf h1:/KrcxBic+0TGbrP15pdvZd3HQWUsm9oaDfN50GrCcl4=
 github.com/lunfardo314/unitrie v0.0.0-20241201105640-bfb0b026a9cf/go.mod h1:UF0sUDag70c6Jx6vkKbbLqrOirQjTiJfSnuKKOFNRpA=
 github.com/lunixbochs/vtclean v1.0.0/go.mod h1:pHhQNgMf3btfWnGBVipUOjRYhoOsdGqdm/+2c2E2WMI=

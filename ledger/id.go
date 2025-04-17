@@ -8,13 +8,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"golang.org/x/crypto/blake2b"
 )
 
 const (
 	TransactionIDShortLength     = 27
-	TransactionIDLength          = TimeByteLength + TransactionIDShortLength
+	TransactionIDLength          = base.TimeByteLength + TransactionIDShortLength
 	OutputIDLength               = TransactionIDLength + 1
 	ChainIDLength                = 32
 	MaxOutputIndexPositionInTxID = 5
@@ -43,11 +44,11 @@ type (
 	ChainID [ChainIDLength]byte
 )
 
-func NewTransactionID(ts Time, h TransactionIDShort, sequencerTxFlag bool) (ret TransactionID) {
-	copy(ret[:TimeByteLength], ts.Bytes())
-	copy(ret[TimeByteLength:], h[:])
+func NewTransactionID(ts base.LedgerTime, h TransactionIDShort, sequencerTxFlag bool) (ret TransactionID) {
+	copy(ret[:base.TimeByteLength], ts.Bytes())
+	copy(ret[base.TimeByteLength:], h[:])
 	if sequencerTxFlag {
-		ret[TickByteIndex] |= SequencerBitMaskInTick
+		ret[base.TickByteIndex] |= base.SequencerBitMaskInTick
 	}
 	return
 }
@@ -78,7 +79,7 @@ func TransactionIDFromHexString(str string) (ret TransactionID, err error) {
 }
 
 // RandomTransactionID not completely random. For testing
-func RandomTransactionID(sequencerFlag bool, maxOutIdx byte, timestamp ...Time) TransactionID {
+func RandomTransactionID(sequencerFlag bool, maxOutIdx byte, timestamp ...base.LedgerTime) TransactionID {
 	var hash TransactionIDShort
 	_, _ = rand.Read(hash[:])
 	hash[0] = maxOutIdx
@@ -95,7 +96,7 @@ func (txid *TransactionID) NumProducedOutputs() int {
 
 // ShortID return hash part of id
 func (txid *TransactionID) ShortID() (ret TransactionIDShort) {
-	copy(ret[:], txid[TimeByteLength:])
+	copy(ret[:], txid[base.TimeByteLength:])
 	return
 }
 
@@ -113,22 +114,22 @@ func (txid *TransactionID) VeryShortID8() (ret TransactionIDVeryShort8) {
 	return
 }
 
-func (txid *TransactionID) Timestamp() (ret Time) {
+func (txid *TransactionID) Timestamp() (ret base.LedgerTime) {
 	ret.Slot = txid.Slot()
 	ret.Tick = txid.Tick()
 	return
 }
 
-func (txid *TransactionID) Slot() Slot {
-	return Slot(binary.BigEndian.Uint32(txid[:SlotByteLength]))
+func (txid *TransactionID) Slot() base.Slot {
+	return base.Slot(binary.BigEndian.Uint32(txid[:base.SlotByteLength]))
 }
 
-func (txid *TransactionID) Tick() Tick {
-	return Tick(txid[TickByteIndex] >> 1)
+func (txid *TransactionID) Tick() base.Tick {
+	return base.Tick(txid[base.TickByteIndex] >> 1)
 }
 
 func (txid *TransactionID) IsSequencerMilestone() bool {
-	return txid[TickByteIndex]&SequencerBitMaskInTick != 0
+	return txid[base.TickByteIndex]&base.SequencerBitMaskInTick != 0
 }
 
 func (txid *TransactionID) IsBranchTransaction() bool {
@@ -139,7 +140,7 @@ func (txid *TransactionID) Bytes() []byte {
 	return txid[:]
 }
 
-func timestampPrefixString(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
+func timestampPrefixString(ts base.LedgerTime, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
 	var s string
 	if seqMilestoneFlag {
 		if ts.Tick == 0 {
@@ -154,7 +155,7 @@ func timestampPrefixString(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool
 	return fmt.Sprintf("%s%s", ts.String(), s)
 }
 
-func timestampPrefixStringAsFileName(ts Time, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
+func timestampPrefixStringAsFileName(ts base.LedgerTime, seqMilestoneFlag bool, shortTimeSlot ...bool) string {
 	var s string
 	if seqMilestoneFlag {
 		if ts.Tick == 0 {
@@ -169,21 +170,21 @@ func timestampPrefixStringAsFileName(ts Time, seqMilestoneFlag bool, shortTimeSl
 	return fmt.Sprintf("%s%s", ts.AsFileName(), s)
 }
 
-func TransactionIDString(ts Time, txHash TransactionIDShort, sequencerFlag bool) string {
+func TransactionIDString(ts base.LedgerTime, txHash TransactionIDShort, sequencerFlag bool) string {
 	return fmt.Sprintf("[%s]%s", timestampPrefixString(ts, sequencerFlag), hex.EncodeToString(txHash[:]))
 }
 
 // prefix of 3 makes collisions
 
-func TransactionIDStringShort(ts Time, txHash TransactionIDShort, sequencerFlag bool) string {
+func TransactionIDStringShort(ts base.LedgerTime, txHash TransactionIDShort, sequencerFlag bool) string {
 	return fmt.Sprintf("[%s]%s..", timestampPrefixString(ts, sequencerFlag), hex.EncodeToString(txHash[:6]))
 }
 
-func TransactionIDStringVeryShort(ts Time, txHash TransactionIDShort, sequencerFlag bool) string {
+func TransactionIDStringVeryShort(ts base.LedgerTime, txHash TransactionIDShort, sequencerFlag bool) string {
 	return fmt.Sprintf("[%s]%s..", timestampPrefixString(ts, sequencerFlag, true), hex.EncodeToString(txHash[:4]))
 }
 
-func TransactionIDAsFileName(ts Time, txHash []byte, sequencerFlag, branchFlag bool) string {
+func TransactionIDAsFileName(ts base.LedgerTime, txHash []byte, sequencerFlag, branchFlag bool) string {
 	return fmt.Sprintf("%s_%s", timestampPrefixStringAsFileName(ts, sequencerFlag, branchFlag), hex.EncodeToString(txHash))
 }
 
@@ -291,11 +292,11 @@ func OutputIDIndexFromBytes(data []byte) (ret byte, err error) {
 }
 
 func (oid *OutputID) IsSequencerTransaction() bool {
-	return oid[TickByteIndex]&SequencerBitMaskInTick != 0
+	return oid[base.TickByteIndex]&base.SequencerBitMaskInTick != 0
 }
 
 func (oid *OutputID) IsBranchTransaction() bool {
-	return oid.IsSequencerTransaction() && oid[TickByteIndex]>>1 == 0
+	return oid.IsSequencerTransaction() && oid[base.TickByteIndex]>>1 == 0
 }
 
 func (oid *OutputID) String() string {
@@ -322,18 +323,18 @@ func (oid *OutputID) TransactionID() (ret TransactionID) {
 	return
 }
 
-func (oid *OutputID) Timestamp() Time {
+func (oid *OutputID) Timestamp() base.LedgerTime {
 	ret := oid.TransactionID()
 	return ret.Timestamp()
 }
 
-func (oid *OutputID) Slot() Slot {
+func (oid *OutputID) Slot() base.Slot {
 	ret := oid.TransactionID()
 	return ret.Slot()
 }
 
 func (oid *OutputID) TransactionHash() (ret TransactionIDShort) {
-	copy(ret[:], oid[TimeByteLength:TransactionIDLength])
+	copy(ret[:], oid[base.TimeByteLength:TransactionIDLength])
 	return
 }
 

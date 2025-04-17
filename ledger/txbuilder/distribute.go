@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -69,7 +70,7 @@ func MakeDistributionTransaction(stateStore multistate.StateStore, originPrivate
 			ChainID:      bootstrapChainID,
 		},
 		StemInput:        genesisStem,
-		Timestamp:        ledger.NewLedgerTime(genesisStem.Timestamp().Slot+1, 0),
+		Timestamp:        base.NewLedgerTime(genesisStem.Timestamp().Slot+1, 0),
 		MinimumFee:       0,
 		AdditionalInputs: nil,
 		WithdrawOutputs:  genesisDistributionOutputs,

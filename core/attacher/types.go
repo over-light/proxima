@@ -11,6 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/unitrie/common"
 )
@@ -24,7 +25,7 @@ type (
 		GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate.IndexedStateReader
 		GetStemWrappedOutput(branch ledger.TransactionID) vertex.WrappedOutput
 		SendToTippool(vid *vertex.WrappedTx)
-		EvidenceBranchSlot(s ledger.Slot, healthy bool)
+		EvidenceBranchSlot(s base.Slot, healthy bool)
 		TxBytesStore() global.TxBytesStore
 		TxBytesFromStoreIn(txBytesWithMetadata []byte) (ledger.TransactionID, error)
 		AddWantedTransaction(txid ledger.TransactionID)
@@ -74,7 +75,7 @@ type (
 		attacher
 		endorse            []*vertex.WrappedTx
 		inputs             []vertex.WrappedOutput
-		targetTs           ledger.Time
+		targetTs           base.LedgerTime
 		stemOutput         vertex.WrappedOutput
 		explicitBaselineID *ledger.TransactionID
 	}

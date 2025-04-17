@@ -10,6 +10,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/prometheus/client_golang/prometheus"
@@ -42,8 +43,8 @@ type (
 		vertices map[ledger.TransactionID]_vertexRecord
 
 		// latestBranchSlot maintained by EvidenceBranchSlot
-		latestBranchSlot        ledger.Slot
-		latestHealthyBranchSlot ledger.Slot
+		latestBranchSlot        base.Slot
+		latestHealthyBranchSlot base.Slot
 
 		// cache of state readers. One state (trie) reader for the branch/root. When accessed through the cache,
 		// reading is highly optimized because each state reader keeps its trie cache, so consequent calls to
@@ -310,7 +311,7 @@ func (d *MemDAG) WaitUntilTransactionInHeaviestState(txid ledger.TransactionID, 
 }
 
 // EvidenceBranchSlot maintains cached values
-func (d *MemDAG) EvidenceBranchSlot(s ledger.Slot, isHealthy bool) {
+func (d *MemDAG) EvidenceBranchSlot(s base.Slot, isHealthy bool) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -329,7 +330,7 @@ func (d *MemDAG) EvidenceBranchSlot(s ledger.Slot, isHealthy bool) {
 // If network is unreachable or nobody else is active it will return false
 // Node is out of sync if current slots are behind from now
 // Being synced or not is subjective
-func (d *MemDAG) LatestBranchSlots() (slot, healthySlot ledger.Slot, synced bool) {
+func (d *MemDAG) LatestBranchSlots() (slot, healthySlot base.Slot, synced bool) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -355,7 +356,7 @@ func (d *MemDAG) LatestBranchSlots() (slot, healthySlot ledger.Slot, synced bool
 	return
 }
 
-func (d *MemDAG) LatestHealthySlot() ledger.Slot {
+func (d *MemDAG) LatestHealthySlot() base.Slot {
 	_, ret, _ := d.LatestBranchSlots()
 	return ret
 }

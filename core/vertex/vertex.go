@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -19,7 +20,7 @@ func NewVertex(tx *transaction.Transaction) *Vertex {
 	}
 }
 
-func (v *Vertex) TimeSlot() ledger.Slot {
+func (v *Vertex) TimeSlot() base.Slot {
 	return v.Tx.Slot()
 }
 

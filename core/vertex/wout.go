@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util/lines"
 )
 
@@ -32,11 +33,11 @@ func (o *WrappedOutput) IDStringShort() string {
 	return ret.StringShort()
 }
 
-func (o *WrappedOutput) Timestamp() ledger.Time {
+func (o *WrappedOutput) Timestamp() base.LedgerTime {
 	return o.VID.Timestamp()
 }
 
-func (o *WrappedOutput) Slot() ledger.Slot {
+func (o *WrappedOutput) Slot() base.Slot {
 	return o.VID.Slot()
 }
 

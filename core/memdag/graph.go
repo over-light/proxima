@@ -12,6 +12,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -297,7 +298,7 @@ func makeSequencerGraphEdges(vid *vertex.WrappedTx, gr graph.Graph[string, strin
 
 // MakeDAGFromTxStore creates dummy MemDAG from past cones of tips. Only uses txBytes from txStore
 // It is used in testing, to visualize real transaction MemDAG, not the pruned cache kept in the node
-func MakeDAGFromTxStore(txStore global.TxBytesGet, oldestSlot ledger.Slot, tips ...ledger.TransactionID) *MemDAG {
+func MakeDAGFromTxStore(txStore global.TxBytesGet, oldestSlot base.Slot, tips ...ledger.TransactionID) *MemDAG {
 	d := New(nil)
 	for i := range tips {
 		d.loadPastConeFromTxStore(tips[i], txStore, oldestSlot)
@@ -306,7 +307,7 @@ func MakeDAGFromTxStore(txStore global.TxBytesGet, oldestSlot ledger.Slot, tips 
 }
 
 // loadPastConeFromTxStore for generating graph only. Not thread safe
-func (d *MemDAG) loadPastConeFromTxStore(txid ledger.TransactionID, txStore global.TxBytesGet, oldestSlot ledger.Slot) *vertex.WrappedTx {
+func (d *MemDAG) loadPastConeFromTxStore(txid ledger.TransactionID, txStore global.TxBytesGet, oldestSlot base.Slot) *vertex.WrappedTx {
 	if txid.Slot() < oldestSlot {
 		return nil
 	}
@@ -337,7 +338,7 @@ func (d *MemDAG) loadPastConeFromTxStore(txid ledger.TransactionID, txStore glob
 	return vid
 }
 
-func SavePastConeFromTxStore(tip ledger.TransactionID, txStore global.TxBytesGet, oldestSlot ledger.Slot, fname string) {
+func SavePastConeFromTxStore(tip ledger.TransactionID, txStore global.TxBytesGet, oldestSlot base.Slot, fname string) {
 	tmpDag := MakeDAGFromTxStore(txStore, oldestSlot, tip)
 	tmpDag.SaveGraph(fname)
 }

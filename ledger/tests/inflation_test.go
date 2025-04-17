@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/stretchr/testify/require"
 )
@@ -26,27 +27,27 @@ func TestInflation(t *testing.T) {
 		ledger.L().MustEqual("constGenesisTimeUnix", fmt.Sprintf("u64/%d", ledger.L().ID.GenesisTimeUnix))
 	})
 	t.Run("chain inflation", func(t *testing.T) {
-		calc := func(tsIn, tsOut ledger.Time, amount uint64) uint64 {
+		calc := func(tsIn, tsOut base.LedgerTime, amount uint64) uint64 {
 			inflation := ledger.L().CalcChainInflationAmount(tsIn, tsOut, amount)
 			t.Logf("chainInflation(%s, %s, %s) = %s", tsIn.String(), tsOut.String(), util.Th(amount), util.Th(inflation))
 			return inflation
 		}
-		i := calc(ledger.T(0, 0), ledger.T(0, 1), ledger.DefaultInitialSupply)
+		i := calc(base.T(0, 0), base.T(0, 1), ledger.DefaultInitialSupply)
 		require.EqualValues(t, ledger.L().ID.SlotInflationBase, i)
 
-		i = calc(ledger.T(0, 0), ledger.T(0, 50), ledger.DefaultInitialSupply)
+		i = calc(base.T(0, 0), base.T(0, 50), ledger.DefaultInitialSupply)
 		require.EqualValues(t, ledger.L().ID.SlotInflationBase, i)
 
-		i = calc(ledger.T(0, 0), ledger.T(0, 127), ledger.DefaultInitialSupply)
+		i = calc(base.T(0, 0), base.T(0, 127), ledger.DefaultInitialSupply)
 		require.EqualValues(t, ledger.L().ID.SlotInflationBase, i)
 
-		i = calc(ledger.T(0, 0), ledger.T(1, 0), ledger.DefaultInitialSupply)
+		i = calc(base.T(0, 0), base.T(1, 0), ledger.DefaultInitialSupply)
 		require.EqualValues(t, 0, i)
 
-		i = calc(ledger.T(0, 1), ledger.T(0, 127), ledger.DefaultInitialSupply)
+		i = calc(base.T(0, 1), base.T(0, 127), ledger.DefaultInitialSupply)
 		require.EqualValues(t, 0, i)
 
-		i = calc(ledger.T(0, 1), ledger.T(1, 0), ledger.DefaultInitialSupply)
+		i = calc(base.T(0, 1), base.T(1, 0), ledger.DefaultInitialSupply)
 		require.EqualValues(t, 0, i)
 
 		for s := 1; s < 30; s++ {
@@ -54,16 +55,16 @@ func TestInflation(t *testing.T) {
 			if uint64(m) > ledger.L().ID.LinearInflationSlots {
 				m = int(ledger.L().ID.LinearInflationSlots)
 			}
-			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 1), ledger.DefaultInitialSupply)
+			i = calc(base.T(0, 1), base.T(base.Slot(s), 1), ledger.DefaultInitialSupply)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m, int(i))
 
-			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 127), ledger.DefaultInitialSupply)
+			i = calc(base.T(0, 1), base.T(base.Slot(s), 127), ledger.DefaultInitialSupply)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m, i)
 
-			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 1), ledger.DefaultInitialSupply/100_000)
+			i = calc(base.T(0, 1), base.T(base.Slot(s), 1), ledger.DefaultInitialSupply/100_000)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m/100_000, int(i))
 
-			i = calc(ledger.T(0, 1), ledger.T(ledger.Slot(s), 127), ledger.DefaultInitialSupply/100_000)
+			i = calc(base.T(0, 1), base.T(base.Slot(s), 127), ledger.DefaultInitialSupply/100_000)
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m/100_000, i)
 		}
 	})

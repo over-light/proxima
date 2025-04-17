@@ -7,6 +7,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -28,7 +29,7 @@ type (
 	PastCone struct {
 		global.Logging     // TODO not very necessary
 		tip                *WrappedTx
-		targetTs           ledger.Time
+		targetTs           base.LedgerTime
 		name               string
 		coverageDelta      uint64
 		savedCoverageDelta uint64
@@ -82,11 +83,11 @@ func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
 	return ret
 }
 
-func NewPastCone(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string) *PastCone {
+func NewPastCone(env global.Logging, tip *WrappedTx, targetTs base.LedgerTime, name string) *PastCone {
 	return newPastConeFromBase(env, tip, targetTs, name, NewPastConeBase(nil))
 }
 
-func newPastConeFromBase(env global.Logging, tip *WrappedTx, targetTs ledger.Time, name string, pb *PastConeBase) *PastCone {
+func newPastConeFromBase(env global.Logging, tip *WrappedTx, targetTs base.LedgerTime, name string, pb *PastConeBase) *PastCone {
 	return &PastCone{
 		Logging:      env,
 		tip:          tip,
@@ -520,7 +521,7 @@ type MutationStats struct {
 	NumCreated      int
 }
 
-func (pc *PastCone) Mutations(slot ledger.Slot) (muts *multistate.Mutations, stats MutationStats) {
+func (pc *PastCone) Mutations(slot base.Slot) (muts *multistate.Mutations, stats MutationStats) {
 	muts = multistate.NewMutations()
 
 	// need to handle discontinued chains

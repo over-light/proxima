@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/proxima/util/set"
@@ -62,7 +63,7 @@ type (
 		consumed         map[byte]set.Set[*WrappedTx]
 		attachmentDepth  int
 		//references       atomic.Int32
-		SlotWhenAdded ledger.Slot // immutable
+		SlotWhenAdded base.Slot // immutable
 		pastCone      *PastConeBase
 	}
 

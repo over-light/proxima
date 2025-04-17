@@ -12,6 +12,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
@@ -84,7 +85,7 @@ func TestMainConstraints(t *testing.T) {
 		require.EqualValues(t, 1, u.NumUTXOs(addr1))
 
 		_, _, addrNext := u.GenerateAddress(2)
-		in, err := u.MakeTransferInputData(privKey1, nil, ledger.NilLedgerTime)
+		in, err := u.MakeTransferInputData(privKey1, nil, base.NilLedgerTime)
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1000))
 		require.NoError(t, err)
@@ -107,7 +108,7 @@ func TestMainConstraints(t *testing.T) {
 
 		_, _, addrNext := u.GenerateAddress(2)
 		privKeyWrong, _, _ := u.GenerateAddress(3)
-		in, err := u.MakeTransferInputData(privKey1, nil, ledger.NilLedgerTime)
+		in, err := u.MakeTransferInputData(privKey1, nil, base.NilLedgerTime)
 		in.SenderPrivateKey = privKeyWrong
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1000))
@@ -124,7 +125,7 @@ func TestMainConstraints(t *testing.T) {
 		require.EqualValues(t, 1, u.NumUTXOs(addr1))
 
 		_, _, addrNext := u.GenerateAddress(2)
-		in, err := u.MakeTransferInputData(privKey1, nil, ledger.NilLedgerTime)
+		in, err := u.MakeTransferInputData(privKey1, nil, base.NilLedgerTime)
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1))
 		easyfl.RequireErrorWith(t, err, "not enough tokens for storage deposit")
@@ -757,7 +758,7 @@ func TestChainLock(t *testing.T) {
 		require.EqualValues(t, 20000, u.Balance(addr1))
 		return chains[0]
 	}
-	sendFun := func(amount uint64, ts ledger.Time) {
+	sendFun := func(amount uint64, ts base.LedgerTime) {
 		par, err := u.MakeTransferInputData(privKey1, nil, ts)
 		require.NoError(t, err)
 		err = u.DoTransfer(par.
@@ -859,7 +860,7 @@ func TestHashUnlock(t *testing.T) {
 	t.Logf("constraint source: %s", constraintSource)
 	t.Logf("constraint size: %d", len(constraintBin))
 
-	par, err := u.MakeTransferInputData(privKey0, nil, ledger.NilLedgerTime)
+	par, err := u.MakeTransferInputData(privKey0, nil, base.NilLedgerTime)
 	require.NoError(t, err)
 	constr := ledger.NewGeneralScript(constraintBin)
 	t.Logf("constraint: %s", constr)
@@ -881,7 +882,7 @@ func TestHashUnlock(t *testing.T) {
 	})
 
 	// produce transaction without providing hash unlocking library for the output with script
-	par = txbuilder.NewTransferData(privKey0, addr0, ledger.NilLedgerTime)
+	par = txbuilder.NewTransferData(privKey0, addr0, base.NilLedgerTime)
 	par.MustWithInputs(outs...).
 		WithAmount(1000).
 		WithTargetLock(addr0)
