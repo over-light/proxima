@@ -120,8 +120,8 @@ func evalVRFVerify(par *easyfl.CallParams) []byte {
 
 // CompileLocalLibrary compiles local library and serializes it as lazy array
 // TODO move to easyfl together with lazybytes
-func (lib *Library) CompileLocalLibrary(source string) ([]byte, error) {
-	libBin, err := lib.Library.CompileLocalLibrary(source)
+func CompileLocalLibrary(source string, lib *easyfl.Library) ([]byte, error) {
+	libBin, err := lib.CompileLocalLibrary(source)
 	if err != nil {
 		return nil, err
 	}
