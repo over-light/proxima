@@ -86,7 +86,7 @@ func DefaultIdentityData(privateKey ed25519.PrivateKey) *IdentityData {
 
 func newBaseLibrary() *Library {
 	ret := &Library{
-		Library:            easyfl.NewBase(),
+		Library:            easyfl.NewBaseLibrary(),
 		constraintByPrefix: make(map[string]*constraintRecord),
 		constraintNames:    make(map[string]struct{}),
 		inlineTests:        make([]func(), 0),

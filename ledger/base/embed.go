@@ -35,46 +35,36 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 }
 
 var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
-	"@":            evalPath,
-	"@Path":        evalAtPath,
-	"@Array8":      evalAtArray8,
-	"ArrayLength8": evalNumElementsOfArray,
-	"ticksBefore":  evalTicksBefore64,
-	"vrfVerify":    evalVRFVerify,
+	"at":          evalPath,
+	"atPath":      evalAtPath,
+	"ticksBefore": evalTicksBefore64,
+	"vrfVerify":   evalVRFVerify,
+}
+
+func EmbeddedFunctions(sym string) easyfl.EmbeddedFunction {
+	return _unboundedEmbedded[sym]
 }
 
 func EmbedHardcoded(lib *easyfl.Library) error {
-	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), func(sym string) easyfl.EmbeddedFunction {
-		return _unboundedEmbedded[sym]
-	})
+	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), EmbeddedFunctions)
 }
 
 const _definitionsEmbeddedYAML string = `
 functions:
 # short
    -
-      sym: "@"
+      sym: "at"
       description: "returns path in the transaction of the validity constraint being evaluated"
       numArgs: 0
       embedded: true
       short: true
    -
-      sym: "@Path"
+      sym: "atPath"
       description: "returns element of the transaction at path $0"
       numArgs: 1
       embedded: true
       short: true
 # long
-   -
-      sym: "@Array8"
-      description: "returns element of the serialized lazy array at index $0"
-      numArgs: 2
-      embedded: true
-   -
-      sym: ArrayLength8
-      description: "returns number of elements of lazy array as 1-byte long value"
-      numArgs: 1
-      embedded: true
    -
       sym: ticksBefore
       description: "number of ticks between timestamps $0 and $1 as big-endian uint64 if $0 is before $1, or 0x otherwise"
@@ -95,20 +85,6 @@ func evalPath(par *easyfl.CallParams) []byte {
 
 func evalAtPath(par *easyfl.CallParams) []byte {
 	return par.AllocData(par.DataContext().(*DataContext).DataTree().BytesAtPath(par.Arg(0))...)
-}
-
-func evalAtArray8(par *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(par.Arg(0))
-	idx := par.Arg(1)
-	if len(idx) != 1 {
-		panic("evalAtArray8: 1-byte value expected")
-	}
-	return arr.At(int(idx[0]))
-}
-
-func evalNumElementsOfArray(par *easyfl.CallParams) []byte {
-	arr := lazybytes.ArrayFromBytesReadOnly(par.Arg(0))
-	return par.AllocData(byte(arr.NumElements()))
 }
 
 // evalVRFVerify: embedded VRF verifier. Dependency on unverified external crypto library

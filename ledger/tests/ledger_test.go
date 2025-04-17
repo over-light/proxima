@@ -854,7 +854,7 @@ func TestHashUnlock(t *testing.T) {
 	err = u.TokensFromFaucet(addr0, 10000)
 	require.NoError(t, err)
 
-	constraintSource := fmt.Sprintf("or(isPathToProducedOutput(@),callLocalLibrary(selfHashUnlock(0x%s), 0))", hex.EncodeToString(libHash[:]))
+	constraintSource := fmt.Sprintf("or(isPathToProducedOutput(at),callLocalLibrary(selfHashUnlock(0x%s), 0))", hex.EncodeToString(libHash[:]))
 	_, _, constraintBin, err := ledger.L().CompileExpression(constraintSource)
 	require.NoError(t, err)
 	t.Logf("constraint source: %s", constraintSource)

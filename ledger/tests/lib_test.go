@@ -1,8 +1,10 @@
 package tests
 
 import (
+	"os"
 	"testing"
 
+	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/stretchr/testify/require"
 )
@@ -36,8 +38,13 @@ func TestLedgerToYAML(t *testing.T) {
 	})
 }
 
-//func TestLedgerToYAMLFile(t *testing.T) {
-//	yamlData := ledger.L().ToYAML(true, "# ------------------- Proxima ledger definitions COMPILED -------------------------")
-//	_ = os.WriteFile("ledger.yaml", yamlData, 0644)
-//
-//}
+func TestLedgerToYAMLFile(t *testing.T) {
+	ledger.L().PrintLibraryStats()
+	h := ledger.L().LibraryHash()
+	yamlData := ledger.L().ToYAML(true, "# ------------------- Proxima ledger definitions COMPILED -------------------------")
+	t.Logf("Full library YAML size: %d bytes", len(yamlData))
+	_ = os.WriteFile("ledger.yaml", yamlData, 0644)
+	libBack, err := easyfl.NewLibraryFromYAML(yamlData)
+	require.NoError(t, err)
+	require.EqualValues(t, h, libBack.LibraryHash())
+}
