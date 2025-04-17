@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
@@ -20,9 +20,9 @@ func TestBasics(t *testing.T) {
 
 		u := utxodb.NewUTXODB(genesisPrivateKey, true)
 		priv, pub := u.GenesisKeys()
-		t.Logf("orig priv key: %s", easyfl.Fmt(priv))
-		t.Logf("orig pub key: %s", easyfl.Fmt(pub))
-		t.Logf("origin address: %s", easyfl.Fmt(u.GenesisControllerAddress()))
+		t.Logf("orig priv key: %s", easyfl_util.Fmt(priv))
+		t.Logf("orig pub key: %s", easyfl_util.Fmt(pub))
+		t.Logf("origin address: %s", easyfl_util.Fmt(u.GenesisControllerAddress()))
 
 		t.Logf("current timestamp: %s", ledger.TimeNow().String())
 		_, _, addr := u.GenerateAddress(0)
@@ -45,9 +45,9 @@ func TestBasics(t *testing.T) {
 	t.Run("utxodb 2", func(t *testing.T) {
 		u := utxodb.NewUTXODB(genesisPrivateKey, true)
 		priv, pub := u.GenesisKeys()
-		t.Logf("orig priv key: %s", easyfl.Fmt(priv))
-		t.Logf("orig pub key: %s", easyfl.Fmt(pub))
-		t.Logf("origin address: %s", easyfl.Fmt(u.GenesisControllerAddress()))
+		t.Logf("orig priv key: %s", easyfl_util.Fmt(priv))
+		t.Logf("orig pub key: %s", easyfl_util.Fmt(pub))
+		t.Logf("origin address: %s", easyfl_util.Fmt(u.GenesisControllerAddress()))
 
 		privKey, _, addr := u.GenerateAddress(0)
 		err := u.TokensFromFaucet(addr, 100)
@@ -69,9 +69,9 @@ func TestBasics(t *testing.T) {
 	t.Run("utxodb 3 compress outputs", func(t *testing.T) {
 		u := utxodb.NewUTXODB(genesisPrivateKey, true)
 		priv, pub := u.GenesisKeys()
-		t.Logf("orig priv key: %s", easyfl.Fmt(priv))
-		t.Logf("orig pub key: %s", easyfl.Fmt(pub))
-		t.Logf("origin address: %s", easyfl.Fmt(u.GenesisControllerAddress()))
+		t.Logf("orig priv key: %s", easyfl_util.Fmt(priv))
+		t.Logf("orig pub key: %s", easyfl_util.Fmt(pub))
+		t.Logf("origin address: %s", easyfl_util.Fmt(u.GenesisControllerAddress()))
 
 		privKey, _, addr := u.GenerateAddress(0)
 		const howMany = 256
@@ -111,9 +111,9 @@ func TestBasics(t *testing.T) {
 	t.Run("utxodb too many inputs", func(t *testing.T) {
 		u := utxodb.NewUTXODB(genesisPrivateKey, true)
 		priv, pub := u.GenesisKeys()
-		t.Logf("orig priv key: %s", easyfl.Fmt(priv))
-		t.Logf("orig pub key: %s", easyfl.Fmt(pub))
-		t.Logf("origin address: %s", easyfl.Fmt(u.GenesisControllerAddress()))
+		t.Logf("orig priv key: %s", easyfl_util.Fmt(priv))
+		t.Logf("orig pub key: %s", easyfl_util.Fmt(pub))
+		t.Logf("origin address: %s", easyfl_util.Fmt(u.GenesisControllerAddress()))
 
 		privKey, _, addr := u.GenerateAddress(0)
 		const howMany = 400
@@ -139,9 +139,9 @@ func TestBasics(t *testing.T) {
 	t.Run("utxodb fan out outputs", func(t *testing.T) {
 		u := utxodb.NewUTXODB(genesisPrivateKey, true)
 		priv, pub := u.GenesisKeys()
-		t.Logf("orig priv key: %s", easyfl.Fmt(priv))
-		t.Logf("orig pub key: %s", easyfl.Fmt(pub))
-		t.Logf("origin address: %s", easyfl.Fmt(u.GenesisControllerAddress()))
+		t.Logf("orig priv key: %s", easyfl_util.Fmt(priv))
+		t.Logf("orig pub key: %s", easyfl_util.Fmt(pub))
+		t.Logf("origin address: %s", easyfl_util.Fmt(u.GenesisControllerAddress()))
 
 		privKey0, _, addr0 := u.GenerateAddress(0)
 		const howMany = 100

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 )
@@ -62,8 +62,8 @@ func (lib *Library) extendWithConstraint(name, source string, nArgs byte, parser
 	_, already := lib.constraintNames[name]
 	util.Assertf(!already, "repeating constraint name '%s'", name)
 	_, already = lib.constraintByPrefix[string(prefix)]
-	util.Assertf(!already, "repeating constraint prefix %s with name '%s'", easyfl.Fmt(prefix), name)
-	util.Assertf(0 < len(prefix) && len(prefix) <= 2, "wrong constraint prefix %s, name: %s", easyfl.Fmt(prefix), name)
+	util.Assertf(!already, "repeating constraint prefix %s with name '%s'", easyfl_util.Fmt(prefix), name)
+	util.Assertf(0 < len(prefix) && len(prefix) <= 2, "wrong constraint prefix %s, name: %s", easyfl_util.Fmt(prefix), name)
 	lib.constraintByPrefix[string(prefix)] = &constraintRecord{
 		name:   name,
 		prefix: common.Concat(prefix),
@@ -141,7 +141,7 @@ func LockFromBytes(data []byte) (Lock, error) {
 	}
 	name, ok := NameByPrefix(prefix)
 	if !ok {
-		return nil, fmt.Errorf("unknown constraint with prefix '%s'", easyfl.Fmt(prefix))
+		return nil, fmt.Errorf("unknown constraint with prefix '%s'", easyfl_util.Fmt(prefix))
 	}
 	switch name {
 	case AddressED25519Name:
@@ -170,7 +170,7 @@ func AccountableFromBytes(data []byte) (Accountable, error) {
 	}
 	name, ok := NameByPrefix(prefix)
 	if !ok {
-		return nil, fmt.Errorf("unknown constraint with prefix '%s'", easyfl.Fmt(prefix))
+		return nil, fmt.Errorf("unknown constraint with prefix '%s'", easyfl_util.Fmt(prefix))
 	}
 	switch name {
 	case AddressED25519Name:

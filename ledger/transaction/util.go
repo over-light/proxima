@@ -7,7 +7,7 @@ import (
 	"os"
 	"slices"
 
-	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/util"
@@ -38,7 +38,7 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("Transaction id: %s, size: %d", txid.String(), len(ctx.TransactionBytes()))
 	tsBin, ts := ctx.MustTimestampData()
-	ret.Add("Timestamp: %s %s", easyfl.Fmt(tsBin), ts)
+	ret.Add("Timestamp: %s %s", easyfl_util.Fmt(tsBin), ts)
 
 	seqIdx, stemIdx := ctx.SequencerAndStemOutputIndices()
 	ret.Add("Sequencer output index: %d, sequencer milestone: %v", seqIdx, seqIdx != 0xff)
@@ -48,18 +48,18 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 		util.Th(ctx.TotalAmountStored()), hex.EncodeToString(ctx.TotalAmountStoredBin()), util.Th(ctx.TotalInflation()))
 
 	inpCom := ctx.InputCommitment()
-	ret.Add("Input commitment: %s", easyfl.Fmt(inpCom))
+	ret.Add("Input commitment: %s", easyfl_util.Fmt(inpCom))
 	h := ctx.ConsumedOutputHash()
 	eqCom := ""
 	if !bytes.Equal(inpCom, h[:]) {
 		eqCom = "   !!! NOT EQUAL WITH INPUT COMMITMENT !!!!"
 	}
-	ret.Add("Consumed output hash: %s%s", easyfl.Fmt(h[:]), eqCom)
+	ret.Add("Consumed output hash: %s%s", easyfl_util.Fmt(h[:]), eqCom)
 	sign := ctx.Signature()
-	ret.Add("Signature: %s", easyfl.Fmt(sign))
+	ret.Add("Signature: %s", easyfl_util.Fmt(sign))
 	if len(sign) == 96 {
 		sender := blake2b.Sum256(sign[64:])
-		ret.Add("     ED25519 sender address: %s", easyfl.Fmt(sender[:]))
+		ret.Add("     ED25519 sender address: %s", easyfl_util.Fmt(sender[:]))
 	}
 
 	if explicitBaseline, ok := ctx.ExplicitBaseline(); ok {

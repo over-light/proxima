@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -75,7 +76,7 @@ func initTestAmountConstraint() {
 	util.AssertNoError(err)
 	amountBin := easyfl.StripDataPrefix(args[0])
 	util.Assertf(sym == AmountConstraintName && len(amountBin) <= 8, "'amount' consistency check 1 failed")
-	value, err := easyfl.Uint64FromBytes(amountBin)
+	value, err := easyfl_util.Uint64FromBytes(amountBin)
 	util.AssertNoError(err)
 	util.Assertf(value == 1337, "amount' consistency check 2 failed")
 }
@@ -89,7 +90,7 @@ func AmountFromBytes(data []byte) (Amount, error) {
 		return 0, fmt.Errorf("not an 'amount' constraint")
 	}
 	amountBin := easyfl.StripDataPrefix(args[0])
-	ret, err := easyfl.Uint64FromBytes(amountBin)
+	ret, err := easyfl_util.Uint64FromBytes(amountBin)
 	if err != nil {
 		return 0, err
 	}

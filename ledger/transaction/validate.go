@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/easyfl/slicepool"
 	"github.com/lunfardo314/proxima/ledger"
@@ -228,7 +229,7 @@ func (ctx *TxContext) runOutput(consumedBranch bool, output *ledger.Output, path
 			}
 			checkDuplicates[sd] = struct{}{}
 		}
-		blockPath[len(blockPath)-1] = byte(idx)
+		blockPath[len(blockPath)-1] = idx
 		var res []byte
 		var name string
 
@@ -263,7 +264,7 @@ func (ctx *TxContext) validateInputCommitment() error {
 	inputCommitment := ctx.InputCommitment()
 	if !bytes.Equal(consumeOutputHash[:], inputCommitment) {
 		return fmt.Errorf("hash of consumed outputs %v not equal to input commitment %v",
-			easyfl.Fmt(consumeOutputHash[:]), easyfl.Fmt(inputCommitment))
+			easyfl_util.Fmt(consumeOutputHash[:]), easyfl_util.Fmt(inputCommitment))
 	}
 	return nil
 }
@@ -340,13 +341,13 @@ func constraintName(binCode []byte) string {
 	}
 	prefix, err := ledger.L().ParsePrefixBytecode(binCode)
 	if err != nil {
-		return fmt.Sprintf("unknown_constraint(%s)", easyfl.Fmt(binCode))
+		return fmt.Sprintf("unknown_constraint(%s)", easyfl_util.Fmt(binCode))
 	}
 	name, found := ledger.NameByPrefix(prefix)
 	if found {
 		return name
 	}
-	return fmt.Sprintf("constraint_call_prefix(%s)", easyfl.Fmt(prefix))
+	return fmt.Sprintf("constraint_call_prefix(%s)", easyfl_util.Fmt(prefix))
 }
 
 func (ctx *TxContext) evalConstraint(constr []byte, path lazybytes.TreePath, spool *slicepool.SlicePool) ([]byte, string, error) {

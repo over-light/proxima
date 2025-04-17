@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -52,7 +53,7 @@ func InflationConstraintFromBytes(data []byte) (*InflationConstraint, error) {
 		return nil, fmt.Errorf("InflationConstraintFromBytes: not an inflation constraint script")
 	}
 	amountBin := easyfl.StripDataPrefix(args[0])
-	amount, err := easyfl.Uint64FromBytes(amountBin)
+	amount, err := easyfl_util.Uint64FromBytes(amountBin)
 	if err != nil {
 		return nil, err
 	}

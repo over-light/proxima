@@ -3,7 +3,7 @@ package ledger
 import (
 	"fmt"
 
-	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 )
 
 type GeneralScript []byte
@@ -33,7 +33,7 @@ func (u GeneralScript) String() string {
 	if err != nil {
 		src = fmt.Sprintf("failed decompile")
 	}
-	return fmt.Sprintf("GeneralScript(%s) (decompile: %s)", easyfl.Fmt(u), src)
+	return fmt.Sprintf("GeneralScript(%s) (decompile: %s)", easyfl_util.Fmt(u), src)
 }
 
 func (u GeneralScript) Source() string {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -250,7 +251,7 @@ func (ctx *TxContext) TotalAmountStoredBin() []byte {
 }
 
 func (ctx *TxContext) TotalAmountStored() uint64 {
-	return easyfl.MustUint64FromBytes(ctx.TotalAmountStoredBin())
+	return easyfl_util.MustUint64FromBytes(ctx.TotalAmountStoredBin())
 }
 
 func (ctx *TxContext) TotalInflation() uint64 {

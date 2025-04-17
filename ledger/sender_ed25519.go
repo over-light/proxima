@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -50,7 +51,7 @@ func (s *SenderED25519) Bytes() []byte {
 }
 
 func (s *SenderED25519) String() string {
-	return fmt.Sprintf("%s(%s)", SenderAddressED25519Name, easyfl.Fmt(s.Address))
+	return fmt.Sprintf("%s(%s)", SenderAddressED25519Name, easyfl_util.Fmt(s.Address))
 }
 
 func (s *SenderED25519) Source() string {

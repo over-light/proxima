@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -164,7 +165,7 @@ func SequencerConstraintFromBytes(data []byte) (*SequencerConstraint, error) {
 	}
 	cci := cciBin[0]
 
-	total, err := easyfl.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
+	total, err := easyfl_util.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
 	if err != nil {
 		return nil, fmt.Errorf("SequencerConstraintFromBytes: %v", err)
 	}
@@ -191,7 +192,7 @@ func initTestSequencerConstraint() {
 	util.Assertf(len(cciBin) == 1, "len(cciBin) == 1")
 	util.Assertf(cciBin[0] == 4, "cciBin[0] == 4")
 
-	total, err := easyfl.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
+	total, err := easyfl_util.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
 	util.AssertNoError(err)
 	util.Assertf(total == 1337, "binary.BigEndian.Uint64(totalBin) == 1337")
 }

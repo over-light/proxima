@@ -2,6 +2,7 @@ package base
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/lazybytes"
@@ -146,17 +147,6 @@ func evalVRFVerify(par *easyfl.CallParams) []byte {
 	return nil
 }
 
-// CompileLocalLibrary compiles local library and serializes it as lazy array
-// TODO move to easyfl together with lazybytes
-func CompileLocalLibrary(source string, lib *easyfl.Library) ([]byte, error) {
-	libBin, err := lib.CompileLocalLibrary(source)
-	if err != nil {
-		return nil, err
-	}
-	ret := lazybytes.MakeArrayFromDataReadOnly(libBin...)
-	return ret.Bytes(), nil
-}
-
 func makeEvalCallLocalLibraryEmbeddedFunc(lib *easyfl.Library) easyfl.EmbeddedFunction {
 	return func(ctx *easyfl.CallParams) []byte {
 		// arg 0 - local library binary (as lazy array)
@@ -169,7 +159,7 @@ func makeEvalCallLocalLibraryEmbeddedFunc(lib *easyfl.Library) easyfl.EmbeddedFu
 			ctx.TracePanic("evalCallLocalLibrary: wrong function index")
 		}
 		ret := lib.CallLocalLibrary(ctx.Slice(2, ctx.Arity()), libData, int(idx[0]))
-		ctx.Trace("evalCallLocalLibrary: lib#%d -> %s", idx[0], easyfl.Fmt(ret))
+		ctx.Trace("evalCallLocalLibrary: lib#%d -> 0x%s", idx[0], hex.EncodeToString(ret))
 		return ret
 	}
 }

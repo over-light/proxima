@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -112,7 +112,7 @@ func TestMainConstraints(t *testing.T) {
 		in.SenderPrivateKey = privKeyWrong
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1000))
-		easyfl.RequireErrorWith(t, err, "failed")
+		util.RequireErrorWith(t, err, "failed")
 	})
 	t.Run("not enough deposit", func(t *testing.T) {
 		u := utxodb.NewUTXODB(genesisPrivateKey, true)
@@ -128,7 +128,7 @@ func TestMainConstraints(t *testing.T) {
 		in, err := u.MakeTransferInputData(privKey1, nil, base.NilLedgerTime)
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1))
-		easyfl.RequireErrorWith(t, err, "not enough tokens for storage deposit")
+		util.RequireErrorWith(t, err, "not enough tokens for storage deposit")
 	})
 }
 
@@ -246,7 +246,7 @@ func TestTimelock(t *testing.T) {
 			WithAmount(2000).
 			WithTargetLock(addr0),
 		)
-		easyfl.RequireErrorWith(t, err, "failed")
+		util.RequireErrorWith(t, err, "failed")
 		require.EqualValues(t, 2200, u.Balance(addr1))
 
 		par, err = u.MakeTransferInputData(priv1, nil, ts.AddSlots(12))
@@ -361,7 +361,7 @@ func TestChain1(t *testing.T) {
 			WithConstraintBinary(code).
 			WithConstraintBinary(code),
 		)
-		easyfl.RequireErrorWith(t, err, "duplicated constraints")
+		util.RequireErrorWith(t, err, "duplicated constraints")
 	})
 	t.Run("create origin wrong 1", func(t *testing.T) {
 		initTest()
@@ -392,7 +392,7 @@ func TestChain1(t *testing.T) {
 		ch, idx := o.ChainConstraint()
 		require.True(t, idx != 0xff)
 		require.True(t, ch.IsOrigin())
-		t.Logf("chain created: %s", easyfl.Fmt(chains[0].ChainID[:]))
+		t.Logf("chain created: %s", easyfl_util.Fmt(chains[0].ChainID[:]))
 	})
 	t.Run("create-destroy", func(t *testing.T) {
 		// creates and immediately destroys chain output
@@ -412,7 +412,7 @@ func TestChain1(t *testing.T) {
 		ch, predecessorConstraintIndex := chainIN.Output.ChainConstraint()
 		require.True(t, predecessorConstraintIndex != 0xff)
 		require.True(t, ch.IsOrigin())
-		t.Logf("chain created: %s", easyfl.Fmt(chains[0].ChainID[:]))
+		t.Logf("chain created: %s", easyfl_util.Fmt(chains[0].ChainID[:]))
 
 		// add ticks to output timestamp to have valid timestamp of the next transaction
 		ts := chainIN.Timestamp().AddTicks(ledger.TransactionPace())
@@ -817,7 +817,7 @@ func TestLocalLibrary(t *testing.T) {
  func fun2 : fun1(fun1($0,$1), fun1($0,$1))
  func fun3 : fun2($0, $0)
 `
-	libBin, err := base.CompileLocalLibrary(source, ledger.L().Library)
+	libBin, err := ledger.L().Library.CompileLocalLibraryToLazyArray(source)
 	require.NoError(t, err)
 	t.Run("1", func(t *testing.T) {
 		src := fmt.Sprintf("callLocalLibrary(0x%s, 2, 5)", hex.EncodeToString(libBin))
@@ -843,11 +843,11 @@ func TestLocalLibrary(t *testing.T) {
 
 func TestHashUnlock(t *testing.T) {
 	const secretUnlockScript = "func fun1: and" // fun1 always returns true
-	libBin, err := base.CompileLocalLibrary(secretUnlockScript, ledger.L().Library)
+	libBin, err := ledger.L().Library.CompileLocalLibraryToLazyArray(secretUnlockScript)
 	require.NoError(t, err)
 	t.Logf("library size: %d", len(libBin))
 	libHash := blake2b.Sum256(libBin)
-	t.Logf("library hash: %s", easyfl.Fmt(libHash[:]))
+	t.Logf("library hash: %s", easyfl_util.Fmt(libHash[:]))
 
 	u := utxodb.NewUTXODB(genesisPrivateKey, true)
 	privKey0, _, addr0 := u.GenerateAddress(0)
@@ -1024,7 +1024,7 @@ func TestImmutable(t *testing.T) {
 	err = u.AddTransaction(txbytes)
 
 	// fails because wrong unlock parameters
-	easyfl.RequireErrorWith(t, err, "'immutable' failed with error")
+	util.RequireErrorWith(t, err, "'immutable' failed with error")
 
 	// --------------------------------- transit with wrong immutable data
 	chs, err = u.StateReader().GetUTXOForChainID(chainID)
@@ -1069,7 +1069,7 @@ func TestImmutable(t *testing.T) {
 	err = u.AddTransaction(txbytes)
 
 	// fails because wrong unlock parameters
-	easyfl.RequireErrorWith(t, err, "'immutable' failed with error")
+	util.RequireErrorWith(t, err, "'immutable' failed with error")
 
 	// put it all correct
 	chs, err = u.StateReader().GetUTXOForChainID(chainID)
