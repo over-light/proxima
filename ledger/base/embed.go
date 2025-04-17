@@ -2,7 +2,6 @@ package base
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/lazybytes"
@@ -10,15 +9,6 @@ import (
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/yoseplee/vrf"
 )
-
-var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
-	"@":            evalPath,
-	"@Path":        evalAtPath,
-	"@Array8":      evalAtArray8,
-	"ArrayLength8": evalNumElementsOfArray,
-	"ticksBefore":  evalTicksBefore64,
-	"vrfVerify":    evalVRFVerify,
-}
 
 // DataContext is the data structure passed to the eval call. It contains:
 // - tree: all validation context of the transaction, all data which is to be validated
@@ -44,20 +34,19 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 	c.path = common.Concat(path.Bytes())
 }
 
-func EmbedHardcoded(lib *easyfl.Library) error {
-	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), _embeddedFunctions(lib))
+var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
+	"@":            evalPath,
+	"@Path":        evalAtPath,
+	"@Array8":      evalAtArray8,
+	"ArrayLength8": evalNumElementsOfArray,
+	"ticksBefore":  evalTicksBefore64,
+	"vrfVerify":    evalVRFVerify,
 }
 
-func _embeddedFunctions(lib *easyfl.Library) func(string) easyfl.EmbeddedFunction {
-	return func(sym string) easyfl.EmbeddedFunction {
-		if ef, found := _unboundedEmbedded[sym]; found {
-			return ef
-		}
-		if sym == "callLocalLibrary" {
-			return makeEvalCallLocalLibraryEmbeddedFunc(lib)
-		}
-		return nil
-	}
+func EmbedHardcoded(lib *easyfl.Library) error {
+	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), func(sym string) easyfl.EmbeddedFunction {
+		return _unboundedEmbedded[sym]
+	})
 }
 
 const _definitionsEmbeddedYAML string = `
@@ -95,11 +84,6 @@ functions:
       sym: vrfVerify
       description: "Verifiable Random Function (VRF) verification, where $0 is public key, $1 is proof, $2 is message"
       numArgs: 3
-      embedded: true
-   -
-      sym: callLocalLibrary
-      description: TBD
-      numArgs: -1
       embedded: true
 `
 
@@ -145,23 +129,6 @@ func evalVRFVerify(par *easyfl.CallParams) []byte {
 		return par.AllocData(0xff)
 	}
 	return nil
-}
-
-func makeEvalCallLocalLibraryEmbeddedFunc(lib *easyfl.Library) easyfl.EmbeddedFunction {
-	return func(ctx *easyfl.CallParams) []byte {
-		// arg 0 - local library binary (as lazy array)
-		// arg 1 - 1-byte index of then function in the library
-		// arg 2 ... arg 15 optional arguments
-		arr := lazybytes.ArrayFromBytesReadOnly(ctx.Arg(0))
-		libData := arr.Parsed()
-		idx := ctx.Arg(1)
-		if len(idx) != 1 || int(idx[0]) >= len(libData) {
-			ctx.TracePanic("evalCallLocalLibrary: wrong function index")
-		}
-		ret := lib.CallLocalLibrary(ctx.Slice(2, ctx.Arity()), libData, int(idx[0]))
-		ctx.Trace("evalCallLocalLibrary: lib#%d -> 0x%s", idx[0], hex.EncodeToString(ret))
-		return ret
-	}
 }
 
 // arg 0 and arg 1 are timestamps (5 bytes each)
