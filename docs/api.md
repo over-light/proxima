@@ -316,7 +316,47 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_account_outputs?accountable=a(0
 ```
 
 ## get_account_parsed_outputs
-TODO
+
+GET all outputs from the account. Lock can be of any type
+`/api/v1/get_account_parsed_outputs?accountable=<EasyFL source form of the accountable lock constraint>`
+
+Example:
+
+``` bash
+curl -L -X GET 'http://localhost:8000/api/v1/get_account_parsed_outputs?accountable=a(0x0cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db7)'
+```
+
+```json
+{
+  "outputs": {
+    "0007804f5d02bd9c3c907468671053284f5349bf9c87b25dc49f98166ace8ba202": {
+      "data": "40020b45ad8800000000000681392345b6a00cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db7",
+      "constraints": [
+        "amount(u64/426297)",
+        "a(0x0cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db7)"
+      ],
+      "amount": 426297,
+      "lock_name": "a"
+    },
+    "800391383003dc21e08a0ca3baa35a1d419c7ea902f112facbe0b7520d93501600": {
+      "data": "40060b45ad8800008896e21aa2a02345b6a00cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db72645c3a335e5c2f9bbaf07df23676cead81539e2cabb04e9a27921834e17cb99d8e6f0830002000d49d58102880000889deacce2701d504287676572312e6531840006a171840000857d8800000000000000000d49dd8800000000004b0b238102",
+      "constraints": [
+        "amount(u64/150181619868320)",
+        "a(0x0cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db7)",
+        "chain(0x35e5c2f9bbaf07df23676cead81539e2cabb04e9a27921834e17cb99d8e6f083000200)",
+        "sequencer(2, u64/150211830538864)",
+        "or(0x676572312e6531,0x0006a171,0x0000857d,0x0000000000000000)",
+        "inflation(u64/4918051, 2)"
+      ],
+      "amount": 150181619868320,
+      "lock_name": "a",
+      "chain_id": "35e5c2f9bbaf07df23676cead81539e2cabb04e9a27921834e17cb99d8e6f083"
+    },
+  },
+  "lrbid": "8008238f0001f1e77ea0f320bd95d0b4251198f0c01f2bf8ed356ec0ed89ee13"
+}
+```
+
 
 ## get_account_simple_siglocked
 GET outputs locked with simple AddressED25519 lock
@@ -338,10 +378,43 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_account_simple_siglocked?addr=a
 ```
 
 ## get_outputs_for_amount
-TODO
+
+GET outputs from the provided account that contain the requested amount
+`/api/v1/get_outputs_for_amount?addr=<a(0x....)>&amount=<amount>`
+
+Example:
+
+``` bash
+curl -L -X GET 'http://localhost:8000/api/v1/get_outputs_for_amount?addr=a(0x0cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db7)&amount=100000'
+```
+
+```json
+{
+  "outputs": {
+    "0007804f5d02bd9c3c907468671053284f5349bf9c87b25dc49f98166ace8ba202": "40020b45ad8800000000000681392345b6a00cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db7"
+  },
+  "lrbid": "800823d200016175b3bdfd6fea11a5acb4b51d6774db75033e6381dfd995d0b8"
+}
+```
+
 
 ## get_nonchain_balance
-TODO
+
+GET non chain balance for the provided account
+`/api/v1/get_nonchain_balance?addr=<a(0x....)>`
+
+Example:
+
+``` bash
+curl -L -X GET 'http://localhost:8000/api/v1/get_nonchain_balance?addr=a(0x0cf4b2e94d024a46342b0ea16f0d613f6c8ef9f05dd96c2eb64f7f0f7d071db7)'
+```
+
+```json
+{
+  "amount": 426297,
+  "lrbid": "800823eb0001bd1b12b70baf31dd0662254c990d8f9405fd5428951820d60787"
+}
+```
 
 
 ## get_chain_outputs
@@ -670,4 +743,198 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_all_chains'
 ```
 
 ## get_delegations_by_sequencer
-TODO
+
+GET summarized delegation data in the form of DelegationsBySequencer
+`/api/v1/get_delegations_by_sequencer`
+
+Example:
+
+``` bash
+curl -L -X GET 'http://localhost:8000/api/v1/get_delegations_by_sequencer'
+```
+
+```json
+{
+  "lrbid": "8008241c00012aad99a86ea629107d6609554e2c67dbc677c0c4ce7f609d8981",
+  "sequencers": {
+    "01bc22144d0f53e579be22f4c26eaa80b51a435279f405f0cc6ef75863d1472d": {
+      "seq_output_id": "8003b52b1900a358e2457c2bcf889a062888e967110bf6b90d56d5b9776ee51600",
+      "seq_name": "ernie",
+      "balance": 614812335604,
+      "delegations": {}
+    },
+    "35e5c2f9bbaf07df23676cead81539e2cabb04e9a27921834e17cb99d8e6f083": {
+      "seq_output_id": "8008241b350021f2d1a8a6a7023ce878d073751afa251f9c9f2aa89b7dda1db300",
+      "seq_name": "ger1",
+      "balance": 10053171485921,
+      "delegations": {
+        "46d5efb483d79a8a61d3df0efc53d922a72bb3ae0fdbb7065852bcf3645994d9": {
+          "amount": 10084215735,
+          "since_slot": 889,
+          "start_amount": 10000000000
+        },
+        "d70b5be2b7f49d3ddb329c6e98af5c033a8461494b361b12b16c78b553bb0b5d": {
+          "amount": 10093562296,
+          "since_slot": 893,
+          "start_amount": 10000000000
+        },
+        "ded9e6f6ecadd9d8ff6c70e05af9cd1b75076fef902382a93393866c5b3657bf": {
+          "amount": 10093564928,
+          "since_slot": 877,
+          "start_amount": 10000000000
+        }
+      }
+    },
+    "41659dc34f5c61796c014ad4339469eb2a5364a7d5e6f4caa124f55e6098c0c8": {
+      "seq_output_id": "8008241b4e00b241d2d4f0f1f8b869eac4ab063d66f511074e2424d2e3d9eceb00",
+      "seq_name": "loc1",
+      "balance": 152440237525702,
+      "delegations": {
+        "77cab192352e3185675b9ee2ede81d3fce5067f1d1586dbffa7f13a4625ab2b9": {
+          "amount": 1012897967296,
+          "since_slot": 44889,
+          "start_amount": 999999000000
+        },
+        "9b20051b59651a5a54b8079ff389cdda6f8b2453a166f31b3b744626766c6655": {
+          "amount": 507202215858,
+          "since_slot": 8267,
+          "start_amount": 500138000000
+        }
+      }
+    },
+    "502615aa3efae2d8defce52726ff9527ed863f5f6f99f2547405931111544e23": {
+      "seq_output_id": "8002ef6b5d00bcae23455296ffa62ee344068f38c19be2d4b3fc4ca77fad328000",
+      "seq_name": "PSeq",
+      "balance": 944884833249,
+      "delegations": {
+        "0d22ea4751e18a9cc2120d4e210126b00ef34fdece526fb9e3b9aa5313acf307": {
+          "amount": 1001761842279,
+          "since_slot": 68013,
+          "start_amount": 999999000000
+        }
+      }
+    },
+    "6350c2b81f19ef19e5793cdf848b25aa1877eb93ac7a644b64d7b51ea8b5fefe": {
+      "seq_output_id": "8005dc6c3500954c1adda83024c67ac192236bf1577df639c4a2df90fbd434f800",
+      "seq_name": "hypv01",
+      "balance": 1020900712312,
+      "delegations": {}
+    },
+    "6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc": {
+      "seq_output_id": "8008241b5503cdf88576af54c23efce6d2a1ac759c8c08fc582db7b4981560a800",
+      "seq_name": "boot",
+      "balance": 373799968597931,
+      "delegations": {
+        "2c91c3d3f00e211d075f701ad36e962f333169a88c6aa9af28c07138a7c282e9": {
+          "amount": 1013930906532,
+          "since_slot": 32102,
+          "start_amount": 1000000000000
+        },
+        "5510a32d83f634dfc954f54f183fbbb24072aec070deac9a2252a2533d172a5b": {
+          "amount": 70443597444,
+          "since_slot": 306322,
+          "start_amount": 70047648290
+        },
+        "5992ca714e09da98e1c7c64d3c2774a8b621c68ea87d392de73a374fce713952": {
+          "amount": 63661039507320,
+          "since_slot": 491599,
+          "start_amount": 63574660000000
+        },
+        "772d36155162aee10d2e2a1f347f967808db7d15a80c945a891df84cb781af46": {
+          "amount": 70443619532311,
+          "since_slot": 306344,
+          "start_amount": 70047648290000
+        },
+        "ce290b09402ac5b9decbc9013703ed7fae6bba4ccfa49984b458dd8e8b88c06f": {
+          "amount": 1014972939217,
+          "since_slot": 1056,
+          "start_amount": 1000000000000
+        },
+        "d9418091136abb76c5b5b58a666ef8795694d97053c51759ca54c3f2b98e83f2": {
+          "amount": 704436974223,
+          "since_slot": 306327,
+          "start_amount": 700476482900
+        },
+        "eaa00cb19fc76c76470a75f91778b3bd89624b0dca0379049e77b77ffed3b0b8": {
+          "amount": 70443284227,
+          "since_slot": 306308,
+          "start_amount": 70047648290
+        },
+        "f059920f5aa3324e94cf933c72f5321dbe2098ebcea168a30af32ce57b29edff": {
+          "amount": 7044330389025,
+          "since_slot": 306338,
+          "start_amount": 7004764829000
+        }
+      }
+    },
+    "779a59583ec045b5c8ddea2782f1f9a5bf7ec77e7378149195118ee1f1184e10": {
+      "seq_output_id": "8008241c00012aad99a86ea629107d6609554e2c67dbc677c0c4ce7f609d898100",
+      "seq_name": "loc0",
+      "balance": 152242294629097,
+      "delegations": {
+        "6ad5949b73ed63444027e0e6e2242a911b5bd7c297828ef0419f242f67757a8b": {
+          "amount": 101071063,
+          "since_slot": 48388,
+          "start_amount": 100000000
+        },
+        "7113c30f964cb17f1f4ef69f9038888077aab23b8f0e7bbfd5da079e5c98fe74": {
+          "amount": 1011721535832,
+          "since_slot": 48924,
+          "start_amount": 999999000000
+        },
+        "948626bceef1971ac75b57f6c4b29a2b97f98fe5237e47eb557051dfe06090e2": {
+          "amount": 506574618679,
+          "since_slot": 1937,
+          "start_amount": 500001000000
+        }
+      }
+    },
+    "95ea9e9dcafd06ad0ed57de496b34180dc17d774d489b76496a6e163bfb5b942": {
+      "seq_output_id": "8006cd0c19031130c01293595fc9d77225163c4d7ef44ebd1e27901fbb2865b900",
+      "seq_name": "pion",
+      "balance": 1167992525664,
+      "delegations": {
+        "04e32b9daac50f6478d5a88fb2d825645e23eab673d49fa648302d5107687696": {
+          "amount": 1009691827072,
+          "since_slot": 59333,
+          "start_amount": 999999000000
+        },
+        "214103a588606be6266d6a3c6019a7b615f1f9096de75c6d401a33507ffbe1e8": {
+          "amount": 1009403332409,
+          "since_slot": 68022,
+          "start_amount": 999999000000
+        },
+        "67d208509de7b6f99d8f690f5597d8fcee27b55b60cd30668ed13d5f79c0b0f8": {
+          "amount": 100915561,
+          "since_slot": 48407,
+          "start_amount": 100000000
+        }
+      }
+    },
+    "cf522dee2fdf247a3625e217d1f2c495f7cfe540b9f25588b138df7c9d7c4877": {
+      "seq_output_id": "80043ddc0001293ef21b647f75ee919af9303d1d58bcbbbef3e86dda15e1c07f00",
+      "seq_name": "zen7",
+      "balance": 1010325877534,
+      "delegations": {
+        "a346b3a44c9c94494be4e0800d823dda334adf6b1a08ba7a24134320fcf3fada": {
+          "amount": 1000651816548,
+          "since_slot": 245498,
+          "start_amount": 1000000000000
+        }
+      }
+    },
+    "dcdd9ddc7b42dd0c925aba67c3a2c37338bc5d1c1c316879d03f69b42a499a72": {
+      "seq_output_id": "8008241b5d00e94458b475646e03613c52a5f3b60c16ebc257cfdd01dc7d52e000",
+      "seq_name": "seq1",
+      "balance": 152244628163686,
+      "delegations": {
+        "5f5ac35e8520ae70a103af2f2f8b7c1b26d2b893c3a65e88f42db0c692baaceb": {
+          "amount": 1011728272113,
+          "since_slot": 45328,
+          "start_amount": 999999000000
+        }
+      }
+    }
+  }
+}
+```
