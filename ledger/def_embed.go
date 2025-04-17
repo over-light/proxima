@@ -9,15 +9,24 @@ import (
 	"github.com/yoseplee/vrf"
 )
 
-func _embeddedFunctions(lib *Library) map[string]easyfl.EmbeddedFunction {
-	return map[string]easyfl.EmbeddedFunction{
-		"@":                evalPath,
-		"@Path":            evalAtPath,
-		"@Array8":          evalAtArray8,
-		"ArrayLength8":     evalNumElementsOfArray,
-		"ticksBefore":      evalTicksBefore64,
-		"vrfVerify":        evalVRFVerify,
-		"callLocalLibrary": lib.evalCallLocalLibrary,
+var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
+	"@":            evalPath,
+	"@Path":        evalAtPath,
+	"@Array8":      evalAtArray8,
+	"ArrayLength8": evalNumElementsOfArray,
+	"ticksBefore":  evalTicksBefore64,
+	"vrfVerify":    evalVRFVerify,
+}
+
+func _embeddedFunctions(lib *Library) func(string) easyfl.EmbeddedFunction {
+	return func(sym string) easyfl.EmbeddedFunction {
+		if ef, found := _unboundedEmbedded[sym]; found {
+			return ef
+		}
+		if sym == "callLocalLibrary" {
+			return lib.evalCallLocalLibrary
+		}
+		return nil
 	}
 }
 
