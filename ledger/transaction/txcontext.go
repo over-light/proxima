@@ -21,7 +21,7 @@ type TxContext struct {
 	sender          ledger.AddressED25519
 	inflationAmount uint64
 	// EasyFL constraint validation context
-	dataContext *ledger.DataContext
+	dataContext *base.DataContext
 }
 
 var Path = lazybytes.Path
@@ -60,7 +60,7 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	}
 	e := lazybytes.MakeArrayReadOnly(consumedOutputsArray) // one level deeper
 	ret.tree = lazybytes.TreeFromTreesReadOnly(tx.tree, e.AsTree())
-	ret.dataContext = ledger.NewDataContext(ret.tree)
+	ret.dataContext = base.NewDataContext(ret.tree)
 	return ret, nil
 }
 

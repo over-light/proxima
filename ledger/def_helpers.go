@@ -1,6 +1,6 @@
 package ledger
 
-const _definitionsBaseHelpersYAML = `
+const _definitionsHelpersYAML = `
 # definitions of base helper functions
 functions:
    -

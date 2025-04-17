@@ -8,6 +8,8 @@ import (
 	"github.com/lunfardo314/proxima/util"
 )
 
+// ledger time-related definitions and functions
+
 const (
 	SlotByteLength = 4
 	TickByteIndex

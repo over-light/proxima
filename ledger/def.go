@@ -92,7 +92,7 @@ const (
 func (lib *Library) upgrade0(id *IdentityData) {
 	lib.ID = id
 
-	err := lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), EmbeddedFunctions(lib.Library))
+	err := base.EmbedHardcoded(lib.Library)
 	util.AssertNoError(err)
 
 	// add main ledger constants
@@ -100,7 +100,7 @@ func (lib *Library) upgrade0(id *IdentityData) {
 	util.AssertNoError(err)
 
 	// add base helpers
-	err = lib.UpgradeFromYAML([]byte(_definitionsBaseHelpersYAML))
+	err = lib.UpgradeFromYAML([]byte(_definitionsHelpersYAML))
 	util.AssertNoError(err)
 
 	// add general functions

@@ -1,10 +1,9 @@
-package ledger
+package base
 
 import (
 	"encoding/binary"
 
 	"github.com/lunfardo314/easyfl"
-	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
 	"github.com/lunfardo314/unitrie/common"
@@ -44,7 +43,11 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 	c.path = common.Concat(path.Bytes())
 }
 
-func EmbeddedFunctions(lib *easyfl.Library) func(string) easyfl.EmbeddedFunction {
+func EmbedHardcoded(lib *easyfl.Library) error {
+	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), _embeddedFunctions(lib))
+}
+
+func _embeddedFunctions(lib *easyfl.Library) func(string) easyfl.EmbeddedFunction {
 	return func(sym string) easyfl.EmbeddedFunction {
 		if ef, found := _unboundedEmbedded[sym]; found {
 			return ef
@@ -177,15 +180,15 @@ func makeEvalCallLocalLibraryEmbeddedFunc(lib *easyfl.Library) easyfl.EmbeddedFu
 // number of ticks between ts0 and ts1 otherwise, as big-endian uint64
 func evalTicksBefore64(par *easyfl.CallParams) []byte {
 	ts0bin, ts1bin := par.Arg(0), par.Arg(1)
-	ts0, err := base.TimeFromBytes(ts0bin)
+	ts0, err := TimeFromBytes(ts0bin)
 	if err != nil {
 		par.TracePanic("evalTicksBefore64: %v", err)
 	}
-	ts1, err := base.TimeFromBytes(ts1bin)
+	ts1, err := TimeFromBytes(ts1bin)
 	if err != nil {
 		par.TracePanic("evalTicksBefore64: %v", err)
 	}
-	diff := base.DiffTicks(ts1, ts0)
+	diff := DiffTicks(ts1, ts0)
 	if diff < 0 {
 		// ts1 is before ts0
 		return nil
