@@ -4,7 +4,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazybytes"
-	"github.com/lunfardo314/unitrie/common"
 )
 
 // This file contains all upgrade prescriptions to the base ledger provided by the EasyFL. It is the "version 0" of the ledger.
@@ -120,30 +119,6 @@ func (lib *Library) upgrade0(id *IdentityData) {
 		libraryGlobal.MustError("mustValidTimeTick(200)", "'wrong ticks value'")
 		libraryGlobal.MustEqual("div(constInitialSupply, constSlotInflationBase)", "u64/30303030")
 	})
-}
-
-// DataContext is the data structure passed to the eval call. It contains:
-// - tree: all validation context of the transaction, all data which is to be validated
-// - path: a path in the validation context of the constraint being validated in the eval call
-type DataContext struct {
-	tree *lazybytes.Tree
-	path lazybytes.TreePath
-}
-
-func NewDataContext(tree *lazybytes.Tree) *DataContext {
-	return &DataContext{tree: tree}
-}
-
-func (c *DataContext) DataTree() *lazybytes.Tree {
-	return c.tree
-}
-
-func (c *DataContext) Path() lazybytes.TreePath {
-	return c.path
-}
-
-func (c *DataContext) SetPath(path lazybytes.TreePath) {
-	c.path = common.Concat(path.Bytes())
 }
 
 func (lib *Library) upgrade0WithConstraints() {
