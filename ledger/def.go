@@ -206,8 +206,9 @@ func idParametersFromLibrary(lib *easyfl.Library) (*IdentityParameters, error) {
 		return nil, err
 	}
 	if res, err = lib.EvalFromSource(nil, "constDescription"); err != nil {
-		ret.Description = string(res)
+		return nil, err
 	}
+	ret.Description = string(res)
 	return ret, nil
 }
 

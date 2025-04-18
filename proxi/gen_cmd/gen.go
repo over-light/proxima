@@ -8,7 +8,7 @@ func Init() *cobra.Command {
 	genCmd := &cobra.Command{
 		Use:   "gen",
 		Args:  cobra.NoArgs,
-		Short: "utility data generation functions",
+		Short: "utility functions for data generation and validation",
 		Run: func(cmd *cobra.Command, args []string) {
 		},
 	}
@@ -16,6 +16,8 @@ func Init() *cobra.Command {
 		genEd25519Cmd(),
 		genHostIDCmd(),
 		genIDCmd(),
+		validateIDCmd(),
+		compileIDCmd(),
 	)
 	genCmd.InitDefaultHelpCmd()
 	return genCmd
