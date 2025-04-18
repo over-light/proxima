@@ -93,7 +93,7 @@ func (u *UTXODB) Supply() uint64 {
 	return u.supply
 }
 
-func (u *UTXODB) StateIdentityData() *ledger.IdentityData {
+func (u *UTXODB) StateIdentityData() *ledger.IdentityParameters {
 	return ledger.MustIdentityDataFromBytes(u.StateReader().MustLedgerIdentityBytes())
 }
 

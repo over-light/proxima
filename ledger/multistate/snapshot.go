@@ -23,12 +23,13 @@ type (
 	}
 
 	SnapshotFileStream struct {
-		Header     *SnapshotHeader
-		LedgerID   *ledger.IdentityData
-		BranchID   ledger.TransactionID
-		RootRecord RootRecord
-		InChan     chan common.KVPairOrError
-		Close      func()
+		Header         *SnapshotHeader
+		LedgerIDData   []byte
+		LedgerIDParams *ledger.IdentityParameters
+		BranchID       ledger.TransactionID
+		RootRecord     RootRecord
+		InChan         chan common.KVPairOrError
+		Close          func()
 	}
 
 	SnapshotStats struct {
@@ -148,11 +149,12 @@ func SaveSnapshot(state StateStoreReader, branch *BranchData, ctx context.Contex
 	if err != nil {
 		return makeErr(err.Error())
 	}
-	ledgerID, err := ledger.IdentityDataFromBytes(ledgerIDBytes)
+
+	_, ledgerIDParams, err := ledger.ParseLedgerIdYAML(ledgerIDBytes)
 	if err != nil {
 		return makeErr(err.Error())
 	}
-	_, _ = fmt.Fprintf(console, "[SaveSnapshot] ledger id:\n%s\n", ledgerID.Lines("     ").String())
+	_, _ = fmt.Fprintf(console, "[SaveSnapshot] ledger id:\n%s\n", ledgerIDParams.Lines("     ").String())
 
 	// write trie
 	var stats *SnapshotStats
@@ -212,16 +214,18 @@ func OpenSnapshotFileStream(fname string) (*SnapshotFileStream, error) {
 		cancel()
 		return nil, fmt.Errorf("OpenSnapshotFileStream: wrong second key/value pair 3")
 	}
-	// read ledger identity
+	// read ledger identity data
 	pair = <-ret.InChan
 	if pair.IsNil() || pair.Err != nil {
 		return nil, fmt.Errorf("OpenSnapshotFileStream: wrong third key/value pair 1")
 	}
-	ret.LedgerID, err = ledger.IdentityDataFromBytes(pair.Value)
+	_, idParams, err := ledger.ParseLedgerIdYAML(pair.Value)
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("OpenSnapshotFileStream: wrong third key/value pair 2")
 	}
+	ret.LedgerIDParams = idParams
+	ret.LedgerIDData = pair.Value
 	return ret, nil
 }
 

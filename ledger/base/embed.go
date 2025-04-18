@@ -41,12 +41,18 @@ var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
 	"vrfVerify":   evalVRFVerify,
 }
 
-func EmbeddedFunctions(sym string) easyfl.EmbeddedFunction {
-	return _unboundedEmbedded[sym]
+func GetEmbeddedFunctionResolver(lib *easyfl.Library) func(sym string) easyfl.EmbeddedFunction {
+	baseResolver := easyfl.EmbeddedFunctions(lib)
+	return func(sym string) easyfl.EmbeddedFunction {
+		if ret, found := _unboundedEmbedded[sym]; found {
+			return ret
+		}
+		return baseResolver(sym)
+	}
 }
 
 func EmbedHardcoded(lib *easyfl.Library) error {
-	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), EmbeddedFunctions)
+	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), GetEmbeddedFunctionResolver(lib))
 }
 
 const _definitionsEmbeddedYAML string = `

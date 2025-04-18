@@ -3,6 +3,7 @@ package gen_cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -18,7 +19,7 @@ func genIDCmd() *cobra.Command {
 		PersistentPreRun: func(_ *cobra.Command, _ []string) {
 			glb.ReadInConfig()
 		},
-		Run: runInitLedgerIDCommand,
+		Run: runGenLedgerIDCommand,
 	}
 	initLedgerIDCmd.PersistentFlags().StringP("config", "c", "", "profile name")
 	err := viper.BindPFlag("config", initLedgerIDCmd.PersistentFlags().Lookup("config"))
@@ -27,7 +28,7 @@ func genIDCmd() *cobra.Command {
 	return initLedgerIDCmd
 }
 
-func runInitLedgerIDCommand(_ *cobra.Command, _ []string) {
+func runGenLedgerIDCommand(_ *cobra.Command, _ []string) {
 	if glb.FileExists(glb.LedgerIDFileName) {
 		if !glb.YesNoPrompt(fmt.Sprintf("file '%s' already exists. Overwrite?", glb.LedgerIDFileName), false) {
 			os.Exit(0)
@@ -36,10 +37,9 @@ func runInitLedgerIDCommand(_ *cobra.Command, _ []string) {
 	privKey := glb.MustGetPrivateKey()
 
 	// create ledger identity
-	id := ledger.DefaultIdentityData(privKey)
-	ledger.Init(id)
+	id := ledger.DefaultIdentityParameters(privKey, uint32(time.Now().Unix()))
 
-	yamlData := id.YAML()
+	yamlData := ledger.LibraryYAMLFromIdentityParameters(id, true)
 	err := os.WriteFile(glb.LedgerIDFileName, yamlData, 0666)
 	glb.AssertNoError(err)
 	glb.Infof("new ledger identity data has been stored in the file '%s':", glb.LedgerIDFileName)

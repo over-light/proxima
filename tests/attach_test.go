@@ -63,7 +63,7 @@ func TestAttachBasic(t *testing.T) {
 	t.Run("with distribution", func(t *testing.T) {
 		//attacher.SetTraceOn()
 		privKey := testutil.GetTestingPrivateKey()
-		par := ledger.DefaultIdentityData(privKey)
+		par := ledger.DefaultIdentityParameters(privKey)
 		addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 		addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 		distrib := []ledger.LockBalance{
@@ -127,7 +127,7 @@ func TestAttachBasic(t *testing.T) {
 	t.Run("sync scenario", func(t *testing.T) {
 		//attacher.SetTraceOn()
 		privKey := testutil.GetTestingPrivateKey()
-		par := ledger.DefaultIdentityData(privKey)
+		par := ledger.DefaultIdentityParameters(privKey)
 		addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 		addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 		distrib := []ledger.LockBalance{
@@ -200,7 +200,7 @@ func TestAttachBasic(t *testing.T) {
 	t.Run("with distribution tx", func(t *testing.T) {
 		//attacher.SetTraceOn()
 		privKey := testutil.GetTestingPrivateKey()
-		par := ledger.DefaultIdentityData(privKey)
+		par := ledger.DefaultIdentityParameters(privKey)
 		addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 		addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 		distrib := []ledger.LockBalance{

@@ -134,7 +134,7 @@ type workflowTestData struct {
 	addrAux                ledger.AddressED25519
 	privKeyFaucet          ed25519.PrivateKey
 	addrFaucet             ledger.AddressED25519
-	stateIdentity          ledger.IdentityData
+	stateIdentity          ledger.IdentityParameters
 	forkOutput             *ledger.OutputWithID
 	auxOutput              *ledger.OutputWithID
 	faucetOutput           *ledger.OutputWithID
@@ -165,7 +165,7 @@ const (
 func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowTestData {
 	util.Assertf(nChains > 0, "nChains > 0")
 	genesisPrivKey := testutil.GetTestingPrivateKey()
-	stateID := ledger.DefaultIdentityData(genesisPrivKey)
+	stateID := ledger.DefaultIdentityParameters(genesisPrivKey)
 	t.Logf("genesis state id: %s", stateID.String())
 
 	distrib, privKeys, addrs := inittest.GenesisParamsWithPreDistribution(initBalance, uint64(nChains*initBalance+tagAlongFee), initBalance)
@@ -888,7 +888,7 @@ func (td *workflowTestData) startSequencersWithTimeout(maxSlots int, timeout ...
 
 func StartTestEnv() (*workflowDummyEnvironment, *ledger.TransactionID, error) {
 	privKey := genesisPrivateKey
-	ledger.DefaultIdentityData(privKey)
+	ledger.DefaultIdentityParameters(privKey)
 	addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 	addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 	distrib := []ledger.LockBalance{

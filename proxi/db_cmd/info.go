@@ -45,13 +45,15 @@ func runDbInfoCmd(_ *cobra.Command, _ []string) {
 	reader, err := multistate.NewSugaredReadableState(glb.StateStore(), branchData[0].Root)
 	glb.AssertNoError(err)
 
-	id := ledger.MustIdentityDataFromBytes(reader.MustLedgerIdentityBytes())
+	identityYAML := reader.MustLedgerIdentityBytes()
+	_, idParams, err := ledger.ParseLedgerIdYAML(identityYAML)
+	glb.AssertNoError(err)
 
 	earliestSlot := multistate.FetchEarliestSlot(glb.StateStore())
 	glb.Infof("ledger time now is %s, earliest committed slot is %d", ledger.TimeNow().String(), earliestSlot)
 
 	glb.Verbosef("\n----------------- Ledger state identity ----------------")
-	glb.Verbosef("%s", id.String())
+	glb.Verbosef("%s", idParams.String())
 	glb.Infof("----------------- Global branch data ----------------------")
 	DisplayBranchData(branchData)
 	glb.Infof("\n------------- Supply and inflation summary -------------")

@@ -2,10 +2,11 @@ package ledger
 
 import (
 	"crypto/ed25519"
-	"fmt"
 	"sync"
 	"time"
 
+	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -22,27 +23,15 @@ func L() *Library {
 	return libraryGlobal
 }
 
-func InitLocally(id *IdentityData, verbose ...bool) *Library {
-	ret := newBaseLibrary()
-	if len(verbose) > 0 && verbose[0] {
-		fmt.Printf("------ Base EasyFL library:\n")
-		ret.PrintLibraryStats()
-	}
-
-	ret.upgrade0(id)
-
-	if len(verbose) > 0 && verbose[0] {
-		fmt.Printf("------ Extended EasyFL library:\n")
-		ret.PrintLibraryStats()
-	}
-	return ret
-}
-
-func Init(id *IdentityData, verbose ...bool) {
+func InitGlobal(identityData []byte) {
 	libraryGlobalMutex.Lock()
 
 	util.Assertf(libraryGlobal == nil, "ledger is already initialized")
-	libraryGlobal = InitLocally(id, verbose...)
+
+	lib, err := easyfl.NewLibraryFromYAML(identityData, base.GetEmbeddedFunctionResolver)
+	util.AssertNoError(err)
+
+	libraryGlobal = newLibrary(lib)
 
 	libraryGlobalMutex.Unlock()
 
@@ -50,29 +39,30 @@ func Init(id *IdentityData, verbose ...bool) {
 }
 
 // InitWithTestingLedgerIDData for testing
-func InitWithTestingLedgerIDData(opts ...func(data *IdentityData)) ed25519.PrivateKey {
+func InitWithTestingLedgerIDData(opts ...func(data *IdentityParameters)) ed25519.PrivateKey {
 	id, pk := GetTestingIdentityData(31415926535)
 	for _, opt := range opts {
 		opt(id)
 	}
-	Init(id)
+	lib := LibraryFromIdentityParameters(id)
+	InitGlobal(lib.ToYAML(true))
 	return pk
 }
 
-func WithTickDuration(d time.Duration) func(id *IdentityData) {
-	return func(id *IdentityData) {
+func WithTickDuration(d time.Duration) func(id *IdentityParameters) {
+	return func(id *IdentityParameters) {
 		id.SetTickDuration(d)
 	}
 }
 
-func WithTransactionPace(ticks byte) func(id *IdentityData) {
-	return func(id *IdentityData) {
+func WithTransactionPace(ticks byte) func(id *IdentityParameters) {
+	return func(id *IdentityParameters) {
 		id.TransactionPace = ticks
 	}
 }
 
-func WithSequencerPace(ticks byte) func(id *IdentityData) {
-	return func(id *IdentityData) {
+func WithSequencerPace(ticks byte) func(id *IdentityParameters) {
+	return func(id *IdentityParameters) {
 		id.TransactionPaceSequencer = ticks
 	}
 }

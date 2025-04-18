@@ -68,7 +68,7 @@ func runRestoreCmd(_ *cobra.Command, _ []string) {
 	glb.Infof("format version: %s", kvStream.Header.Version)
 	glb.Infof("branch id: %s", kvStream.BranchID.String())
 	glb.Infof("root record:\n%s", kvStream.RootRecord.Lines("    ").String())
-	glb.Infof("ledger id:\n%s", kvStream.LedgerID.Lines("    ").String())
+	glb.Infof("ledger id:\n%s", kvStream.LedgerIDParams.Lines("    ").String())
 
 	start := time.Now()
 
@@ -76,7 +76,7 @@ func runRestoreCmd(_ *cobra.Command, _ []string) {
 	stateStore := badger_adaptor.New(stateDb)
 	defer func() { _ = stateStore.Close() }()
 
-	emptyRoot, err := multistate.CommitEmptyRootWithLedgerIdentity(*kvStream.LedgerID, stateStore)
+	emptyRoot, err := multistate.CommitEmptyRootWithLedgerIdentity(kvStream.LedgerIDData, stateStore)
 	glb.AssertNoError(err)
 
 	trieUpdatable, err := immutable.NewTrieUpdatable(ledger.CommitmentModel, stateStore, emptyRoot, trieCacheSize)

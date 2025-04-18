@@ -54,7 +54,7 @@ const TraceTag = "apiServer"
 
 func (srv *server) registerHandlers() {
 	// GET request format: '/api/v1/get_ledger_id'
-	srv.addHandler(api.PathGetLedgerID, srv.getLedgerID)
+	srv.addHandler(api.PathGetLedgerIDData, srv.getLedgerIDData)
 	// GET request format: '/api/v1/get_account_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
 	srv.addHandler(api.PathGetAccountOutputs, srv.getAccountOutputs)
 	// GET request format: '/api/v1/get_account_parsed_outputs?accountable=<EasyFL source form of the accountable lock constraint>'
@@ -98,13 +98,14 @@ func (srv *server) registerHandlers() {
 	srv.registerTxAPIHandlers()
 }
 
-func (srv *server) getLedgerID(w http.ResponseWriter, _ *http.Request) {
+func (srv *server) getLedgerIDData(w http.ResponseWriter, _ *http.Request) {
 	api.SetHeader(w)
 
-	srv.Tracef(TraceTag, "getLedgerID invoked")
+	srv.Tracef(TraceTag, "getLedgerIDData invoked")
 
+	multistate.LedgerIdentityBytesFromStore(srv.StateStore())
 	resp := &api.LedgerID{
-		LedgerIDBytes: hex.EncodeToString(ledger.L().ID.Bytes()),
+		LedgerIDBytes: hex.EncodeToString(multistate.LedgerIdentityBytesFromStore(srv.StateStore())),
 	}
 	respBin, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {

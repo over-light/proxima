@@ -6,6 +6,7 @@ import (
 	"github.com/dgraph-io/badger/v4"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/unitrie/adaptors/badger_adaptor"
@@ -32,26 +33,26 @@ func initGenesisDBCmd() *cobra.Command {
 func runGenesis(_ *cobra.Command, _ []string) {
 	glb.DirMustNotExistOrBeEmpty(global.MultiStateDBName)
 
-	var idData *ledger.IdentityData
+	var err error
+	var idDataYAML []byte
+
 	if fetchLedgerID {
 		glb.ReadInConfig()
 		glb.Infof("retrieving ledger identity data from '%s'", viper.GetString("api.endpoint"))
-		var err error
-		idData, err = glb.GetClient().GetLedgerID()
+		idDataYAML, err = glb.GetClient().GetLedgerIdentityData()
 		glb.AssertNoError(err)
 	} else {
 		glb.Infof("reading ledger identity data from file '%s'", glb.LedgerIDFileName)
 		// take ledger id data from the 'proxi.genesis.id.yaml'
-		idDataYAML, err := os.ReadFile(glb.LedgerIDFileName)
-		glb.AssertNoError(err)
-		idData, err = ledger.StateIdentityDataFromYAML(idDataYAML)
+		idDataYAML, err = os.ReadFile(glb.LedgerIDFileName)
 		glb.AssertNoError(err)
 	}
 
-	ledger.Init(idData)
+	_, idParams, err := ledger.ParseLedgerIdYAML(idDataYAML, base.GetEmbeddedFunctionResolver)
+	glb.AssertNoError(err)
 
-	glb.Infof("Will be creating genesis from the ledger identity data:")
-	glb.Infof(idData.Lines("      ").String())
+	glb.Infof("Will be creating genesis with the following ledger identity parameters:")
+	glb.Infof(idParams.Lines("      ").String())
 	glb.Infof("Multi-state database name: '%s'", global.MultiStateDBName)
 
 	if !glb.YesNoPrompt("Proceed?", true) {
@@ -63,6 +64,6 @@ func runGenesis(_ *cobra.Command, _ []string) {
 	stateStore := badger_adaptor.New(stateDb)
 	defer func() { _ = stateStore.Close() }()
 
-	bootstrapChainID, _ := multistate.InitStateStore(*idData, stateStore)
+	bootstrapChainID, _ := multistate.InitStateStore(idParams, idDataYAML, stateStore)
 	glb.Infof("Genesis state DB '%s' has been created successfully.\nBootstrap sequencer chainID: %s", global.MultiStateDBName, bootstrapChainID.String())
 }

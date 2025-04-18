@@ -11,9 +11,9 @@ import (
 
 // CommitEmptyRootWithLedgerIdentity writes ledger identity data as value of the empty key nil.
 // Return root of the empty trie
-func CommitEmptyRootWithLedgerIdentity(par ledger.IdentityData, store StateStore) (common.VCommitment, error) {
+func CommitEmptyRootWithLedgerIdentity(id []byte, store StateStore) (common.VCommitment, error) {
 	batch := store.BatchedWriter()
-	emptyRoot := immutable.MustInitRoot(batch, ledger.CommitmentModel, par.Bytes())
+	emptyRoot := immutable.MustInitRoot(batch, ledger.CommitmentModel, id)
 	if err := batch.Commit(); err != nil {
 		return nil, err
 	}
@@ -23,8 +23,8 @@ func CommitEmptyRootWithLedgerIdentity(par ledger.IdentityData, store StateStore
 // InitStateStore initializes origin ledger state in the empty store
 // Writes initial supply and origin stem outputs. Plus writes root record into the DB
 // Returns root commitment to the genesis ledger state and genesis chainID
-func InitStateStore(par ledger.IdentityData, store StateStore) (ledger.ChainID, common.VCommitment) {
-	emptyRoot, err := CommitEmptyRootWithLedgerIdentity(par, store)
+func InitStateStore(par *ledger.IdentityParameters, idData []byte, store StateStore) (ledger.ChainID, common.VCommitment) {
+	emptyRoot, err := CommitEmptyRootWithLedgerIdentity(idData, store)
 	util.AssertNoError(err)
 
 	genesisAddr := ledger.AddressED25519FromPublicKey(par.GenesisControllerPublicKey)
@@ -52,7 +52,7 @@ func genesisUpdateMutations(genesisOut, genesisStemOut *ledger.OutputWithID) *Mu
 }
 
 // ScanGenesisState TODO more checks
-func ScanGenesisState(stateStore StateStore) (*ledger.IdentityData, common.VCommitment, error) {
+func ScanGenesisState(stateStore StateStore) (*ledger.IdentityParameters, common.VCommitment, error) {
 	var genesisRootRecord RootRecord
 
 	// expecting a single branch in the genesis state
@@ -72,7 +72,9 @@ func ScanGenesisState(stateStore StateStore) (*ledger.IdentityData, common.VComm
 
 	branchData := FetchBranchDataByRoot(stateStore, genesisRootRecord)
 	rdr := MustNewSugaredReadableState(stateStore, branchData.Root)
-	stateID := ledger.MustIdentityDataFromBytes(rdr.MustLedgerIdentityBytes())
+	yamlData := rdr.MustLedgerIdentityBytes()
+	_, stateID, err := ledger.ParseLedgerIdYAML(yamlData)
+	util.AssertNoError(err)
 
 	genesisOid := ledger.GenesisOutputID()
 	out, err := rdr.GetOutputErr(genesisOid)
@@ -86,5 +88,5 @@ func ScanGenesisState(stateStore StateStore) (*ledger.IdentityData, common.VComm
 }
 
 func InitLedgerFromStore(stateStore StateStore, verbose ...bool) {
-	ledger.Init(ledger.MustIdentityDataFromBytes(LedgerIdentityBytesFromStore(stateStore)), verbose...)
+	ledger.InitGlobal(LedgerIdentityBytesFromStore(stateStore))
 }

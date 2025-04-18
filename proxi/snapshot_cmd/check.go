@@ -1,6 +1,9 @@
 package snapshot_cmd
 
 import (
+	"encoding/hex"
+
+	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -44,7 +47,11 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 	glb.Infof("snapshot branch id: %s", ssData.branchID.String())
 	glb.Infof("snapshot root record:\n%s", ssData.rootRecord.Lines("    ").String())
 
-	if ssData.ledgerID.Hash() != ledger.L().ID.Hash() {
+	fromYAML, err := easyfl.ReadLibraryFromYAML(ssData.ledgerIDData)
+	glb.AssertNoError(err)
+
+	h := ledger.L().LibraryHash()
+	if fromYAML.Hash != hex.EncodeToString(h[:]) {
 		glb.Infof("ledger id hash in snapshot file %s is not equal to the ledger id hash on the node on '%s'.\nThe snapshot file CANNOT BE USED to start a node",
 			fname, viper.GetString("api.endpoint"))
 		return
@@ -63,10 +70,11 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 }
 
 type _snapshotFileData struct {
-	fmtVersion string
-	branchID   ledger.TransactionID
-	rootRecord multistate.RootRecord
-	ledgerID   *ledger.IdentityData
+	fmtVersion     string
+	branchID       ledger.TransactionID
+	rootRecord     multistate.RootRecord
+	ledgerIDData   []byte
+	ledgerIDParams *ledger.IdentityParameters
 }
 
 func readASnapshotFile(fname string) (*_snapshotFileData, error) {
@@ -77,9 +85,10 @@ func readASnapshotFile(fname string) (*_snapshotFileData, error) {
 	defer kvStream.Close()
 
 	return &_snapshotFileData{
-		fmtVersion: kvStream.Header.Version,
-		branchID:   kvStream.BranchID,
-		rootRecord: kvStream.RootRecord,
-		ledgerID:   kvStream.LedgerID,
+		fmtVersion:     kvStream.Header.Version,
+		branchID:       kvStream.BranchID,
+		rootRecord:     kvStream.RootRecord,
+		ledgerIDData:   kvStream.LedgerIDData,
+		ledgerIDParams: kvStream.LedgerIDParams,
 	}, nil
 }

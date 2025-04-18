@@ -1,80 +1,12 @@
 package ledger
 
 import (
-	"bytes"
-	"crypto/ed25519"
-	"encoding/binary"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
-	"golang.org/x/crypto/blake2b"
-	"gopkg.in/yaml.v2"
-)
-
-// IdentityData is provided at genesis and will remain immutable during lifetime
-// All integers are serialized as big-endian
-type (
-	IdentityData struct {
-		// arbitrary string up 255 bytes
-		Description string
-		// genesis time unix seconds
-		GenesisTimeUnix uint32
-		// initial supply of tokens
-		InitialSupply uint64
-		// ED25519 public key of the controller
-		GenesisControllerPublicKey ed25519.PublicKey
-		// time tick duration in nanoseconds
-		TickDuration time.Duration
-		// ----------- begin inflation-related
-		SlotInflationBase    uint64 // constant C
-		LinearInflationSlots uint64 // constant labda
-		// BranchInflationBonusBase inflation bonus
-		BranchInflationBonusBase uint64
-		// ----------- end inflation-related
-		// VBCost
-		VBCost uint64
-		// number of ticks between non-sequencer transactions
-		TransactionPace byte
-		// number of ticks between sequencer transactions
-		TransactionPaceSequencer byte
-		// this limits number of sequencers in the network. Reasonable amount would be few hundreds of sequencers
-		MinimumAmountOnSequencer uint64
-		// limit maximum number of endorsements. For determinism
-		MaxNumberOfEndorsements uint64
-		// PreBranchConsolidationTicks enforces endorsement-only constraint for specified amount of ticks
-		// before the slot boundary. It means, sequencer transaction can have only one input, its own predecessor
-		// for any transaction with timestamp ticks > MaxTickValueInSlot - PreBranchConsolidationTicks
-		// value 0 of PreBranchConsolidationTicks effectively means no constraint
-		PreBranchConsolidationTicks  uint8
-		PostBranchConsolidationTicks uint8
-	}
-
-	// IdentityDataYAMLAble structure for canonical YAMLAble marshaling
-	IdentityDataYAMLAble struct {
-		GenesisTimeUnix              uint32 `yaml:"genesis_time_unix"`
-		InitialSupply                uint64 `yaml:"initial_supply"`
-		GenesisControllerPublicKey   string `yaml:"genesis_controller_public_key"`
-		TimeTickDurationNanosec      int64  `yaml:"time_tick_duration_nanosec"`
-		VBCost                       uint64 `yaml:"vb_cost"`
-		TransactionPace              byte   `yaml:"transaction_pace"`
-		TransactionPaceSequencer     byte   `yaml:"transaction_pace_sequencer"`
-		SlotInflationBase            uint64 `yaml:"slot_inflation_base"`
-		LinearInflationSlots         uint64 `yaml:"linear-inflation-slots"`
-		BranchInflationBonusBase     uint64 `yaml:"branch_inflation_bonus_base"`
-		MinimumAmountOnSequencer     uint64 `yaml:"minimum_amount_on_sequencer"`
-		MaxNumberOfEndorsements      uint64 `yaml:"max_number_of_endorsements"`
-		PreBranchConsolidationTicks  uint8  `yaml:"pre_branch_consolidation_ticks"`
-		PostBranchConsolidationTicks uint8  `yaml:"post_branch_consolidation_ticks"`
-		Description                  string `yaml:"description"`
-		// non-persistent, for control
-		GenesisControllerAddress string `yaml:"genesis_controller_address"`
-		BootstrapChainID         string `yaml:"bootstrap_chain_id"`
-	}
 )
 
 const (
@@ -82,217 +14,71 @@ const (
 	GenesisStemOutputIndex = byte(1)
 )
 
-func (id *IdentityData) Bytes() []byte {
-	var buf bytes.Buffer
-	// order of fields in struct definition
-	_ = binary.Write(&buf, binary.BigEndian, uint16(len(id.Description)))
-	buf.Write([]byte(id.Description))
-	_ = binary.Write(&buf, binary.BigEndian, id.GenesisTimeUnix)
-	_ = binary.Write(&buf, binary.BigEndian, id.InitialSupply)
-	util.Assertf(len(id.GenesisControllerPublicKey) == ed25519.PublicKeySize, "id.GenesisControllerPublicKey)==ed25519.PublicKeySize")
-	buf.Write(id.GenesisControllerPublicKey)
-	_ = binary.Write(&buf, binary.BigEndian, id.TickDuration.Nanoseconds())
-	_ = binary.Write(&buf, binary.BigEndian, id.SlotInflationBase)
-	_ = binary.Write(&buf, binary.BigEndian, id.LinearInflationSlots)
-	_ = binary.Write(&buf, binary.BigEndian, id.BranchInflationBonusBase)
-	_ = binary.Write(&buf, binary.BigEndian, id.VBCost)
-	_ = binary.Write(&buf, binary.BigEndian, id.TransactionPace)
-	_ = binary.Write(&buf, binary.BigEndian, id.TransactionPaceSequencer)
-	_ = binary.Write(&buf, binary.BigEndian, id.MinimumAmountOnSequencer)
-	_ = binary.Write(&buf, binary.BigEndian, id.MaxNumberOfEndorsements)
-	_ = binary.Write(&buf, binary.BigEndian, id.PreBranchConsolidationTicks)
-	_ = binary.Write(&buf, binary.BigEndian, id.PostBranchConsolidationTicks)
-
-	return buf.Bytes()
-}
-
-func MustIdentityDataFromBytes(data []byte) *IdentityData {
-	ret, err := IdentityDataFromBytes(data)
-	util.AssertNoError(err)
-	return ret
-}
-
-func IdentityDataFromBytes(data []byte) (*IdentityData, error) {
-	ret := &IdentityData{}
-	rdr := bytes.NewReader(data)
-
-	var size16 uint16
-	var n int
-	var err error
-	var buf []byte
-
-	mkerr := func(err error) error {
-		return fmt.Errorf("IdentityDataFromBytes: %w", err)
-	}
-	// order of fields in struct definition
-
-	err = binary.Read(rdr, binary.BigEndian, &size16)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-	buf = make([]byte, size16)
-	n, err = rdr.Read(buf)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-	if n != int(size16) {
-		return nil, mkerr(errors.New("wrong data size"))
-	}
-	ret.Description = string(buf)
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.GenesisTimeUnix)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.InitialSupply)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	buf = make([]byte, ed25519.PublicKeySize)
-	n, err = rdr.Read(buf)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-	if n != ed25519.PublicKeySize {
-		return nil, mkerr(errors.New("wrong data size"))
-	}
-	ret.GenesisControllerPublicKey = buf
-
-	var bufNano int64
-	err = binary.Read(rdr, binary.BigEndian, &bufNano)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-	ret.TickDuration = time.Duration(bufNano)
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.SlotInflationBase)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.LinearInflationSlots)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.BranchInflationBonusBase)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.VBCost)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.TransactionPace)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.TransactionPaceSequencer)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.MinimumAmountOnSequencer)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.MaxNumberOfEndorsements)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.PreBranchConsolidationTicks)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	err = binary.Read(rdr, binary.BigEndian, &ret.PostBranchConsolidationTicks)
-	if err != nil {
-		return nil, mkerr(err)
-	}
-
-	if rdr.Len() > 0 {
-		return nil, mkerr(errors.New("not all bytes have been read"))
-	}
-
-	return ret, nil
-}
-
-func (id *IdentityData) GenesisTime() time.Time {
+func (id *IdentityParameters) GenesisTime() time.Time {
 	return time.Unix(int64(id.GenesisTimeUnix), 0)
 }
 
-func (id *IdentityData) GenesisTimeUnixNano() int64 {
+func (id *IdentityParameters) GenesisTimeUnixNano() int64 {
 	return time.Unix(int64(id.GenesisTimeUnix), 0).UnixNano()
 }
 
-func (id *IdentityData) Hash() [32]byte {
-	return blake2b.Sum256(id.Bytes())
-}
-
-func (id *IdentityData) GenesisControlledAddress() AddressED25519 {
+func (id *IdentityParameters) GenesisControlledAddress() AddressED25519 {
 	return AddressED25519FromPublicKey(id.GenesisControllerPublicKey)
 }
 
 // TimeToTicksSinceGenesis converts time value into ticks since genesis
-func (id *IdentityData) TimeToTicksSinceGenesis(nowis time.Time) int64 {
+func (id *IdentityParameters) TimeToTicksSinceGenesis(nowis time.Time) int64 {
 	timeSinceGenesis := nowis.Sub(id.GenesisTime())
 	return int64(timeSinceGenesis / id.TickDuration)
 }
 
-func (id *IdentityData) LedgerTimeFromClockTime(nowis time.Time) base.LedgerTime {
+func (id *IdentityParameters) LedgerTimeFromClockTime(nowis time.Time) base.LedgerTime {
 	ret, err := base.TimeFromTicksSinceGenesis(id.TimeToTicksSinceGenesis(nowis))
 	util.AssertNoError(err)
 	return ret
 }
 
-func (id *IdentityData) SlotDuration() time.Duration {
+func (id *IdentityParameters) SlotDuration() time.Duration {
 	return id.TickDuration * time.Duration(base.TicksPerSlot)
 }
 
-func (id *IdentityData) SlotsPerDay() int {
+func (id *IdentityParameters) SlotsPerDay() int {
 	return int(24 * time.Hour / id.SlotDuration())
 }
 
-func (id *IdentityData) SlotsPerYear() int {
+func (id *IdentityParameters) SlotsPerYear() int {
 	return 365 * id.SlotsPerDay()
 }
 
-func (id *IdentityData) TicksPerYear() int {
+func (id *IdentityParameters) TicksPerYear() int {
 	return id.SlotsPerYear() * base.TicksPerSlot
 }
 
-func (id *IdentityData) OriginChainID() ChainID {
+func (id *IdentityParameters) OriginChainID() ChainID {
 	oid := GenesisOutputID()
 	return MakeOriginChainID(oid)
 }
 
-func (id *IdentityData) IsPreBranchConsolidationTimestamp(ts base.LedgerTime) bool {
+func (id *IdentityParameters) IsPreBranchConsolidationTimestamp(ts base.LedgerTime) bool {
 	return uint8(ts.Tick) > base.MaxTickValue-id.PreBranchConsolidationTicks
 }
 
-func (id *IdentityData) IsPostBranchConsolidationTimestamp(ts base.LedgerTime) bool {
+func (id *IdentityParameters) IsPostBranchConsolidationTimestamp(ts base.LedgerTime) bool {
 	return uint8(ts.Tick) >= id.PostBranchConsolidationTicks
 }
 
-func (id *IdentityData) EnsurePostBranchConsolidationConstraintTimestamp(ts base.LedgerTime) base.LedgerTime {
+func (id *IdentityParameters) EnsurePostBranchConsolidationConstraintTimestamp(ts base.LedgerTime) base.LedgerTime {
 	if id.IsPostBranchConsolidationTimestamp(ts) {
 		return ts
 	}
 	return base.NewLedgerTime(ts.Slot, base.Tick(id.PostBranchConsolidationTicks))
 }
 
-func (id *IdentityData) String() string {
-	return string(id.YAMLAble().YAML())
+func (id *IdentityParameters) String() string {
+	return id.Lines().String()
 }
 
-func (id *IdentityData) Lines(prefix ...string) *lines.Lines {
+func (id *IdentityParameters) Lines(prefix ...string) *lines.Lines {
 	originChainID := id.OriginChainID()
 	return lines.New(prefix...).
 		Add("Description: '%s'", id.Description).
@@ -315,30 +101,7 @@ func (id *IdentityData) Lines(prefix ...string) *lines.Lines {
 		Add("Origin chain id (calculated): %s", originChainID.String())
 }
 
-func (id *IdentityData) YAMLAble() *IdentityDataYAMLAble {
-	chainID := id.OriginChainID()
-	return &IdentityDataYAMLAble{
-		GenesisTimeUnix:              id.GenesisTimeUnix,
-		GenesisControllerPublicKey:   hex.EncodeToString(id.GenesisControllerPublicKey),
-		InitialSupply:                id.InitialSupply,
-		TimeTickDurationNanosec:      id.TickDuration.Nanoseconds(),
-		SlotInflationBase:            id.SlotInflationBase,
-		LinearInflationSlots:         id.LinearInflationSlots,
-		BranchInflationBonusBase:     id.BranchInflationBonusBase,
-		VBCost:                       id.VBCost,
-		TransactionPace:              id.TransactionPace,
-		TransactionPaceSequencer:     id.TransactionPaceSequencer,
-		GenesisControllerAddress:     id.GenesisControlledAddress().String(),
-		MinimumAmountOnSequencer:     id.MinimumAmountOnSequencer,
-		MaxNumberOfEndorsements:      id.MaxNumberOfEndorsements,
-		PreBranchConsolidationTicks:  id.PreBranchConsolidationTicks,
-		PostBranchConsolidationTicks: id.PostBranchConsolidationTicks,
-		BootstrapChainID:             chainID.StringHex(),
-		Description:                  id.Description,
-	}
-}
-
-func (id *IdentityData) TimeConstantsToString() string {
+func (id *IdentityParameters) TimeConstantsToString() string {
 	nowis := time.Now()
 	timestampNowis := id.LedgerTimeFromClockTime(nowis)
 
@@ -367,72 +130,6 @@ func (id *IdentityData) TimeConstantsToString() string {
 		Add("rounding: nowis.UnixNano() - timestampNowis.UnixNano() = %d", nowis.UnixNano()-UnixNanoFromLedgerTime(timestampNowis)).
 		Add("tick duration nano = %d", int64(TickDuration())).
 		String()
-}
-
-func (id *IdentityData) YAML() []byte {
-	return id.YAMLAble().YAML()
-}
-
-const stateIDFileComment = `# This is Proxima ledger identity file.
-# It contains public Proxima ledger constants set at genesis. 
-# The ledger identity file is used to create genesis ledger state for Proxima nodes.
-# Private key of the controller should be known only to the creator of the genesis ledger state.
-# Public key of the controller identifies originator of the ledger for its lifetime.
-# 'genesis_controller_address' is computed from the public key of the controller
-# 'bootstrap_chain_id' is a constant, i.e. same for all ledgers
-`
-
-func (id *IdentityDataYAMLAble) YAML() []byte {
-	var buf bytes.Buffer
-	data, err := yaml.Marshal(id)
-	util.AssertNoError(err)
-	buf.WriteString(stateIDFileComment)
-	buf.Write(data)
-	return buf.Bytes()
-}
-
-func (id *IdentityDataYAMLAble) stateIdentityData() (*IdentityData, error) {
-	var err error
-	ret := &IdentityData{}
-	ret.GenesisTimeUnix = id.GenesisTimeUnix
-	ret.GenesisControllerPublicKey, err = hex.DecodeString(id.GenesisControllerPublicKey)
-	ret.InitialSupply = id.InitialSupply
-	if err != nil {
-		return nil, err
-	}
-	if len(ret.GenesisControllerPublicKey) != ed25519.PublicKeySize {
-		return nil, fmt.Errorf("wrong public key")
-	}
-	ret.TickDuration = time.Duration(id.TimeTickDurationNanosec)
-	ret.SlotInflationBase = id.SlotInflationBase
-	ret.LinearInflationSlots = id.LinearInflationSlots
-	ret.BranchInflationBonusBase = id.BranchInflationBonusBase
-	ret.VBCost = id.VBCost
-	ret.TransactionPace = id.TransactionPace
-	ret.TransactionPaceSequencer = id.TransactionPaceSequencer
-	ret.MinimumAmountOnSequencer = id.MinimumAmountOnSequencer
-	ret.MaxNumberOfEndorsements = id.MaxNumberOfEndorsements
-	ret.PreBranchConsolidationTicks = id.PreBranchConsolidationTicks
-	ret.PostBranchConsolidationTicks = id.PostBranchConsolidationTicks
-	ret.Description = id.Description
-
-	// control
-	if AddressED25519FromPublicKey(ret.GenesisControllerPublicKey).String() != id.GenesisControllerAddress {
-		return nil, fmt.Errorf("YAML data inconsistency: address and public key does not match")
-	}
-	chainID := ret.OriginChainID()
-	if id.BootstrapChainID != chainID.StringHex() {
-		return nil, fmt.Errorf("YAML data inconsistency: bootstrap chain id does not match")
-	}
-	return ret, nil
-}
-
-func StateIdentityDataFromYAML(yamlData []byte) (*IdentityData, error) {
-	yamlAble := &IdentityDataYAMLAble{}
-	if err := yaml.Unmarshal(yamlData, &yamlAble); err != nil {
-		return nil, err
-	}
-	return yamlAble.stateIdentityData()
 }
 
 func GenesisTransactionIDShort() (ret TransactionIDShort) {

@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -43,7 +44,7 @@ func TestOriginBase(t *testing.T) {
 	t.Logf("   Stem output constraints:\n%s", sOut.Output.ToString("        "))
 
 	privateKey := testutil.GetTestingPrivateKey(100)
-	id := ledger.DefaultIdentityData(privateKey)
+	id := ledger.DefaultIdentityParameters(privateKey, uint32(time.Now().Unix()))
 	pubKey := privateKey.Public().(ed25519.PublicKey)
 	require.True(t, pubKey.Equal(id.GenesisControllerPublicKey))
 	t.Logf("Identity data:\n%s", id.String())
@@ -51,7 +52,7 @@ func TestOriginBase(t *testing.T) {
 
 func TestInitOrigin(t *testing.T) {
 	privateKey := testutil.GetTestingPrivateKey()
-	id := ledger.DefaultIdentityData(privateKey)
+	id := ledger.DefaultIdentityParameters(privateKey, uint32(time.Now().Unix()))
 	store := common.NewInMemoryKVStore()
 	bootstrapSeqID, genesisRoot := multistate.InitStateStore(*id, store)
 
@@ -87,7 +88,7 @@ func TestBoostrapSequencerID(t *testing.T) {
 
 func TestLedgerIDSerDe(t *testing.T) {
 	privKey := testutil.GetTestingPrivateKey()
-	id := ledger.DefaultIdentityData(privKey)
+	id := ledger.DefaultIdentityParameters(privKey, uint32(time.Now().Unix()))
 	idBytes := id.Bytes()
 	idBack := ledger.MustIdentityDataFromBytes(idBytes)
 	//t.Logf(hex.EncodeToString(idBytes))

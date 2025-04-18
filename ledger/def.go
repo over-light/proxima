@@ -1,6 +1,11 @@
 package ledger
 
 import (
+	"fmt"
+	"time"
+
+	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
@@ -89,14 +94,131 @@ const (
 	ConstraintIndexFirstOptionalConstraint
 )
 
-func (lib *Library) upgrade0(id *IdentityData) {
+func LibraryFromIdentityParameters(id *IdentityParameters, verbose ...bool) *Library {
+	ret := newBaseLibrary()
+	if len(verbose) > 0 && verbose[0] {
+		fmt.Printf("------ Base EasyFL library:\n")
+		ret.PrintLibraryStats()
+	}
+
+	ret.upgrade0(id)
+
+	if len(verbose) > 0 && verbose[0] {
+		fmt.Printf("------ Extended EasyFL library:\n")
+		ret.PrintLibraryStats()
+	}
+	return ret
+}
+
+func LibraryYAMLFromIdentityParameters(id *IdentityParameters, compiled bool) []byte {
+	return LibraryFromIdentityParameters(id).ToYAML(compiled, "# Proxima ledger definitions")
+}
+
+func ParseLedgerIdYAML(yamlData []byte, getResolver ...func(lib *easyfl.Library) func(sym string) easyfl.EmbeddedFunction) (*easyfl.Library, *IdentityParameters, error) {
+	lib, err := easyfl.NewLibraryFromYAML(yamlData, getResolver...)
+	if err != nil {
+		return nil, nil, err
+	}
+	idParams, err := idParametersFromLibrary(lib)
+	if err != nil {
+		return nil, nil, err
+	}
+	return lib, idParams, nil
+}
+
+func _uint64FromConst(lib *easyfl.Library, constName string) (uint64, error) {
+	res, err := lib.EvalFromSource(nil, constName)
+	if err != nil {
+		return 0, err
+	}
+	return easyfl_util.Uint64FromBytes(res)
+}
+
+func idParametersFromLibrary(lib *easyfl.Library) (*IdentityParameters, error) {
+	ret := &IdentityParameters{}
+	var err error
+	var res []byte
+	if ret.InitialSupply, err = _uint64FromConst(lib, "constInitialSupply"); err != nil {
+		return nil, err
+	}
+	if res, err = lib.EvalFromSource(nil, "constGenesisControllerPublicKey"); err != nil {
+		return nil, err
+	}
+	ret.GenesisControllerPublicKey = res
+	if gt, err := _uint64FromConst(lib, "constGenesisTimeUnix"); err != nil {
+		return nil, err
+	} else {
+		ret.GenesisTimeUnix = uint32(gt)
+	}
+	if td, err := _uint64FromConst(lib, "constTickDuration"); err != nil {
+		return nil, err
+	} else {
+		ret.TickDuration = time.Duration(td)
+	}
+	if ret.SlotInflationBase, err = _uint64FromConst(lib, "constSlotInflationBase"); err != nil {
+		return nil, err
+	}
+	if ret.LinearInflationSlots, err = _uint64FromConst(lib, "constLinearInflationSlots"); err != nil {
+		return nil, err
+	}
+	if ret.BranchInflationBonusBase, err = _uint64FromConst(lib, "constBranchInflationBonusBase"); err != nil {
+		return nil, err
+	}
+	if ret.MinimumAmountOnSequencer, err = _uint64FromConst(lib, "constMinimumAmountOnSequencer"); err != nil {
+		return nil, err
+	}
+	if ret.MaxNumberOfEndorsements, err = _uint64FromConst(lib, "constMaxNumberOfEndorsements"); err != nil {
+		return nil, err
+	}
+	if pb, err := _uint64FromConst(lib, "constPreBranchConsolidationTicks"); err != nil {
+		return nil, err
+	} else {
+		if pb > 255 {
+			return nil, fmt.Errorf("invalid pre branch consolidation ticks")
+		}
+		ret.PreBranchConsolidationTicks = byte(pb)
+	}
+	if pb, err := _uint64FromConst(lib, "constPostBranchConsolidationTicks"); err != nil {
+		return nil, err
+	} else {
+		if pb > 255 {
+			return nil, fmt.Errorf("invalid post branch consolidation ticks")
+		}
+		ret.PostBranchConsolidationTicks = byte(pb)
+	}
+	if tp, err := _uint64FromConst(lib, "constTransactionPace"); err != nil {
+		return nil, err
+	} else {
+		if tp > 255 {
+			return nil, fmt.Errorf("invalid transaction pace")
+		}
+		ret.TransactionPace = byte(tp)
+	}
+	if tp, err := _uint64FromConst(lib, "constTransactionPaceSequencer"); err != nil {
+		return nil, err
+	} else {
+		if tp > 255 {
+			return nil, fmt.Errorf("invalid sequencer transaction pace")
+		}
+		ret.TransactionPaceSequencer = byte(tp)
+	}
+	if ret.VBCost, err = _uint64FromConst(lib, "constVBCost16"); err != nil {
+		return nil, err
+	}
+	if res, err = lib.EvalFromSource(nil, "constDescription"); err != nil {
+		ret.Description = string(res)
+	}
+	return ret, nil
+}
+
+func (lib *Library) upgrade0(id *IdentityParameters) {
 	lib.ID = id
 
 	err := base.EmbedHardcoded(lib.Library)
 	util.AssertNoError(err)
 
 	// add main ledger constants
-	err = lib.UpgradeFromYAML(_definitionsLedgerConstantsYAML(id.GenesisControllerPublicKey, uint64(id.GenesisTimeUnix)))
+	err = lib.UpgradeFromYAML(ConstantsYAMLFromIdentity(id))
 	util.AssertNoError(err)
 
 	// add base helpers

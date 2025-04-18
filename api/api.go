@@ -17,7 +17,7 @@ const (
 	PrefixTxAPIV1     = "/txapi/v1"
 	PrefixWebSocketV1 = "/wsapi/v1"
 
-	PathGetLedgerID                      = PrefixAPIV1 + "/get_ledger_id"
+	PathGetLedgerIDData                  = PrefixAPIV1 + "/get_ledger_id_data"
 	PathGetAccountOutputs                = PrefixAPIV1 + "/get_account_outputs"
 	PathGetAccountParsedOutputs          = PrefixAPIV1 + "/get_account_parsed_outputs"
 	PathGetAccountSimpleSiglockedOutputs = PrefixAPIV1 + "/get_account_simple_siglocked"

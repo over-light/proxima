@@ -3,15 +3,17 @@ package tests
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLoad(t *testing.T) {
 	id, _ := ledger.GetTestingIdentityData()
-	lib := ledger.InitLocally(id, true)
+	lib := ledger.LibraryFromIdentityParameters(id, true)
 	t.Logf("------------------\n%s", lib.ID.String())
 	t.Logf("------------------\n%s", string(lib.ID.YAML()))
 	t.Logf("------------------\n%s", lib.ID.TimeConstantsToString())
@@ -47,4 +49,11 @@ func TestLedgerToYAMLFile(t *testing.T) {
 	libBack, err := easyfl.NewLibraryFromYAML(yamlData)
 	require.NoError(t, err)
 	require.EqualValues(t, h, libBack.LibraryHash())
+}
+
+func TestLedgerConstantsYAML(t *testing.T) {
+	pk := testutil.GetTestingPrivateKey(1)
+	id := ledger.DefaultIdentityParameters(pk, uint32(time.Now().UnixNano()), "---- testing the description ----")
+	yamlData := ledger.ConstantsYAMLFromIdentity(id)
+	t.Logf("\n%s", string(yamlData))
 }

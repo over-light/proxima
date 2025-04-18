@@ -23,7 +23,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/txutils"
-	"github.com/lunfardo314/unitrie/common"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -88,9 +87,9 @@ func NewWithGoogleDNS(serverURL string, timeout ...time.Duration) *APIClient {
 	}
 }
 
-// GetLedgerID retrieves ledger id from server
-func (c *APIClient) GetLedgerID() (*ledger.IdentityData, error) {
-	body, err := c.getBody(api.PathGetLedgerID)
+// GetLedgerIdentityData retrieves ledger identity YAML from server
+func (c *APIClient) GetLedgerIdentityData() ([]byte, error) {
+	body, err := c.getBody(api.PathGetLedgerIDData)
 	if err != nil {
 		return nil, err
 	}
@@ -108,15 +107,7 @@ func (c *APIClient) GetLedgerID() (*ledger.IdentityData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetLedgerID: error while decoding data: %w", err)
 	}
-	var ret *ledger.IdentityData
-	err = common.CatchPanicOrError(func() error {
-		ret = ledger.MustIdentityDataFromBytes(idBin)
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("GetLedgerID: error while parsing received data: %w", err)
-	}
-	return ret, nil
+	return idBin, nil
 }
 
 // getAccountOutputs fetches all outputs of the account. Optionally sorts them on the server

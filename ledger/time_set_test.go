@@ -13,7 +13,7 @@ func TestTimeConstSet(t *testing.T) {
 	const d = 10 * time.Millisecond
 	id, _ := GetTestingIdentityData()
 	id.SetTickDuration(d)
-	Init(id)
+	InitGlobal(id)
 	t.Logf("\n%s", L().ID.TimeConstantsToString())
 	require.EqualValues(t, d, TickDuration())
 	t.Logf("------------------\n%s", id.String())
