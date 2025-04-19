@@ -108,8 +108,8 @@ func (c *ConditionalLock) Master() Accountable {
 	return nil
 }
 
-func addConditionalLock(lib *Library) {
-	lib.extendWithConstraint(ConditionalLockName, conditionalLockSource, 8, func(data []byte) (Constraint, error) {
+func registerConditionalLock(lib *Library) {
+	lib.mustRegisterConstraint(ConditionalLockName, 8, func(data []byte) (Constraint, error) {
 		return ConditionalLockFromBytes(data)
 	})
 }

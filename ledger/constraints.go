@@ -55,8 +55,7 @@ type (
 	}
 )
 
-func (lib *Library) extendWithConstraint(name, source string, nArgs byte, parser Parser, inlineTests ...func()) {
-	lib.MustExtendMany(source)
+func (lib *Library) mustRegisterConstraint(name string, nArgs byte, parser Parser, inlineTests ...func()) {
 	prefix, err := lib.FunctionCallPrefixByName(name, nArgs)
 	util.AssertNoError(err)
 	_, already := lib.constraintNames[name]

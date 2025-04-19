@@ -47,8 +47,8 @@ func NewTotalAmount(a uint64) TotalAmount {
 	return TotalAmount(a)
 }
 
-func addTotalAmountConstraint(lib *Library) {
-	lib.extendWithConstraint(TotalAmountConstraintName, totalAmountSource, 1, func(data []byte) (Constraint, error) {
+func registerTotalAmountConstraint(lib *Library) {
+	lib.mustRegisterConstraint(TotalAmountConstraintName, 1, func(data []byte) (Constraint, error) {
 		return TotalAmountFromBytes(data)
 	}, initTestTotalAmountConstraint)
 }

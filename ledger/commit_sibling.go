@@ -70,8 +70,8 @@ func (cs *CommitToSibling) String() string {
 	return cs.Source()
 }
 
-func addCommitToSiblingConstraint(lib *Library) {
-	lib.extendWithConstraint(CommitToSiblingName, commitToSiblingSource, 2, func(data []byte) (Constraint, error) {
+func registerCommitToSiblingConstraint(lib *Library) {
+	lib.mustRegisterConstraint(CommitToSiblingName, 2, func(data []byte) (Constraint, error) {
 		return CommitToSiblingFromBytes(data)
 	}, initTestCommitToSiblingConstraint)
 }

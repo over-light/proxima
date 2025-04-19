@@ -83,7 +83,7 @@ func RandomTransactionID(sequencerFlag bool, maxOutIdx byte, timestamp ...base.L
 	var hash TransactionIDShort
 	_, _ = rand.Read(hash[:])
 	hash[0] = maxOutIdx
-	ts := TimeNow()
+	ts := base.RandomLedgerTime()
 	if len(timestamp) > 0 {
 		ts = timestamp[0]
 	}

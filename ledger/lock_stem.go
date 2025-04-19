@@ -59,8 +59,8 @@ func (st *StemLock) Master() Accountable {
 	return nil
 }
 
-func addStemLockConstraint(lib *Library) {
-	lib.extendWithConstraint(StemLockName, stemLockSource, 2, func(data []byte) (Constraint, error) {
+func registerStemLockConstraint(lib *Library) {
+	lib.mustRegisterConstraint(StemLockName, 2, func(data []byte) (Constraint, error) {
 		return StemLockFromBytes(data)
 	}, initTestStemLockConstraint)
 }

@@ -176,8 +176,8 @@ func SequencerConstraintFromBytes(data []byte) (*SequencerConstraint, error) {
 	}, nil
 }
 
-func addSequencerConstraint(lib *Library) {
-	lib.extendWithConstraint(SequencerConstraintName, sequencerConstraintSource, 2, func(data []byte) (Constraint, error) {
+func registerSequencerConstraint(lib *Library) {
+	lib.mustRegisterConstraint(SequencerConstraintName, 2, func(data []byte) (Constraint, error) {
 		return SequencerConstraintFromBytes(data)
 	}, initTestSequencerConstraint)
 }

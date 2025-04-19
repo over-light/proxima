@@ -186,8 +186,8 @@ func (d *DelegationLock) Master() Accountable {
 	return d.OwnerLock
 }
 
-func addDelegationLock(lib *Library) {
-	lib.extendWithConstraint(DelegationLockName, delegationLockSource, 5, func(data []byte) (Constraint, error) {
+func registerDelegationLock(lib *Library) {
+	lib.mustRegisterConstraint(DelegationLockName, 5, func(data []byte) (Constraint, error) {
 		return DelegationLockFromBytes(data)
 	}, initTestDelegationConstraint)
 }

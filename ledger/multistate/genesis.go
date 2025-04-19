@@ -23,21 +23,24 @@ func CommitEmptyRootWithLedgerIdentity(id []byte, store StateStore) (common.VCom
 // InitStateStore initializes origin ledger state in the empty store
 // Writes initial supply and origin stem outputs. Plus writes root record into the DB
 // Returns root commitment to the genesis ledger state and genesis chainID
-func InitStateStore(par *ledger.IdentityParameters, idData []byte, store StateStore) (ledger.ChainID, common.VCommitment) {
+func InitStateStore(idParams *ledger.IdentityParameters, idData []byte, store StateStore) (ledger.ChainID, common.VCommitment) {
 	emptyRoot, err := CommitEmptyRootWithLedgerIdentity(idData, store)
 	util.AssertNoError(err)
 
-	genesisAddr := ledger.AddressED25519FromPublicKey(par.GenesisControllerPublicKey)
-	gout := ledger.GenesisOutput(par.InitialSupply, genesisAddr)
+	genesisAddr := ledger.AddressED25519FromPublicKey(idParams.GenesisControllerPublicKey)
+
+	// TODO this makes InitStateStore dependent on the global singleton and idParams with idData redundant
+	//   get rid of this dependency
+	gout := ledger.GenesisOutput(idParams.InitialSupply, genesisAddr)
 	gStemOut := ledger.GenesisStemOutput()
 
 	updatable := MustNewUpdatable(store, emptyRoot)
 	updatable.MustUpdate(genesisUpdateMutations(&gout.OutputWithID, gStemOut), &RootRecordParams{
 		StemOutputID:      gStemOut.ID,
 		SeqID:             gout.ChainID,
-		Coverage:          par.InitialSupply,
-		SlotInflation:     par.InitialSupply,
-		Supply:            par.InitialSupply,
+		Coverage:          idParams.InitialSupply,
+		SlotInflation:     idParams.InitialSupply,
+		Supply:            idParams.InitialSupply,
 		WriteEarliestSlot: true,
 	})
 	return gout.ChainID, updatable.Root()
@@ -88,5 +91,5 @@ func ScanGenesisState(stateStore StateStore) (*ledger.IdentityParameters, common
 }
 
 func InitLedgerFromStore(stateStore StateStore, verbose ...bool) {
-	ledger.InitGlobal(LedgerIdentityBytesFromStore(stateStore))
+	ledger.MustInitSingleton(LedgerIdentityBytesFromStore(stateStore))
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 
 	"github.com/lunfardo314/proxima/util"
 )
@@ -196,4 +197,20 @@ func MaximumTime(ts ...LedgerTime) LedgerTime {
 	return util.Maximum(ts, func(ts1, ts2 LedgerTime) bool {
 		return ts1.Before(ts2)
 	})
+}
+
+func RandomSlot() Slot {
+	return Slot(rand.Uint32())
+}
+
+func RandomTick() Tick {
+	return Tick(rand.Intn(256))
+}
+
+func RandomLedgerTime(ticks ...Tick) (ret LedgerTime) {
+	ret.Slot = RandomSlot()
+	if len(ticks) > 0 {
+		ret.Tick = ticks[0]
+	}
+	return
 }

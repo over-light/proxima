@@ -58,8 +58,8 @@ func (d *Immutable) String() string {
 	return d.Source()
 }
 
-func addImmutableConstraint(lib *Library) {
-	lib.extendWithConstraint(ImmutableName, immutableDataSource, 1, func(data []byte) (Constraint, error) {
+func registerImmutableConstraint(lib *Library) {
+	lib.mustRegisterConstraint(ImmutableName, 1, func(data []byte) (Constraint, error) {
 		return ImmutableFromBytes(data)
 	}, initTestImmutableConstraint)
 }
@@ -75,7 +75,7 @@ func initTestImmutableConstraint() {
 	util.AssertNoError(err)
 }
 
-const immutableDataSource = `
+const immutableDataConstraintSource = `
 
 // constraint 'immutable(c)' makes the sibling constraint immutable in the chain
 // It requires unlock parameters 2-byte long:

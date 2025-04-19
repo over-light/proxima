@@ -9,6 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 )
 
+// TODO experimental!!!
 // the RoyaltiesED25519 constraint forces sending specified amount of tokens to specified address
 
 type RoyaltiesED25519 struct {
@@ -64,8 +65,8 @@ func (cl *RoyaltiesED25519) String() string {
 	return cl.Source()
 }
 
-func addRoyaltiesED25519Constraint(lib *Library) {
-	lib.extendWithConstraint(RoyaltiesED25519Name, royaltiesED25519Source, 2, func(data []byte) (Constraint, error) {
+func registerRoyaltiesED25519Constraint(lib *Library) {
+	lib.mustRegisterConstraint(RoyaltiesED25519Name, 2, func(data []byte) (Constraint, error) {
 		return RoyaltiesED25519FromBytes(data)
 	}, initTestRoyaltiesED25519Constraint)
 }

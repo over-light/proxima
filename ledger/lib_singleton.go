@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -23,15 +22,16 @@ func L() *Library {
 	return libraryGlobal
 }
 
-func InitGlobal(identityData []byte) {
+func MustInitSingleton(identityData []byte) {
 	libraryGlobalMutex.Lock()
 
 	util.Assertf(libraryGlobal == nil, "ledger is already initialized")
 
-	lib, err := easyfl.NewLibraryFromYAML(identityData, base.GetEmbeddedFunctionResolver)
+	lib, idParams, err := ParseLedgerIdYAML(identityData, base.GetEmbeddedFunctionResolver)
 	util.AssertNoError(err)
 
-	libraryGlobal = newLibrary(lib)
+	libraryGlobal = newLibrary(lib, idParams)
+	libraryGlobal.registerConstraints()
 
 	libraryGlobalMutex.Unlock()
 
@@ -45,7 +45,7 @@ func InitWithTestingLedgerIDData(opts ...func(data *IdentityParameters)) ed25519
 		opt(id)
 	}
 	lib := LibraryFromIdentityParameters(id)
-	InitGlobal(lib.ToYAML(true))
+	MustInitSingleton(lib.ToYAML(true))
 	return pk
 }
 

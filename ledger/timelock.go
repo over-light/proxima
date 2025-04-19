@@ -68,8 +68,8 @@ func TimelockFromBytes(data []byte) (Timelock, error) {
 	return Timelock(ret), nil
 }
 
-func addTimeLockConstraint(lib *Library) {
-	lib.extendWithConstraint(TimelockName, timelockSource, 1, func(data []byte) (Constraint, error) {
+func registerTimeLockConstraint(lib *Library) {
+	lib.mustRegisterConstraint(TimelockName, 1, func(data []byte) (Constraint, error) {
 		return TimelockFromBytes(data)
 	}, initTestTimelockConstraint)
 }

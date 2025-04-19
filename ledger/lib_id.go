@@ -25,9 +25,10 @@ type (
 	}
 )
 
-func newLibrary(lib *easyfl.Library) *Library {
+func newLibrary(lib *easyfl.Library, idParams *IdentityParameters) *Library {
 	ret := &Library{
 		Library:            lib,
+		ID:                 idParams,
 		constraintByPrefix: make(map[string]*constraintRecord),
 		constraintNames:    make(map[string]struct{}),
 		inlineTests:        make([]func(), 0),
@@ -35,8 +36,8 @@ func newLibrary(lib *easyfl.Library) *Library {
 	return ret
 }
 
-func newBaseLibrary() *Library {
-	return newLibrary(easyfl.NewBaseLibrary())
+func newBaseLibrary(id *IdentityParameters) *Library {
+	return newLibrary(easyfl.NewBaseLibrary(), id)
 }
 
 func (lib *Library) Const() LibraryConst {

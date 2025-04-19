@@ -94,19 +94,20 @@ const (
 	ConstraintIndexFirstOptionalConstraint
 )
 
-func LibraryFromIdentityParameters(id *IdentityParameters, verbose ...bool) *Library {
-	ret := newBaseLibrary()
+func LibraryFromIdentityParameters(idParams *IdentityParameters, verbose ...bool) *Library {
+	ret := newBaseLibrary(idParams)
 	if len(verbose) > 0 && verbose[0] {
 		fmt.Printf("------ Base EasyFL library:\n")
 		ret.PrintLibraryStats()
 	}
 
-	ret.upgrade0(id)
+	upgrade0(ret.Library, idParams)
 
 	if len(verbose) > 0 && verbose[0] {
 		fmt.Printf("------ Extended EasyFL library:\n")
 		ret.PrintLibraryStats()
 	}
+	ret.ID = idParams
 	return ret
 }
 
@@ -212,10 +213,8 @@ func idParametersFromLibrary(lib *easyfl.Library) (*IdentityParameters, error) {
 	return ret, nil
 }
 
-func (lib *Library) upgrade0(id *IdentityParameters) {
-	lib.ID = id
-
-	err := base.EmbedHardcoded(lib.Library)
+func upgrade0(lib *easyfl.Library, id *IdentityParameters) {
+	err := base.EmbedHardcoded(lib)
 	util.AssertNoError(err)
 
 	// add main ledger constants
@@ -230,7 +229,43 @@ func (lib *Library) upgrade0(id *IdentityParameters) {
 	err = lib.UpgradeFromYAML([]byte(_definitionsGeneralYAML))
 	util.AssertNoError(err)
 
-	lib.upgrade0WithConstraints()
+	upgrade0WithConstraintsSources(lib)
+
+}
+
+func upgrade0WithConstraintsSources(lib *easyfl.Library) {
+	lib.MustExtendMany(amountSource)
+	lib.MustExtendMany(addressED25519ConstraintSource)
+	lib.MustExtendMany(conditionalLockSource)
+	lib.MustExtendMany(deadlineLockSource)
+	lib.MustExtendMany(timelockSource)
+	lib.MustExtendMany(chainConstraintSource)
+	lib.MustExtendMany(stemLockSource)
+	lib.MustExtendMany(sequencerConstraintSource)
+	lib.MustExtendMany(inflationConstraintSource)
+	lib.MustExtendMany(senderED25519Source)
+	lib.MustExtendMany(chainLockConstraintSource)
+	lib.MustExtendMany(immutableDataConstraintSource)
+	lib.MustExtendMany(commitToSiblingSource)
+	lib.MustExtendMany(delegationLockSource)
+}
+
+// registerConstraints mass-registers all wrappers of constraints
+func (lib *Library) registerConstraints() {
+	registerAmountConstraint(lib)
+	registerAddressED25519Constraint(lib)
+	registerConditionalLock(lib)
+	registerDeadlineLockConstraint(lib)
+	registerTimeLockConstraint(lib)
+	registerChainConstraint(lib)
+	registerStemLockConstraint(lib)
+	registerSequencerConstraint(lib)
+	registerInflationConstraint(lib)
+	registerSenderED25519Constraint(lib)
+	registerChainLockConstraint(lib)
+	registerImmutableConstraint(lib)
+	registerCommitToSiblingConstraint(lib)
+	registerDelegationLock(lib)
 
 	lib.appendInlineTests(func() {
 		// inline tests
@@ -242,23 +277,5 @@ func (lib *Library) upgrade0(id *IdentityParameters) {
 		libraryGlobal.MustError("mustValidTimeTick(200)", "'wrong ticks value'")
 		libraryGlobal.MustEqual("div(constInitialSupply, constSlotInflationBase)", "u64/30303030")
 	})
-}
 
-func (lib *Library) upgrade0WithConstraints() {
-	addAmountConstraint(lib)
-	addAddressED25519Constraint(lib)
-	addConditionalLock(lib)
-	addDeadlineLockConstraint(lib)
-	addTimeLockConstraint(lib)
-	addChainConstraint(lib)
-	addStemLockConstraint(lib)
-	addSequencerConstraint(lib)
-	addInflationConstraint(lib)
-	addSenderED25519Constraint(lib)
-	addChainLockConstraint(lib)
-	//addRoyaltiesED25519Constraint(lib)
-	addImmutableConstraint(lib)
-	addCommitToSiblingConstraint(lib)
-	//addTotalAmountConstraint(lib)
-	addDelegationLock(lib)
 }

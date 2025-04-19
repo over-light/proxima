@@ -73,8 +73,8 @@ func SenderED25519FromBytes(data []byte) (*SenderED25519, error) {
 	return &SenderED25519{addr}, nil
 }
 
-func addSenderED25519Constraint(lib *Library) {
-	lib.extendWithConstraint(SenderAddressED25519Name, senderED25519Source, 1, func(data []byte) (Constraint, error) {
+func registerSenderED25519Constraint(lib *Library) {
+	lib.mustRegisterConstraint(SenderAddressED25519Name, 1, func(data []byte) (Constraint, error) {
 		return SequencerConstraintFromBytes(data)
 	}, initTestSenderED25519Constraint)
 }

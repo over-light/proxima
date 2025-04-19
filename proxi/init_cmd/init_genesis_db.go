@@ -70,6 +70,8 @@ func runGenesis(_ *cobra.Command, _ []string) {
 	stateStore := badger_adaptor.New(stateDb)
 	defer func() { _ = stateStore.Close() }()
 
+	ledger.MustInitSingleton(idDataYAML)
+
 	bootstrapChainID, _ := multistate.InitStateStore(idParams, idDataYAML, stateStore)
 	glb.Infof("Genesis state DB '%s' has been created successfully.\nBootstrap sequencer chainID: %s", global.MultiStateDBName, bootstrapChainID.String())
 }
