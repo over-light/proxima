@@ -51,6 +51,7 @@ func GetEmbeddedFunctionResolver(lib *easyfl.Library) func(sym string) easyfl.Em
 	}
 }
 
+// EmbedHardcoded upgrades library with hardcoded (embedded) functions of the proxima ledger
 func EmbedHardcoded(lib *easyfl.Library) error {
 	return lib.UpgradeFromYAML([]byte(_definitionsEmbeddedYAML), GetEmbeddedFunctionResolver(lib))
 }

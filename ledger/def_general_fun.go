@@ -1,63 +1,7 @@
 package ledger
 
-const _definitionsGeneralYAML = `
+const _generalFunctionsYAML = `
 functions:
-   -
-      sym: pathToTransaction
-      numArgs: 0
-      source: 0
-   -
-      sym: pathToConsumedOutputs
-      numArgs: 0
-      source: 0x0100
-   -
-      sym: pathToProducedOutputs
-      numArgs: 0
-      source: 0x0002
-   -
-      sym: pathToUnlockParams
-      numArgs: 0
-      source: 0x0001
-   -
-      sym: pathToInputIDs
-      numArgs: 0
-      source: 0x0000
-   -
-      sym: pathToSignature
-      numArgs: 0
-      source: 0x0003
-   -
-      sym: pathToSeqAndStemOutputIndices
-      numArgs: 0
-      source: 0x0004
-   -
-      sym: pathToInputCommitment
-      numArgs: 0
-      source: 0x0007
-   -
-      sym: pathToEndorsements
-      numArgs: 0
-      source: 0x0008
-   -
-      sym: pathToExplicitBaseline
-      numArgs: 0
-      source: 0x0009
-   -
-      sym: pathToTimestamp
-      numArgs: 0
-      source: 0x0005
-   -
-      sym: pathToTotalProducedAmount
-      numArgs: 0
-      source: 0x0006
-   -
-      sym: amountConstraintIndex
-      numArgs: 0
-      source: 0
-   -
-      sym: lockConstraintIndex
-      numArgs: 0
-      source: 1
    -
       sym: amountConstraint
       numArgs: 1

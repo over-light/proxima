@@ -23,7 +23,7 @@ type IdentityParameters struct {
 	TickDuration time.Duration
 	// ----------- begin inflation-related
 	SlotInflationBase    uint64 // constant C
-	LinearInflationSlots uint64 // constant labda
+	LinearInflationSlots uint64 // constant lambda
 	// BranchInflationBonusBase inflation bonus
 	BranchInflationBonusBase uint64
 	// ----------- end inflation-related

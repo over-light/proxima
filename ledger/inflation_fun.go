@@ -43,7 +43,7 @@ func (lib *Library) BranchInflationBonusFromRandomnessProof(proof []byte) uint64
 	return binary.BigEndian.Uint64(res)
 }
 
-const inflationFunctionsSource = `
+const _inflationFunctionsSource = `
 
 // aux value
 // $0 predecessor timestamp bytes
