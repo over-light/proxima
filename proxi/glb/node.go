@@ -16,9 +16,14 @@ var (
 
 var displayEndpointOnce sync.Once
 
-func GetClient() *client.APIClient {
-	endpoint := viper.GetString("api.endpoint")
-	Assertf(endpoint != "", "GetClient: node API endpoint not specified")
+func GetClient(endpoint ...string) *client.APIClient {
+	endp := ""
+	if len(endpoint) > 0 {
+		endp = endpoint[0]
+	} else {
+		endp = viper.GetString("api.endpoint")
+	}
+	Assertf(endp != "", "GetClient: node API endpoint not specified")
 	var timeout []time.Duration
 	if timeoutSec := viper.GetInt("api.timeout_sec"); timeoutSec > 0 {
 		timeout = []time.Duration{time.Duration(timeoutSec) * time.Second}
@@ -30,7 +35,7 @@ func GetClient() *client.APIClient {
 			Infof("using API endpoint: %s, timeout: %v", endpoint, timeout[0])
 		}
 	})
-	return client.NewWithGoogleDNS(endpoint, timeout...)
+	return client.NewWithGoogleDNS(endp, timeout...)
 }
 
 func InitLedgerFromNode() {

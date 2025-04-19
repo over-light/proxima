@@ -93,21 +93,7 @@ func (c *APIClient) GetLedgerIdentityData() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var res api.LedgerID
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, err
-	}
-	if res.Error.Error != "" {
-		return nil, fmt.Errorf("GetLedgerID: from server: %s", res.Error.Error)
-	}
-
-	idBin, err := hex.DecodeString(res.LedgerIDBytes)
-	if err != nil {
-		return nil, fmt.Errorf("GetLedgerID: error while decoding data: %w", err)
-	}
-	return idBin, nil
+	return body, nil
 }
 
 // getAccountOutputs fetches all outputs of the account. Optionally sorts them on the server

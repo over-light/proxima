@@ -60,12 +60,6 @@ type (
 		Error string `json:"error,omitempty"`
 	}
 
-	LedgerID struct {
-		Error
-		// hex-encoded ledger id bytes
-		LedgerIDBytes string `json:"ledger_id_bytes,omitempty"`
-	}
-
 	// OutputList is returned by 'get_account_outputs'
 	OutputList struct {
 		Error

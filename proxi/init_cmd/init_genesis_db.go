@@ -1,6 +1,8 @@
 package init_cmd
 
 import (
+	"encoding/hex"
+	"fmt"
 	"os"
 
 	"github.com/dgraph-io/badger/v4"
@@ -14,16 +16,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-var fetchLedgerID bool
+var remoteEndpoint string
 
 func initGenesisDBCmd() *cobra.Command {
 	genesisCmd := &cobra.Command{
-		Use:   "genesis_db",
-		Short: "creates multi-state DB and initializes genesis ledger state init according ledger id data taken either from (1) 'proxi.genesis.id.yaml' (default) or (2) from another node",
-		Args:  cobra.NoArgs,
-		Run:   runGenesis,
+		Use: "genesis_db",
+		Short: fmt.Sprintf("creates multi-state DB and initializes genesis ledger state init according "+
+			"ledger id data taken either from file '%s' (default) or from another API endpoint specified with flag -r", glb.LedgerIDFileName),
+		Args: cobra.NoArgs,
+		Run:  runGenesis,
 	}
-	genesisCmd.PersistentFlags().BoolVarP(&fetchLedgerID, "remote", "r", false, "fetch ledger identity data from remote API endpoint")
+	genesisCmd.PersistentFlags().StringVarP(&remoteEndpoint, "remote", "r", "", "remote API endpoint to fetch ledger identity data from")
 	err := viper.BindPFlag("remote", genesisCmd.PersistentFlags().Lookup("remote"))
 	glb.AssertNoError(err)
 
@@ -36,10 +39,10 @@ func runGenesis(_ *cobra.Command, _ []string) {
 	var err error
 	var idDataYAML []byte
 
-	if fetchLedgerID {
+	if remoteEndpoint != "" {
 		glb.ReadInConfig()
-		glb.Infof("retrieving ledger identity data from '%s'", viper.GetString("api.endpoint"))
-		idDataYAML, err = glb.GetClient().GetLedgerIdentityData()
+		glb.Infof("retrieving ledger identity data from '%s'", remoteEndpoint)
+		idDataYAML, err = glb.GetClient(remoteEndpoint).GetLedgerIdentityData()
 		glb.AssertNoError(err)
 	} else {
 		glb.Infof("reading ledger identity data from file '%s'", glb.LedgerIDFileName)
@@ -48,11 +51,14 @@ func runGenesis(_ *cobra.Command, _ []string) {
 		glb.AssertNoError(err)
 	}
 
-	_, idParams, err := ledger.ParseLedgerIdYAML(idDataYAML, base.GetEmbeddedFunctionResolver)
+	// parse and validate
+	lib, idParams, err := ledger.ParseLedgerIdYAML(idDataYAML, base.GetEmbeddedFunctionResolver)
 	glb.AssertNoError(err)
 
 	glb.Infof("Will be creating genesis with the following ledger identity parameters:")
 	glb.Infof(idParams.Lines("      ").String())
+	h := lib.LibraryHash()
+	glb.Infof("library hash: %s", hex.EncodeToString(h[:]))
 	glb.Infof("Multi-state database name: '%s'", global.MultiStateDBName)
 
 	if !glb.YesNoPrompt("Proceed?", true) {

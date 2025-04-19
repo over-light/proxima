@@ -143,13 +143,14 @@ func SaveSnapshot(state StateStoreReader, branch *BranchData, ctx context.Contex
 	}
 	_, _ = fmt.Fprintf(console, "[SaveSnapshot] root record:\n%s\n", branch.RootRecord.Lines("     ").String())
 
-	// write ledger identity record
+	// write ledger identity data as separate record
 	ledgerIDBytes := LedgerIdentityBytesFromRoot(state, branch.Root)
 	err = outFileStream.Write(nil, ledgerIDBytes)
 	if err != nil {
 		return makeErr(err.Error())
 	}
 
+	// parse ledger ID data to validate and to print params (not needed?)
 	_, ledgerIDParams, err := ledger.ParseLedgerIdYAML(ledgerIDBytes)
 	if err != nil {
 		return makeErr(err.Error())

@@ -46,6 +46,6 @@ func runGenValidateLedgerIDCommand(_ *cobra.Command, _ []string) {
 			glb.Infof("Genesis public key DOES NOT MATCH public key of the wallet")
 		}
 	}
-	glb.Infof("ledger ID data in '%s' is OK. Size: %d bytes. Parameters:\n-------------------\n%s",
+	glb.Infof("ledger ID data in '%s' is OK. Size: %d bytes\nMain ledger parameters:\n-------------------\n%s",
 		glb.LedgerIDFileName, len(yamlData), idParams.Lines("      ").String())
 }

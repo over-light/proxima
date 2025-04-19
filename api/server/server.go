@@ -102,17 +102,7 @@ func (srv *server) getLedgerIDData(w http.ResponseWriter, _ *http.Request) {
 	api.SetHeader(w)
 
 	srv.Tracef(TraceTag, "getLedgerIDData invoked")
-
-	multistate.LedgerIdentityBytesFromStore(srv.StateStore())
-	resp := &api.LedgerID{
-		LedgerIDBytes: hex.EncodeToString(multistate.LedgerIdentityBytesFromStore(srv.StateStore())),
-	}
-	respBin, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		api.WriteErr(w, err.Error())
-		return
-	}
-	_, err = w.Write(respBin)
+	_, err := w.Write(multistate.LedgerIdentityBytesFromStore(srv.StateStore()))
 	util.AssertNoError(err)
 }
 
