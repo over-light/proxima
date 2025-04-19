@@ -229,11 +229,8 @@ func upgrade0(lib *easyfl.Library, id *IdentityParameters) {
 	err = lib.UpgradeFromYAML([]byte(_definitionsGeneralYAML))
 	util.AssertNoError(err)
 
-	upgrade0WithConstraintsSources(lib)
+	lib.MustExtendMany(inflationFunctionsSource)
 
-}
-
-func upgrade0WithConstraintsSources(lib *easyfl.Library) {
 	lib.MustExtendMany(amountSource)
 	lib.MustExtendMany(addressED25519ConstraintSource)
 	lib.MustExtendMany(conditionalLockSource)

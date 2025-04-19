@@ -39,9 +39,9 @@ func GetClient(endpoint ...string) *client.APIClient {
 }
 
 func InitLedgerFromNode() {
-	ledgerID, err := GetClient().GetLedgerIdentityData()
+	ledgerIDData, err := GetClient().GetLedgerIdentityData()
 	AssertNoError(err)
-	ledger.MustInitSingleton(ledgerID)
+	ledger.MustInitSingleton(ledgerIDData)
 	Infof("successfully connected to the node at %s", viper.GetString("api.endpoint"))
 	Infof("verbose = %v", IsVerbose())
 }

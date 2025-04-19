@@ -51,10 +51,8 @@ func TestOriginBase(t *testing.T) {
 }
 
 func TestInitOrigin(t *testing.T) {
-	privateKey := testutil.GetTestingPrivateKey()
-	id := ledger.DefaultIdentityParameters(privateKey, uint32(time.Now().Unix()))
 	store := common.NewInMemoryKVStore()
-	bootstrapSeqID, genesisRoot := multistate.InitStateStore(*id, store)
+	bootstrapSeqID, genesisRoot := multistate.InitStateStoreWithGlobalLedgerIdentity(store)
 
 	rootData := multistate.FetchAllRootRecords(store)
 	require.EqualValues(t, 1, len(rootData))
@@ -75,8 +73,6 @@ func TestInitOrigin(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, ledger.GenesisOutputID(), initSupplyOut.ID)
 
-	require.EqualValues(t, id.Bytes(), rdr.MustLedgerIdentityBytes())
-
 	require.EqualValues(t, 0, multistate.FetchLatestCommittedSlot(store))
 	require.EqualValues(t, 0, multistate.FetchEarliestSlot(store))
 }
@@ -84,14 +80,4 @@ func TestInitOrigin(t *testing.T) {
 func TestBoostrapSequencerID(t *testing.T) {
 	t.Logf("bootstrap sequencer id: %s", ledger.BoostrapSequencerID.String())
 	t.Logf("bootstrap sequencer id hex: %s", ledger.BoostrapSequencerIDHex)
-}
-
-func TestLedgerIDSerDe(t *testing.T) {
-	privKey := testutil.GetTestingPrivateKey()
-	id := ledger.DefaultIdentityParameters(privKey, uint32(time.Now().Unix()))
-	idBytes := id.Bytes()
-	idBack := ledger.MustIdentityDataFromBytes(idBytes)
-	//t.Logf(hex.EncodeToString(idBytes))
-	//t.Logf(hex.EncodeToString(idBack.Bytes()))
-	require.EqualValues(t, idBytes, idBack.Bytes())
 }

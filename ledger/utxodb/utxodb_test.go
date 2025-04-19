@@ -38,7 +38,6 @@ func TestUTXODB(t *testing.T) {
 		require.EqualValues(t, int(ledger.L().ID.InitialSupply-initFaucetBalance), int(u.Balance(u.GenesisControllerAddress())))
 		require.EqualValues(t, ledger.L().ID.InitialSupply-initFaucetBalance, onChain)
 		require.EqualValues(t, 0, controlledByChain)
-		t.Logf("State identity:\n%s", u.StateIdentityData().String())
 	})
 	t.Run("from faucet", func(t *testing.T) {
 		u := NewUTXODB(genesisPrivateKey)

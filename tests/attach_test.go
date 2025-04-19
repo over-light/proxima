@@ -34,7 +34,7 @@ func TestAttachTime(t *testing.T) {
 func TestAttachBasic(t *testing.T) {
 	t.Run("base", func(t *testing.T) {
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, root := multistate.InitStateStore(*ledger.L().ID, stateStore)
+		bootstrapChainID, root := multistate.InitStateStoreWithGlobalLedgerIdentity(stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 
@@ -62,8 +62,6 @@ func TestAttachBasic(t *testing.T) {
 	})
 	t.Run("with distribution", func(t *testing.T) {
 		//attacher.SetTraceOn()
-		privKey := testutil.GetTestingPrivateKey()
-		par := ledger.DefaultIdentityParameters(privKey)
 		addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 		addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 		distrib := []ledger.LockBalance{
@@ -73,13 +71,13 @@ func TestAttachBasic(t *testing.T) {
 		}
 
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, _ := multistate.InitStateStore(*par, stateStore)
+		bootstrapChainID, _ := multistate.InitStateStoreWithGlobalLedgerIdentity(stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
-		txBytes, err := txbuilder.DistributeInitialSupply(stateStore, privKey, distrib)
+		txBytes, err := txbuilder.DistributeInitialSupply(stateStore, genesisPrivateKey, distrib)
 		require.NoError(t, err)
 
 		distribTxID, err := transaction.IDFromTransactionBytes(txBytes)
@@ -126,8 +124,6 @@ func TestAttachBasic(t *testing.T) {
 	})
 	t.Run("sync scenario", func(t *testing.T) {
 		//attacher.SetTraceOn()
-		privKey := testutil.GetTestingPrivateKey()
-		par := ledger.DefaultIdentityParameters(privKey)
 		addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 		addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 		distrib := []ledger.LockBalance{
@@ -136,13 +132,13 @@ func TestAttachBasic(t *testing.T) {
 		}
 
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, _ := multistate.InitStateStore(*par, stateStore)
+		bootstrapChainID, _ := multistate.InitStateStoreWithGlobalLedgerIdentity(stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
-		txBytes, err := txbuilder.MakeDistributionTransaction(stateStore, privKey, distrib)
+		txBytes, err := txbuilder.MakeDistributionTransaction(stateStore, genesisPrivateKey, distrib)
 		require.NoError(t, err)
 
 		distribTxID, err := transaction.IDFromTransactionBytes(txBytes)
@@ -199,8 +195,6 @@ func TestAttachBasic(t *testing.T) {
 	})
 	t.Run("with distribution tx", func(t *testing.T) {
 		//attacher.SetTraceOn()
-		privKey := testutil.GetTestingPrivateKey()
-		par := ledger.DefaultIdentityParameters(privKey)
 		addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 		addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 		distrib := []ledger.LockBalance{
@@ -209,13 +203,13 @@ func TestAttachBasic(t *testing.T) {
 		}
 
 		stateStore := common.NewInMemoryKVStore()
-		bootstrapChainID, _ := multistate.InitStateStore(*par, stateStore)
+		bootstrapChainID, _ := multistate.InitStateStoreWithGlobalLedgerIdentity(stateStore)
 		txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 		env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 		wrk := workflow.Start(env, peering.NewPeersDummy(), workflow.OptionDisableMemDAGGC)
 
-		txBytes, err := txbuilder.DistributeInitialSupply(stateStore, privKey, distrib)
+		txBytes, err := txbuilder.DistributeInitialSupply(stateStore, genesisPrivateKey, distrib)
 		require.NoError(t, err)
 
 		waitCh := make(chan struct{})
@@ -313,7 +307,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        ts,
 			AdditionalInputs: testData.conflictingOutputs,
-			PrivateKey:       testData.genesisPrivKey,
+			PrivateKey:       genesisPrivateKey,
 		})
 		require.NoError(t, err)
 
@@ -384,7 +378,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        ts,
 			AdditionalInputs: []*ledger.OutputWithID{&outToConsume},
-			PrivateKey:       testData.genesisPrivKey,
+			PrivateKey:       genesisPrivateKey,
 		})
 
 		require.NoError(t, err)
@@ -441,7 +435,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        ts,
 			AdditionalInputs: testData.terminalOutputs,
-			PrivateKey:       testData.genesisPrivKey,
+			PrivateKey:       genesisPrivateKey,
 			ExplicitBaseline: explicitBaseline,
 		})
 		util.RequireErrorWith(t, err, "explicit baseline must be a branch transaction ID", explicitBaseline.String())
@@ -453,7 +447,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        ts,
 			AdditionalInputs: testData.terminalOutputs,
-			PrivateKey:       testData.genesisPrivKey,
+			PrivateKey:       genesisPrivateKey,
 			ExplicitBaseline: explicitBaseline,
 		})
 		require.NoError(t, err)
@@ -464,7 +458,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        ts,
 			AdditionalInputs: testData.terminalOutputs,
-			PrivateKey:       testData.genesisPrivKey,
+			PrivateKey:       genesisPrivateKey,
 		})
 		require.NoError(t, err)
 
@@ -525,7 +519,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 			ChainInput:       chainOut,
 			Timestamp:        base.MaximumTime(inTS...).AddTicks(ledger.TransactionPaceSequencer()),
 			AdditionalInputs: testData.terminalOutputs,
-			PrivateKey:       testData.genesisPrivKey,
+			PrivateKey:       genesisPrivateKey,
 		})
 		require.NoError(t, err)
 

@@ -87,7 +87,7 @@ func NewWithGoogleDNS(serverURL string, timeout ...time.Duration) *APIClient {
 	}
 }
 
-// GetLedgerIdentityData retrieves ledger identity YAML from server
+// GetLedgerIdentityData retrieves raw ledger identity YAML from server
 func (c *APIClient) GetLedgerIdentityData() ([]byte, error) {
 	body, err := c.getBody(api.PathGetLedgerIDData)
 	if err != nil {

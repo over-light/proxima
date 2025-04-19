@@ -123,7 +123,6 @@ type workflowTestData struct {
 	env                    *workflowDummyEnvironment
 	wrk                    *workflow.Workflow
 	txStore                global.TxBytesStore
-	genesisPrivKey         ed25519.PrivateKey
 	bootstrapChainID       ledger.ChainID
 	originBranchTxid       ledger.TransactionID
 	distributionBranchTxID ledger.TransactionID
@@ -134,7 +133,6 @@ type workflowTestData struct {
 	addrAux                ledger.AddressED25519
 	privKeyFaucet          ed25519.PrivateKey
 	addrFaucet             ledger.AddressED25519
-	stateIdentity          ledger.IdentityParameters
 	forkOutput             *ledger.OutputWithID
 	auxOutput              *ledger.OutputWithID
 	faucetOutput           *ledger.OutputWithID
@@ -164,23 +162,19 @@ const (
 
 func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowTestData {
 	util.Assertf(nChains > 0, "nChains > 0")
-	genesisPrivKey := testutil.GetTestingPrivateKey()
-	stateID := ledger.DefaultIdentityParameters(genesisPrivKey)
-	t.Logf("genesis state id: %s", stateID.String())
+	t.Logf("genesis state id: %s", ledger.L().ID.String())
 
 	distrib, privKeys, addrs := inittest.GenesisParamsWithPreDistribution(initBalance, uint64(nChains*initBalance+tagAlongFee), initBalance)
 	ret := &workflowTestData{
-		t:              t,
-		genesisPrivKey: genesisPrivKey,
-		stateIdentity:  *stateID,
-		privKey:        privKeys[0],
-		addr:           addrs[0],
-		privKeyAux:     privKeys[1],
-		addrAux:        addrs[1],
-		privKeyFaucet:  privKeys[2],
-		addrFaucet:     addrs[2],
+		t:             t,
+		privKey:       privKeys[0],
+		addr:          addrs[0],
+		privKeyAux:    privKeys[1],
+		addrAux:       addrs[1],
+		privKeyFaucet: privKeys[2],
+		addrFaucet:    addrs[2],
 	}
-	t.Logf("genesis addr: %s", ledger.AddressED25519FromPrivateKey(ret.genesisPrivKey).String())
+	t.Logf("genesis addr: %s", ledger.AddressED25519FromPrivateKey(genesisPrivateKey).String())
 	t.Logf("priv key addr: %s", ret.addr.String())
 	t.Logf("aux key addr: %s", ret.addrAux.String())
 	t.Logf("faucet addr: %s", ret.addrFaucet.String())
@@ -191,8 +185,8 @@ func initWorkflowTest(t *testing.T, nChains int, startPruner ...bool) *workflowT
 	ret.txStore = txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 
 	var genesisRoot common.VCommitment
-	ret.bootstrapChainID, genesisRoot = multistate.InitStateStore(ret.stateIdentity, stateStore)
-	txBytes, err := txbuilder.DistributeInitialSupply(stateStore, genesisPrivKey, distrib)
+	ret.bootstrapChainID, genesisRoot = multistate.InitStateStoreWithGlobalLedgerIdentity(stateStore)
+	txBytes, err := txbuilder.DistributeInitialSupply(stateStore, genesisPrivateKey, distrib)
 	require.NoError(t, err)
 	_, err = ret.txStore.PersistTxBytesWithMetadata(txBytes, nil)
 	require.NoError(t, err)
@@ -618,7 +612,7 @@ func initLongConflictTestData(t *testing.T, nConflicts int, nChains int, howLong
 					trd.WithTargetLock(ledger.ChainLockFromChainID(ret.bootstrapChainID))
 				} else {
 					if i == howLong-1 && len(chainTipToGenesisPrivKey) > 0 && chainTipToGenesisPrivKey[0] {
-						trd.WithTargetLock(ledger.AddressED25519FromPrivateKey(td.genesisPrivKey))
+						trd.WithTargetLock(ledger.AddressED25519FromPrivateKey(genesisPrivateKey))
 					} else {
 						trd.WithTargetLock(ledger.ChainLockFromChainID(ret.chainOrigins[seqNr%nChains].ChainID))
 					}
@@ -888,7 +882,6 @@ func (td *workflowTestData) startSequencersWithTimeout(maxSlots int, timeout ...
 
 func StartTestEnv() (*workflowDummyEnvironment, *ledger.TransactionID, error) {
 	privKey := genesisPrivateKey
-	ledger.DefaultIdentityParameters(privKey)
 	addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 	addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))
 	distrib := []ledger.LockBalance{
@@ -898,7 +891,7 @@ func StartTestEnv() (*workflowDummyEnvironment, *ledger.TransactionID, error) {
 	}
 
 	stateStore := common.NewInMemoryKVStore()
-	_, root := multistate.InitStateStore(*ledger.L().ID, stateStore)
+	_, root := multistate.InitStateStoreWithGlobalLedgerIdentity(stateStore)
 	txBytesStore := txstore.NewSimpleTxBytesStore(common.NewInMemoryKVStore())
 	env := newWorkflowDummyEnvironment(stateStore, txBytesStore)
 	env.root = root

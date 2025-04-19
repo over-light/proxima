@@ -30,7 +30,7 @@ func MustInitSingleton(identityData []byte) {
 	lib, idParams, err := ParseLedgerIdYAML(identityData, base.GetEmbeddedFunctionResolver)
 	util.AssertNoError(err)
 
-	libraryGlobal = newLibrary(lib, idParams)
+	libraryGlobal = newLibrary(lib, idParams, identityData)
 	libraryGlobal.registerConstraints()
 
 	libraryGlobalMutex.Unlock()

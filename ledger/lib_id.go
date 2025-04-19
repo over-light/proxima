@@ -14,6 +14,7 @@ import (
 type (
 	Library struct {
 		*easyfl.Library
+		idData             []byte
 		ID                 *IdentityParameters
 		constraintByPrefix map[string]*constraintRecord
 		constraintNames    map[string]struct{}
@@ -25,9 +26,10 @@ type (
 	}
 )
 
-func newLibrary(lib *easyfl.Library, idParams *IdentityParameters) *Library {
+func newLibrary(lib *easyfl.Library, idParams *IdentityParameters, idData []byte) *Library {
 	ret := &Library{
 		Library:            lib,
+		idData:             idData,
 		ID:                 idParams,
 		constraintByPrefix: make(map[string]*constraintRecord),
 		constraintNames:    make(map[string]struct{}),
@@ -37,19 +39,27 @@ func newLibrary(lib *easyfl.Library, idParams *IdentityParameters) *Library {
 }
 
 func newBaseLibrary(id *IdentityParameters) *Library {
-	return newLibrary(easyfl.NewBaseLibrary(), id)
+	return newLibrary(easyfl.NewBaseLibrary(), id, nil)
 }
 
 func (lib *Library) Const() LibraryConst {
 	return LibraryConst{lib}
 }
 
+func (lib *Library) IdentityData() []byte {
+	if len(lib.idData) > 0 {
+		return lib.idData
+	}
+	return lib.Library.ToYAML(true, "# Proxima library upgraded from EasyFL base")
+}
+
 func GetTestingIdentityData(seed ...int) (*IdentityParameters, ed25519.PrivateKey) {
 	s := 10000
-	if len(seed) > 0 {
-		s = seed[0]
+	for _, i := range seed {
+		s += i
 	}
-	pk := testutil.GetTestingPrivateKey(1, s)
+
+	pk := testutil.GetTestingPrivateKey(s)
 	return DefaultIdentityParameters(pk, uint32(time.Now().Unix())), pk
 }
 

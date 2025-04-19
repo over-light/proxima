@@ -106,7 +106,7 @@ func Test1SequencerPrunerIdle(t *testing.T) {
 		return true
 	})
 
-	seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey,
+	seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, genesisPrivateKey,
 		sequencer.WithMaxBranches(maxSlots))
 	require.NoError(t, err)
 	var countBr atomic.Int32
@@ -142,7 +142,7 @@ func Test1SequencerPrunerTransfers(t *testing.T) {
 	//testData.wrk.StartTracingTags(task.TraceTagInsertTagAlongInputs)
 
 	ctx, _ := context.WithCancel(context.Background())
-	seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, testData.genesisPrivKey,
+	seq, err := sequencer.New(testData.wrk, testData.bootstrapChainID, genesisPrivateKey,
 		sequencer.WithMaxBranches(maxSlots))
 	require.NoError(t, err)
 	var countBr, countSeq atomic.Int32
@@ -423,4 +423,37 @@ func Test3SeqMultiTagAlong(t *testing.T) {
 		// inflation etc...
 		//require.EqualValues(t, int(initBal)+par.perChainID[seqID]*tagAlongFee, int(balanceOnChain))
 	}
+}
+
+func initMultiSequencerTest(t *testing.T, nSequencers int, startPruner ...bool) *workflowTestData {
+	testData := initWorkflowTest(t, nSequencers, startPruner...)
+	//testData.wrk.StartTracingTags(tippool.TraceTag)
+	//testData.wrk.StartTracingTags(factory.TraceTag)
+	//testData.wrk.StartTracingTags(attacher.TraceTagEnsureLatestBranches)
+
+	err := testData.wrk.EnsureLatestBranches()
+	require.NoError(t, err)
+
+	testData.makeChainOrigins(nSequencers)
+	chainOriginsTxID, err := testData.wrk.TxBytesIn(testData.chainOriginsTx.Bytes())
+	require.NoError(t, err)
+	require.EqualValues(t, nSequencers, len(testData.chainOrigins))
+
+	testData.bootstrapSeq, err = sequencer.New(testData.wrk, testData.bootstrapChainID, genesisPrivateKey,
+		sequencer.WithName("boot"),
+		sequencer.WithMaxInputs(50, 30),
+		sequencer.WithPace(5),
+		sequencer.WithDelayStart(3*time.Second),
+		sequencer.WithForceInflator(),
+	)
+	require.NoError(t, err)
+
+	//testData.wrk.StartTracingTags(sequencer.TraceTag)
+
+	testData.bootstrapSeq.Start()
+
+	baseline, err := testData.wrk.WaitUntilTransactionInHeaviestState(chainOriginsTxID, 10*time.Second)
+	require.NoError(t, err)
+	t.Logf("chain origins transaction %s has been created and finalized in baseline %s", chainOriginsTxID.StringShort(), baseline.IDShortString())
+	return testData
 }
