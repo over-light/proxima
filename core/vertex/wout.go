@@ -8,9 +8,9 @@ import (
 	"github.com/lunfardo314/proxima/util/lines"
 )
 
-func (o *WrappedOutput) DecodeID() (ret ledger.OutputID) {
+func (o *WrappedOutput) DecodeID() (ret base.OutputID) {
 	if o.VID == nil {
-		ret = ledger.MustNewOutputID(ledger.TransactionID{}, o.Index)
+		ret = base.MustNewOutputID(base.TransactionID{}, o.Index)
 	} else {
 		ret = o.VID.OutputID(o.Index)
 	}

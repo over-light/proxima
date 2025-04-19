@@ -17,7 +17,7 @@ type EndChainParams struct {
 	// controlling private key
 	PrivateKey ed25519.PrivateKey
 	// tag-along sequencer and fee amount
-	TagAlongSeqID ledger.ChainID
+	TagAlongSeqID base.ChainID
 	TagAlongFee   uint64 // 0 means no fee output will be produced
 }
 

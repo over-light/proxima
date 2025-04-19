@@ -64,27 +64,27 @@ func configOptions(opts ...ConfigOption) *ConfigOptions {
 	return cfg
 }
 
-func paramsFromConfig() ([]ConfigOption, ledger.ChainID, ed25519.PrivateKey, error) {
+func paramsFromConfig() ([]ConfigOption, base.ChainID, ed25519.PrivateKey, error) {
 	subViper := viper.Sub("sequencer")
 	if subViper == nil {
-		return nil, ledger.ChainID{}, nil, nil
+		return nil, base.ChainID{}, nil, nil
 	}
 	name := subViper.GetString("name")
 	if name == "" {
-		return nil, ledger.ChainID{}, nil, fmt.Errorf("StartFromConfig: sequencer must have a name")
+		return nil, base.ChainID{}, nil, fmt.Errorf("StartFromConfig: sequencer must have a name")
 	}
 
 	if !subViper.GetBool("enable") {
 		// will skip
-		return nil, ledger.ChainID{}, nil, nil
+		return nil, base.ChainID{}, nil, nil
 	}
-	seqID, err := ledger.ChainIDFromHexString(subViper.GetString("chain_id"))
+	seqID, err := base.ChainIDFromHexString(subViper.GetString("chain_id"))
 	if err != nil {
-		return nil, ledger.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse sequencer chain id: %v", err)
+		return nil, base.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse sequencer chain id: %v", err)
 	}
 	controllerKey, err := util.ED25519PrivateKeyFromHexString(subViper.GetString("controller_key"))
 	if err != nil {
-		return nil, ledger.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse private key: %v", err)
+		return nil, base.ChainID{}, nil, fmt.Errorf("StartFromConfig: can't parse private key: %v", err)
 	}
 
 	backlogTagAlongTTLSlots := subViper.GetInt("backlog_tag_along_ttl_slots")
@@ -189,7 +189,7 @@ func WithForceInflator() ConfigOption {
 	}
 }
 
-func (cfg *ConfigOptions) lines(seqID ledger.ChainID, controller ledger.AddressED25519, prefix ...string) *lines.Lines {
+func (cfg *ConfigOptions) lines(seqID base.ChainID, controller ledger.AddressED25519, prefix ...string) *lines.Lines {
 	return lines.New(prefix...).
 		Add("id: %s", seqID.String()).
 		Add("Controller: %s", controller.String()).

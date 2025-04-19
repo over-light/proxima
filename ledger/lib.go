@@ -63,10 +63,6 @@ func GetTestingIdentityData(seed ...int) (*IdentityParameters, ed25519.PrivateKe
 	return DefaultIdentityParameters(pk, uint32(time.Now().Unix())), pk
 }
 
-func (id *IdentityParameters) SetTickDuration(d time.Duration) {
-	id.TickDuration = d
-}
-
 // Library constants
 
 func (lib LibraryConst) TicksPerSlot() byte {

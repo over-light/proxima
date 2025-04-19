@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/spf13/viper"
 )
 
@@ -80,7 +81,7 @@ func YesNoPrompt(label string, def bool, force ...bool) bool {
 	}
 }
 
-func PrintLRB(lrbid *ledger.TransactionID) {
+func PrintLRB(lrbid *base.TransactionID) {
 	if IsVerbose() {
 		Infof("Latest reliable branch:\n     LRB TXID:        %s\n     TX id HEX:       %s\n     ledger time now: %s, %d slot(s) from now\n",
 			lrbid.String(), lrbid.StringHex(), ledger.TimeNow().String(), ledger.TimeNow().Slot-lrbid.Slot())

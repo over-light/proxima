@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/countdown"
 	"github.com/lunfardo314/proxima/util/set"
@@ -67,7 +68,7 @@ func TestBasic1(t *testing.T) {
 	env := newEnvironment()
 	peers, err := New(env, cfg)
 	require.NoError(t, err)
-	peers.host.Close()
+	_ = peers.host.Close()
 }
 
 func TestBasic2(t *testing.T) {
@@ -284,12 +285,12 @@ func TestSendMsg(t *testing.T) {
 		hosts := makeHosts(t, numHosts, trace)
 		counter := countdown.New(numMsg, 15*time.Second)
 
-		txSet := set.New[ledger.TransactionID]()
+		txSet := set.New[base.TransactionID]()
 		txSetMutex := &sync.Mutex{}
 
 		for _, h := range hosts {
 			h1 := h
-			h1.OnReceivePullTxRequest(func(from peer.ID, txid ledger.TransactionID) {
+			h1.OnReceivePullTxRequest(func(from peer.ID, txid base.TransactionID) {
 				txSetMutex.Lock()
 				defer txSetMutex.Unlock()
 
@@ -301,7 +302,7 @@ func TestSendMsg(t *testing.T) {
 
 			h1.OnReceiveTxBytes(func(from peer.ID, txBytes []byte, _ *txmetadata.TransactionMetadata, _ []byte) {
 				require.True(t, len(txBytes) == 32)
-				var txid ledger.TransactionID
+				var txid base.TransactionID
 				copy(txid[:], txBytes)
 
 				txSetMutex.Lock()
@@ -316,7 +317,7 @@ func TestSendMsg(t *testing.T) {
 		time.Sleep(4 * time.Second)
 
 		for i := 0; i < numMsg; i++ {
-			txid := ledger.RandomTransactionID(false)
+			txid := base.RandomTransactionID(false, 2)
 			txSetMutex.Lock()
 			txSet.Insert(txid)
 			txSetMutex.Unlock()

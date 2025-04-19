@@ -7,6 +7,7 @@ import (
 
 	"github.com/lunfardo314/proxima/api/client"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -25,14 +26,14 @@ func initMakeChainCmd() *cobra.Command {
 	return makeChainCmd
 }
 
-func MakeChain(onChainAmount uint64) (*transaction.TxContext, ledger.ChainID, error) {
+func MakeChain(onChainAmount uint64) (*transaction.TxContext, base.ChainID, error) {
 	//cmd.DebugFlags()
 
 	walletData := glb.GetWalletData()
 
 	target := glb.MustGetTarget()
 
-	var tagAlongSeqID *ledger.ChainID
+	var tagAlongSeqID *base.ChainID
 	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	if feeAmount > 0 {

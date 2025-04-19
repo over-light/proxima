@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -46,7 +47,7 @@ func runSeqWithdrawCmd(_ *cobra.Command, args []string) {
 	glb.Infof("amount: %s", util.Th(amount))
 
 	glb.Infof("querying wallet's outputs..")
-	walletOutputs, lrbid, err := getClient().GetAccountOutputs(walletData.Account, func(_ *ledger.OutputID, o *ledger.Output) bool {
+	walletOutputs, lrbid, err := getClient().GetAccountOutputs(walletData.Account, func(_ *base.OutputID, o *ledger.Output) bool {
 		return o.NumConstraints() == 2
 	})
 	glb.AssertNoError(err)

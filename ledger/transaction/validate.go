@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/easyfl/slicepool"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"golang.org/x/crypto/blake2b"
@@ -86,14 +87,14 @@ func (ctx *TxContext) Validate() error {
 
 func (ctx *TxContext) writeStateMutationsTo(mut common.KVWriter) {
 	// delete consumed outputs from the ledger
-	ctx.ForEachInputID(func(idx byte, oid *ledger.OutputID) bool {
+	ctx.ForEachInputID(func(idx byte, oid *base.OutputID) bool {
 		mut.Set(oid[:], nil)
 		return true
 	})
 	// add produced outputs to the ledger
 
 	ctx.ForEachProducedOutputData(func(i byte, outputData []byte) bool {
-		oid := ledger.MustNewOutputID(ctx.txid, i)
+		oid := base.MustNewOutputID(ctx.txid, i)
 		mut.Set(oid[:], outputData)
 		return true
 	})

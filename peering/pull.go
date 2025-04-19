@@ -6,7 +6,7 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -16,7 +16,7 @@ const PullTransactions = byte(iota)
 
 func (ps *Peers) pullStreamHandler(stream network.Stream) {
 	defer func() {
-		stream.Close()
+		_ = stream.Close()
 		ps.Log().Warnf("[peering] pull: streamHandler exit")
 	}()
 
@@ -78,7 +78,7 @@ func (ps *Peers) pullStreamHandler(stream network.Stream) {
 			return
 		}
 
-		var txid ledger.TransactionID
+		var txid base.TransactionID
 		txid, err = decodePullTransactionMsg(msgData)
 		if err != nil {
 			ps.Log().Errorf("pull: error while decoding message: %v", err)
@@ -95,7 +95,7 @@ func (ps *Peers) pullStreamHandler(stream network.Stream) {
 	}
 }
 
-func (ps *Peers) sendPullTransactionToPeers(ids []peer.ID, txid ledger.TransactionID) {
+func (ps *Peers) sendPullTransactionToPeers(ids []peer.ID, txid base.TransactionID) {
 	msg := _pullTransaction{
 		txid: txid,
 	}
@@ -104,7 +104,7 @@ func (ps *Peers) sendPullTransactionToPeers(ids []peer.ID, txid ledger.Transacti
 
 // PullTransactionsFromNPeers sends pull request to the random peers which has txStore
 // Return number of peer pull request was sent to
-func (ps *Peers) PullTransactionsFromNPeers(nPeers int, txid ledger.TransactionID) int {
+func (ps *Peers) PullTransactionsFromNPeers(nPeers int, txid base.TransactionID) int {
 	util.Assertf(nPeers >= 1, "nPeers")
 
 	targets := ps.chooseNPullTargets(nPeers)
@@ -112,7 +112,7 @@ func (ps *Peers) PullTransactionsFromNPeers(nPeers int, txid ledger.TransactionI
 	return len(targets)
 }
 
-func encodePullTransactionMsg(txid ledger.TransactionID) []byte {
+func encodePullTransactionMsg(txid base.TransactionID) []byte {
 	var buf bytes.Buffer
 	// write request type byte
 	buf.WriteByte(PullTransactions)
@@ -120,11 +120,11 @@ func encodePullTransactionMsg(txid ledger.TransactionID) []byte {
 	return buf.Bytes()
 }
 
-func decodePullTransactionMsg(data []byte) (ledger.TransactionID, error) {
-	if len(data) != 1+ledger.TransactionIDLength || data[0] != PullTransactions {
-		return ledger.TransactionID{}, fmt.Errorf("not a pull txransactions message")
+func decodePullTransactionMsg(data []byte) (base.TransactionID, error) {
+	if len(data) != 1+base.TransactionIDLength || data[0] != PullTransactions {
+		return base.TransactionID{}, fmt.Errorf("not a pull txransactions message")
 	}
-	return ledger.TransactionIDFromBytes(data[1:])
+	return base.TransactionIDFromBytes(data[1:])
 }
 
 func (ps *Peers) _isPullTarget(p *Peer) bool {
@@ -133,7 +133,7 @@ func (ps *Peers) _isPullTarget(p *Peer) bool {
 
 // out message wrappers
 type _pullTransaction struct {
-	txid ledger.TransactionID
+	txid base.TransactionID
 }
 
 func (pt *_pullTransaction) Bytes() []byte { return encodePullTransactionMsg(pt.txid) }

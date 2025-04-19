@@ -5,6 +5,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 )
 
@@ -14,7 +15,7 @@ func (w *Workflow) ListenToAccount(account ledger.Accountable, fun func(wOut ver
 		var _indices [256]byte
 		indices := _indices[:0]
 		vid.RUnwrap(vertex.UnwrapOptions{Vertex: func(v *vertex.Vertex) {
-			v.Tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid ledger.OutputID) bool {
+			v.Tx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid base.OutputID) bool {
 				if ledger.BelongsToAccount(o.Lock(), account) && o.Lock().Name() != ledger.StemLockName {
 					indices = append(indices, idx)
 				}
@@ -35,13 +36,13 @@ type txListener struct {
 	handlerCounter       int
 	handlers             map[int]func(tx *transaction.Transaction) bool
 	deleteHandlerCounter int
-	deleteHandlers       map[int]func(txid ledger.TransactionID) bool
+	deleteHandlers       map[int]func(txid base.TransactionID) bool
 }
 
 func (w *Workflow) startListeningTransactions() {
 	w.txListener = &txListener{
 		handlers:       make(map[int]func(tx *transaction.Transaction) bool),
-		deleteHandlers: make(map[int]func(txid ledger.TransactionID) bool),
+		deleteHandlers: make(map[int]func(txid base.TransactionID) bool),
 	}
 	w.events.OnEvent(EventNewTx, func(vid *vertex.WrappedTx) {
 		var tx *transaction.Transaction
@@ -54,7 +55,7 @@ func (w *Workflow) startListeningTransactions() {
 			w.txListener.runFor(tx)
 		}
 	})
-	w.events.OnEvent(EventTxDeleted, func(txid ledger.TransactionID) {
+	w.events.OnEvent(EventTxDeleted, func(txid base.TransactionID) {
 		w.txListener.runForDelete(txid)
 	})
 }
@@ -70,7 +71,7 @@ func (tl *txListener) runFor(tx *transaction.Transaction) {
 	}
 }
 
-func (tl *txListener) runForDelete(txid ledger.TransactionID) {
+func (tl *txListener) runForDelete(txid base.TransactionID) {
 	tl.mutex.Lock()
 	defer tl.mutex.Unlock()
 
@@ -89,7 +90,7 @@ func (w *Workflow) OnTransaction(fun func(tx *transaction.Transaction) bool) {
 	w.txListener.handlerCounter++
 }
 
-func (w *Workflow) OnTxDeleted(fun func(txid ledger.TransactionID) bool) {
+func (w *Workflow) OnTxDeleted(fun func(txid base.TransactionID) bool) {
 	w.txListener.mutex.Lock()
 	defer w.txListener.mutex.Unlock()
 

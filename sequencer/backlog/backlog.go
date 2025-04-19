@@ -22,14 +22,14 @@ type (
 		global.NodeGlobal
 		attacher.Environment
 		ListenToAccount(account ledger.Accountable, fun func(wOut vertex.WrappedOutput))
-		SequencerID() ledger.ChainID
+		SequencerID() base.ChainID
 		SequencerName() string
-		GetLatestMilestone(seqID ledger.ChainID) *vertex.WrappedTx
-		LatestMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
-		LatestMilestonesShuffled(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
+		GetLatestMilestone(seqID base.ChainID) *vertex.WrappedTx
+		LatestMilestonesDescending(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
+		LatestMilestonesShuffled(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
 		NumSequencerTips() int
 		BacklogTTLSlots() (int, int)
-		MustEnsureBranch(txid ledger.TransactionID) *vertex.WrappedTx
+		MustEnsureBranch(txid base.TransactionID) *vertex.WrappedTx
 		EvidenceBacklogSize(size int)
 	}
 
@@ -61,7 +61,7 @@ func New(env Environment) (*TagAlongBacklog, error) {
 	env.Tracef(TraceTag, "starting input backlog for the sequencer %s..", env.SequencerName)
 
 	// start listening to chain-locked account. Tag-along outputs
-	env.ListenToAccount(seqID.AsChainLock(), func(wOut vertex.WrappedOutput) {
+	env.ListenToAccount(ledger.ChainLockFromChainID(seqID), func(wOut vertex.WrappedOutput) {
 		env.Tracef(TraceTag, "[%s] output IN: %s", ret.SequencerName, wOut.IDStringShort)
 
 		ret.mutex.Lock()
@@ -137,7 +137,7 @@ func (b *TagAlongBacklog) checkCandidate(wOut vertex.WrappedOutput) bool {
 	}
 	if dl, ok := lock.(*ledger.DelegationLock); ok {
 		seqID := b.SequencerID()
-		if !ledger.EqualAccountables(seqID.AsChainLock(), dl.TargetLock) {
+		if !ledger.EqualAccountables(ledger.ChainLockFromChainID(seqID), dl.TargetLock) {
 			// filter out delegation locks is delegation target cannot be consumed
 			return false
 		}
@@ -149,7 +149,7 @@ func (b *TagAlongBacklog) checkCandidate(wOut vertex.WrappedOutput) bool {
 func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs base.LedgerTime) []*vertex.WrappedTx {
 	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
-	return b.LatestMilestonesDescending(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {
+	return b.LatestMilestonesDescending(func(seqID base.ChainID, vid *vertex.WrappedTx) bool {
 		if vid.BaselineBranch() == nil {
 			fmt.Printf("vid.BaselineBranch() == nil: %s\n", vid.IDShortString())
 			return false
@@ -162,7 +162,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs base.LedgerTime) []
 func (b *TagAlongBacklog) CandidatesToEndorseShuffled(targetTs base.LedgerTime) []*vertex.WrappedTx {
 	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
-	return b.LatestMilestonesShuffled(func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool {
+	return b.LatestMilestonesShuffled(func(seqID base.ChainID, vid *vertex.WrappedTx) bool {
 		if vid.BaselineBranch() == nil {
 			return false
 		}
@@ -250,7 +250,7 @@ func (b *TagAlongBacklog) recreateMap() {
 }
 
 // LoadSequencerStartTips loads tip transactions relevant to the sequencer startup from persistent state to the memDAG
-func (b *TagAlongBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
+func (b *TagAlongBacklog) LoadSequencerStartTips(seqID base.ChainID) error {
 	var branchData *multistate.BranchData
 	if b.IsBootstrapMode() {
 		branchData = multistate.FindLatestReliableBranchWithSequencerID(b.StateStore(), b.SequencerID(), global.FractionHealthyBranch)
@@ -286,7 +286,7 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID ledger.ChainID) error {
 		vidBranch.IDShortString(), chainOut.Lines("         ").String())
 
 	// load pending tag-along outputs
-	oids, err := rdr.GetUTXOIDsInAccount(seqID.AsChainLock().AccountID())
+	oids, err := rdr.GetUTXOIDsInAccount(ledger.ChainLockFromChainID(seqID).AccountID())
 	util.AssertNoError(err)
 	for _, oid := range oids {
 		o := rdr.MustGetOutputWithID(oid)

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -22,13 +21,13 @@ type (
 		mutex               sync.RWMutex
 		slot                base.Slot
 		numTargets          int
-		seqTxSubmitted      []ledger.TransactionID
-		branchSubmitted     *ledger.TransactionID
+		seqTxSubmitted      []base.TransactionID
+		branchSubmitted     *base.TransactionID
 		proposalsByProposer map[string]int
 		numNoProposals      int
 		numNotGoodEnough    int
 		// base proposer
-		lastExtendedOutputIDB0   ledger.OutputID
+		lastExtendedOutputIDB0   base.OutputID
 		lastTimeBacklogCheckedB0 time.Time
 		// e1 proposer optimization
 		lastTimeBacklogCheckedE1 time.Time
@@ -46,7 +45,7 @@ type (
 func NewSlotData(slot base.Slot) *SlotData {
 	ret := &SlotData{
 		slot:                      slot,
-		seqTxSubmitted:            make([]ledger.TransactionID, 0),
+		seqTxSubmitted:            make([]base.TransactionID, 0),
 		proposalsByProposer:       make(map[string]int),
 		alreadyCheckedCombination: make(map[combinationHash]bool),
 	}
@@ -63,13 +62,13 @@ func (s *SlotData) NewTarget() {
 
 }
 
-func (s *SlotData) SequencerTxSubmitted(txid ledger.TransactionID) {
+func (s *SlotData) SequencerTxSubmitted(txid base.TransactionID) {
 	s.withWriteLock(func() {
 		s.seqTxSubmitted = append(s.seqTxSubmitted, txid)
 	})
 }
 
-func (s *SlotData) BranchTxSubmitted(txid ledger.TransactionID) {
+func (s *SlotData) BranchTxSubmitted(txid base.TransactionID) {
 	s.withWriteLock(func() {
 		txidCopy := txid
 		s.branchSubmitted = &txidCopy
@@ -125,7 +124,7 @@ func (s *SlotData) withWriteLock(fun func()) {
 func extendEndorseCombinationHash(extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) (ret combinationHash) {
 	endorseSorted := slices.Clone(endorse)
 	sort.Slice(endorseSorted, func(i, j int) bool {
-		return ledger.LessTxID(endorseSorted[i].ID(), endorseSorted[j].ID())
+		return base.LessTxID(endorseSorted[i].ID(), endorseSorted[j].ID())
 	})
 
 	var buf bytes.Buffer

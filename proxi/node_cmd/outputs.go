@@ -1,7 +1,7 @@
 package node_cmd
 
 import (
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -31,7 +31,7 @@ func runGetOutputsCmd(_ *cobra.Command, _ []string) {
 		glb.Infof("no outputs found")
 		return
 	}
-	lrbid, err := ledger.TransactionIDFromHexString(outs.LRBID)
+	lrbid, err := base.TransactionIDFromHexString(outs.LRBID)
 	glb.AssertNoError(err)
 	glb.PrintLRB(&lrbid)
 
@@ -39,7 +39,7 @@ func runGetOutputsCmd(_ *cobra.Command, _ []string) {
 	for id, o := range outs.Outputs {
 		glb.Infof("\n-- output %d --", count)
 		count++
-		oid, err := ledger.OutputIDFromHexString(id)
+		oid, err := base.OutputIDFromHexString(id)
 		glb.AssertNoError(err)
 		glb.Infof("   id %s, hex = %s", oid.String(), id)
 		glb.Infof("   amount: %s, lock name: '%s'", util.Th(o.Amount), o.LockName)

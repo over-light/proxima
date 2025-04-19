@@ -9,6 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 )
@@ -107,7 +108,7 @@ func (srv *server) parseOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oid, err := ledger.OutputIDFromHexString(lst[0])
+	oid, err := base.OutputIDFromHexString(lst[0])
 	if err != nil {
 		api.WriteErr(w, fmt.Sprintf("can't parse output id: %v", err))
 		return
@@ -132,9 +133,9 @@ func (srv *server) parseOutput(w http.ResponseWriter, r *http.Request) {
 		Amount:      o.Amount(),
 	}
 	if cc, pos := o.ChainConstraint(); pos != 0xff {
-		var chainID ledger.ChainID
+		var chainID base.ChainID
 		if cc.IsOrigin() {
-			chainID = ledger.MakeOriginChainID(oid)
+			chainID = base.MakeOriginChainID(oid)
 		} else {
 			chainID = cc.ID
 		}
@@ -192,7 +193,7 @@ func (srv *server) parseOutputData(w http.ResponseWriter, r *http.Request) {
 func (srv *server) getTxBytes(w http.ResponseWriter, r *http.Request) {
 	api.SetHeader(w)
 
-	var txid ledger.TransactionID
+	var txid base.TransactionID
 	var err error
 
 	lst, ok := r.URL.Query()["txid"]
@@ -200,7 +201,7 @@ func (srv *server) getTxBytes(w http.ResponseWriter, r *http.Request) {
 		api.WriteErr(w, "hex encoded transaction id expected")
 		return
 	}
-	txid, err = ledger.TransactionIDFromHexString(lst[0])
+	txid, err = base.TransactionIDFromHexString(lst[0])
 	if err != nil {
 		api.WriteErr(w, fmt.Sprintf("failed to parse transaction id from hex encoded string: '%v'", err))
 		return
@@ -235,7 +236,7 @@ func (srv *server) getTxBytes(w http.ResponseWriter, r *http.Request) {
 func (srv *server) getParsedTransaction(w http.ResponseWriter, r *http.Request) {
 	api.SetHeader(w)
 
-	var txid ledger.TransactionID
+	var txid base.TransactionID
 	var err error
 
 	lst, ok := r.URL.Query()["txid"]
@@ -243,7 +244,7 @@ func (srv *server) getParsedTransaction(w http.ResponseWriter, r *http.Request) 
 		api.WriteErr(w, "hex encoded transaction id expected")
 		return
 	}
-	txid, err = ledger.TransactionIDFromHexString(lst[0])
+	txid, err = base.TransactionIDFromHexString(lst[0])
 	if err != nil {
 		api.WriteErr(w, fmt.Sprintf("failed to parse transaction id from hex encoded string: '%v'", err))
 		return
@@ -282,7 +283,7 @@ func (srv *server) getParsedTransaction(w http.ResponseWriter, r *http.Request) 
 func (srv *server) getVertexWithDependencies(w http.ResponseWriter, r *http.Request) {
 	api.SetHeader(w)
 
-	var txid ledger.TransactionID
+	var txid base.TransactionID
 	var err error
 
 	lst, ok := r.URL.Query()["txid"]
@@ -290,7 +291,7 @@ func (srv *server) getVertexWithDependencies(w http.ResponseWriter, r *http.Requ
 		api.WriteErr(w, "hex encoded transaction id expected")
 		return
 	}
-	txid, err = ledger.TransactionIDFromHexString(lst[0])
+	txid, err = base.TransactionIDFromHexString(lst[0])
 	if err != nil {
 		api.WriteErr(w, fmt.Sprintf("failed to parse transaction id from hex encoded string: '%v'", err))
 		return

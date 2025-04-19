@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -25,7 +26,7 @@ func initMainChainCmd() *cobra.Command {
 	return dbMainChainCmd
 }
 
-func runMainChainCmd(_ *cobra.Command, args []string) {
+func runMainChainCmd(_ *cobra.Command, _ []string) {
 	fname := viper.GetString("output")
 
 	makeFile := fname != ""
@@ -48,7 +49,7 @@ func runMainChainCmd(_ *cobra.Command, args []string) {
 		onChainBalance uint64
 		name           string
 	}
-	bySeqID := make(map[ledger.ChainID]seqData)
+	bySeqID := make(map[base.ChainID]seqData)
 
 	for _, bd := range mainBranches {
 		sd := bySeqID[bd.SequencerID]
@@ -63,7 +64,7 @@ func runMainChainCmd(_ *cobra.Command, args []string) {
 		}
 		bySeqID[bd.SequencerID] = sd
 	}
-	sorted := util.KeysSorted(bySeqID, func(k1, k2 ledger.ChainID) bool {
+	sorted := util.KeysSorted(bySeqID, func(k1, k2 base.ChainID) bool {
 		return bySeqID[k1].onChainBalance > bySeqID[k2].onChainBalance
 	})
 	glb.Infof("stats by sequencer id:")

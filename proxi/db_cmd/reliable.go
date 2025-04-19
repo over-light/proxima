@@ -6,6 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util/set"
@@ -40,11 +41,11 @@ func runReliableBranchCmd(_ *cobra.Command, _ []string) {
 		lrbID.String(), lrbID.StringHex())
 	glb.Infof("%d slots back from now. Relative to LRB, by sequencer id:", nowSlot-lrbID.Slot())
 
-	byChainID := set.New[ledger.ChainID]()
+	byChainID := set.New[base.ChainID]()
 	counter := 0
 
 	start := time.Now()
-	multistate.IterateBranchChainBack(glb.StateStore(), lrb, func(branchID *ledger.TransactionID, branch *multistate.BranchData) bool {
+	multistate.IterateBranchChainBack(glb.StateStore(), lrb, func(branchID *base.TransactionID, branch *multistate.BranchData) bool {
 		counter++
 		if byChainID.Contains(branch.SequencerID) {
 			return true

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/stretchr/testify/require"
@@ -22,7 +23,7 @@ func TestBase(t *testing.T) {
 		addrController := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1000))
 		addrTarget := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2000))
 		o, err := MakeSequencerWithdrawCmdOutput(MakeSequencerWithdrawCmdOutputParams{
-			SeqID:          ledger.RandomChainID(),
+			SeqID:          base.RandomChainID(),
 			ControllerAddr: addrController,
 			TargetLock:     addrTarget,
 			TagAlongFee:    500,
@@ -40,7 +41,7 @@ func TestBase(t *testing.T) {
 		addrController := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1000))
 		addrTarget := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2000))
 		_, err := MakeSequencerWithdrawCmdOutput(MakeSequencerWithdrawCmdOutputParams{
-			SeqID:          ledger.RandomChainID(),
+			SeqID:          base.RandomChainID(),
 			ControllerAddr: addrController,
 			TargetLock:     addrTarget,
 			TagAlongFee:    500,

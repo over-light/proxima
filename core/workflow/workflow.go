@@ -15,7 +15,6 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/core/work_process/txinput_queue"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
@@ -28,11 +27,11 @@ type (
 		global.NodeGlobal
 		StateStore() multistate.StateStore
 		TxBytesStore() global.TxBytesStore
-		PullFromNPeers(nPeers int, txid ledger.TransactionID) int
-		GetOwnSequencerID() *ledger.ChainID
+		PullFromNPeers(nPeers int, txid base.TransactionID) int
+		GetOwnSequencerID() *base.ChainID
 		EvidencePastConeSize(sz int)
 		EvidenceNumberOfTxDependencies(n int)
-		SnapshotBranchID() ledger.TransactionID
+		SnapshotBranchID() base.TransactionID
 		DurationSinceLastMessageFromPeer() time.Duration
 		SelfPeerID() peer.ID
 	}
@@ -87,7 +86,7 @@ func Start(env environment, peers *peering.Peers, opts ...ConfigOption) *Workflo
 		ret.TxBytesInFromPeerQueued(txBytes, metadata, from, txData)
 	})
 
-	ret.peers.OnReceivePullTxRequest(func(from peer.ID, txid ledger.TransactionID) {
+	ret.peers.OnReceivePullTxRequest(func(from peer.ID, txid base.TransactionID) {
 		ret.pullTxServer.Push(&pull_tx_server.Input{
 			TxID:   txid,
 			PeerID: from,

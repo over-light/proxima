@@ -35,12 +35,12 @@ func runKillChainCmd(_ *cobra.Command, args []string) {
 	//cmd.DebugFlags()
 	glb.InitLedgerFromNode()
 
-	chainID, err := ledger.ChainIDFromHexString(args[0])
+	chainID, err := base.ChainIDFromHexString(args[0])
 	glb.AssertNoError(err)
 
 	walletData := glb.GetWalletData()
 
-	var tagAlongSeqID ledger.ChainID
+	var tagAlongSeqID base.ChainID
 	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	clnt := glb.GetClient()
@@ -89,16 +89,16 @@ func runKillChainCmd(_ *cobra.Command, args []string) {
 }
 
 type killChainParams struct {
-	chainID       ledger.ChainID
+	chainID       base.ChainID
 	privateKey    ed25519.PrivateKey
-	tagAlongSeqID ledger.ChainID
+	tagAlongSeqID base.ChainID
 	tagAlongFee   uint64
 	repeatPeriod  time.Duration
 	ctx           context.Context
 }
 
 // checkChainLoop polls chain in the LRB state and exits when chain does not exist anymore
-func checkChainLoop(chainID ledger.ChainID, repeatPeriod time.Duration, ctx context.Context) {
+func checkChainLoop(chainID base.ChainID, repeatPeriod time.Duration, ctx context.Context) {
 	clnt := glb.GetClient()
 
 	for {
@@ -128,7 +128,7 @@ func checkChainLoop(chainID ledger.ChainID, repeatPeriod time.Duration, ctx cont
 // Multiple transactions are issued until one succeeds. The rest are double-spends and are orphaned
 func makeTransactionLoop(par killChainParams) {
 	clnt := glb.GetClient()
-	consumedOutputs := set.New[ledger.OutputID]()
+	consumedOutputs := set.New[base.OutputID]()
 
 	attempt := 1
 	for {

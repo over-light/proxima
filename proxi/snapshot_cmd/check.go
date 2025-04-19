@@ -5,6 +5,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
@@ -71,7 +72,7 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 
 type _snapshotFileData struct {
 	fmtVersion     string
-	branchID       ledger.TransactionID
+	branchID       base.TransactionID
 	rootRecord     multistate.RootRecord
 	ledgerIDData   []byte
 	ledgerIDParams *ledger.IdentityParameters

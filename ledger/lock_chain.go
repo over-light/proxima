@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -16,10 +17,10 @@ const (
 	chainLockTemplate = ChainLockName + "(0x%s)"
 )
 
-var NilChainLock = ChainLockFromChainID(NilChainID)
+var NilChainLock = ChainLockFromChainID(base.NilChainID)
 
-func ChainLockFromChainID(chainID ChainID) ChainLock {
-	ret := make([]byte, ChainIDLength)
+func ChainLockFromChainID(chainID base.ChainID) ChainLock {
+	ret := make([]byte, base.ChainIDLength)
 	copy(ret, chainID[:])
 	return ret
 }
@@ -34,7 +35,7 @@ func ChainLockFromBytes(data []byte) (ChainLock, error) {
 	}
 	chainIdBin := easyfl.StripDataPrefix(args[0])
 
-	chainID, err := ChainIDFromBytes(chainIdBin)
+	chainID, err := base.ChainIDFromBytes(chainIdBin)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +70,8 @@ func (cl ChainLock) AsLock() Lock {
 	return cl
 }
 
-func (cl ChainLock) ChainID() ChainID {
-	ret, err := ChainIDFromBytes(cl)
+func (cl ChainLock) ChainID() base.ChainID {
+	ret, err := base.ChainIDFromBytes(cl)
 	util.AssertNoError(err)
 	return ret
 }

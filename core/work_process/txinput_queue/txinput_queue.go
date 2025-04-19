@@ -8,6 +8,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -35,7 +36,7 @@ type (
 		environment
 		*work_process.WorkProcess[Input]
 		// bloom filter
-		inGate *inGate[ledger.TransactionID]
+		inGate *inGate[base.TransactionID]
 		// metrics
 		metrics
 	}
@@ -70,7 +71,7 @@ func New(env environment) *TxInputQueue {
 	blackTTL := inGateBlackListTTLSlots * ledger.L().ID.SlotDuration()
 	ret := &TxInputQueue{
 		environment: env,
-		inGate:      newInGate[ledger.TransactionID](blackTTL, cleanIfExceeds),
+		inGate:      newInGate[base.TransactionID](blackTTL, cleanIfExceeds),
 	}
 	ret.WorkProcess = work_process.New[Input](env, Name, ret.consume)
 	ret.WorkProcess.Start()
@@ -222,7 +223,7 @@ func (q *TxInputQueue) registerMetrics() {
 
 // AddWantedTransaction adds transaction short id to the wanted filter.
 // It makes the transaction go directly for attachment without checking other filters and without gossiping
-func (q *TxInputQueue) AddWantedTransaction(txid ledger.TransactionID) {
+func (q *TxInputQueue) AddWantedTransaction(txid base.TransactionID) {
 	q.inGate.addWanted(txid)
 }
 

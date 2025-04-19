@@ -42,7 +42,7 @@ func displayBalanceTotals(outs []*ledger.OutputWithID, target ledger.Accountable
 	var sumOnChains, sumOutsideChains, sumDelegation uint64
 	var numChains, numNonChains, numDelegation int
 
-	delegations := make(map[ledger.ChainID]_delegation)
+	delegations := make(map[base.ChainID]_delegation)
 
 	for _, o := range outs {
 		_, ccIdx := o.Output.ChainConstraint()
@@ -83,7 +83,7 @@ func displayBalanceTotals(outs []*ledger.OutputWithID, target ledger.Accountable
 		return
 	}
 	glb.Infof("\nDELEGATIONS:")
-	ids := util.KeysSorted(delegations, func(k1, k2 ledger.ChainID) bool {
+	ids := util.KeysSorted(delegations, func(k1, k2 base.ChainID) bool {
 		return delegations[k1].sinceSlot < delegations[k2].sinceSlot
 	})
 

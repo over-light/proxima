@@ -3,7 +3,7 @@ package node_cmd
 import (
 	"time"
 
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -32,17 +32,17 @@ func runLastMilestonesCmd(_ *cobra.Command, _ []string) {
 		"  Seen sec ago" + "   Last branchID")
 
 	for _, seqID := range util.KeysSorted(lastSeq, util.StringsLess) {
-		chainID, err := ledger.ChainIDFromHexString(seqID)
+		chainID, err := base.ChainIDFromHexString(seqID)
 		glb.AssertNoError(err)
 
 		sd := lastSeq[seqID]
-		txid, err := ledger.TransactionIDFromHexString(sd.LatestMilestoneTxID)
+		txid, err := base.TransactionIDFromHexString(sd.LatestMilestoneTxID)
 		glb.AssertNoError(err)
 		activity := time.Since(time.Unix(0, sd.LastActivityUnixNano)) / time.Second
 
-		var branchID ledger.TransactionID
+		var branchID base.TransactionID
 		if sd.LastBranchTxID != "" {
-			branchID, err = ledger.TransactionIDFromHexString(sd.LastBranchTxID)
+			branchID, err = base.TransactionIDFromHexString(sd.LastBranchTxID)
 			glb.AssertNoError(err)
 			glb.Infof("    %s    %s   %5d    %5d          %s", chainID.String(), txid.String(), sd.MilestoneCount, activity, branchID.StringShort())
 		} else {

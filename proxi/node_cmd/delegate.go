@@ -44,14 +44,14 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 
 	glb.Assertf(targetChainIDStr != "", "target sequencer id not specified")
 
-	targetSeqID, err := ledger.ChainIDFromHexString(targetChainIDStr)
+	targetSeqID, err := base.ChainIDFromHexString(targetChainIDStr)
 	glb.Assertf(err == nil, "failed parsing target chainID: %v", err)
 
 	seqOut, _, _, err := glb.GetClient().GetChainOutput(targetSeqID)
 	glb.Assertf(err == nil, "can't find sequencer id %s: %v", targetSeqID.StringShort(), err)
 	glb.Assertf(seqOut.ID.IsSequencerTransaction(), "chainID %s does not represent a sequencer", targetSeqID.StringShort())
 
-	var tagAlongSeqID *ledger.ChainID
+	var tagAlongSeqID *base.ChainID
 	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	tagAlongSeqID = glb.GetTagAlongSequencerID()
@@ -94,14 +94,14 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 
 	outDelegation := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(amount)
-		o.WithLock(ledger.NewDelegationLock(walletData.Account, targetSeqID.AsChainLock(), 2, ts, amount))
+		o.WithLock(ledger.NewDelegationLock(walletData.Account, ledger.ChainLockFromChainID(targetSeqID), 2, ts, amount))
 		_, _ = o.PushConstraint(ledger.NewChainOrigin().Bytes())
 	})
 	delegationOutputIdx, _ := txb.ProduceOutput(outDelegation)
 
 	outTagAlong := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(feeAmount)
-		o.WithLock(tagAlongSeqID.AsChainLock())
+		o.WithLock(ledger.ChainLockFromChainID(*tagAlongSeqID))
 	})
 	_, _ = txb.ProduceOutput(outTagAlong)
 
@@ -134,10 +134,10 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	delegationOid, err := ledger.NewOutputID(txid, delegationOutputIdx)
+	delegationOid, err := base.NewOutputID(txid, delegationOutputIdx)
 	glb.AssertNoError(err)
 
-	delegationID := ledger.MakeOriginChainID(delegationOid)
+	delegationID := base.MakeOriginChainID(delegationOid)
 	glb.Infof("\ndelegation id: %s\n", delegationID.String())
 
 	err = client.SubmitTransaction(txBytes)

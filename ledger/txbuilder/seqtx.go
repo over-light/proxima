@@ -34,9 +34,9 @@ type MakeSequencerTransactionParams struct {
 	// delegation inflation margin
 	DelegationInflationMarginPromille int
 	// Endorsements
-	Endorsements []ledger.TransactionID
+	Endorsements []base.TransactionID
 	// ExplicitBaseline or nil if none
-	ExplicitBaseline *ledger.TransactionID
+	ExplicitBaseline *base.TransactionID
 	// chain controller
 	PrivateKey ed25519.PrivateKey
 	// InflateMainChain if true, calculates maximum inflation possible on main chain transition
@@ -167,7 +167,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 
 	seqID := chainInConstraint.ID
 	if chainInConstraint.IsOrigin() {
-		seqID = ledger.MakeOriginChainID(par.ChainInput.ID)
+		seqID = base.MakeOriginChainID(par.ChainInput.ID)
 	}
 
 	var chainOutConstraintIdx byte
@@ -317,7 +317,7 @@ func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, ta
 		}
 		chainID := cc.ID
 		if cc.IsOrigin() {
-			chainID = ledger.MakeOriginChainID(in.ID)
+			chainID = base.MakeOriginChainID(in.ID)
 		}
 		if !ledger.IsOpenDelegationSlot(chainID, targetTs.Slot) {
 			// only considering delegated outputs which can be consumed in the target slot

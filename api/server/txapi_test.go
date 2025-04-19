@@ -11,6 +11,7 @@ import (
 
 	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/tests"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/testutil"
@@ -74,7 +75,7 @@ func TestParseOutputData(t *testing.T) {
 
 	const amount = uint64(31415926535)
 	addr := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(100))
-	chanID := ledger.RandomChainID()
+	chanID := base.RandomChainID()
 	cc := ledger.NewChainConstraint(chanID, 1, 2, 0)
 	o := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(amount).
@@ -249,7 +250,7 @@ func TestGetVertexDep(t *testing.T) {
 	var ret api.VertexWithDependencies
 	err = json.Unmarshal(data, &ret)
 	assert.NoError(t, err)
-	txidBack, err := ledger.TransactionIDFromHexString(ret.ID)
+	txidBack, err := base.TransactionIDFromHexString(ret.ID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, ret.SequencerID, ledger.BoostrapSequencerIDHex)
 	assert.EqualValues(t, *txid, txidBack)

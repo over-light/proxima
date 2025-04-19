@@ -3,7 +3,7 @@ package txstore
 import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/prometheus/client_golang/prometheus"
@@ -72,15 +72,15 @@ func _makeBuckets(lastSize int) []float64 {
 	return ret
 }
 
-func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txidOpt ...ledger.TransactionID) (ledger.TransactionID, error) {
-	var txid ledger.TransactionID
+func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txidOpt ...base.TransactionID) (base.TransactionID, error) {
+	var txid base.TransactionID
 	var err error
 	if len(txidOpt) > 0 {
 		txid = txidOpt[0]
 	} else {
 		txid, err = transaction.IDFromTransactionBytes(txBytes)
 		if err != nil {
-			return ledger.TransactionID{}, err
+			return base.TransactionID{}, err
 		}
 	}
 	if s.s.Has(txid[:]) {
@@ -112,7 +112,7 @@ func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata
 	return txid, nil
 }
 
-func (s *SimpleTxBytesStore) GetTxBytesWithMetadata(txid *ledger.TransactionID) []byte {
+func (s *SimpleTxBytesStore) GetTxBytesWithMetadata(txid *base.TransactionID) []byte {
 	ret := s.s.Get(txid[:])
 	if s.metricsEnabled && ret != nil {
 		s.txStoreHit.Inc()
@@ -120,7 +120,7 @@ func (s *SimpleTxBytesStore) GetTxBytesWithMetadata(txid *ledger.TransactionID) 
 	return ret
 }
 
-func (s *SimpleTxBytesStore) HasTxBytes(txid *ledger.TransactionID) bool {
+func (s *SimpleTxBytesStore) HasTxBytes(txid *base.TransactionID) bool {
 	return s.s.Has(txid[:])
 }
 
@@ -128,14 +128,14 @@ func NewDummyTxBytesStore() DummyTxBytesStore {
 	return DummyTxBytesStore{}
 }
 
-func (d DummyTxBytesStore) PersistTxBytesWithMetadata(_ []byte, _ *txmetadata.TransactionMetadata, _ ...ledger.TransactionID) (ledger.TransactionID, error) {
-	return ledger.TransactionID{}, nil
+func (d DummyTxBytesStore) PersistTxBytesWithMetadata(_ []byte, _ *txmetadata.TransactionMetadata, _ ...base.TransactionID) (base.TransactionID, error) {
+	return base.TransactionID{}, nil
 }
 
-func (d DummyTxBytesStore) GetTxBytesWithMetadata(_ *ledger.TransactionID) []byte {
+func (d DummyTxBytesStore) GetTxBytesWithMetadata(_ *base.TransactionID) []byte {
 	return nil
 }
 
-func (s DummyTxBytesStore) HasTxBytes(_ *ledger.TransactionID) bool {
+func (s DummyTxBytesStore) HasTxBytes(_ *base.TransactionID) bool {
 	return false
 }

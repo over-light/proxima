@@ -6,13 +6,13 @@ import (
 
 	"github.com/lunfardo314/proxima/core/attacher"
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 )
 
 const maxTimeout = time.Minute
 
-func (w *Workflow) EnsureBranch(txid ledger.TransactionID, timeout ...time.Duration) (*vertex.WrappedTx, error) {
+func (w *Workflow) EnsureBranch(txid base.TransactionID, timeout ...time.Duration) (*vertex.WrappedTx, error) {
 	w.Assertf(txid.IsBranchTransaction(), "txid.IsSequencerTransaction()")
 	to := maxTimeout
 	if len(timeout) > 0 {
@@ -39,7 +39,7 @@ func (w *Workflow) EnsureBranch(txid ledger.TransactionID, timeout ...time.Durat
 	return vid, nil
 }
 
-func (w *Workflow) MustEnsureBranch(txid ledger.TransactionID) *vertex.WrappedTx {
+func (w *Workflow) MustEnsureBranch(txid base.TransactionID) *vertex.WrappedTx {
 	ret, err := w.EnsureBranch(txid)
 	w.AssertNoError(err)
 	return ret

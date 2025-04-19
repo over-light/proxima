@@ -7,6 +7,7 @@ import (
 
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 )
@@ -119,7 +120,7 @@ func makeOutputFromCommandData(cmdCode byte, cmdParams *lazybytes.Array) ([]*led
 }
 
 type MakeSequencerWithdrawCmdOutputParams struct {
-	SeqID          ledger.ChainID
+	SeqID          base.ChainID
 	ControllerAddr ledger.AddressED25519
 	TargetLock     ledger.Lock
 	TagAlongFee    uint64

@@ -2,6 +2,7 @@ package multistate
 
 import (
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -21,7 +22,7 @@ func BalanceOnLock(rdr StateIndexReader, account ledger.Accountable) (uint64, in
 	return balance, num
 }
 
-func BalanceOnChainOutput(rdr StateIndexReader, chainID ledger.ChainID) uint64 {
+func BalanceOnChainOutput(rdr StateIndexReader, chainID base.ChainID) uint64 {
 	oData, err := rdr.GetUTXOForChainID(chainID)
 	if err != nil {
 		return 0

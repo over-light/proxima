@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 )
 
 type NodeInfo struct {
-	ID              peer.ID         `json:"id"`
-	Version         string          `json:"version"`
-	CommitHash      string          `json:"commit_hash"`
-	CommitTime      string          `json:"commit_time"`
-	NumStaticAlive  uint16          `json:"num_static_peers"`
-	NumDynamicAlive uint16          `json:"num_dynamic_alive"`
-	Sequencer       *ledger.ChainID `json:"sequencers,omitempty"`
+	ID              peer.ID       `json:"id"`
+	Version         string        `json:"version"`
+	CommitHash      string        `json:"commit_hash"`
+	CommitTime      string        `json:"commit_time"`
+	NumStaticAlive  uint16        `json:"num_static_peers"`
+	NumDynamicAlive uint16        `json:"num_dynamic_alive"`
+	Sequencer       *base.ChainID `json:"sequencers,omitempty"`
 }
 
 func (ni *NodeInfo) Bytes() []byte {

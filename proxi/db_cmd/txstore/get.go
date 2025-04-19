@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/lunfardo314/proxima/core/txmetadata"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
@@ -33,7 +33,7 @@ func runGetCmd(_ *cobra.Command, args []string) {
 	glb.InitTxStoreDB()
 	defer glb.CloseDatabases()
 
-	txid, err := ledger.TransactionIDFromHexString(args[0])
+	txid, err := base.TransactionIDFromHexString(args[0])
 	glb.AssertNoError(err)
 
 	txBytesWithMetadata := glb.TxBytesStore().GetTxBytesWithMetadata(&txid)
@@ -60,12 +60,13 @@ func parseTx(txBytesWithMetadata []byte) {
 	glb.AssertNoError(err)
 
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	glb.AssertNoError(err)
 
 	glb.Infof("--- transaction ---\n%s", tx.String())
 	glb.Infof("--- metadata ---\n%s", meta.String())
 }
 
-func saveTx(txid *ledger.TransactionID, txBytesWithMetadata []byte) {
+func saveTx(txid *base.TransactionID, txBytesWithMetadata []byte) {
 	err := os.WriteFile(txid.AsFileName(), txBytesWithMetadata, 0666)
 	glb.AssertNoError(err)
 }

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
@@ -43,7 +42,7 @@ func (d *MemDAG) InfoLines(verbose ...bool) *lines.Lines {
 			d.stateReadersMutex.RLock()
 			defer d.stateReadersMutex.RUnlock()
 
-			branches := util.KeysSorted(d.stateReaders, func(id1, id2 ledger.TransactionID) bool {
+			branches := util.KeysSorted(d.stateReaders, func(id1, id2 base.TransactionID) bool {
 				return bytes.Compare(id1[:], id2[:]) < 0
 			})
 			for _, br := range branches {
@@ -78,7 +77,7 @@ func (d *MemDAG) InfoRefLines(prefix ...string) *lines.Lines {
 }
 
 func (d *MemDAG) VerticesInSlotAndAfter(slot base.Slot) []*vertex.WrappedTx {
-	ret := d.VerticesFiltered(func(txid ledger.TransactionID) bool {
+	ret := d.VerticesFiltered(func(txid base.TransactionID) bool {
 		return txid.Slot() >= slot
 	})
 	sort.Slice(ret, func(i, j int) bool {

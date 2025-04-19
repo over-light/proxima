@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/lunfardo314/proxima/core/memdag"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
@@ -26,7 +25,7 @@ func runPastConeCmd(_ *cobra.Command, args []string) {
 	glb.InitTxStoreDB()
 	defer glb.CloseDatabases()
 
-	txid, err := ledger.TransactionIDFromHexString(args[0])
+	txid, err := base.TransactionIDFromHexString(args[0])
 	glb.AssertNoError(err)
 	glb.Infof("transaction id: %s", txid.String())
 	slotsBack, err := strconv.Atoi(args[1])

@@ -37,12 +37,12 @@ var (
 func runInflateChainCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromNode()
 
-	chainID, err := ledger.ChainIDFromHexString(args[0])
+	chainID, err := base.ChainIDFromHexString(args[0])
 	glb.AssertNoError(err)
 	inflateChain(base.Slot(periodInSlots), chainID)
 }
 
-func inflateChain(chainTransitionPeriodSlots base.Slot, chainId ledger.ChainID) {
+func inflateChain(chainTransitionPeriodSlots base.Slot, chainId base.ChainID) {
 	walletData := glb.GetWalletData()
 	tagAlongSeq := glb.GetTagAlongSequencerID()
 	tagAlongFee := glb.GetTagAlongFee()
@@ -83,7 +83,7 @@ func inflateChain(chainTransitionPeriodSlots base.Slot, chainId ledger.ChainID) 
 			ChainInput:           chainOutput,
 			Timestamp:            tsOut,
 			WithdrawAmount:       tagAlongFee,
-			WithdrawTarget:       tagAlongSeq.AsChainLock(),
+			WithdrawTarget:       ledger.ChainLockFromChainID(*tagAlongSeq),
 			PrivateKey:           walletData.PrivateKey,
 			EnforceProfitability: !ignoreProfitability,
 		})

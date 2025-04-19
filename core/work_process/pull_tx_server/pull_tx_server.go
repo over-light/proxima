@@ -5,7 +5,7 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/work_process"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/util"
@@ -21,7 +21,7 @@ type (
 	}
 
 	Input struct {
-		TxID   ledger.TransactionID
+		TxID   base.TransactionID
 		PeerID peer.ID
 	}
 

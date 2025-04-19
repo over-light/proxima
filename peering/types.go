@@ -17,7 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/multiformats/go-multiaddr"
@@ -85,7 +85,7 @@ type (
 
 		// on receive handlers
 		onReceiveTx     func(from peer.ID, txBytes []byte, mdata *txmetadata.TransactionMetadata, txData []byte)
-		onReceivePullTx func(from peer.ID, txid ledger.TransactionID)
+		onReceivePullTx func(from peer.ID, txid base.TransactionID)
 		// lpp protocol names
 		lppProtocolGossip    protocol.ID
 		lppProtocolPull      protocol.ID

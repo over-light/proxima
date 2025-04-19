@@ -11,6 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/core/workflow"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/sequencer"
@@ -27,7 +28,7 @@ type (
 	ProximaNode struct {
 		*global.Global
 		multiStateDB              *badger_adaptor.DB
-		snapshotBranchID          ledger.TransactionID
+		snapshotBranchID          base.TransactionID
 		txStoreDB                 *badger_adaptor.DB
 		txBytesStore              global.TxBytesStore
 		peers                     *peering.Peers
@@ -95,11 +96,11 @@ func (p *ProximaNode) TxBytesStore() global.TxBytesStore {
 	return p.txBytesStore
 }
 
-func (p *ProximaNode) PullFromNPeers(nPeers int, txid ledger.TransactionID) int {
+func (p *ProximaNode) PullFromNPeers(nPeers int, txid base.TransactionID) int {
 	return p.peers.PullTransactionsFromNPeers(nPeers, txid)
 }
 
-func (p *ProximaNode) GetOwnSequencerID() *ledger.ChainID {
+func (p *ProximaNode) GetOwnSequencerID() *base.ChainID {
 	if p.sequencer == nil {
 		return nil
 	}
@@ -346,7 +347,7 @@ func (p *ProximaNode) EvidenceNumberOfTxDependencies(n int) {
 	p.counterTxDependencies.Add(float64(n))
 }
 
-func (p *ProximaNode) SnapshotBranchID() ledger.TransactionID {
+func (p *ProximaNode) SnapshotBranchID() base.TransactionID {
 	return p.snapshotBranchID
 }
 

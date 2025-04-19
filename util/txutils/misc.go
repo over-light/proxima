@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-func ParseAndSortOutputData(outs []*ledger.OutputDataWithID, filter func(oid *ledger.OutputID, o *ledger.Output) bool, desc ...bool) ([]*ledger.OutputWithID, error) {
+func ParseAndSortOutputData(outs []*ledger.OutputDataWithID, filter func(oid *base.OutputID, o *ledger.Output) bool, desc ...bool) ([]*ledger.OutputWithID, error) {
 	ret, err := ParseOutputDataAndFilter(outs, filter)
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func ParseAndSortOutputData(outs []*ledger.OutputDataWithID, filter func(oid *le
 	return ret, nil
 }
 
-func ParseOutputDataAndFilter(outs []*ledger.OutputDataWithID, filter func(oid *ledger.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, error) {
+func ParseOutputDataAndFilter(outs []*ledger.OutputDataWithID, filter func(oid *base.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, error) {
 	ret := make([]*ledger.OutputWithID, 0, len(outs))
 	for _, od := range outs {
 		out, err := ledger.OutputFromBytesReadOnly(od.Data)
@@ -64,7 +64,7 @@ func FilterOutputsSortByAmount(outs []*ledger.OutputWithID, filter func(o *ledge
 	return ret
 }
 
-func ParseAndSortOutputDataUpToAmount(outs []*ledger.OutputDataWithID, amount uint64, filter func(oid *ledger.OutputID, o *ledger.Output) bool, desc ...bool) ([]*ledger.OutputWithID, uint64, base.LedgerTime, error) {
+func ParseAndSortOutputDataUpToAmount(outs []*ledger.OutputDataWithID, amount uint64, filter func(oid *base.OutputID, o *ledger.Output) bool, desc ...bool) ([]*ledger.OutputWithID, uint64, base.LedgerTime, error) {
 	outsWitID, err := ParseAndSortOutputData(outs, filter, desc...)
 	if err != nil {
 		return nil, 0, base.NilLedgerTime, err

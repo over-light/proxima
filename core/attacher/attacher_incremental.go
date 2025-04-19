@@ -81,7 +81,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs base.LedgerTi
 	return ret, nil
 }
 
-func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, targetTs base.LedgerTime, extend vertex.WrappedOutput, baselineID ledger.TransactionID) (*IncrementalAttacher, error) {
+func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, targetTs base.LedgerTime, extend vertex.WrappedOutput, baselineID base.TransactionID) (*IncrementalAttacher, error) {
 	env.Assertf(baselineID.IsBranchTransaction(), "baselineID.IsBranchTransaction()")
 	env.Assertf(!targetTs.IsSlotBoundary(), "!targetTs.IsSlotBoundary()")
 	env.Assertf(int(targetTs.Slot)-int(extend.Slot()) >= 1, "int(targetTs.Slot)(%s)-int(extend.Slot())(%s)>=1",
@@ -135,7 +135,7 @@ func (a *IncrementalAttacher) IsClosed() bool {
 }
 
 func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx, targetTs base.LedgerTime, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
-	if !a.setBaseline(baseline, targetTs) {
+	if !a.setBaseline(baseline) {
 		return fmt.Errorf("NewIncrementalAttacher: failed to set baseline branch of %s", extend.IDStringShort())
 	}
 	a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). baseline: %s",
@@ -311,7 +311,7 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		}
 	}
 
-	endorsements := make([]ledger.TransactionID, len(a.endorse))
+	endorsements := make([]base.TransactionID, len(a.endorse))
 	for i, vid := range a.endorse {
 		endorsements[i] = vid.ID()
 	}

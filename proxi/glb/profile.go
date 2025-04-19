@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/spf13/cobra"
@@ -17,7 +18,7 @@ const LedgerIDFileName = "proxima.genesis.id.yaml"
 type WalletData struct {
 	PrivateKey ed25519.PrivateKey
 	Account    ledger.AddressED25519
-	Sequencer  *ledger.ChainID
+	Sequencer  *base.ChainID
 }
 
 func GetWalletData() (ret WalletData) {
@@ -66,12 +67,12 @@ func MustGetTarget() ledger.Accountable {
 	return ret
 }
 
-func GetOwnSequencerID() *ledger.ChainID {
+func GetOwnSequencerID() *base.ChainID {
 	seqIDStr := viper.GetString("wallet.sequencer_id")
 	if seqIDStr == "" {
 		return nil
 	}
-	ret, err := ledger.ChainIDFromHexString(seqIDStr)
+	ret, err := base.ChainIDFromHexString(seqIDStr)
 	if err != nil {
 		return nil
 	}
@@ -102,10 +103,10 @@ func NoWait() bool {
 	return viper.GetBool("nowait")
 }
 
-func TrackTxInclusion(txid ledger.TransactionID, poll time.Duration) {
+func TrackTxInclusion(txid base.TransactionID, poll time.Duration) {
 	inclusionDepth := GetTargetInclusionDepth()
 	Infof("tracking inclusion of the transaction %s.\ntarget inclusion depth: %d", txid.String(), inclusionDepth)
-	lrbids := set.New[ledger.TransactionID]()
+	lrbids := set.New[base.TransactionID]()
 	clnt := GetClient()
 	start := time.Now()
 	last := time.Now()
@@ -139,9 +140,9 @@ func GetTagAlongFee() uint64 {
 	return viper.GetUint64("tag_along.fee")
 }
 
-var tagAlongSequencerID atomic.Pointer[ledger.ChainID]
+var tagAlongSequencerID atomic.Pointer[base.ChainID]
 
-func GetTagAlongSequencerID() *ledger.ChainID {
+func GetTagAlongSequencerID() *base.ChainID {
 	ret := tagAlongSequencerID.Load()
 	if ret != nil {
 		return ret
@@ -165,7 +166,7 @@ func GetTagAlongSequencerID() *ledger.ChainID {
 			seqIDStr = own.StringHex()
 		}
 	}
-	seqID, err := ledger.ChainIDFromHexString(seqIDStr)
+	seqID, err := base.ChainIDFromHexString(seqIDStr)
 	AssertNoError(err)
 
 	o, _, err := GetClient().GetChainOutputData(seqID)

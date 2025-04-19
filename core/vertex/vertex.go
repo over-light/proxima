@@ -119,9 +119,9 @@ func (v *Vertex) NumMissingInputs() (missingInputs int, missingEndorsements int)
 }
 
 // MissingInputTxIDSet returns set of txids for the missing inputs and endorsements
-func (v *Vertex) MissingInputTxIDSet() set.Set[ledger.TransactionID] {
-	ret := set.New[ledger.TransactionID]()
-	var oid ledger.OutputID
+func (v *Vertex) MissingInputTxIDSet() set.Set[base.TransactionID] {
+	ret := set.New[base.TransactionID]()
+	var oid base.OutputID
 	v.ForEachInputDependency(func(i byte, vidInput *WrappedTx) bool {
 		if vidInput == nil {
 			oid = v.Tx.MustInputAt(i)
@@ -157,7 +157,7 @@ func (v *Vertex) StemInputIndex() byte {
 	var stemInputIdx byte
 	var stemInputFound bool
 
-	v.Tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+	v.Tx.ForEachInput(func(i byte, oid base.OutputID) bool {
 		if oid == predOID {
 			stemInputIdx = i
 			stemInputFound = true
@@ -216,7 +216,7 @@ func (v *DetachedVertex) Lines(prefix ...string) *lines.Lines {
 }
 
 func (v *Vertex) Wrap() *WrappedTx {
-	var seqID *ledger.ChainID
+	var seqID *base.ChainID
 	if v.Tx.IsSequencerTransaction() {
 		seqID = util.Ref(v.Tx.SequencerTransactionData().SequencerID)
 	}

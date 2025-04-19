@@ -17,6 +17,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,7 +32,7 @@ type (
 		GetSyncInfo() *api.SyncInfo
 		GetPeersInfo() *api.PeersInfo
 		LatestReliableState() (multistate.SugaredStateReader, error)
-		CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int)
+		CheckTransactionInLRB(txid base.TransactionID, maxDepth int) (lrbid base.TransactionID, foundAtDepth int)
 		SubmitTxBytesFromAPI(txBytes []byte)
 		GetLatestReliableBranch() *multistate.BranchData
 		StateStore() multistate.StateStore
@@ -106,10 +107,10 @@ func (srv *server) getLedgerIDData(w http.ResponseWriter, _ *http.Request) {
 	util.AssertNoError(err)
 }
 
-func (srv *server) _getAccountOutputsWithFilter(r *http.Request, addr ledger.Accountable, filter func(oid ledger.OutputID, o *ledger.Output) bool) (
-	outs []*ledger.OutputWithID, lrbid ledger.TransactionID, err error) {
+func (srv *server) _getAccountOutputsWithFilter(r *http.Request, addr ledger.Accountable, filter func(oid base.OutputID, o *ledger.Output) bool) (
+	outs []*ledger.OutputWithID, lrbid base.TransactionID, err error) {
 	if filter == nil {
-		filter = func(_ ledger.OutputID, _ *ledger.Output) bool { return true }
+		filter = func(_ base.OutputID, _ *ledger.Output) bool { return true }
 	}
 	maxOutputs := absoluteMaximumOfReturnedOutputs
 	lst, ok := r.URL.Query()["max_outputs"]
@@ -143,7 +144,7 @@ func (srv *server) _getAccountOutputsWithFilter(r *http.Request, addr ledger.Acc
 
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) (errRet error) {
 		lrbid = rdr.GetStemOutput().ID.TransactionID()
-		err1 := rdr.IterateOutputsForAccount(addr, func(oid ledger.OutputID, o *ledger.Output) bool {
+		err1 := rdr.IterateOutputsForAccount(addr, func(oid base.OutputID, o *ledger.Output) bool {
 			if filter(oid, o) {
 				outs = append(outs, &ledger.OutputWithID{
 					ID:     oid,
@@ -175,7 +176,7 @@ func (srv *server) _getAccountOutputsWithFilter(r *http.Request, addr ledger.Acc
 
 const absoluteMaximumOfReturnedOutputs = 2000
 
-func _writeOutputs(w http.ResponseWriter, outs []*ledger.OutputWithID, lrbid ledger.TransactionID) {
+func _writeOutputs(w http.ResponseWriter, outs []*ledger.OutputWithID, lrbid base.TransactionID) {
 	resp := &api.OutputList{
 		Outputs: make(map[string]string),
 		LRBID:   lrbid.StringHex(),
@@ -194,7 +195,7 @@ func _writeOutputs(w http.ResponseWriter, outs []*ledger.OutputWithID, lrbid led
 	util.AssertNoError(err)
 }
 
-func _writeParsedOutputs(w http.ResponseWriter, outs []*ledger.OutputWithID, lrbid ledger.TransactionID) {
+func _writeParsedOutputs(w http.ResponseWriter, outs []*ledger.OutputWithID, lrbid base.TransactionID) {
 	resp := &api.ParsedOutputList{
 		Outputs: make(map[string]api.ParsedOutput),
 		LRBID:   lrbid.StringHex(),
@@ -283,7 +284,7 @@ func (srv *server) getAccountSimpleSigLockedOutputs(w http.ResponseWriter, r *ht
 		api.WriteErr(w, err.Error())
 		return
 	}
-	outs, lrbid, err := srv._getAccountOutputsWithFilter(r, addr, func(_ ledger.OutputID, o *ledger.Output) bool {
+	outs, lrbid, err := srv._getAccountOutputsWithFilter(r, addr, func(_ base.OutputID, o *ledger.Output) bool {
 		if o.Lock().Name() != ledger.AddressED25519Name {
 			return false
 		}
@@ -315,7 +316,7 @@ func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
-		err1 := rdr.IterateOutputsForAccount(targetAddr, func(_ ledger.OutputID, o *ledger.Output) bool {
+		err1 := rdr.IterateOutputsForAccount(targetAddr, func(_ base.OutputID, o *ledger.Output) bool {
 			if o.Lock().Name() != ledger.AddressED25519Name {
 				return true
 			}
@@ -369,7 +370,7 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
-		err1 := rdr.IterateOutputsForAccount(targetAddr, func(oid ledger.OutputID, o *ledger.Output) bool {
+		err1 := rdr.IterateOutputsForAccount(targetAddr, func(oid base.OutputID, o *ledger.Output) bool {
 			if o.Lock().Name() != ledger.AddressED25519Name {
 				return true
 			}
@@ -408,7 +409,7 @@ func (srv *server) getChainOutput(w http.ResponseWriter, r *http.Request) {
 		api.WriteErr(w, "wrong parameters in request 'get_chain_output'")
 		return
 	}
-	chainID, err := ledger.ChainIDFromHexString(lst[0])
+	chainID, err := base.ChainIDFromHexString(lst[0])
 	if err != nil {
 		api.WriteErr(w, err.Error())
 		return
@@ -462,7 +463,7 @@ func (srv *server) getChainedOutputs(w http.ResponseWriter, r *http.Request) {
 		lrbid := rdr.GetStemOutput().ID.TransactionID()
 		resp.LRBID = lrbid.StringHex()
 
-		err1 = rdr.IterateChainsInAccount(accountable, func(oid ledger.OutputID, o *ledger.Output, _ ledger.ChainID) bool {
+		err1 = rdr.IterateChainsInAccount(accountable, func(oid base.OutputID, o *ledger.Output, _ base.ChainID) bool {
 			resp.Outputs[oid.StringHex()] = hex.EncodeToString(o.Bytes())
 			return true
 		})
@@ -493,7 +494,7 @@ func (srv *server) getOutput(w http.ResponseWriter, r *http.Request) {
 		api.WriteErr(w, "wrong parameter in request 'get_output'")
 		return
 	}
-	oid, err := ledger.OutputIDFromHexString(lst[0])
+	oid, err := base.OutputIDFromHexString(lst[0])
 	if err != nil {
 		api.WriteErr(w, err.Error())
 		return
@@ -676,7 +677,7 @@ func (srv *server) getMainChain(w http.ResponseWriter, r *http.Request) {
 func (srv *server) getAllChains(w http.ResponseWriter, _ *http.Request) {
 	api.SetHeader(w)
 
-	var lst map[ledger.ChainID]multistate.ChainRecordInfo
+	var lst map[base.ChainID]multistate.ChainRecordInfo
 	resp := api.Chains{
 		Chains: make(map[string]api.OutputDataWithID),
 	}
@@ -716,7 +717,7 @@ func (srv *server) getDelegationsBySequencer(w http.ResponseWriter, _ *http.Requ
 	}
 
 	var err error
-	var bySeq map[ledger.ChainID]multistate.DelegationsOnSequencer
+	var bySeq map[base.ChainID]multistate.DelegationsOnSequencer
 
 	err = srv.withLRB(func(rdr multistate.SugaredStateReader) error {
 		var err1 error
@@ -792,7 +793,7 @@ func (srv *server) getLatestReliableBranch(w http.ResponseWriter, _ *http.Reques
 func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request) {
 	api.SetHeader(w)
 
-	var txid ledger.TransactionID
+	var txid base.TransactionID
 	var err error
 
 	// mandatory parameter txid
@@ -801,7 +802,7 @@ func (srv *server) checkTxIDIncludedInLRB(w http.ResponseWriter, r *http.Request
 		api.WriteErr(w, "txid expected")
 		return
 	}
-	txid, err = ledger.TransactionIDFromHexString(lst[0])
+	txid, err = base.TransactionIDFromHexString(lst[0])
 	if err != nil {
 		api.WriteErr(w, err.Error())
 		return

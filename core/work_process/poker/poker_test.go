@@ -8,6 +8,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +28,7 @@ func TestBasic(t *testing.T) {
 
 	vids := make([]*vertex.WrappedTx, howManyTx)
 	for i := range vids {
-		txid := ledger.RandomTransactionID(true)
+		txid := base.RandomTransactionID(true, 2)
 		vids[i] = vertex.WrapTxID(txid)
 	}
 

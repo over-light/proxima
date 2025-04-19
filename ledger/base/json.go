@@ -1,8 +1,10 @@
-package ledger
+package base
 
 import (
 	"encoding/json"
 )
+
+// TODO do we need json marshalers at all?
 
 func (txid *TransactionID) MarshalJSON() ([]byte, error) {
 	return []byte("\"" + txid.StringHex() + "\""), nil

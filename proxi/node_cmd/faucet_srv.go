@@ -13,6 +13,7 @@ import (
 	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/api/client"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -196,7 +197,7 @@ func (fct *faucetServer) handler(w http.ResponseWriter, r *http.Request) {
 		writeResponse(w, err.Error())
 		return
 	}
-	var txid ledger.TransactionID
+	var txid base.TransactionID
 	var fromStr string
 	if fct.cfg.fromChain {
 		fromStr = "sequencer " + fct.walletData.Sequencer.StringShort()
@@ -220,47 +221,47 @@ func (fct *faucetServer) handler(w http.ResponseWriter, r *http.Request) {
 	logRequest(targetStr[0], r.RemoteAddr, fct.cfg.amount, err)
 }
 
-func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (ledger.TransactionID, error) {
+func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (base.TransactionID, error) {
 	clnt := glb.GetClient()
 	o, _, _, err := clnt.GetChainOutput(*glb.GetOwnSequencerID())
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	if o.Output.Amount() < ledger.L().ID.MinimumAmountOnSequencer+fct.cfg.amount {
-		return ledger.TransactionID{}, fmt.Errorf("not enough tokens on the sequencer %s", glb.GetOwnSequencerID().String())
+		return base.TransactionID{}, fmt.Errorf("not enough tokens on the sequencer %s", glb.GetOwnSequencerID().String())
 	}
 	walletOutputs, _, _, err := clnt.GetOutputsForAmount(fct.walletData.Account, glb.GetTagAlongFee())
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	withdrawCmd, err := commands.MakeSequencerWithdrawCommand(fct.cfg.amount, targetLock.AsLock())
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	// sending command to sequencer
 	transferData := txbuilder.NewTransferData(fct.walletData.PrivateKey, fct.walletData.Account, ledger.TimeNow()).
 		WithAmount(glb.GetTagAlongFee()).
-		WithTargetLock(fct.walletData.Sequencer.AsChainLock()).
+		WithTargetLock(ledger.ChainLockFromChainID(*fct.walletData.Sequencer)).
 		MustWithInputs(walletOutputs...).
 		WithSender().
 		WithConstraint(withdrawCmd)
 
 	txBytes, err := txbuilder.MakeSimpleTransferTransaction(transferData)
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	err = clnt.SubmitTransaction(txBytes)
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	return tx.ID(), nil
 }
 
-func (fct *faucetServer) redrawFromAccount(targetLock ledger.Accountable) (ledger.TransactionID, error) {
+func (fct *faucetServer) redrawFromAccount(targetLock ledger.Accountable) (base.TransactionID, error) {
 	txCtx, err := glb.GetClient().TransferFromED25519Wallet(client.TransferFromED25519WalletParams{
 		WalletPrivateKey: fct.walletData.PrivateKey,
 		TagAlongSeqID:    glb.GetTagAlongSequencerID(),
@@ -270,7 +271,7 @@ func (fct *faucetServer) redrawFromAccount(targetLock ledger.Accountable) (ledge
 	})
 
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	return txCtx.TransactionID(), nil
 }

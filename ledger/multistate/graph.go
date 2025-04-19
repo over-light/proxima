@@ -6,7 +6,7 @@ import (
 
 	"github.com/dominikbraun/graph"
 	"github.com/dominikbraun/graph/draw"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -32,8 +32,8 @@ func MakeTree(stateStore StateStore, slots ...int) graph.Graph[string, string] {
 		branches = FetchBranchDataMulti(stateStore, FetchRootRecordsNSlotsBack(stateStore, slots[0])...)
 	}
 
-	byOid := make(map[ledger.OutputID]*BranchData)
-	idDict := make(map[ledger.ChainID]int)
+	byOid := make(map[base.OutputID]*BranchData)
+	idDict := make(map[base.ChainID]int)
 	for _, b := range branches {
 		byOid[b.Stem.ID] = b
 		txid := b.Stem.ID.TransactionID()
@@ -66,7 +66,7 @@ func SaveBranchTree(stateStore StateStore, fname string, slotsBack ...int) {
 	_ = dotFile.Close()
 }
 
-func branchNodeAttributes(seqID *ledger.ChainID, coverage uint64, dict map[ledger.ChainID]int) []func(*graph.VertexProperties) {
+func branchNodeAttributes(seqID *base.ChainID, coverage uint64, dict map[base.ChainID]int) []func(*graph.VertexProperties) {
 	if _, found := dict[*seqID]; !found {
 		dict[*seqID] = (len(dict) % 9) + 1
 	}

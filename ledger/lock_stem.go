@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -16,7 +17,7 @@ const (
 
 type (
 	StemLock struct {
-		PredecessorOutputID OutputID
+		PredecessorOutputID base.OutputID
 		VRFProof            []byte
 	}
 )
@@ -66,8 +67,8 @@ func registerStemLockConstraint(lib *Library) {
 }
 
 func initTestStemLockConstraint() {
-	txid := RandomTransactionID(true, 1)
-	predID := MustNewOutputID(txid, byte(txid.NumProducedOutputs()-1))
+	txid := base.RandomTransactionID(true, 1)
+	predID := base.MustNewOutputID(txid, byte(txid.NumProducedOutputs()-1))
 	example := StemLock{
 		PredecessorOutputID: predID,
 		VRFProof:            []byte{0x01, 0x02, 0x03},
@@ -87,7 +88,7 @@ func StemLockFromBytes(data []byte) (*StemLock, error) {
 	if sym != StemLockName {
 		return nil, fmt.Errorf("not a 'stem' constraint")
 	}
-	oid, err := OutputIDFromBytes(easyfl.StripDataPrefix(args[0]))
+	oid, err := base.OutputIDFromBytes(easyfl.StripDataPrefix(args[0]))
 	if err != nil {
 		return nil, err
 	}

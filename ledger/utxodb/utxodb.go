@@ -24,7 +24,7 @@ import (
 type UTXODB struct {
 	store             multistate.StateStore
 	state             *multistate.Updatable
-	genesisChainID    ledger.ChainID
+	genesisChainID    base.ChainID
 	supply            uint64
 	genesisPrivateKey ed25519.PrivateKey
 	genesisPublicKey  ed25519.PublicKey
@@ -93,7 +93,7 @@ func (u *UTXODB) Supply() uint64 {
 	return u.supply
 }
 
-func (u *UTXODB) GenesisChainID() *ledger.ChainID {
+func (u *UTXODB) GenesisChainID() *base.ChainID {
 	return &u.genesisChainID
 }
 
@@ -380,7 +380,7 @@ func (u *UTXODB) Balance(addr ledger.Accountable) uint64 {
 }
 
 // BalanceOnChain returns balance locked in chain and separately balance on chain output
-func (u *UTXODB) BalanceOnChain(chainID ledger.ChainID) (uint64, uint64, error) {
+func (u *UTXODB) BalanceOnChain(chainID base.ChainID) (uint64, uint64, error) {
 	outChain, outs, err := txbuilder.GetChainAccount(chainID, u.StateReader())
 	if err != nil {
 		return 0, 0, err
@@ -513,10 +513,10 @@ func (u *UTXODB) CreateChainOrigin(controllerPrivateKey ed25519.PrivateKey, ts b
 }
 
 func (u *UTXODB) OriginDistributionTransactionString() string {
-	genesisStemOutputID := ledger.GenesisStemOutputID()
-	genesisOutputID := ledger.GenesisOutputID()
+	genesisStemOutputID := base.GenesisStemOutputID()
+	genesisOutputID := base.GenesisOutputID()
 
-	return transaction.ParseBytesToString(u.originDistributionTxBytes, func(oid ledger.OutputID) ([]byte, bool) {
+	return transaction.ParseBytesToString(u.originDistributionTxBytes, func(oid base.OutputID) ([]byte, bool) {
 		switch oid {
 		case genesisOutputID:
 			return u.genesisOutput.Bytes(), true

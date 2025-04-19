@@ -23,7 +23,7 @@ const (
 	earliestSlotDBPartition = latestSlotDBPartition + 1
 )
 
-func WriteRootRecord(w common.KVWriter, branchTxID ledger.TransactionID, rootData RootRecord) {
+func WriteRootRecord(w common.KVWriter, branchTxID base.TransactionID, rootData RootRecord) {
 	common.UseConcatBytes(func(key []byte) {
 		w.Set(key, rootData.Bytes())
 	}, []byte{rootRecordDBPartition}, branchTxID[:])
@@ -59,7 +59,7 @@ func FetchEarliestSlot(store common.KVReader) base.Slot {
 	return ret
 }
 
-func FetchSnapshotBranchID(store common.KVTraversableReader) ledger.TransactionID {
+func FetchSnapshotBranchID(store common.KVTraversableReader) base.TransactionID {
 	earliestSlot := FetchEarliestSlot(store)
 	roots := FetchRootRecords(store, earliestSlot)
 	util.Assertf(len(roots) == 1, "expected exactly 1 root record in the earliest slot %d", earliestSlot)
@@ -137,7 +137,7 @@ func RootRecordFromBytes(data []byte) (RootRecord, error) {
 	if err != nil {
 		return RootRecord{}, err
 	}
-	chainID, err := ledger.ChainIDFromBytes(arr.At(0))
+	chainID, err := base.ChainIDFromBytes(arr.At(0))
 	if err != nil {
 		return RootRecord{}, err
 	}
@@ -174,13 +174,13 @@ func (r *RootRecord) IsCoverageAboveThreshold(numerator, denominator int) bool {
 }
 
 // TxID transaction id of the branch, as taken from the stem output id
-func (br *BranchData) TxID() ledger.TransactionID {
+func (br *BranchData) TxID() base.TransactionID {
 	return br.Stem.ID.TransactionID()
 }
 
-func iterateAllRootRecords(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool) {
+func iterateAllRootRecords(store common.Traversable, fun func(branchTxID base.TransactionID, rootData RootRecord) bool) {
 	store.Iterator([]byte{rootRecordDBPartition}).Iterate(func(k, data []byte) bool {
-		txid, err := ledger.TransactionIDFromBytes(k[1:])
+		txid, err := base.TransactionIDFromBytes(k[1:])
 		util.AssertNoError(err)
 
 		rootData, err := RootRecordFromBytes(data)
@@ -190,13 +190,13 @@ func iterateAllRootRecords(store common.Traversable, fun func(branchTxID ledger.
 	})
 }
 
-func iterateRootRecordsOfParticularSlots(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool, slots []base.Slot) {
+func iterateRootRecordsOfParticularSlots(store common.Traversable, fun func(branchTxID base.TransactionID, rootData RootRecord) bool, slots []base.Slot) {
 	prefix := [5]byte{rootRecordDBPartition, 0, 0, 0, 0}
 	for _, s := range slots {
 		s.PutBytes(prefix[1:])
 
 		store.Iterator(prefix[:]).Iterate(func(k, data []byte) bool {
-			txid, err := ledger.TransactionIDFromBytes(k[1:])
+			txid, err := base.TransactionIDFromBytes(k[1:])
 			util.AssertNoError(err)
 			util.Assertf(txid.IsBranchTransaction(), "txid.IsBranchTransaction()")
 
@@ -211,7 +211,7 @@ func iterateRootRecordsOfParticularSlots(store common.Traversable, fun func(bran
 // IterateRootRecords iterates root records in the store:
 // - if len(optSlot) > 0, it iterates specific slots
 // - if len(optSlot) == 0, it iterates all records in the store
-func IterateRootRecords(store common.Traversable, fun func(branchTxID ledger.TransactionID, rootData RootRecord) bool, optSlot ...base.Slot) {
+func IterateRootRecords(store common.Traversable, fun func(branchTxID base.TransactionID, rootData RootRecord) bool, optSlot ...base.Slot) {
 	if len(optSlot) == 0 {
 		iterateAllRootRecords(store, fun)
 	}
@@ -220,7 +220,7 @@ func IterateRootRecords(store common.Traversable, fun func(branchTxID ledger.Tra
 
 // FetchRootRecord returns root data, stem output index and existence flag
 // Exactly one root record must exist for the branch transaction
-func FetchRootRecord(store common.KVReader, branchTxID ledger.TransactionID) (ret RootRecord, found bool) {
+func FetchRootRecord(store common.KVReader, branchTxID base.TransactionID) (ret RootRecord, found bool) {
 	key := common.Concat(rootRecordDBPartition, branchTxID[:])
 	data := store.Get(key)
 	if len(data) == 0 {
@@ -261,7 +261,7 @@ func FetchRootRecordsNSlotsBack(store StateStoreReader, nBack int) []RootRecord 
 // FetchAllRootRecords returns all root records in the DB
 func FetchAllRootRecords(store common.Traversable) []RootRecord {
 	ret := make([]RootRecord, 0)
-	IterateRootRecords(store, func(_ ledger.TransactionID, rootData RootRecord) bool {
+	IterateRootRecords(store, func(_ base.TransactionID, rootData RootRecord) bool {
 		ret = append(ret, rootData)
 		return true
 	})
@@ -274,7 +274,7 @@ func FetchRootRecords(store common.Traversable, slots ...base.Slot) []RootRecord
 		return nil
 	}
 	ret := make([]RootRecord, 0)
-	IterateRootRecords(store, func(_ ledger.TransactionID, rootData RootRecord) bool {
+	IterateRootRecords(store, func(_ base.TransactionID, rootData RootRecord) bool {
 		ret = append(ret, rootData)
 		return true
 	}, slots...)
@@ -283,7 +283,7 @@ func FetchRootRecords(store common.Traversable, slots ...base.Slot) []RootRecord
 }
 
 // FetchBranchData returns branch data by the branch transaction id
-func FetchBranchData(store common.KVReader, branchTxID ledger.TransactionID) (BranchData, bool) {
+func FetchBranchData(store common.KVReader, branchTxID base.TransactionID) (BranchData, bool) {
 	if rd, found := FetchRootRecord(store, branchTxID); found {
 		return FetchBranchDataByRoot(store, rd), true
 	}
@@ -330,9 +330,9 @@ func FetchLatestRootRecords(store StateStoreReader) []RootRecord {
 }
 
 // FetchLatestBranchTransactionIDs sorted descending by coverage
-func FetchLatestBranchTransactionIDs(store StateStoreReader) []ledger.TransactionID {
+func FetchLatestBranchTransactionIDs(store StateStoreReader) []base.TransactionID {
 	bd := FetchLatestBranches(store)
-	ret := make([]ledger.TransactionID, len(bd))
+	ret := make([]base.TransactionID, len(bd))
 
 	for i := range ret {
 		ret[i] = bd[i].Stem.ID.TransactionID()
@@ -342,22 +342,22 @@ func FetchLatestBranchTransactionIDs(store StateStoreReader) []ledger.Transactio
 
 // FetchHeaviestBranchChainNSlotsBack descending by epoch
 func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*BranchData {
-	rootData := make(map[ledger.TransactionID]RootRecord)
+	rootData := make(map[base.TransactionID]RootRecord)
 	latestSlot := FetchLatestCommittedSlot(store)
 
 	if nBack < 0 {
-		IterateRootRecords(store, func(branchTxID ledger.TransactionID, rd RootRecord) bool {
+		IterateRootRecords(store, func(branchTxID base.TransactionID, rd RootRecord) bool {
 			rootData[branchTxID] = rd
 			return true
 		})
 	} else {
-		IterateRootRecords(store, func(branchTxID ledger.TransactionID, rd RootRecord) bool {
+		IterateRootRecords(store, func(branchTxID base.TransactionID, rd RootRecord) bool {
 			rootData[branchTxID] = rd
 			return true
 		}, util.MakeRange(latestSlot-base.Slot(nBack), latestSlot)...)
 	}
 
-	sortedTxIDs := util.KeysSorted(rootData, func(k1, k2 ledger.TransactionID) bool {
+	sortedTxIDs := util.KeysSorted(rootData, func(k1, k2 base.TransactionID) bool {
 		// descending by epoch
 		return k1.Slot() > k2.Slot()
 	})
@@ -396,7 +396,7 @@ func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*Br
 }
 
 // BranchKnowsTransaction returns true if predecessor txid is known in the descendents state
-func BranchKnowsTransaction(branchID, txid ledger.TransactionID, getStore func() common.KVReader) bool {
+func BranchKnowsTransaction(branchID, txid base.TransactionID, getStore func() common.KVReader) bool {
 	util.Assertf(branchID.IsBranchTransaction(), "must be a branch tx: %s", branchID.StringShort)
 
 	if branchID == txid {
@@ -512,7 +512,7 @@ func FindRootsFromLatestHealthySlot(store StateStoreReader, fraction global.Frac
 
 // IterateBranchChainBack iterates past chain of the tip branch (including the tip)
 // Stops when current branch have no predecessor
-func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func(branchID *ledger.TransactionID, branch *BranchData) bool) {
+func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func(branchID *base.TransactionID, branch *BranchData) bool) {
 	branchID := branch.Stem.ID.TransactionID()
 	for {
 		if !fun(&branchID, branch) {
@@ -574,7 +574,7 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 
 	var branchFound *BranchData
 	first := true
-	IterateBranchChainBack(store, &chainTip, func(branchID *ledger.TransactionID, branch *BranchData) bool {
+	IterateBranchChainBack(store, &chainTip, func(branchID *base.TransactionID, branch *BranchData) bool {
 		if first {
 			// skip the tip itself
 			first = false
@@ -602,7 +602,7 @@ func FindLatestReliableBranchAndNSlotsBack(store StateStoreReader, n int, fracti
 	if lrb == nil {
 		return
 	}
-	IterateBranchChainBack(store, lrb, func(_ *ledger.TransactionID, branch *BranchData) bool {
+	IterateBranchChainBack(store, lrb, func(_ *base.TransactionID, branch *BranchData) bool {
 		ret = branch
 		n--
 		return n > 0
@@ -611,12 +611,12 @@ func FindLatestReliableBranchAndNSlotsBack(store StateStoreReader, n int, fracti
 }
 
 // FindLatestReliableBranchWithSequencerID finds first branch with the given sequencerID in the main LRBID chain
-func FindLatestReliableBranchWithSequencerID(store StateStoreReader, seqID ledger.ChainID, fraction global.Fraction) (ret *BranchData) {
+func FindLatestReliableBranchWithSequencerID(store StateStoreReader, seqID base.ChainID, fraction global.Fraction) (ret *BranchData) {
 	lrb := FindLatestReliableBranch(store, fraction)
 	if lrb == nil {
 		return nil
 	}
-	IterateBranchChainBack(store, lrb, func(_ *ledger.TransactionID, branch *BranchData) bool {
+	IterateBranchChainBack(store, lrb, func(_ *base.TransactionID, branch *BranchData) bool {
 		if branch.SequencerID == seqID {
 			ret = branch
 			return false
@@ -632,7 +632,7 @@ func GetMainChain(store StateStoreReader, fraction global.Fraction, max ...int) 
 		return nil, fmt.Errorf("can't find latest reliable brancg")
 	}
 	ret := make([]*BranchData, 0)
-	IterateBranchChainBack(store, lrb, func(branchID *ledger.TransactionID, branch *BranchData) bool {
+	IterateBranchChainBack(store, lrb, func(branchID *base.TransactionID, branch *BranchData) bool {
 		ret = append(ret, branch)
 		if len(max) > 0 && len(ret) >= max[0] {
 			return false
@@ -644,14 +644,14 @@ func GetMainChain(store StateStoreReader, fraction global.Fraction, max ...int) 
 
 // CheckTransactionInLRB return number of slots behind the LRB which contains txid.
 // The backwards scan is capped by maxDepth parameter. If maxDepth == 0, it means only LRB is checked
-func CheckTransactionInLRB(store StateStoreReader, txid ledger.TransactionID, maxDepth int, fraction global.Fraction) (lrb *BranchData, foundAtDepth int) {
+func CheckTransactionInLRB(store StateStoreReader, txid base.TransactionID, maxDepth int, fraction global.Fraction) (lrb *BranchData, foundAtDepth int) {
 	foundAtDepth = -1
 	lrb = FindLatestReliableBranch(store, fraction)
 	if lrb == nil {
 		return
 	}
 
-	IterateBranchChainBack(store, lrb, func(branchID *ledger.TransactionID, branch *BranchData) bool {
+	IterateBranchChainBack(store, lrb, func(branchID *base.TransactionID, branch *BranchData) bool {
 		if foundAtDepth >= maxDepth {
 			return false
 		}

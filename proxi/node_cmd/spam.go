@@ -20,7 +20,7 @@ type spammerConfig struct {
 	pace              int
 	maxTransactions   int
 	maxDuration       time.Duration
-	tagAlongSequencer ledger.ChainID
+	tagAlongSequencer base.ChainID
 	tagAlongFee       uint64
 	target            ledger.Accountable
 	finalitySlots     int
@@ -75,7 +75,7 @@ func readSpammerConfigIn(sub *viper.Viper) (ret spammerConfig) {
 	ret.tagAlongFee = sub.GetUint64("tag_along.fee")
 	seqStr := sub.GetString("tag_along.sequencer_id")
 	var err error
-	ret.tagAlongSequencer, err = ledger.ChainIDFromHexString(seqStr)
+	ret.tagAlongSequencer, err = base.ChainIDFromHexString(seqStr)
 	glb.AssertNoError(err)
 	ret.target, err = ledger.AddressED25519FromSource(sub.GetString("target"))
 	glb.AssertNoError(err)
@@ -107,7 +107,7 @@ func displaySpammerConfig() spammerConfig {
 	return cfg
 }
 
-func runSpamCmd(_ *cobra.Command, args []string) {
+func runSpamCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromNode()
 	cfg := displaySpammerConfig()
 	doSpamming(cfg)
@@ -176,7 +176,7 @@ func maxTimestamp(outs []*ledger.OutputWithID) (ret base.LedgerTime) {
 	return
 }
 
-func prepareBundle(walletData glb.WalletData, cfg spammerConfig) ([][]byte, ledger.OutputID) {
+func prepareBundle(walletData glb.WalletData, cfg spammerConfig) ([][]byte, base.OutputID) {
 	ret := make([][]byte, 0)
 	txCtx, err := glb.GetClient().MakeCompactTransaction(walletData.PrivateKey, nil, 0, cfg.bundleSize*3)
 	glb.AssertNoError(err)

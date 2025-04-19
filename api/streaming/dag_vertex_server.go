@@ -9,7 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
@@ -19,7 +19,7 @@ type (
 	environment interface {
 		global.Logging
 		OnTransaction(fun func(tx *transaction.Transaction) bool)
-		OnTxDeleted(fun func(txid ledger.TransactionID) bool) // called whenever tx is GCed. Could be useful for the visualizer
+		OnTxDeleted(fun func(txid base.TransactionID) bool) // called whenever tx is GCed. Could be useful for the visualizer
 		TxBytesStore() global.TxBytesStore
 	}
 	wsServer struct {
@@ -39,7 +39,7 @@ func Run(env environment) {
 
 func vertexDepsForTx(srv *wsServer, txidstr string) []byte {
 
-	txid, err := ledger.TransactionIDFromHexString(txidstr)
+	txid, err := base.TransactionIDFromHexString(txidstr)
 	if err != nil {
 		return nil
 	}
@@ -137,7 +137,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 
 		// Process dependencies
 		for _, i := range vertexWD.Inputs {
-			txid, err := ledger.TransactionIDFromHexString(i)
+			txid, err := base.TransactionIDFromHexString(i)
 			if err != nil {
 				srv.Log().Warnf("Failed to parse TransactionID from hex: %s, err: %v", i, err)
 				continue // Skip this input
@@ -173,7 +173,7 @@ func (srv *wsServer) dagVertexStreamHandler(w http.ResponseWriter, r *http.Reque
 		return err == nil // returns false to remove callback
 	})
 
-	srv.OnTxDeleted(func(txid ledger.TransactionID) bool {
+	srv.OnTxDeleted(func(txid base.TransactionID) bool {
 		vertex := &api.VertexDelete{
 			ID: txid.StringHex(),
 		}

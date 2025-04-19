@@ -17,23 +17,23 @@ type (
 	}
 
 	OutputWithID struct {
-		ID     OutputID
+		ID     base.OutputID
 		Output *Output
 	}
 
 	OutputDataWithID struct {
-		ID   OutputID
+		ID   base.OutputID
 		Data []byte
 	}
 
 	OutputDataWithChainID struct {
 		OutputDataWithID
-		ChainID ChainID
+		ChainID base.ChainID
 	}
 
 	OutputWithChainID struct {
 		OutputWithID
-		ChainID                    ChainID
+		ChainID                    base.ChainID
 		PredecessorConstraintIndex byte
 	}
 
@@ -443,7 +443,7 @@ func (o *OutputDataWithID) Parse(validOpt ...func(o *Output) error) (*OutputWith
 func (o *OutputDataWithID) ParseAsChainOutput() (*OutputWithChainID, byte, error) {
 	var chainConstr *ChainConstraint
 	var idx byte
-	var chainID ChainID
+	var chainID base.ChainID
 
 	ret, err := o.Parse(func(oParsed *Output) error {
 		chainConstr, idx = oParsed.ChainConstraint()
@@ -451,7 +451,7 @@ func (o *OutputDataWithID) ParseAsChainOutput() (*OutputWithChainID, byte, error
 			return fmt.Errorf("can't find chain constraint")
 		}
 		chainID = chainConstr.ID
-		if chainID == NilChainID {
+		if chainID == base.NilChainID {
 			chainID = blake2b.Sum256(o.ID[:])
 		}
 		return nil
@@ -472,13 +472,13 @@ func (o *OutputDataWithID) MustParse() *OutputWithID {
 	return ret
 }
 
-func ExtractChainID(o *Output, oid OutputID) (chainID ChainID, predecessorConstraintIndex byte, ok bool) {
+func ExtractChainID(o *Output, oid base.OutputID) (chainID base.ChainID, predecessorConstraintIndex byte, ok bool) {
 	cc, blockIdx := o.ChainConstraint()
 	if blockIdx == 0xff {
-		return ChainID{}, 0, false
+		return base.ChainID{}, 0, false
 	}
 	ret := cc.ID
-	if cc.ID == NilChainID {
+	if cc.ID == base.NilChainID {
 		ret = blake2b.Sum256(oid[:])
 	}
 	return ret, cc.PredecessorConstraintIndex, true
@@ -486,7 +486,7 @@ func ExtractChainID(o *Output, oid OutputID) (chainID ChainID, predecessorConstr
 }
 
 // ExtractChainID return chainID, predecessor constraint index, existence flag
-func (o *OutputWithID) ExtractChainID() (chainID ChainID, predecessorConstraintIndex byte, ok bool) {
+func (o *OutputWithID) ExtractChainID() (chainID base.ChainID, predecessorConstraintIndex byte, ok bool) {
 	return ExtractChainID(o.Output, o.ID)
 }
 
@@ -523,7 +523,7 @@ func (o *OutputWithID) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("id: %s, hex: %s", o.ID.String(), o.ID.StringHex())
 	if cc, idx := o.Output.ChainConstraint(); idx != 0xff {
-		var chainID ChainID
+		var chainID base.ChainID
 		if cc.IsOrigin() {
 			chainID = blake2b.Sum256(o.ID[:])
 		} else {

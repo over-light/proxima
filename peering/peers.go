@@ -22,6 +22,7 @@ import (
 	"github.com/lunfardo314/proxima/api"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util/set"
 	"github.com/multiformats/go-multiaddr"
 	"golang.org/x/exp/maps"
@@ -37,7 +38,7 @@ func NewPeersDummy() *Peers {
 		blacklist:       make(map[peer.ID]_deadlineWithReason),
 		cooloffList:     make(map[peer.ID]time.Time),
 		onReceiveTx:     func(_ peer.ID, _ []byte, _ *txmetadata.TransactionMetadata, _ []byte) {},
-		onReceivePullTx: func(_ peer.ID, _ ledger.TransactionID) {},
+		onReceivePullTx: func(_ peer.ID, _ base.TransactionID) {},
 	}
 	//ret.registerMetrics()
 	return ret
@@ -91,7 +92,7 @@ func New(env environment, cfg *Config) (*Peers, error) {
 		cooloffList:          make(map[peer.ID]time.Time),
 		connectList:          set.New[peer.ID](),
 		onReceiveTx:          func(_ peer.ID, _ []byte, _ *txmetadata.TransactionMetadata, _ []byte) {},
-		onReceivePullTx:      func(_ peer.ID, _ ledger.TransactionID) {},
+		onReceivePullTx:      func(_ peer.ID, _ base.TransactionID) {},
 		lppProtocolGossip:    protocol.ID(fmt.Sprintf(lppProtocolGossip, rendezvousNumber)),
 		lppProtocolPull:      protocol.ID(fmt.Sprintf(lppProtocolPull, rendezvousNumber)),
 		lppProtocolHeartbeat: protocol.ID(fmt.Sprintf(lppProtocolHeartbeat, rendezvousNumber)),
@@ -503,7 +504,7 @@ func (ps *Peers) OnReceiveTxBytes(fun func(from peer.ID, txBytes []byte, metadat
 	ps.onReceiveTx = fun
 }
 
-func (ps *Peers) OnReceivePullTxRequest(fun func(from peer.ID, txid ledger.TransactionID)) {
+func (ps *Peers) OnReceivePullTxRequest(fun func(from peer.ID, txid base.TransactionID)) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 

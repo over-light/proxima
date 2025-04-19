@@ -19,22 +19,22 @@ import (
 type (
 	memDAGAccessEnvironment interface {
 		WithGlobalWriteLock(fun func())
-		GetVertexNoLock(txid ledger.TransactionID) *vertex.WrappedTx
+		GetVertexNoLock(txid base.TransactionID) *vertex.WrappedTx
 		AddVertexNoLock(vid *vertex.WrappedTx)
 		StateStore() multistate.StateStore
-		GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate.IndexedStateReader
-		GetStemWrappedOutput(branch ledger.TransactionID) vertex.WrappedOutput
+		GetStateReaderForTheBranch(branchID base.TransactionID) multistate.IndexedStateReader
+		GetStemWrappedOutput(branch base.TransactionID) vertex.WrappedOutput
 		SendToTippool(vid *vertex.WrappedTx)
 		EvidenceBranchSlot(s base.Slot, healthy bool)
 		TxBytesStore() global.TxBytesStore
-		TxBytesFromStoreIn(txBytesWithMetadata []byte) (ledger.TransactionID, error)
-		AddWantedTransaction(txid ledger.TransactionID)
+		TxBytesFromStoreIn(txBytesWithMetadata []byte) (base.TransactionID, error)
+		AddWantedTransaction(txid base.TransactionID)
 	}
 
 	pullEnvironment interface {
 		PokeMe(me, with *vertex.WrappedTx)
 		PokeAllWith(wanted *vertex.WrappedTx)
-		PullFromNPeers(nPeers int, txid ledger.TransactionID) int
+		PullFromNPeers(nPeers int, txid base.TransactionID) int
 	}
 
 	postEventEnvironment interface {
@@ -49,7 +49,7 @@ type (
 		ParseMilestoneData(msVID *vertex.WrappedTx) *ledger.MilestoneData
 		SaveFullDAG(fname string)
 		EvidencePastConeSize(sz int)
-		SnapshotBranchID() ledger.TransactionID
+		SnapshotBranchID() base.TransactionID
 		DurationSinceLastMessageFromPeer() time.Duration
 	}
 
@@ -77,7 +77,7 @@ type (
 		inputs             []vertex.WrappedOutput
 		targetTs           base.LedgerTime
 		stemOutput         vertex.WrappedOutput
-		explicitBaselineID *ledger.TransactionID
+		explicitBaselineID *base.TransactionID
 	}
 
 	// milestoneAttacher is used to attach a sequencer transaction
@@ -111,7 +111,7 @@ type (
 		slotInflation      uint64
 		supply             uint64
 		root               common.VCommitment
-		baseline           ledger.TransactionID
+		baseline           base.TransactionID
 		numVertices        int
 		numNewTransactions uint32
 		numCreatedOutputs  int

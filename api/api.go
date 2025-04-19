@@ -6,6 +6,7 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -149,7 +150,7 @@ type (
 	LatestReliableBranch struct {
 		Error
 		RootData multistate.RootRecordJSONAble `json:"root_record,omitempty"`
-		BranchID ledger.TransactionID          `json:"branch_id,omitempty"`
+		BranchID base.TransactionID            `json:"branch_id,omitempty"`
 	}
 
 	CheckTxIDInLRB struct {
@@ -318,12 +319,12 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 		}
 	}
 
-	tx.ForEachEndorsement(func(i byte, txid ledger.TransactionID) bool {
+	tx.ForEachEndorsement(func(i byte, txid base.TransactionID) bool {
 		ret.Endorsements[i] = txid.StringHex()
 		return true
 	})
 
-	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+	tx.ForEachInput(func(i byte, oid base.OutputID) bool {
 		ret.Inputs[i] = Input{
 			OutputID:   oid.StringHex(),
 			UnlockData: hex.EncodeToString(tx.MustUnlockDataAt(i)),
@@ -331,7 +332,7 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 		return true
 	})
 
-	tx.ForEachProducedOutput(func(i byte, o *ledger.Output, oid ledger.OutputID) bool {
+	tx.ForEachProducedOutput(func(i byte, o *ledger.Output, oid base.OutputID) bool {
 		ret.Outputs[i] = ParsedOutput{
 			Data:        hex.EncodeToString(o.Bytes()),
 			Constraints: o.LinesPlain().Slice(),
@@ -339,9 +340,9 @@ func JSONAbleFromTransaction(tx *transaction.Transaction) *TransactionJSONAble {
 			LockName:    o.Lock().Name(),
 		}
 		if cc, idx := o.ChainConstraint(); idx != 0xff {
-			var chainID ledger.ChainID
+			var chainID base.ChainID
 			if cc.IsOrigin() {
-				chainID = ledger.MakeOriginChainID(oid)
+				chainID = base.MakeOriginChainID(oid)
 			} else {
 				chainID = cc.ID
 			}
@@ -368,10 +369,10 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ret.SequencerID = seqID.StringHex()
 	}
 
-	var stemTxID, seqTxID ledger.TransactionID
+	var stemTxID, seqTxID base.TransactionID
 
-	inputTxIDs := set.New[ledger.TransactionID]()
-	tx.ForEachInput(func(i byte, oid ledger.OutputID) bool {
+	inputTxIDs := set.New[base.TransactionID]()
+	tx.ForEachInput(func(i byte, oid base.OutputID) bool {
 		inputTxIDs.Insert(oid.TransactionID())
 		if tx.IsSequencerTransaction() {
 			if *seqInputIdx == i {
@@ -385,8 +386,8 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		}
 		return true
 	})
-	sorted := util.KeysSorted(inputTxIDs, func(txid1, txid2 ledger.TransactionID) bool {
-		return ledger.LessTxID(txid1, txid2)
+	sorted := util.KeysSorted(inputTxIDs, func(txid1, txid2 base.TransactionID) bool {
+		return base.LessTxID(txid1, txid2)
 	})
 
 	if tx.IsSequencerTransaction() {
@@ -404,7 +405,7 @@ func VertexWithDependenciesFromTransaction(tx *transaction.Transaction) *VertexW
 		ret.Inputs = append(ret.Inputs, txid.StringHex())
 	}
 
-	tx.ForEachEndorsement(func(i byte, txid ledger.TransactionID) bool {
+	tx.ForEachEndorsement(func(i byte, txid base.TransactionID) bool {
 		ret.Endorsements[i] = txid.StringHex()
 		return true
 	})

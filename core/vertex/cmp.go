@@ -1,7 +1,7 @@
 package vertex
 
 import (
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -50,7 +50,7 @@ func IsPreferredMilestoneAgainstTheOther(vid1, vid2 *WrappedTx, preferYounger bo
 		return slc1 > slc2
 	}
 	// equal coverage sums, compare IDs
-	if ledger.LessTxID(vid1.id, vid2.id) {
+	if base.LessTxID(vid1.id, vid2.id) {
 		return preferYounger
 	}
 	return !preferYounger

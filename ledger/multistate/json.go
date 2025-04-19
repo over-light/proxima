@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/unitrie/common"
 )
 
@@ -49,7 +50,7 @@ func (r *RootRecordJSONAble) Parse() (*RootRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret.SequencerID, err = ledger.ChainIDFromHexString(r.SequencerID)
+	ret.SequencerID, err = base.ChainIDFromHexString(r.SequencerID)
 	if err != nil {
 		return nil, err
 	}

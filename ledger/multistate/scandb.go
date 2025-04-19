@@ -24,7 +24,7 @@ type (
 
 	AccountInfo struct {
 		LockedAccounts map[string]LockedAccountInfo
-		ChainRecords   map[ledger.ChainID]ChainRecordInfo
+		ChainRecords   map[base.ChainID]ChainRecordInfo
 	}
 
 	SummarySupplyAndInflation struct {
@@ -34,14 +34,14 @@ type (
 		BeginSupply      uint64
 		EndSupply        uint64
 		TotalInflation   uint64
-		InfoPerSeqID     map[ledger.ChainID]SequencerInfo
+		InfoPerSeqID     map[base.ChainID]SequencerInfo
 	}
 
 	SequencerInfo struct {
 		BeginBalance      uint64
 		EndBalance        uint64
 		NumBranches       int
-		StemInTheHeaviest ledger.OutputID
+		StemInTheHeaviest base.OutputID
 	}
 )
 
@@ -78,7 +78,7 @@ func (a *AccountInfo) Lines(prefix ...string) *lines.Lines {
 	ret.Add("   Total in locked accounts: %s", util.Th(sum))
 
 	ret.Add("Chains: %d", len(a.ChainRecords))
-	chainIDSSorted := util.KeysSorted(a.ChainRecords, func(k1, k2 ledger.ChainID) bool {
+	chainIDSSorted := util.KeysSorted(a.ChainRecords, func(k1, k2 base.ChainID) bool {
 		return bytes.Compare(k1[:], k2[:]) < 0
 	})
 	sum = 0
@@ -103,7 +103,7 @@ func FetchSummarySupply(stateStore StateStore, nBack int) *SummarySupplyAndInfla
 		NumberOfBranches: len(branchData),
 		OldestSlot:       branchData[len(branchData)-1].Stem.Timestamp().Slot,
 		LatestSlot:       branchData[0].Stem.Timestamp().Slot,
-		InfoPerSeqID:     make(map[ledger.ChainID]SequencerInfo),
+		InfoPerSeqID:     make(map[base.ChainID]SequencerInfo),
 	}
 	// count branches per sequencer
 	for i := 0; i < len(branchData)-1; i++ {
@@ -143,7 +143,7 @@ func (s *SummarySupplyAndInflation) Lines(prefix ...string) *lines.Lines {
 		Add("Supply: %s -> %s (+%s, %.6f%%)", util.Th(s.BeginSupply), util.Th(s.EndSupply), util.Th(s.TotalInflation), pInfl).
 		Add("Per sequencer along the heaviest chain:")
 
-	sortedSeqIDs := util.KeysSorted(s.InfoPerSeqID, func(k1, k2 ledger.ChainID) bool {
+	sortedSeqIDs := util.KeysSorted(s.InfoPerSeqID, func(k1, k2 base.ChainID) bool {
 		return bytes.Compare(k1[:], k2[:]) < 0
 	})
 	for _, seqId := range sortedSeqIDs {

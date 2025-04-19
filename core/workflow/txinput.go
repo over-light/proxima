@@ -9,6 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/work_process/txinput_queue"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -26,16 +27,16 @@ const (
 	TraceTagTxInput = "txinput"
 )
 
-func (w *Workflow) TxFromStoreIn(txid ledger.TransactionID) (err error) {
+func (w *Workflow) TxFromStoreIn(txid base.TransactionID) (err error) {
 	_, err = w.TxBytesFromStoreIn(w.TxBytesStore().GetTxBytesWithMetadata(&txid))
 	return
 }
 
-func (w *Workflow) TxBytesFromStoreIn(txBytesWithMetadata []byte) (ledger.TransactionID, error) {
+func (w *Workflow) TxBytesFromStoreIn(txBytesWithMetadata []byte) (base.TransactionID, error) {
 	nowis := time.Now()
 	txBytes, meta, err := txmetadata.ParseTxMetadata(txBytesWithMetadata)
 	if err != nil {
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	if meta == nil {
 		meta = &txmetadata.TransactionMetadata{}
@@ -47,12 +48,12 @@ func (w *Workflow) TxBytesFromStoreIn(txBytesWithMetadata []byte) (ledger.Transa
 	)
 }
 
-func (w *Workflow) TxBytesIn(txBytes []byte, opts ...TxInOption) (ledger.TransactionID, error) {
+func (w *Workflow) TxBytesIn(txBytes []byte, opts ...TxInOption) (base.TransactionID, error) {
 	// base validation
 	tx, err := transaction.FromBytes(txBytes)
 	if err != nil {
 		// any malformed data chunk will be rejected immediately before all the advanced validations
-		return ledger.TransactionID{}, err
+		return base.TransactionID{}, err
 	}
 	return tx.ID(), w.TxIn(tx, opts...)
 }

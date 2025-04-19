@@ -11,6 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -47,7 +48,7 @@ func (w *Workflow) GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.Tra
 	w.peers.GossipTxBytesToPeers(txBytes, metadata, except...)
 }
 
-func (w *Workflow) MustPersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid ...ledger.TransactionID) {
+func (w *Workflow) MustPersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid ...base.TransactionID) {
 	_, err := w.TxBytesStore().PersistTxBytesWithMetadata(txBytes, metadata, txid...)
 	util.AssertNoError(err)
 }
@@ -62,16 +63,16 @@ func (w *Workflow) IsSynced() bool {
 }
 
 // LatestMilestonesDescending returns optionally filtered sorted transactions from the sequencer tippool
-func (w *Workflow) LatestMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
+func (w *Workflow) LatestMilestonesDescending(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
 	return w.tippool.LatestActiveMilestonesDescending(filter...)
 }
 
 // LatestMilestonesShuffled returns optionally filtered sorted transactions from the sequencer tippool
-func (w *Workflow) LatestMilestonesShuffled(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
+func (w *Workflow) LatestMilestonesShuffled(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
 	return w.tippool.LatestActiveMilestonesShuffled(filter...)
 }
 
-func (w *Workflow) GetLatestMilestone(seqID ledger.ChainID) *vertex.WrappedTx {
+func (w *Workflow) GetLatestMilestone(seqID base.ChainID) *vertex.WrappedTx {
 	return w.tippool.GetLatestActiveMilestone(seqID)
 }
 
@@ -83,13 +84,13 @@ func (w *Workflow) PeerName(id peer.ID) string {
 	return w.peers.PeerName(id)
 }
 
-func (w *Workflow) QueryTxIDStatus(txid ledger.TransactionID) (ret vertex.TxIDStatus) {
+func (w *Workflow) QueryTxIDStatus(txid base.TransactionID) (ret vertex.TxIDStatus) {
 	ret = w.MemDAG.QueryTxIDStatus(txid)
 	ret.InStorage = w.TxBytesStore().HasTxBytes(&txid)
 	return
 }
 
-func (w *Workflow) WaitTxIDDefined(txid ledger.TransactionID, pollPeriod, timeout time.Duration) (vertex.Status, error) {
+func (w *Workflow) WaitTxIDDefined(txid base.TransactionID, pollPeriod, timeout time.Duration) (vertex.Status, error) {
 	deadline := time.Now().Add(timeout)
 	for {
 		status := w.QueryTxIDStatus(txid)
@@ -103,7 +104,7 @@ func (w *Workflow) WaitTxIDDefined(txid ledger.TransactionID, pollPeriod, timeou
 	}
 }
 
-func (w *Workflow) AddWantedTransaction(txid ledger.TransactionID) {
+func (w *Workflow) AddWantedTransaction(txid base.TransactionID) {
 	w.txInputQueue.AddWantedTransaction(txid)
 }
 

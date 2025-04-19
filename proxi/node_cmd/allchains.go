@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -166,7 +167,7 @@ func listSequencerDelegationInfo(supply uint64) {
 		for _, dd := range seqData.Delegations {
 			delegatedAmount += dd.Amount
 		}
-		doid, err := ledger.OutputIDFromHexString(seqData.SequencerOutputID)
+		doid, err := base.OutputIDFromHexString(seqData.SequencerOutputID)
 		glb.AssertNoError(err)
 		glb.Infof("%2d. %s (%s)\t   chain balance: %20s    total delegated: %20s (%d)    last active: %d slots ago",
 			i, seqIDHex, seqData.SequencerName, util.Th(seqData.Balance), util.Th(delegatedAmount), len(seqData.Delegations), ledger.TimeNow().Slot-doid.Slot())

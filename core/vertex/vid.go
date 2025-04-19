@@ -32,7 +32,7 @@ func (v _virtualTx) _outputAt(idx byte) (*ledger.Output, error) {
 	return nil, nil
 }
 
-func _newVID(g _genericVertex, txid ledger.TransactionID, seqID *ledger.ChainID) *WrappedTx {
+func _newVID(g _genericVertex, txid base.TransactionID, seqID *base.ChainID) *WrappedTx {
 	ret := &WrappedTx{
 		id:             txid,
 		_genericVertex: g,
@@ -46,7 +46,7 @@ func (vid *WrappedTx) _put(g _genericVertex) {
 	vid._genericVertex = g
 }
 
-func (vid *WrappedTx) ID() ledger.TransactionID {
+func (vid *WrappedTx) ID() base.TransactionID {
 	return vid.id
 }
 
@@ -241,7 +241,7 @@ func (vid *WrappedTx) Poke() {
 // Also sets solidification deadline, after which IsPullDeadlineDue will start returning true
 // The pull deadline will be dropped after transaction will become available and virtualTx will be converted
 // to full vertex
-func WrapTxID(txid ledger.TransactionID) *WrappedTx {
+func WrapTxID(txid base.TransactionID) *WrappedTx {
 	return _newVID(_virtualTx{newVirtualTx()}, txid, nil)
 }
 
@@ -311,7 +311,7 @@ func (vid *WrappedTx) OutputWithIDAt(idx byte) (ledger.OutputWithID, error) {
 		return ledger.OutputWithID{}, err
 	}
 	return ledger.OutputWithID{
-		ID:     ledger.MustNewOutputID(vid.id, idx),
+		ID:     base.MustNewOutputID(vid.id, idx),
 		Output: ret,
 	}, nil
 }
@@ -347,7 +347,7 @@ func (vid *WrappedTx) SequencerIDStringVeryShort() string {
 	return cid.StringVeryShort()
 }
 
-func (vid *WrappedTx) MustSequencerIDAndStemID() (seqID ledger.ChainID, stemID ledger.OutputID) {
+func (vid *WrappedTx) MustSequencerIDAndStemID() (seqID base.ChainID, stemID base.OutputID) {
 	util.Assertf(vid.IsBranchTransaction(), "vid.IsBranchTransaction()")
 	p := vid.SequencerID.Load()
 	util.Assertf(p != nil, "sequencerID is must be not nil")
@@ -399,7 +399,7 @@ func (vid *WrappedTx) SequencerWrappedOutput() (ret WrappedOutput) {
 	return
 }
 
-func (vid *WrappedTx) FindChainOutput(chainID *ledger.ChainID) (ret *ledger.OutputWithID) {
+func (vid *WrappedTx) FindChainOutput(chainID *base.ChainID) (ret *ledger.OutputWithID) {
 	vid.RUnwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
 			ret = v.Tx.FindChainOutput(*chainID)
@@ -461,8 +461,8 @@ func (vid *WrappedTx) _ofKindString() (ret string) {
 	return
 }
 
-func (vid *WrappedTx) OutputID(idx byte) (ret ledger.OutputID) {
-	ret = ledger.MustNewOutputID(vid.id, idx)
+func (vid *WrappedTx) OutputID(idx byte) (ret base.OutputID) {
+	ret = base.MustNewOutputID(vid.id, idx)
 	return
 }
 
@@ -574,7 +574,7 @@ func (vid *WrappedTx) NumProducedOutputs() int {
 }
 
 // BaselineBranch baseline branch of the vertex
-func (vid *WrappedTx) BaselineBranch(reattachBranch ...func(txid ledger.TransactionID) *WrappedTx) (baselineBranch *WrappedTx) {
+func (vid *WrappedTx) BaselineBranch(reattachBranch ...func(txid base.TransactionID) *WrappedTx) (baselineBranch *WrappedTx) {
 	if vid.id.IsBranchTransaction() {
 		return vid
 	}
@@ -783,7 +783,7 @@ func (vid *WrappedTx) String() (ret string) {
 	return
 }
 
-func (vid *WrappedTx) SequencerPredecessor(reattachBranch func(txid ledger.TransactionID) *WrappedTx) (ret *WrappedTx) {
+func (vid *WrappedTx) SequencerPredecessor(reattachBranch func(txid base.TransactionID) *WrappedTx) (ret *WrappedTx) {
 	vid.Unwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
 			if seqData := v.Tx.SequencerTransactionData(); seqData != nil {
@@ -941,7 +941,7 @@ func (vid *WrappedTx) IsContainingBranchOf(vid1 *WrappedTx, getStateReader func(
 		// branches on the same slot are conflicting
 		return false
 	}
-	if base := vid.BaselineBranch(); base == vid1 || (base != nil && base.BaselineBranch() == vid1) {
+	if b := vid.BaselineBranch(); b == vid1 || (b != nil && b.BaselineBranch() == vid1) {
 		return true
 	}
 	return getStateReader().KnowsCommittedTransaction(vid1.id)

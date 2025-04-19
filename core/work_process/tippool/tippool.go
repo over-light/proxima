@@ -9,6 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"golang.org/x/exp/rand"
@@ -17,7 +18,7 @@ import (
 type (
 	environment interface {
 		global.NodeGlobal
-		GetStateReaderForTheBranch(branchID ledger.TransactionID) multistate.IndexedStateReader
+		GetStateReaderForTheBranch(branchID base.TransactionID) multistate.IndexedStateReader
 	}
 
 	Input struct {
@@ -30,10 +31,10 @@ type (
 	SequencerTips struct {
 		*work_process.WorkProcess[Input]
 		mutex                           sync.RWMutex
-		latestMilestones                map[ledger.ChainID]_activeMilestoneData
+		latestMilestones                map[base.ChainID]_activeMilestoneData
 		expectedSequencerActivityPeriod time.Duration
 		latestMilestoneAddedWhen        time.Time
-		latestSequencerData             map[ledger.ChainID]LatestSequencerTipData
+		latestSequencerData             map[base.ChainID]LatestSequencerTipData
 	}
 
 	_activeMilestoneData struct {
@@ -44,8 +45,8 @@ type (
 	}
 
 	LatestSequencerTipData struct {
-		LatestMilestoneTxID ledger.TransactionID
-		LastBranchTxID      *ledger.TransactionID
+		LatestMilestoneTxID base.TransactionID
+		LastBranchTxID      *base.TransactionID
 		MilestoneCount      int
 		LastActivity        time.Time
 	}
@@ -68,9 +69,9 @@ const (
 
 func New(env environment) *SequencerTips {
 	ret := &SequencerTips{
-		latestMilestones:                make(map[ledger.ChainID]_activeMilestoneData),
+		latestMilestones:                make(map[base.ChainID]_activeMilestoneData),
 		expectedSequencerActivityPeriod: time.Duration(expectedSequencerActivityPeriodInSlots) * ledger.L().ID.SlotDuration(),
-		latestSequencerData:             make(map[ledger.ChainID]LatestSequencerTipData),
+		latestSequencerData:             make(map[base.ChainID]LatestSequencerTipData),
 	}
 	ret.WorkProcess = work_process.New[Input](env, Name, ret.consume)
 	ret.WorkProcess.Start()
@@ -90,14 +91,6 @@ func (t *SequencerTips) consume(inp Input) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	//{ // debug
-	//	for _, lm := range t.latestMilestones {
-	//		if lm.Slot() <= 1 {
-	//			t.Log().Infof(">>>>>>>>>>> in tippool %s", lm.WrappedTx.IDShortString())
-	//		}
-	//	}
-	//}
-
 	t.updateLatestSequencerData(inp.WrappedTx, *seqID)
 
 	storedNew := false
@@ -113,9 +106,6 @@ func (t *SequencerTips) consume(inp Input) {
 				old.IDShortString(), inp.IDShortString(), seqID.StringShort())
 		}
 		if t.replaceOldWithNew(old.WrappedTx, inp.WrappedTx) {
-			//old.WrappedTx.UnReference()
-			//inp.Reference()
-
 			old.WrappedTx = inp.WrappedTx
 			old.lastActivity = time.Now()
 			t.latestMilestones[*seqID] = old
@@ -125,7 +115,6 @@ func (t *SequencerTips) consume(inp Input) {
 			t.Tracef(TraceTag, "incoming milestone %s didn't replace existing %s", inp.IDShortString, old.IDShortString)
 		}
 	} else {
-		//inp.Reference()
 		t.latestMilestones[*seqID] = _activeMilestoneData{
 			WrappedTx:    inp.WrappedTx,
 			lastActivity: time.Now(),
@@ -142,7 +131,7 @@ func (t *SequencerTips) consume(inp Input) {
 	}
 }
 
-func (t *SequencerTips) updateLatestSequencerData(vid *vertex.WrappedTx, seqID ledger.ChainID) {
+func (t *SequencerTips) updateLatestSequencerData(vid *vertex.WrappedTx, seqID base.ChainID) {
 	seqData := t.latestSequencerData[seqID]
 	seqData.LatestMilestoneTxID = vid.ID()
 	if vid.IsSequencerMilestone() {
@@ -174,7 +163,7 @@ func (t *SequencerTips) replaceOldWithNew(old, new *vertex.WrappedTx) bool {
 }
 
 // GetLatestActiveMilestone will return nil if sequencer is not in the list
-func (t *SequencerTips) GetLatestActiveMilestone(seqID ledger.ChainID) *vertex.WrappedTx {
+func (t *SequencerTips) GetLatestActiveMilestone(seqID base.ChainID) *vertex.WrappedTx {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 	ret, ok := t.latestMilestones[seqID]
@@ -186,8 +175,8 @@ func (t *SequencerTips) GetLatestActiveMilestone(seqID ledger.ChainID) *vertex.W
 
 // filterLatestActiveMilestones returns sequencer transactions from sequencer tippool. Optionally filters
 // Not sorted, random order
-func (t *SequencerTips) filterLatestActiveMilestones(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
-	flt := func(_ ledger.ChainID, _ *vertex.WrappedTx) bool { return true }
+func (t *SequencerTips) filterLatestActiveMilestones(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
+	flt := func(_ base.ChainID, _ *vertex.WrappedTx) bool { return true }
 	if len(filter) > 0 {
 		flt = filter[0]
 	}
@@ -206,7 +195,7 @@ func (t *SequencerTips) filterLatestActiveMilestones(filter ...func(seqID ledger
 
 // LatestActiveMilestonesDescending returns sequencer transactions from sequencer tippool. Optionally filters
 // Sorts in the descending preference order (essentially by ledger coverage)
-func (t *SequencerTips) LatestActiveMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
+func (t *SequencerTips) LatestActiveMilestonesDescending(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
 	ret := t.filterLatestActiveMilestones(filter...)
 	sort.Slice(ret, func(i, j int) bool {
 		return vertex.IsPreferredMilestoneAgainstTheOther(ret[i], ret[j], false)
@@ -217,7 +206,7 @@ func (t *SequencerTips) LatestActiveMilestonesDescending(filter ...func(seqID le
 
 // LatestActiveMilestonesShuffled returns sequencer transactions from sequencer tippool. Optionally filters.
 // Randomizes order
-func (t *SequencerTips) LatestActiveMilestonesShuffled(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
+func (t *SequencerTips) LatestActiveMilestonesShuffled(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
 	ret := t.filterLatestActiveMilestones(filter...)
 	rand.Shuffle(len(ret), func(i, j int) {
 		ret[i], ret[j] = ret[j], ret[i]

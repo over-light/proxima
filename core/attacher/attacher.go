@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
@@ -187,7 +186,7 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 
 		// 'good' baseline direction must have not-nil baseline.
 		// In case it was already detached, we provide reattach function for the branch
-		baseline := baselineDirection.BaselineBranch(func(txid ledger.TransactionID) *vertex.WrappedTx {
+		baseline := baselineDirection.BaselineBranch(func(txid base.TransactionID) *vertex.WrappedTx {
 			return AttachTxID(txid, a, WithInvokedBy(a.name))
 		})
 		a.Assertf(baseline != nil, "baseline is nil in %s. Baseline direction:\n%s",
@@ -513,7 +512,7 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 	return true
 }
 
-func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID ledger.OutputID) bool {
+func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID base.OutputID) bool {
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
 	o, err := a.BaselineSugaredStateReader().GetOutputWithID(inputID)
 	if errors.Is(err, multistate.ErrNotFound) {
@@ -565,7 +564,7 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 
 // setBaseline sets baseline, references it from the attacher
 // For sequencer transaction baseline will be on the same slot, for branch transactions it can be further in the past
-func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, targetTs base.LedgerTime) bool {
+func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
 
 	// it may already be referenced but this ensures it is done only once
@@ -581,7 +580,6 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx, targetTs base.Ledg
 		a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline can't fetch root record for %s", baselineVID.IDShortString)
 		return false
 	}
-	//a.Assertf(found, "setBaseline: can't fetch root record for %s", baselineVID.IDShortString)
 
 	a.baseline = baselineVID
 	a.baselineSupply = rr.Supply

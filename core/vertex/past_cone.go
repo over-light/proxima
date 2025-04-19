@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
@@ -525,8 +524,8 @@ func (pc *PastCone) Mutations(slot base.Slot) (muts *multistate.Mutations, stats
 	muts = multistate.NewMutations()
 
 	// need to handle discontinued chains
-	deletedChainIDs := set.New[ledger.ChainID]()
-	producedChainIDs := set.New[ledger.ChainID]()
+	deletedChainIDs := set.New[base.ChainID]()
+	producedChainIDs := set.New[base.ChainID]()
 
 	// generate ADD TX and ADD OUTPUT mutations
 	for vid := range pc.vertices {
@@ -541,7 +540,7 @@ func (pc *PastCone) Mutations(slot base.Slot) (muts *multistate.Mutations, stats
 					if cc, ccIdx := o.ChainConstraint(); ccIdx != 0xff {
 						chainID := cc.ID
 						if cc.IsOrigin() {
-							chainID = ledger.MakeOriginChainID(oid)
+							chainID = base.MakeOriginChainID(oid)
 						}
 						// chain output deleted
 						deletedChainIDs.Insert(chainID)
@@ -565,7 +564,7 @@ func (pc *PastCone) Mutations(slot base.Slot) (muts *multistate.Mutations, stats
 				if cc, ccIdx := o.ChainConstraint(); ccIdx != 0xff {
 					chainID := cc.ID
 					if cc.IsOrigin() {
-						chainID = ledger.MakeOriginChainID(oid)
+						chainID = base.MakeOriginChainID(oid)
 					}
 					producedChainIDs.Insert(chainID)
 				}

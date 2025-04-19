@@ -223,7 +223,7 @@ func __precompiledIsOpenDelegationSlot() (ret *easyfl.Expression) {
 	return
 }
 
-func IsOpenDelegationSlot(chainID ChainID, slot base.Slot) bool {
+func IsOpenDelegationSlot(chainID base.ChainID, slot base.Slot) bool {
 	return len(easyfl.EvalExpression(nil, __precompiledIsOpenDelegationSlot(), chainID[:4], slot.Bytes())) > 0
 }
 
@@ -233,13 +233,13 @@ func MinimumDelegationAmount() uint64 {
 	return binary.BigEndian.Uint64(res)
 }
 
-func NextOpenDelegationSlot(chainID ChainID, slot base.Slot) base.Slot {
+func NextOpenDelegationSlot(chainID base.ChainID, slot base.Slot) base.Slot {
 	for ; !IsOpenDelegationSlot(chainID, slot); slot++ {
 	}
 	return slot
 }
 
-func NextOpenDelegationTimestamp(chainID ChainID, ts base.LedgerTime) (ret base.LedgerTime) {
+func NextOpenDelegationTimestamp(chainID base.ChainID, ts base.LedgerTime) (ret base.LedgerTime) {
 	ret = ts
 	if base.DiffTicks(ret, ts) < int64(DelegationLockPaceTicks()) {
 		ret = ts.AddTicks(int(DelegationLockPaceTicks()))
@@ -247,13 +247,13 @@ func NextOpenDelegationTimestamp(chainID ChainID, ts base.LedgerTime) (ret base.
 	return base.NewLedgerTime(NextOpenDelegationSlot(chainID, ret.Slot), ret.Tick)
 }
 
-func NextClosedDelegationSlot(chainID ChainID, slot base.Slot) base.Slot {
+func NextClosedDelegationSlot(chainID base.ChainID, slot base.Slot) base.Slot {
 	for ; IsOpenDelegationSlot(chainID, slot); slot++ {
 	}
 	return slot
 }
 
-func NextClosedDelegationTimestamp(chainID ChainID, ts base.LedgerTime) (ret base.LedgerTime) {
+func NextClosedDelegationTimestamp(chainID base.ChainID, ts base.LedgerTime) (ret base.LedgerTime) {
 	ret = ts
 	if base.DiffTicks(ret, ts) < int64(DelegationLockPaceTicks()) {
 		ret = ts.AddTicks(int(DelegationLockPaceTicks()))

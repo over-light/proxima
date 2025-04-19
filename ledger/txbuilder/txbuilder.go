@@ -28,7 +28,7 @@ type (
 	}
 
 	transactionData struct {
-		InputIDs             []*ledger.OutputID
+		InputIDs             []*base.OutputID
 		Outputs              []*ledger.Output
 		UnlockBlocks         []*UnlockParams
 		Signature            []byte
@@ -36,8 +36,8 @@ type (
 		StemOutputIndex      byte
 		Timestamp            base.LedgerTime
 		InputCommitment      [32]byte
-		Endorsements         []ledger.TransactionID
-		ExplicitBaseline     *ledger.TransactionID
+		Endorsements         []base.TransactionID
+		ExplicitBaseline     *base.TransactionID
 		LocalLibraries       [][]byte
 	}
 
@@ -50,14 +50,14 @@ func New() *TransactionBuilder {
 	return &TransactionBuilder{
 		ConsumedOutputs: make([]*ledger.Output, 0),
 		TransactionData: &transactionData{
-			InputIDs:             make([]*ledger.OutputID, 0),
+			InputIDs:             make([]*base.OutputID, 0),
 			Outputs:              make([]*ledger.Output, 0),
 			UnlockBlocks:         make([]*UnlockParams, 0),
 			SequencerOutputIndex: 0xff,
 			StemOutputIndex:      0xff,
 			Timestamp:            base.NilLedgerTime,
 			InputCommitment:      [32]byte{},
-			Endorsements:         make([]ledger.TransactionID, 0),
+			Endorsements:         make([]base.TransactionID, 0),
 			LocalLibraries:       make([][]byte, 0),
 		},
 	}
@@ -73,7 +73,7 @@ func (txb *TransactionBuilder) NumOutputs() int {
 	return len(txb.TransactionData.Outputs)
 }
 
-func (txb *TransactionBuilder) ConsumeOutput(out *ledger.Output, oid ledger.OutputID) (byte, error) {
+func (txb *TransactionBuilder) ConsumeOutput(out *ledger.Output, oid base.OutputID) (byte, error) {
 	if txb.NumInputs() >= 256 {
 		return 0, fmt.Errorf("too many consumed outputs")
 	}
@@ -136,11 +136,11 @@ func (txb *TransactionBuilder) PutStandardInputUnlocks(n int) error {
 	return nil
 }
 
-func (txb *TransactionBuilder) PushEndorsements(txid ...ledger.TransactionID) {
+func (txb *TransactionBuilder) PushEndorsements(txid ...base.TransactionID) {
 	txb.TransactionData.Endorsements = append(txb.TransactionData.Endorsements, txid...)
 }
 
-func (txb *TransactionBuilder) PutExplicitBaseline(txid *ledger.TransactionID) {
+func (txb *TransactionBuilder) PutExplicitBaseline(txid *base.TransactionID) {
 	txb.TransactionData.ExplicitBaseline = txid
 }
 
@@ -180,18 +180,18 @@ func (txb *TransactionBuilder) Transaction() (*transaction.Transaction, error) {
 	return transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 }
 
-func (txb *TransactionBuilder) BytesWithValidation() ([]byte, ledger.TransactionID, string, error) {
+func (txb *TransactionBuilder) BytesWithValidation() ([]byte, base.TransactionID, string, error) {
 	txBytes := txb.TransactionData.Bytes()
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	if err != nil {
-		return nil, ledger.TransactionID{}, "", err
+		return nil, base.TransactionID{}, "", err
 	}
 	ctx, err := transaction.TxContextFromTransaction(tx, txb.LoadInput)
 	if err != nil {
-		return nil, ledger.TransactionID{}, "", err
+		return nil, base.TransactionID{}, "", err
 	}
 	if err = ctx.Validate(); err != nil {
-		return nil, ledger.TransactionID{}, ctx.String(), err
+		return nil, base.TransactionID{}, ctx.String(), err
 	}
 	return txBytes, tx.ID(), "", nil
 }
@@ -288,8 +288,8 @@ type (
 		AddConstraints    [][]byte
 		MarkAsSequencerTx bool
 		UnlockData        []*UnlockData
-		Endorsements      []ledger.TransactionID
-		ExplicitBaseline  *ledger.TransactionID
+		Endorsements      []base.TransactionID
+		ExplicitBaseline  *base.TransactionID
 		TagAlong          *TagAlongData
 	}
 
@@ -311,7 +311,7 @@ type (
 	}
 
 	TagAlongData struct {
-		SeqID  ledger.ChainID
+		SeqID  base.ChainID
 		Amount uint64
 	}
 
@@ -334,7 +334,7 @@ func NewTransferData(senderKey ed25519.PrivateKey, sourceAccount ledger.Accounta
 		Timestamp:        ts,
 		AddConstraints:   make([][]byte, 0),
 		UnlockData:       make([]*UnlockData, 0),
-		Endorsements:     make([]ledger.TransactionID, 0),
+		Endorsements:     make([]base.TransactionID, 0),
 	}
 }
 
@@ -401,12 +401,12 @@ func (t *TransferData) WithUnlockData(consumedOutputIndex, constraintIndex byte,
 	return t
 }
 
-func (t *TransferData) WithEndorsements(ids ...ledger.TransactionID) *TransferData {
+func (t *TransferData) WithEndorsements(ids ...base.TransactionID) *TransferData {
 	t.Endorsements = ids
 	return t
 }
 
-func (t *TransferData) WithTagAlong(seqID ledger.ChainID, amount uint64) *TransferData {
+func (t *TransferData) WithTagAlong(seqID base.ChainID, amount uint64) *TransferData {
 	t.TagAlong = &TagAlongData{
 		SeqID:  seqID,
 		Amount: amount,
@@ -674,7 +674,7 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 
 	chainID := chainInConstraint.ID
 	if chainInConstraint.IsOrigin() {
-		chainID = ledger.MakeOriginChainID(par.ChainInput.ID)
+		chainID = base.MakeOriginChainID(par.ChainInput.ID)
 	}
 
 	// make chain output
@@ -834,7 +834,7 @@ func NewUnlockBlock() *UnlockParams {
 	}
 }
 
-func GetChainAccount(chainID ledger.ChainID, srdr multistate.IndexedStateReader, desc ...bool) (*ledger.OutputWithChainID, []*ledger.OutputWithID, error) {
+func GetChainAccount(chainID base.ChainID, srdr multistate.IndexedStateReader, desc ...bool) (*ledger.OutputWithChainID, []*ledger.OutputWithID, error) {
 	chainOutData, err := srdr.GetUTXOForChainID(chainID)
 	if err != nil {
 		return nil, nil, err
@@ -846,7 +846,7 @@ func GetChainAccount(chainID ledger.ChainID, srdr multistate.IndexedStateReader,
 	if len(chainData) != 1 {
 		return nil, nil, fmt.Errorf("error while parsing chain output")
 	}
-	retData, err := srdr.GetUTXOsInAccount(chainID.AsAccountID())
+	retData, err := srdr.GetUTXOsInAccount(ledger.ChainLockFromChainID(chainID).AccountID())
 	if err != nil {
 		return nil, nil, err
 	}

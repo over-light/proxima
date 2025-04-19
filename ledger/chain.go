@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"golang.org/x/crypto/blake2b"
@@ -14,7 +15,7 @@ import (
 // ChainConstraint is a chain constraint
 type ChainConstraint struct {
 	// ID all-0 for origin
-	ID ChainID
+	ID base.ChainID
 	// 0xFF for origin, 0x00 for state transition, other reserved
 	TransitionMode byte
 	// Previous index of the consumed chain input with the same ID. Must be 0xFF for the origin
@@ -27,7 +28,7 @@ const (
 	chainConstraintTemplate = ChainConstraintName + "(0x%s)"
 )
 
-func NewChainConstraint(id ChainID, prevOut, predecessorConstraintIndex, mode byte) *ChainConstraint {
+func NewChainConstraint(id base.ChainID, prevOut, predecessorConstraintIndex, mode byte) *ChainConstraint {
 	return &ChainConstraint{
 		ID:                         id,
 		TransitionMode:             mode,
@@ -37,11 +38,11 @@ func NewChainConstraint(id ChainID, prevOut, predecessorConstraintIndex, mode by
 }
 
 func NewChainOrigin() *ChainConstraint {
-	return NewChainConstraint(NilChainID, 0xff, 0xff, 0xff)
+	return NewChainConstraint(base.NilChainID, 0xff, 0xff, 0xff)
 }
 
 func (ch *ChainConstraint) IsOrigin() bool {
-	if ch.ID != NilChainID {
+	if ch.ID != base.NilChainID {
 		return false
 	}
 	if ch.PredecessorInputIndex != 0xff {
@@ -82,15 +83,15 @@ func ChainConstraintFromBytes(data []byte) (*ChainConstraint, error) {
 		return nil, fmt.Errorf("ChainConstraintFromBytes: not a chain constraint")
 	}
 	constraintData := easyfl.StripDataPrefix(args[0])
-	if len(constraintData) != ChainIDLength+3 {
+	if len(constraintData) != base.ChainIDLength+3 {
 		return nil, fmt.Errorf("ChainConstraintFromBytes: wrong data len")
 	}
 	ret := &ChainConstraint{
-		PredecessorInputIndex:      constraintData[ChainIDLength],
-		PredecessorConstraintIndex: constraintData[ChainIDLength+1],
-		TransitionMode:             constraintData[ChainIDLength+2],
+		PredecessorInputIndex:      constraintData[base.ChainIDLength],
+		PredecessorConstraintIndex: constraintData[base.ChainIDLength+1],
+		TransitionMode:             constraintData[base.ChainIDLength+2],
 	}
-	copy(ret.ID[:], constraintData[:ChainIDLength])
+	copy(ret.ID[:], constraintData[:base.ChainIDLength])
 	return ret, nil
 }
 
@@ -122,10 +123,10 @@ func initTestChainConstraint() {
 
 // inline test
 func chainConstraintInlineTest() {
-	var chainID ChainID
+	var chainID base.ChainID
 	chainID = blake2b.Sum256([]byte("dummy"))
 	{
-		chainIDBack, err := ChainIDFromBytes(chainID.Bytes())
+		chainIDBack, err := base.ChainIDFromBytes(chainID.Bytes())
 		util.AssertNoError(err)
 		util.Assertf(chainIDBack == chainID, "chainIDBack == chainID")
 	}

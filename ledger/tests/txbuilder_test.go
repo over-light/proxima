@@ -269,7 +269,7 @@ func TestChainSuccessorTransaction(t *testing.T) {
 			Timestamp:            chainInput.Timestamp().AddSlots(1),
 			EnforceProfitability: true,
 			WithdrawAmount:       fee,
-			WithdrawTarget:       target.ChainID.AsChainLock(),
+			WithdrawTarget:       ledger.ChainLockFromChainID(target.ChainID),
 			PrivateKey:           privKeys[0],
 		}
 		txBytes, inflation, _, err := txbuilder.MakeChainSuccessorTransaction(&par)
@@ -302,7 +302,7 @@ func TestChainSuccessorTransaction(t *testing.T) {
 			Timestamp:            chainInput.Timestamp().AddSlots(1),
 			EnforceProfitability: false,
 			WithdrawAmount:       fee,
-			WithdrawTarget:       target.ChainID.AsChainLock(),
+			WithdrawTarget:       ledger.ChainLockFromChainID(target.ChainID),
 			PrivateKey:           privKeys[0],
 		}
 		_, inflationAmount, _, err := txbuilder.MakeChainSuccessorTransaction(&par)
@@ -362,7 +362,7 @@ func TestChainSuccessorTransaction(t *testing.T) {
 			Timestamp:            chainInput.Timestamp().AddSlots(slots),
 			EnforceProfitability: true,
 			WithdrawAmount:       fee,
-			WithdrawTarget:       target.ChainID.AsChainLock(),
+			WithdrawTarget:       ledger.ChainLockFromChainID(target.ChainID),
 			PrivateKey:           privKeys[0],
 		}
 		txBytes, inflation, _, err := txbuilder.MakeChainSuccessorTransaction(&par)

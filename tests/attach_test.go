@@ -115,7 +115,7 @@ func TestAttachBasic(t *testing.T) {
 		require.EqualValues(t, 2_000_000, int(bal2))
 		require.EqualValues(t, 2, n2)
 
-		balChain, nChain := multistate.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
+		balChain, nChain := multistate.BalanceOnLock(rdr, ledger.ChainLockFromChainID(bootstrapChainID))
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
@@ -185,7 +185,7 @@ func TestAttachBasic(t *testing.T) {
 		require.EqualValues(t, 2_000_000, int(bal2))
 		require.EqualValues(t, 1, n2)
 
-		balChain, nChain := multistate.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
+		balChain, nChain := multistate.BalanceOnLock(rdr, ledger.ChainLockFromChainID(bootstrapChainID))
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
@@ -255,7 +255,7 @@ func TestAttachBasic(t *testing.T) {
 		require.EqualValues(t, 2_000_000, int(bal2))
 		require.EqualValues(t, 1, n2)
 
-		balChain, nChain := multistate.BalanceOnLock(rdr, bootstrapChainID.AsChainLock())
+		balChain, nChain := multistate.BalanceOnLock(rdr, ledger.ChainLockFromChainID(bootstrapChainID))
 		require.EqualValues(t, 0, balChain)
 		require.EqualValues(t, 0, nChain)
 
@@ -429,7 +429,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		ts := base.MaximumTime(inTS...).AddTicks(ledger.TransactionPaceSequencer())
 
 		// checking invalid explicit baseline
-		explicitBaseline := util.Ref(ledger.RandomTransactionID(true, 5, ts))
+		explicitBaseline := util.Ref(base.RandomTransactionID(true, 5, ts))
 		txBytes, loader, err := txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
 			SeqName:          "test",
 			ChainInput:       chainOut,
@@ -441,7 +441,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		util.RequireErrorWith(t, err, "explicit baseline must be a branch transaction ID", explicitBaseline.String())
 
 		// now this must pass without error
-		explicitBaseline = util.Ref(ledger.RandomTransactionID(true, 5, base.NewLedgerTime(ts.Slot, 0)))
+		explicitBaseline = util.Ref(base.RandomTransactionID(true, 5, base.NewLedgerTime(ts.Slot, 0)))
 		txBytes, loader, err = txbuilder.MakeSequencerTransactionWithInputLoader(txbuilder.MakeSequencerTransactionParams{
 			SeqName:          "test",
 			ChainInput:       chainOut,

@@ -15,19 +15,19 @@ import (
 )
 
 func TestOriginBase(t *testing.T) {
-	gtxid := ledger.GenesisTransactionID()
+	gtxid := base.GenesisTransactionID()
 	fmt.Printf("hex: %s\n", gtxid.StringHex())
 	fmt.Printf("full: %s\n", gtxid.String())
-	rndtxid := ledger.RandomTransactionID(false, 1, base.NewLedgerTime(1337, 50))
+	rndtxid := base.RandomTransactionID(false, 1, base.NewLedgerTime(1337, 50))
 	fmt.Printf("raw hexadecimal (non-sequencer): %s\n", rndtxid.StringHex())
 	fmt.Printf("full human readable (non-sequencer): %s\n", rndtxid.String())
 	fmt.Printf("short (trimmed) human readable (non-sequencer): %s\n", rndtxid.StringShort())
 
-	rndtxid = ledger.RandomTransactionID(true, 1, base.NewLedgerTime(1337, 0))
+	rndtxid = base.RandomTransactionID(true, 1, base.NewLedgerTime(1337, 0))
 	fmt.Printf("raw hexadecimal branch transaction ID %s\n", rndtxid.StringHex())
 	fmt.Printf("full human readable branch transaction ID: %s\n", rndtxid.String())
 	fmt.Printf("short (trimmed) human readable branch transaction ID: %s\n", rndtxid.StringShort())
-	rndtxid = ledger.RandomTransactionID(true, 1, base.NewLedgerTime(1337, 50))
+	rndtxid = base.RandomTransactionID(true, 1, base.NewLedgerTime(1337, 50))
 	fmt.Printf("short (trimmed) human readable non-branch sequencer transaction ID: %s\n", rndtxid.StringShort())
 
 	const supply = 10_000_000_000
@@ -62,16 +62,16 @@ func TestInitOrigin(t *testing.T) {
 	require.True(t, ledger.CommitmentModel.EqualCommitments(genesisRoot, branchData.Root))
 
 	snapshotBranchID := multistate.FetchSnapshotBranchID(store)
-	require.EqualValues(t, ledger.GenesisTransactionID(), snapshotBranchID)
+	require.EqualValues(t, base.GenesisTransactionID(), snapshotBranchID)
 
 	rdr := multistate.MustNewSugaredReadableState(store, genesisRoot)
 
 	stemBack := rdr.GetStemOutput()
-	require.EqualValues(t, ledger.GenesisStemOutputID(), stemBack.ID)
+	require.EqualValues(t, base.GenesisStemOutputID(), stemBack.ID)
 
 	initSupplyOut, err := rdr.GetChainOutput(bootstrapSeqID)
 	require.NoError(t, err)
-	require.EqualValues(t, ledger.GenesisOutputID(), initSupplyOut.ID)
+	require.EqualValues(t, base.GenesisOutputID(), initSupplyOut.ID)
 
 	require.EqualValues(t, 0, multistate.FetchLatestCommittedSlot(store))
 	require.EqualValues(t, 0, multistate.FetchEarliestSlot(store))

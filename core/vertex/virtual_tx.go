@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -39,7 +40,7 @@ func (v *Vertex) toDetachedVertex() *DetachedVertex {
 	return ret
 }
 
-func (v *VirtualTransaction) wrapWithID(txid ledger.TransactionID) *WrappedTx {
+func (v *VirtualTransaction) wrapWithID(txid base.TransactionID) *WrappedTx {
 	return _newVID(_virtualTx{VirtualTransaction: v}, txid, v.sequencerID(txid))
 }
 
@@ -119,14 +120,14 @@ func (v *VirtualTransaction) SequencerOutputs() (*ledger.Output, *ledger.Output)
 }
 
 // sequencerID returns nil if not available
-func (v *VirtualTransaction) sequencerID(txid ledger.TransactionID) (ret *ledger.ChainID) {
+func (v *VirtualTransaction) sequencerID(txid base.TransactionID) (ret *base.ChainID) {
 	if v.sequencerOutputIndices != nil {
 		seqOData, ok := v.outputs[v.sequencerOutputIndices[0]].SequencerOutputData()
 		util.Assertf(ok, "sequencer output data unavailable for the output #%d", v.sequencerOutputIndices[0])
 		idData := seqOData.ChainConstraint.ID
-		if idData == ledger.NilChainID {
-			oid := ledger.MustNewOutputID(txid, v.sequencerOutputIndices[0])
-			ret = util.Ref(ledger.MakeOriginChainID(oid))
+		if idData == base.NilChainID {
+			oid := base.MustNewOutputID(txid, v.sequencerOutputIndices[0])
+			ret = util.Ref(base.MakeOriginChainID(oid))
 		} else {
 			ret = util.Ref(idData)
 		}
@@ -163,14 +164,14 @@ func (v *VirtualTransaction) PullNeeded() bool {
 	return v.pullRulesDefined && v.needsPull && v.nextPull.Before(time.Now())
 }
 
-func (v *VirtualTransaction) findChainOutput(txid ledger.TransactionID, chainID *ledger.ChainID) *ledger.OutputWithID {
+func (v *VirtualTransaction) findChainOutput(txid base.TransactionID, chainID *base.ChainID) *ledger.OutputWithID {
 	v.mutex.RLock()
 	defer v.mutex.RUnlock()
 
 	for outIdx, o := range v.outputs {
 		if c, cIdx := o.ChainConstraint(); cIdx != 0xff && c.ID == *chainID {
 			return &ledger.OutputWithID{
-				ID:     ledger.MustNewOutputID(txid, outIdx),
+				ID:     base.MustNewOutputID(txid, outIdx),
 				Output: o,
 			}
 		}

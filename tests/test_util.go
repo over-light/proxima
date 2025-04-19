@@ -49,7 +49,7 @@ func (w *workflowDummyEnvironment) TxBytesStore() global.TxBytesStore {
 	return w.txBytesStore
 }
 
-func (w *workflowDummyEnvironment) PullFromNPeers(_ int, txid ledger.TransactionID) int {
+func (w *workflowDummyEnvironment) PullFromNPeers(_ int, txid base.TransactionID) int {
 	w.Log().Warnf(">>>>>> PullFromNPeers not implemented: %s", txid.StringShort())
 	return 0
 }
@@ -58,12 +58,12 @@ func (w *workflowDummyEnvironment) EvidencePastConeSize(_ int) {}
 
 func (w *workflowDummyEnvironment) EvidenceNumberOfTxDependencies(_ int) {}
 
-func (w *workflowDummyEnvironment) GetOwnSequencerID() *ledger.ChainID {
+func (w *workflowDummyEnvironment) GetOwnSequencerID() *base.ChainID {
 	panic("not implemented")
 }
 
-func (w *workflowDummyEnvironment) SnapshotBranchID() ledger.TransactionID {
-	return ledger.GenesisTransactionID()
+func (w *workflowDummyEnvironment) SnapshotBranchID() base.TransactionID {
+	return base.GenesisTransactionID()
 }
 
 func (w *workflowDummyEnvironment) DurationSinceLastMessageFromPeer() time.Duration {
@@ -98,11 +98,11 @@ func (p *workflowDummyEnvironment) LatestReliableState() (multistate.SugaredStat
 	return multistate.MakeSugared(multistate.MustNewReadable(p.stateStore, p.root, 0)), nil
 }
 
-func (p *workflowDummyEnvironment) CheckTransactionInLRB(_ ledger.TransactionID, _ int) (lrbid ledger.TransactionID, foundAtDepth int) {
+func (p *workflowDummyEnvironment) CheckTransactionInLRB(_ base.TransactionID, _ int) (lrbid base.TransactionID, foundAtDepth int) {
 	panic("not implemented")
 }
 
-func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(_ *ledger.TransactionID) vertex.TxIDStatusJSONAble {
+func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(_ *base.TransactionID) vertex.TxIDStatusJSONAble {
 	return vertex.TxIDStatusJSONAble{}
 }
 
@@ -123,9 +123,9 @@ type workflowTestData struct {
 	env                    *workflowDummyEnvironment
 	wrk                    *workflow.Workflow
 	txStore                global.TxBytesStore
-	bootstrapChainID       ledger.ChainID
-	originBranchTxid       ledger.TransactionID
-	distributionBranchTxID ledger.TransactionID
+	bootstrapChainID       base.ChainID
+	originBranchTxid       base.TransactionID
+	distributionBranchTxID base.TransactionID
 	distributionBranchTx   *transaction.Transaction
 	privKey                ed25519.PrivateKey
 	addr                   ledger.AddressED25519
@@ -276,7 +276,7 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 	}
 
 	td.chainOrigins = make([]*ledger.OutputWithChainID, n)
-	td.chainOriginsTx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid ledger.OutputID) bool {
+	td.chainOriginsTx.ForEachProducedOutput(func(idx byte, o *ledger.Output, oid base.OutputID) bool {
 		if int(idx) >= n {
 			return true
 		}
@@ -390,7 +390,7 @@ func (td *longConflictTestData) makeSeqBeginnings(withConflictingFees bool) {
 			SeqName:          "1",
 			ChainInput:       chainOrigin,
 			Timestamp:        ledger.L().ID.EnsurePostBranchConsolidationConstraintTimestamp(ts),
-			Endorsements:     []ledger.TransactionID{td.distributionBranchTxID},
+			Endorsements:     []base.TransactionID{td.distributionBranchTxID},
 			PrivateKey:       td.privKeyAux,
 			AdditionalInputs: additionalIn,
 		})
@@ -424,7 +424,7 @@ func (td *longConflictTestData) makeSeqChains(howLong int) {
 func (td *longConflictTestData) makeSlotTransactions(howLongChain int, extendBegin []*transaction.Transaction) [][]*transaction.Transaction {
 	ret := make([][]*transaction.Transaction, len(extendBegin))
 	var extend *ledger.OutputWithChainID
-	var endorse ledger.TransactionID
+	var endorse base.TransactionID
 	var ts base.LedgerTime
 
 	for i := 0; i < howLongChain; i++ {
@@ -462,7 +462,7 @@ func (td *longConflictTestData) makeSlotTransactions(howLongChain int, extendBeg
 func (td *longConflictTestData) makeSlotTransactionsWithTagAlong(howLongChain int, extendBegin []*transaction.Transaction, _ ...bool) [][]*transaction.Transaction {
 	ret := make([][]*transaction.Transaction, len(extendBegin))
 	var extend *ledger.OutputWithChainID
-	var endorse ledger.TransactionID
+	var endorse base.TransactionID
 	var ts base.LedgerTime
 
 	if td.remainderOutput == nil {
@@ -530,7 +530,7 @@ func (td *longConflictTestData) makeBranch(extend *ledger.OutputWithChainID, pre
 func (td *longConflictTestData) extendToNextSlot(prevSlot [][]*transaction.Transaction, branch *transaction.Transaction) []*transaction.Transaction {
 	ret := make([]*transaction.Transaction, len(prevSlot))
 	var extendOut *ledger.OutputWithChainID
-	var endorse []ledger.TransactionID
+	var endorse []base.TransactionID
 
 	branchChainID, _, ok := branch.SequencerOutput().ExtractChainID()
 	require.True(td.t, ok)
@@ -538,7 +538,7 @@ func (td *longConflictTestData) extendToNextSlot(prevSlot [][]*transaction.Trans
 	for i := range prevSlot {
 		// FIXME
 		extendOut = prevSlot[i][len(prevSlot[i])-1].SequencerOutput().MustAsChainOutput()
-		endorse = []ledger.TransactionID{branch.ID()}
+		endorse = []base.TransactionID{branch.ID()}
 		if extendOut.ChainID == branchChainID {
 			extendOut = branch.SequencerOutput().MustAsChainOutput()
 			endorse = nil
@@ -561,7 +561,7 @@ func (td *longConflictTestData) extendToNextSlot(prevSlot [][]*transaction.Trans
 
 const transferAmount = 100
 
-func (td *longConflictTestData) spendToChain(o *ledger.OutputWithID, chainID ledger.ChainID) *transaction.Transaction {
+func (td *longConflictTestData) spendToChain(o *ledger.OutputWithID, chainID base.ChainID) *transaction.Transaction {
 	txBytes, err := txbuilder.MakeSimpleTransferTransaction(txbuilder.NewTransferData(td.privKey, td.addr, o.Timestamp().AddTicks(ledger.TransactionPace())).
 		WithAmount(transferAmount).
 		MustWithInputs(o).
@@ -707,7 +707,7 @@ type spammerParams struct {
 	t                 *testing.T
 	privateKey        ed25519.PrivateKey
 	remainder         *ledger.OutputWithID
-	tagAlongSeqID     []ledger.ChainID
+	tagAlongSeqID     []base.ChainID
 	target            ledger.Lock
 	batchSize         int
 	tagAlongLastOnly  bool
@@ -715,9 +715,9 @@ type spammerParams struct {
 	maxBatches        int
 	sendAmount        uint64
 	tagAlongFee       uint64
-	spammedTxIDs      []ledger.TransactionID
+	spammedTxIDs      []base.TransactionID
 	numSpammedBatches int
-	perChainID        map[ledger.ChainID]int
+	perChainID        map[base.ChainID]int
 	traceTx           bool
 }
 
@@ -749,7 +749,7 @@ func (td *workflowTestData) spamTransfers(par *spammerParams, ctx context.Contex
 
 func makeTransfers(par *spammerParams) [][]byte {
 	if par.perChainID == nil {
-		par.perChainID = make(map[ledger.ChainID]int)
+		par.perChainID = make(map[base.ChainID]int)
 	}
 	require.True(par.t, len(par.tagAlongSeqID) > 0)
 	sourceAddr := ledger.AddressED25519FromPrivateKey(par.privateKey)
@@ -778,7 +778,7 @@ func makeTransfers(par *spammerParams) [][]byte {
 
 		tx, err := transaction.FromBytes(ret[i], transaction.MainTxValidationOptions...)
 		require.NoError(par.t, err)
-		tagAlongOuts := tx.ProducedOutputsWithTargetLock(seqID.AsChainLock())
+		tagAlongOuts := tx.ProducedOutputsWithTargetLock(ledger.ChainLockFromChainID(seqID))
 
 		if !par.tagAlongLastOnly || i == par.batchSize-1 {
 			require.EqualValues(par.t, 1, len(tagAlongOuts))
@@ -796,7 +796,7 @@ func makeTransfers(par *spammerParams) [][]byte {
 }
 
 type spammerWithdrawCmdParams struct {
-	seqID                   ledger.ChainID
+	seqID                   base.ChainID
 	seqControllerPrivateKey ed25519.PrivateKey
 	withdrawAmount          uint64
 	pace                    int
@@ -880,7 +880,7 @@ func (td *workflowTestData) startSequencersWithTimeout(maxSlots int, timeout ...
 	}()
 }
 
-func StartTestEnv() (*workflowDummyEnvironment, *ledger.TransactionID, error) {
+func StartTestEnv() (*workflowDummyEnvironment, *base.TransactionID, error) {
 	privKey := genesisPrivateKey
 	addr1 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1))
 	addr2 := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(2))

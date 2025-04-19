@@ -2,11 +2,11 @@ package memdag
 
 import (
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 )
 
 // QueryTxIDStatus returns vertex mode, tx status and error of the vertex
-func (d *MemDAG) QueryTxIDStatus(txid ledger.TransactionID) (ret vertex.TxIDStatus) {
+func (d *MemDAG) QueryTxIDStatus(txid base.TransactionID) (ret vertex.TxIDStatus) {
 	ret.ID = txid
 	vid := d.GetVertex(txid)
 	if vid == nil {

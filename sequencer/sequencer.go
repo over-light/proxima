@@ -31,12 +31,12 @@ type (
 		attacher.Environment
 		IsSynced() bool
 		TxBytesStore() global.TxBytesStore
-		GetLatestMilestone(seqID ledger.ChainID) *vertex.WrappedTx
-		LatestMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
-		LatestMilestonesShuffled(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
+		GetLatestMilestone(seqID base.ChainID) *vertex.WrappedTx
+		LatestMilestonesDescending(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
+		LatestMilestonesShuffled(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
 		NumSequencerTips() int
 		ListenToAccount(account ledger.Accountable, fun func(wOut vertex.WrappedOutput))
-		MustEnsureBranch(txid ledger.TransactionID) *vertex.WrappedTx
+		MustEnsureBranch(txid base.TransactionID) *vertex.WrappedTx
 		OwnSequencerMilestoneIn(txBytes []byte, meta *txmetadata.TransactionMetadata)
 		LatestReliableState() (multistate.SugaredStateReader, error)
 		SubmitTxBytesFromInflator(txBytes []byte)
@@ -46,7 +46,7 @@ type (
 		Environment
 		ctx                context.Context    // local context
 		stopFun            context.CancelFunc // local stop function
-		sequencerID        ledger.ChainID
+		sequencerID        base.ChainID
 		controllerKey      ed25519.PrivateKey
 		backlog            *backlog.TagAlongBacklog
 		config             *ConfigOptions
@@ -74,7 +74,7 @@ type (
 	}
 
 	outputsWithTime struct {
-		consumed set.Set[ledger.OutputID]
+		consumed set.Set[base.OutputID]
 		since    time.Time
 	}
 
@@ -92,7 +92,7 @@ type (
 
 const TraceTag = "sequencer"
 
-func New(env Environment, seqID ledger.ChainID, controllerKey ed25519.PrivateKey, opts ...ConfigOption) (*Sequencer, error) {
+func New(env Environment, seqID base.ChainID, controllerKey ed25519.PrivateKey, opts ...ConfigOption) (*Sequencer, error) {
 	cfg := configOptions(opts...)
 	logName := fmt.Sprintf("[%s-%s]", cfg.SequencerName, seqID.StringVeryShort())
 	ret := &Sequencer{
@@ -284,7 +284,7 @@ func (seq *Sequencer) Backlog() *backlog.TagAlongBacklog {
 	return seq.backlog
 }
 
-func (seq *Sequencer) SequencerID() ledger.ChainID {
+func (seq *Sequencer) SequencerID() base.ChainID {
 	return seq.sequencerID
 }
 
@@ -514,7 +514,7 @@ func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetad
 	return vid
 }
 
-func (seq *Sequencer) waitMilestoneInTippool(txid ledger.TransactionID, deadline time.Time) (*vertex.WrappedTx, error) {
+func (seq *Sequencer) waitMilestoneInTippool(txid base.TransactionID, deadline time.Time) (*vertex.WrappedTx, error) {
 	for {
 		select {
 		case <-seq.Ctx().Done():

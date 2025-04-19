@@ -97,7 +97,7 @@ func (c *APIClient) GetLedgerIdentityData() ([]byte, error) {
 }
 
 // getAccountOutputs fetches all outputs of the account. Optionally sorts them on the server
-func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs int, sort ...string) ([]*ledger.OutputDataWithID, *ledger.TransactionID, error) {
+func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs int, sort ...string) ([]*ledger.OutputDataWithID, *base.TransactionID, error) {
 	if maxOutputs < 0 {
 		maxOutputs = 0
 	}
@@ -127,7 +127,7 @@ func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs
 		return nil, nil, fmt.Errorf("from server: %s", res.Error.Error)
 	}
 
-	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	retLRBID, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
@@ -135,7 +135,7 @@ func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs
 	ret := make([]*ledger.OutputDataWithID, 0, len(res.Outputs))
 
 	for idStr, dataStr := range res.Outputs {
-		id, err := ledger.OutputIDFromHexString(idStr)
+		id, err := base.OutputIDFromHexString(idStr)
 		if err != nil {
 			return nil, nil, fmt.Errorf("wrong output id data from server: %s: '%v'", idStr, err)
 		}
@@ -151,7 +151,7 @@ func (c *APIClient) getAccountOutputs(accountable ledger.Accountable, maxOutputs
 	return ret, &retLRBID, nil
 }
 
-func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOutputs int, sort ...string) ([]*ledger.OutputWithID, *ledger.TransactionID, error) {
+func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOutputs int, sort ...string) ([]*ledger.OutputWithID, *base.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetAccountSimpleSiglockedOutputs+"?addr=%s", addr.Source())
 	if maxOutputs > 0 {
 		path += fmt.Sprintf("&max_outputs=%d", maxOutputs)
@@ -178,7 +178,7 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 		return nil, nil, fmt.Errorf("from server: %s", res.Error.Error)
 	}
 
-	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	retLRBID, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
@@ -186,7 +186,7 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 	ret := make([]*ledger.OutputWithID, 0, len(res.Outputs))
 
 	for idStr, dataStr := range res.Outputs {
-		id, err := ledger.OutputIDFromHexString(idStr)
+		id, err := base.OutputIDFromHexString(idStr)
 		if err != nil {
 			return nil, nil, fmt.Errorf("wrong output id data from server: %s: '%w'", idStr, err)
 		}
@@ -202,7 +202,7 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 	return ret, &retLRBID, nil
 }
 
-func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint64) ([]*ledger.OutputWithID, *ledger.TransactionID, uint64, error) {
+func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint64) ([]*ledger.OutputWithID, *base.TransactionID, uint64, error) {
 	path := fmt.Sprintf(api.PathGetOutputsForAmount+"?addr=%s&amount=%d", addr.Source(), amount)
 	body, err := c.getBody(path)
 	if err != nil {
@@ -218,7 +218,7 @@ func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint6
 		return nil, nil, 0, fmt.Errorf("from server: %s", res.Error.Error)
 	}
 
-	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	retLRBID, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
@@ -227,7 +227,7 @@ func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint6
 
 	sum := uint64(0)
 	for idStr, dataStr := range res.Outputs {
-		id, err := ledger.OutputIDFromHexString(idStr)
+		id, err := base.OutputIDFromHexString(idStr)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("wrong output id data from server: %s: '%w'", idStr, err)
 		}
@@ -249,7 +249,7 @@ func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint6
 }
 
 // GetNonChainBalance total of outputs locked in the account but without chain constraint
-func (c *APIClient) GetNonChainBalance(addr ledger.Accountable) (uint64, *ledger.TransactionID, error) {
+func (c *APIClient) GetNonChainBalance(addr ledger.Accountable) (uint64, *base.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetNonChainBalance+"?addr=%s", addr.Source())
 	body, err := c.getBody(path)
 	if err != nil {
@@ -264,7 +264,7 @@ func (c *APIClient) GetNonChainBalance(addr ledger.Accountable) (uint64, *ledger
 	if res.Error.Error != "" {
 		return 0, nil, fmt.Errorf("from server: %s", res.Error.Error)
 	}
-	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	retLRBID, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
@@ -272,7 +272,7 @@ func (c *APIClient) GetNonChainBalance(addr ledger.Accountable) (uint64, *ledger
 }
 
 // GetChainedOutputs fetches all outputs of the account. Optionally sorts them on the server
-func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger.OutputWithChainID, *ledger.TransactionID, error) {
+func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger.OutputWithChainID, *base.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetChainedOutputs+"?accountable=%s", accountable.String())
 	body, err := c.getBody(path)
 	if err != nil {
@@ -288,7 +288,7 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 		return nil, nil, fmt.Errorf("from server: %s", res.Error.Error)
 	}
 
-	retLRBID, err := ledger.TransactionIDFromHexString(res.LRBID)
+	retLRBID, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("while parsing transaction id: %s", res.Error.Error)
 	}
@@ -296,7 +296,7 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 	ret := make([]*ledger.OutputWithChainID, 0, len(res.Outputs))
 
 	for idStr, dataStr := range res.Outputs {
-		oid, err := ledger.OutputIDFromHexString(idStr)
+		oid, err := base.OutputIDFromHexString(idStr)
 		if err != nil {
 			return nil, nil, fmt.Errorf("wrong output id data from server: %s: '%v'", idStr, err)
 		}
@@ -314,7 +314,7 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 		}
 		chainID := cc.ID
 		if cc.IsOrigin() {
-			chainID = ledger.MakeOriginChainID(oid)
+			chainID = base.MakeOriginChainID(oid)
 		}
 
 		ret = append(ret, &ledger.OutputWithChainID{
@@ -329,38 +329,38 @@ func (c *APIClient) GetChainedOutputs(accountable ledger.Accountable) ([]*ledger
 	return ret, &retLRBID, nil
 }
 
-func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDataWithID, ledger.TransactionID, error) {
+func (c *APIClient) GetChainOutputData(chainID base.ChainID) (*ledger.OutputDataWithID, base.TransactionID, error) {
 	path := fmt.Sprintf(api.PathGetChainOutput+"?chainid=%s", chainID.StringHex())
 	body, err := c.getBody(path)
 	if err != nil {
-		return nil, ledger.TransactionID{}, err
+		return nil, base.TransactionID{}, err
 	}
 
 	var res api.ChainOutput
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, ledger.TransactionID{}, err
+		return nil, base.TransactionID{}, err
 	}
 	if res.Error.Error != "" {
 		if strings.Contains(res.Error.Error, "object not found") {
-			return nil, ledger.TransactionID{}, multistate.ErrNotFound
+			return nil, base.TransactionID{}, multistate.ErrNotFound
 		}
-		return nil, ledger.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: from server: %s", chainID.StringShort(), res.Error.Error)
+		return nil, base.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: from server: %s", chainID.StringShort(), res.Error.Error)
 	}
 
-	oid, err := ledger.OutputIDFromHexString(res.ID)
+	oid, err := base.OutputIDFromHexString(res.ID)
 	if err != nil {
-		return nil, ledger.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: wrong output id data received from server: %s: '%v",
+		return nil, base.TransactionID{}, fmt.Errorf("GetChainOutputData for %s: wrong output id data received from server: %s: '%v",
 			chainID.StringShort(), res.ID, err)
 	}
 	oData, err := hex.DecodeString(res.Data)
 	if err != nil {
-		return nil, ledger.TransactionID{}, fmt.Errorf("wrong output data received from server: %s: '%v'", res.Data, err)
+		return nil, base.TransactionID{}, fmt.Errorf("wrong output data received from server: %s: '%v'", res.Data, err)
 	}
 
-	lrb, err := ledger.TransactionIDFromHexString(res.LRBID)
+	lrb, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
-		return nil, ledger.TransactionID{}, fmt.Errorf("wrong LRBID data received from server: %s: '%v'", res.LRBID, err)
+		return nil, base.TransactionID{}, fmt.Errorf("wrong LRBID data received from server: %s: '%v'", res.LRBID, err)
 	}
 
 	return &ledger.OutputDataWithID{
@@ -370,19 +370,19 @@ func (c *APIClient) GetChainOutputData(chainID ledger.ChainID) (*ledger.OutputDa
 }
 
 // GetChainOutput returns parsed output for the chain id and index of the chain constraint in it
-func (c *APIClient) GetChainOutput(chainID ledger.ChainID) (*ledger.OutputWithChainID, byte, ledger.TransactionID, error) {
+func (c *APIClient) GetChainOutput(chainID base.ChainID) (*ledger.OutputWithChainID, byte, base.TransactionID, error) {
 	oData, lrbid, err := c.GetChainOutputData(chainID)
 	if err != nil {
-		return nil, 0, ledger.TransactionID{}, err
+		return nil, 0, base.TransactionID{}, err
 	}
 	o, constrIdx, err := oData.ParseAsChainOutput()
 	if err != nil {
-		return nil, 0, ledger.TransactionID{}, err
+		return nil, 0, base.TransactionID{}, err
 	}
 	return o, constrIdx, lrbid, nil
 }
 
-func (c *APIClient) GetMilestoneData(chainID ledger.ChainID) (*ledger.MilestoneData, error) {
+func (c *APIClient) GetMilestoneData(chainID base.ChainID) (*ledger.MilestoneData, error) {
 	o, _, _, err := c.GetChainOutput(chainID)
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving milestone for sequencer %s: %w", chainID.StringShort(), err)
@@ -395,7 +395,7 @@ func (c *APIClient) GetMilestoneData(chainID ledger.ChainID) (*ledger.MilestoneD
 
 // GetOutputData returns output data from the LRB state, if it exists there
 // Returns nil, nil if output does not exist
-func (c *APIClient) GetOutputData(oid *ledger.OutputID) ([]byte, error) {
+func (c *APIClient) GetOutputData(oid *base.OutputID) ([]byte, error) {
 	path := fmt.Sprintf(api.PathGetOutput+"?id=%s", oid.StringHex())
 	body, err := c.getBody(path)
 	if err != nil {
@@ -451,12 +451,12 @@ func (c *APIClient) SubmitTransaction(txBytes []byte) error {
 }
 
 // GetAccountOutputs returns all UTXOs in the account
-func (c *APIClient) GetAccountOutputs(account ledger.Accountable, filter ...func(oid *ledger.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, *ledger.TransactionID, error) {
+func (c *APIClient) GetAccountOutputs(account ledger.Accountable, filter ...func(oid *base.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, *base.TransactionID, error) {
 	return c.GetAccountOutputsExt(account, 0, "", filter...)
 }
 
-func (c *APIClient) GetAccountOutputsExt(account ledger.Accountable, maxOutputs int, sortOption string, filter ...func(oid *ledger.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, *ledger.TransactionID, error) {
-	filterFun := func(oid *ledger.OutputID, o *ledger.Output) bool { return true }
+func (c *APIClient) GetAccountOutputsExt(account ledger.Accountable, maxOutputs int, sortOption string, filter ...func(oid *base.OutputID, o *ledger.Output) bool) ([]*ledger.OutputWithID, *base.TransactionID, error) {
+	filterFun := func(oid *base.OutputID, o *ledger.Output) bool { return true }
 	if len(filter) > 0 {
 		filterFun = filter[0]
 	}
@@ -546,7 +546,7 @@ func (c *APIClient) GetPeersInfo() (*api.PeersInfo, error) {
 	return &res, nil
 }
 
-func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.TransactionID, error) {
+func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *base.TransactionID, error) {
 	body, err := c.getBody(api.PathGetAllChains)
 	if err != nil {
 		return nil, nil, err
@@ -561,14 +561,14 @@ func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.Transac
 		return nil, nil, fmt.Errorf("%s", res.Error.Error)
 	}
 
-	lrbid, err := ledger.TransactionIDFromHexString(res.LRBID)
+	lrbid, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	ret := make([]*ledger.OutputWithChainID, 0, len(res.Chains))
 	for chainIDStr, ci := range res.Chains {
-		chainID, err := ledger.ChainIDFromHexString(chainIDStr)
+		chainID, err := base.ChainIDFromHexString(chainIDStr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -576,7 +576,7 @@ func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.Transac
 		if err != nil {
 			return nil, nil, err
 		}
-		oid, err := ledger.OutputIDFromHexString(ci.ID)
+		oid, err := base.OutputIDFromHexString(ci.ID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -596,7 +596,7 @@ func (c *APIClient) GetAllChains() ([]*ledger.OutputWithChainID, *ledger.Transac
 	return ret, &lrbid, nil
 }
 
-func (c *APIClient) GetDelegationsBySequencer() (map[string]api.DelegationsOnSequencer, *ledger.TransactionID, error) {
+func (c *APIClient) GetDelegationsBySequencer() (map[string]api.DelegationsOnSequencer, *base.TransactionID, error) {
 	body, err := c.getBody(api.PathGetDelegationsBySequencer)
 	if err != nil {
 		return nil, nil, err
@@ -611,7 +611,7 @@ func (c *APIClient) GetDelegationsBySequencer() (map[string]api.DelegationsOnSeq
 		return nil, nil, fmt.Errorf("%s", res.Error.Error)
 	}
 
-	lrbid, err := ledger.TransactionIDFromHexString(res.LRBID)
+	lrbid, err := base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -619,14 +619,14 @@ func (c *APIClient) GetDelegationsBySequencer() (map[string]api.DelegationsOnSeq
 }
 
 // GetTransferableOutputs returns reasonable maximum number of outputs owned by accountable with only 2 constraints and returns total
-func (c *APIClient) GetTransferableOutputs(account ledger.Accountable, maxOutputs ...int) ([]*ledger.OutputWithID, *ledger.TransactionID, uint64, error) {
+func (c *APIClient) GetTransferableOutputs(account ledger.Accountable, maxOutputs ...int) ([]*ledger.OutputWithID, *base.TransactionID, uint64, error) {
 	maxO := 256
 	if len(maxOutputs) > 0 && maxOutputs[0] < 256 && maxOutputs[0] > 0 {
 		maxO = maxOutputs[0]
 	}
 
 	// ask a bit more descending outputs from server and the filter them out
-	ret, lrbid, err := c.GetAccountOutputsExt(account, maxO*2, "desc", func(_ *ledger.OutputID, o *ledger.Output) bool {
+	ret, lrbid, err := c.GetAccountOutputsExt(account, maxO*2, "desc", func(_ *base.OutputID, o *ledger.Output) bool {
 		return o.NumConstraints() == 2
 	})
 	if err != nil {
@@ -647,7 +647,7 @@ func (c *APIClient) GetTransferableOutputs(account ledger.Accountable, maxOutput
 }
 
 // MakeCompactTransaction requests server and creates a compact transaction for ED25519 outputs in the form of transaction context. Does not submit it
-func (c *APIClient) MakeCompactTransaction(walletPrivateKey ed25519.PrivateKey, tagAlongSeqID *ledger.ChainID, tagAlongFee uint64, maxInputs ...int) (*transaction.TxContext, error) {
+func (c *APIClient) MakeCompactTransaction(walletPrivateKey ed25519.PrivateKey, tagAlongSeqID *base.ChainID, tagAlongFee uint64, maxInputs ...int) (*transaction.TxContext, error) {
 	walletAccount := ledger.AddressED25519FromPrivateKey(walletPrivateKey)
 
 	nowisTs := ledger.TimeNow()
@@ -682,7 +682,7 @@ func (c *APIClient) MakeCompactTransaction(walletPrivateKey ed25519.PrivateKey, 
 
 type TransferFromED25519WalletParams struct {
 	WalletPrivateKey ed25519.PrivateKey
-	TagAlongSeqID    *ledger.ChainID
+	TagAlongSeqID    *base.ChainID
 	TagAlongFee      uint64 // 0 means no fee output will be produced
 	Amount           uint64
 	Target           ledger.Lock
@@ -739,9 +739,9 @@ func (c *APIClient) getBody(path string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*transaction.TxContext, ledger.ChainID, error) {
+func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*transaction.TxContext, base.ChainID, error) {
 	if par.Amount < minimumTransferAmount {
-		return nil, ledger.NilChainID, fmt.Errorf("minimum transfer amount is %d", minimumTransferAmount)
+		return nil, base.NilChainID, fmt.Errorf("minimum transfer amount is %d", minimumTransferAmount)
 	}
 	if par.Amount > 0 && par.TagAlongSeqID == nil {
 		return nil, [32]byte{}, fmt.Errorf("tag-along sequencer not specified")
@@ -828,24 +828,24 @@ func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*trans
 }
 
 // GetLatestReliableBranch retrieves lates reliable branch info from the node
-func (c *APIClient) GetLatestReliableBranch() (*multistate.RootRecord, ledger.TransactionID, error) {
+func (c *APIClient) GetLatestReliableBranch() (*multistate.RootRecord, base.TransactionID, error) {
 	body, err := c.getBody(api.PathGetLatestReliableBranch)
 	if err != nil {
-		return nil, ledger.TransactionID{}, err
+		return nil, base.TransactionID{}, err
 	}
 
 	var res api.LatestReliableBranch
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		return nil, ledger.TransactionID{}, fmt.Errorf("unmarshal returned: %v\nbody: '%s'", err, string(body))
+		return nil, base.TransactionID{}, fmt.Errorf("unmarshal returned: %v\nbody: '%s'", err, string(body))
 	}
 	if res.Error.Error != "" {
-		return nil, ledger.TransactionID{}, fmt.Errorf("from server: %s", res.Error.Error)
+		return nil, base.TransactionID{}, fmt.Errorf("from server: %s", res.Error.Error)
 	}
 
 	rr, err := res.RootData.Parse()
 	if err != nil {
-		return nil, ledger.TransactionID{}, fmt.Errorf("parse failed: %v", err)
+		return nil, base.TransactionID{}, fmt.Errorf("parse failed: %v", err)
 	}
 	return rr, res.BranchID, nil
 }
@@ -867,7 +867,7 @@ func (c *APIClient) GetLastKnownSequencerData() (map[string]tippool.LatestSequen
 	return res.Sequencers, nil
 }
 
-func (c *APIClient) CheckTransactionIDInLRB(txid ledger.TransactionID, maxDepth ...int) (lrbID ledger.TransactionID, foundAtDepth int, err error) {
+func (c *APIClient) CheckTransactionIDInLRB(txid base.TransactionID, maxDepth ...int) (lrbID base.TransactionID, foundAtDepth int, err error) {
 	path := api.PathCheckTxIDInLRB + "?txid=" + txid.StringHex()
 	if len(maxDepth) > 0 {
 		path += fmt.Sprintf("&max_depth=%d", maxDepth[0])
@@ -887,15 +887,15 @@ func (c *APIClient) CheckTransactionIDInLRB(txid ledger.TransactionID, maxDepth 
 		err = fmt.Errorf("from server: %s", res.Error.Error)
 		return
 	}
-	var resTxID ledger.TransactionID
-	resTxID, err = ledger.TransactionIDFromHexString(res.TxID)
+	var resTxID base.TransactionID
+	resTxID, err = base.TransactionIDFromHexString(res.TxID)
 	if err != nil {
 		return
 	}
 	if resTxID != txid {
-		return ledger.TransactionID{}, -1, fmt.Errorf("inconsistency: wrong txid from server")
+		return base.TransactionID{}, -1, fmt.Errorf("inconsistency: wrong txid from server")
 	}
-	lrbID, err = ledger.TransactionIDFromHexString(res.LRBID)
+	lrbID, err = base.TransactionIDFromHexString(res.LRBID)
 	if err != nil {
 		return
 	}
@@ -909,7 +909,7 @@ type MakeTransferTransactionParams struct {
 	Amount        uint64
 	Remainder     ledger.Lock
 	PrivateKey    ed25519.PrivateKey
-	TagAlongSeqID *ledger.ChainID
+	TagAlongSeqID *base.ChainID
 	TagAlongFee   uint64
 	Timestamp     base.LedgerTime
 }

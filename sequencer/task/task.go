@@ -28,7 +28,7 @@ type (
 		global.NodeGlobal
 		attacher.Environment
 		SequencerName() string
-		SequencerID() ledger.ChainID
+		SequencerID() base.ChainID
 		ControllerPrivateKey() ed25519.PrivateKey
 		OwnLatestMilestoneOutput() vertex.WrappedOutput
 		Backlog() *backlog.TagAlongBacklog
@@ -36,7 +36,7 @@ type (
 		AddOwnMilestone(vid *vertex.WrappedTx)
 		FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOutput, targetTs base.LedgerTime) []vertex.WrappedOutput
 		MaxInputs() (int, int)
-		LatestMilestonesDescending(filter ...func(seqID ledger.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
+		LatestMilestonesDescending(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx
 		EvidenceProposal(strategyShortName string)
 		EvidenceBestProposalForTheTarget(strategyShortName string)
 	}
@@ -145,7 +145,7 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 	// channel is needed to make sure reading loop has ended
 	readStop := make(chan struct{})
 
-	proposals := make(map[ledger.TransactionID]*proposal)
+	proposals := make(map[base.TransactionID]*proposal)
 
 	go func() {
 		for p := range task.proposalChan {
@@ -266,7 +266,7 @@ func (t *taskData) InsertDelegationInputs(a *attacher.IncrementalAttacher, maxIn
 	seqID := t.SequencerID()
 	preSelected := make([]vertex.WrappedOutput, 0, maxInputs-a.NumInputs())
 
-	rdr.IterateDelegatedOutputs(seqID.AsChainLock(), func(oid ledger.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool {
+	rdr.IterateDelegatedOutputs(ledger.ChainLockFromChainID(seqID), func(oid base.OutputID, o *ledger.Output, dLock *ledger.DelegationLock) bool {
 		wOut, err := attacher.AttachOutputWithID(&ledger.OutputWithID{
 			ID:     oid,
 			Output: o,

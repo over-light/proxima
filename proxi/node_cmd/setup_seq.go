@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
@@ -37,7 +38,7 @@ func runSeqSetupCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("name: %s", name)
 
-	var chainId *ledger.ChainID = nil
+	var chainId *base.ChainID = nil
 	if len(args) > 1 {
 		// create a chain
 		amount, err := strconv.ParseUint(args[1], 10, 64)
@@ -79,7 +80,7 @@ func runSeqSetupCmd(_ *cobra.Command, args []string) {
 	}
 }
 
-func getChainIdForAccount(account ledger.Accountable) *ledger.ChainID {
+func getChainIdForAccount(account ledger.Accountable) *base.ChainID {
 	clnt := glb.GetClient()
 	chains, _, err := clnt.GetAllChains()
 	glb.AssertNoError(err)
@@ -117,7 +118,7 @@ func waitForFunds(accountable ledger.Accountable, amount uint64) {
 	}
 }
 
-func updateWalletConfig(chainId ledger.ChainID) {
+func updateWalletConfig(chainId base.ChainID) {
 	// Read the YAML file
 	data, err := os.ReadFile("proxi.yaml")
 	glb.AssertNoError(err)
@@ -141,7 +142,7 @@ func updateWalletConfig(chainId ledger.ChainID) {
 	glb.AssertNoError(err)
 }
 
-func updateNodeConfig(name string, key ed25519.PrivateKey, chainId ledger.ChainID) {
+func updateNodeConfig(name string, key ed25519.PrivateKey, chainId base.ChainID) {
 	// Read the YAML file
 	data, err := os.ReadFile("proxima.yaml")
 	glb.AssertNoError(err)

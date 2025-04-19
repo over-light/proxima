@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/core/txmetadata"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,15 +16,15 @@ import (
 type (
 	TxBytesGet interface {
 		// GetTxBytesWithMetadata return empty slice on absence, otherwise returns concatenated metadata bytes and transaction bytes
-		GetTxBytesWithMetadata(id *ledger.TransactionID) []byte
-		HasTxBytes(txid *ledger.TransactionID) bool
+		GetTxBytesWithMetadata(id *base.TransactionID) []byte
+		HasTxBytes(txid *base.TransactionID) bool
 	}
 
 	TxBytesPersist interface {
 		// PersistTxBytesWithMetadata saves txBytes prefixed with metadata bytes.
 		// metadata == nil is interpreted as empty metadata (one 0 byte as prefix)
 		// optionally, transaction ID can be provided to avoid the need to parse the transaction bytes. In the latter case txid is used as DB key as is
-		PersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid ...ledger.TransactionID) (ledger.TransactionID, error)
+		PersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid ...base.TransactionID) (base.TransactionID, error)
 	}
 
 	TxBytesStore interface {

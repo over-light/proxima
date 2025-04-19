@@ -11,6 +11,7 @@ import (
 	"github.com/lunfardo314/proxima/core/work_process/tippool"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -106,7 +107,7 @@ func (p *ProximaNode) LatestReliableState() (multistate.SugaredStateReader, erro
 	return p.workflow.LatestReliableState()
 }
 
-func (p *ProximaNode) CheckTransactionInLRB(txid ledger.TransactionID, maxDepth int) (lrbid ledger.TransactionID, foundAtDepth int) {
+func (p *ProximaNode) CheckTransactionInLRB(txid base.TransactionID, maxDepth int) (lrbid base.TransactionID, foundAtDepth int) {
 	return p.workflow.CheckTransactionInLRB(txid, maxDepth)
 }
 
@@ -144,6 +145,6 @@ func (p *ProximaNode) OnTransaction(fun func(tx *transaction.Transaction) bool) 
 	p.workflow.OnTransaction(fun)
 }
 
-func (p *ProximaNode) OnTxDeleted(fun func(txid ledger.TransactionID) bool) {
+func (p *ProximaNode) OnTxDeleted(fun func(txid base.TransactionID) bool) {
 	p.workflow.OnTxDeleted(fun)
 }

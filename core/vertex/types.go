@@ -24,7 +24,7 @@ type (
 
 	DetachedVertex struct {
 		Tx       *transaction.Transaction
-		BranchID ledger.TransactionID
+		BranchID base.TransactionID
 	}
 
 	// VirtualTransaction is a collection of produced outputs
@@ -45,10 +45,10 @@ type (
 	// Behind this identity can be wrapped usual vertex or virtual transactions
 	WrappedTx struct {
 		// immutable id. It does not change with the change of the underlying wrapped vertex type
-		id ledger.TransactionID
+		id base.TransactionID
 		// sequencer id not nil for sequencer transactions only. Once it is set not nil, it is immutable since.
 		// It is set whenever transaction becomes available
-		SequencerID atomic.Pointer[ledger.ChainID]
+		SequencerID atomic.Pointer[base.ChainID]
 		mutex       sync.RWMutex // *sema.Sema // sync.RWMutex // protects _genericVertex
 		flags       Flags
 		err         error
@@ -99,14 +99,14 @@ type (
 		Vertex         func(vidCur *WrappedTx, v *Vertex) bool
 		DetachedVertex func(vidCur *WrappedTx, v *DetachedVertex) bool
 		VirtualTx      func(vidCur *WrappedTx, v *VirtualTransaction) bool
-		TxID           func(txid *ledger.TransactionID)
+		TxID           func(txid *base.TransactionID)
 	}
 
 	Status byte
 	Flags  uint8
 
 	TxIDStatus struct {
-		ID                ledger.TransactionID
+		ID                base.TransactionID
 		OnDAG             bool
 		InStorage         bool
 		VirtualOrDetached bool
@@ -235,7 +235,7 @@ func (s *TxIDStatusJSONAble) Parse() (*TxIDStatus, error) {
 		Err:               s.Err,
 	}
 	var err error
-	ret.ID, err = ledger.TransactionIDFromHexString(s.ID)
+	ret.ID, err = base.TransactionIDFromHexString(s.ID)
 	if err != nil {
 		return nil, err
 	}

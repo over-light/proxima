@@ -1,7 +1,7 @@
 package node_cmd
 
 import (
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +20,7 @@ func initGetChainOutputCmd() *cobra.Command {
 func runGetChainOutputCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromNode()
 
-	chainID, err := ledger.ChainIDFromHexString(args[0])
+	chainID, err := base.ChainIDFromHexString(args[0])
 	glb.AssertNoError(err)
 
 	o, _, _, err := glb.GetClient().GetChainOutput(chainID)

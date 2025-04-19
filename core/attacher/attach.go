@@ -6,6 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
@@ -15,7 +16,7 @@ const TraceTagBranchAvailable = "branchAvailable"
 
 // AttachTxID ensures the txid is on the MemDAG
 // It load existing branches but does not pull anything
-func AttachTxID(txid ledger.TransactionID, env Environment, opts ...AttachTxOption) (vid *vertex.WrappedTx) {
+func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption) (vid *vertex.WrappedTx) {
 	options := &_attacherOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -150,14 +151,14 @@ func AttachTransactionFromBytes(txBytes []byte, env Environment, opts ...AttachT
 }
 
 // InvalidateTxID marks existing vertex as BAD or creates new BAD
-func InvalidateTxID(txid ledger.TransactionID, env Environment, reason error) {
+func InvalidateTxID(txid base.TransactionID, env Environment, reason error) {
 	env.Tracef(TraceTagAttach, "InvalidateTxID: %s", txid.StringShort())
 
 	vid := AttachTxID(txid, env, WithInvokedBy("InvalidateTxID"))
 	vid.SetTxStatusBad(reason)
 }
 
-func AttachOutputID(oid ledger.OutputID, env Environment, opts ...AttachTxOption) vertex.WrappedOutput {
+func AttachOutputID(oid base.OutputID, env Environment, opts ...AttachTxOption) vertex.WrappedOutput {
 	return vertex.WrappedOutput{
 		VID:   AttachTxID(oid.TransactionID(), env, opts...),
 		Index: oid.Index(),

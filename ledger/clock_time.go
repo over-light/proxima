@@ -39,3 +39,13 @@ func ValidSequencerPace(t1, t2 base.LedgerTime) bool {
 func ClockTime(t base.LedgerTime) time.Time {
 	return time.Unix(0, UnixNanoFromLedgerTime(t))
 }
+
+func TooCloseOnTimeAxis(txid1, txid2 base.TransactionID) bool {
+	if txid1.Timestamp().After(txid2.Timestamp()) {
+		txid1, txid2 = txid2, txid1
+	}
+	if txid1.IsSequencerMilestone() && txid2.IsSequencerMilestone() {
+		return !ValidSequencerPace(txid1.Timestamp(), txid2.Timestamp()) && txid1 != txid2
+	}
+	return !ValidTransactionPace(txid1.Timestamp(), txid2.Timestamp()) && txid1 != txid2
+}

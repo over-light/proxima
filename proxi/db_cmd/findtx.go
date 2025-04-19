@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
@@ -50,7 +49,7 @@ func runFindTxCmd(_ *cobra.Command, _ []string) {
 
 	var root common.VCommitment
 	if branchIDStr != "" {
-		b, err := ledger.TransactionIDFromHexString(branchIDStr)
+		b, err := base.TransactionIDFromHexString(branchIDStr)
 		glb.AssertNoError(err)
 		rr, found := multistate.FetchBranchData(glb.StateStore(), b)
 		glb.Assertf(found, "didn't find branch %s", b.String())
@@ -77,7 +76,7 @@ func runFindTxCmd(_ *cobra.Command, _ []string) {
 	rdr := multistate.MustNewReadable(glb.StateStore(), root)
 	nTx := 0
 	nFound := 0
-	rdr.IterateKnownCommittedTransactions(func(txid *ledger.TransactionID, _ base.Slot) bool {
+	rdr.IterateKnownCommittedTransactions(func(txid *base.TransactionID, _ base.Slot) bool {
 		if findWithHexFragment == "" || strings.Contains(txid.String(), findWithHexFragment) {
 			glb.Infof("%6d   %s    %s", nFound, txid.StringHex(), txid.String())
 			nFound++

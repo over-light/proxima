@@ -3,6 +3,7 @@ package ledger
 import (
 	"encoding/hex"
 
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"golang.org/x/crypto/blake2b"
 )
@@ -14,28 +15,28 @@ const (
 )
 
 // BoostrapSequencerID is a constant
-var BoostrapSequencerID ChainID
+var BoostrapSequencerID base.ChainID
 
 // init BoostrapSequencerID constant and check consistency
 
 func init() {
 	data, err := hex.DecodeString(BoostrapSequencerIDHex)
 	util.AssertNoError(err)
-	BoostrapSequencerID, err = ChainIDFromBytes(data)
+	BoostrapSequencerID, err = base.ChainIDFromBytes(data)
 	util.AssertNoError(err)
 	// calculate directly and check
 	var zero33 [33]byte
 	zero33[0] = 0b10000000
-	genesisOutputID := GenesisOutputID()
+	genesisOutputID := base.GenesisOutputID()
 	bootSeqIDDirect := blake2b.Sum256(genesisOutputID[:])
 	util.Assertf(BoostrapSequencerID == bootSeqIDDirect, "BoostrapSequencerID must be equal to the blake2b hash of genesis output id, got %s", hex.EncodeToString(bootSeqIDDirect[:]))
 	// more checks
-	oid := GenesisOutputID()
-	util.Assertf(MakeOriginChainID(oid) == BoostrapSequencerID, "MakeOriginChainID(&oid) == BoostrapSequencerID")
+	oid := base.GenesisOutputID()
+	util.Assertf(base.MakeOriginChainID(oid) == BoostrapSequencerID, "MakeOriginChainID(&oid) == BoostrapSequencerID")
 }
 
 func GenesisOutput(initialSupply uint64, controllerAddress AddressED25519) *OutputWithChainID {
-	oid := GenesisOutputID()
+	oid := base.GenesisOutputID()
 	return &OutputWithChainID{
 		OutputWithID: OutputWithID{
 			ID: oid,
@@ -58,11 +59,11 @@ func GenesisOutput(initialSupply uint64, controllerAddress AddressED25519) *Outp
 
 func GenesisStemOutput() *OutputWithID {
 	return &OutputWithID{
-		ID: GenesisStemOutputID(),
+		ID: base.GenesisStemOutputID(),
 		Output: NewOutput(func(o *Output) {
 			o.WithAmount(0).
 				WithLock(&StemLock{
-					PredecessorOutputID: OutputID{},
+					PredecessorOutputID: base.OutputID{},
 				})
 		}),
 	}

@@ -32,7 +32,7 @@ type (
 	// It contains deterministic values for that state
 	RootRecord struct {
 		Root        common.VCommitment
-		SequencerID ledger.ChainID
+		SequencerID base.ChainID
 		// Note: LedgerCoverage, SlotInflation and Supply are deterministic values calculated from the ledger past cone
 		// Each node calculates them itself, and they must be equal on each
 		LedgerCoverage uint64
@@ -125,14 +125,14 @@ func MustNewUpdatable(store StateStore, root common.VCommitment) *Updatable {
 	return ret
 }
 
-func (r *Readable) GetUTXO(oid ledger.OutputID) ([]byte, bool) {
+func (r *Readable) GetUTXO(oid base.OutputID) ([]byte, bool) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	return r._getUTXO(oid)
 }
 
-func (r *Readable) _getUTXO(oid ledger.OutputID, partition ...*common.ReaderPartition) ([]byte, bool) {
+func (r *Readable) _getUTXO(oid base.OutputID, partition ...*common.ReaderPartition) ([]byte, bool) {
 	var part *common.ReaderPartition
 	if len(partition) > 0 {
 		part = partition[0]
@@ -149,7 +149,7 @@ func (r *Readable) _getUTXO(oid ledger.OutputID, partition ...*common.ReaderPart
 	return ret, true
 }
 
-func (r *Readable) HasUTXO(oid ledger.OutputID) bool {
+func (r *Readable) HasUTXO(oid base.OutputID) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -160,27 +160,27 @@ func (r *Readable) HasUTXO(oid ledger.OutputID) bool {
 }
 
 // KnowsCommittedTransaction transaction IDs are purged after some time, so the result may be
-func (r *Readable) KnowsCommittedTransaction(txid ledger.TransactionID) bool {
+func (r *Readable) KnowsCommittedTransaction(txid base.TransactionID) bool {
 	part := common.MakeReaderPartition(r.trie, TriePartitionCommittedTransactionID)
 	defer part.Dispose()
 
 	return part.Has(txid[:])
 }
 
-func (r *Readable) GetUTXOIDsInAccount(addr ledger.AccountID) ([]ledger.OutputID, error) {
+func (r *Readable) GetUTXOIDsInAccount(addr ledger.AccountID) ([]base.OutputID, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	if len(addr) > 255 {
 		return nil, fmt.Errorf("accountID length should be <= 255")
 	}
-	ret := make([]ledger.OutputID, 0)
-	var oid ledger.OutputID
+	ret := make([]base.OutputID, 0)
+	var oid base.OutputID
 	var err error
 
 	accountPrefix := common.Concat(TriePartitionAccounts, byte(len(addr)), addr)
 	r.trie.Iterator(accountPrefix).IterateKeys(func(k []byte) bool {
-		oid, err = ledger.OutputIDFromBytes(k[len(accountPrefix):])
+		oid, err = base.OutputIDFromBytes(k[len(accountPrefix):])
 		if err != nil {
 			return false
 		}
@@ -199,7 +199,7 @@ func (r *Readable) GetUTXOsInAccount(addr ledger.AccountID) ([]*ledger.OutputDat
 	defer partition.Dispose()
 
 	ret := make([]*ledger.OutputDataWithID, 0)
-	err := r.IterateUTXOsInAccount(addr, func(oid ledger.OutputID, odata []byte) bool {
+	err := r.IterateUTXOsInAccount(addr, func(oid base.OutputID, odata []byte) bool {
 		ret = append(ret, &ledger.OutputDataWithID{
 			ID:   oid,
 			Data: odata,
@@ -212,11 +212,11 @@ func (r *Readable) GetUTXOsInAccount(addr ledger.AccountID) ([]*ledger.OutputDat
 	return ret, nil
 }
 
-func (r *Readable) IterateUTXOsInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID, odata []byte) bool) (err error) {
+func (r *Readable) IterateUTXOsInAccount(addr ledger.AccountID, fun func(oid base.OutputID, odata []byte) bool) (err error) {
 	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
 	defer partition.Dispose()
 
-	return r.IterateUTXOIDsInAccount(addr, func(oid ledger.OutputID) bool {
+	return r.IterateUTXOIDsInAccount(addr, func(oid base.OutputID) bool {
 		if odata, found := r._getUTXO(oid, partition); found {
 			return fun(oid, odata)
 		}
@@ -224,7 +224,7 @@ func (r *Readable) IterateUTXOsInAccount(addr ledger.AccountID, fun func(oid led
 	})
 }
 
-func (r *Readable) IterateUTXOIDsInAccount(addr ledger.AccountID, fun func(oid ledger.OutputID) bool) (err error) {
+func (r *Readable) IterateUTXOIDsInAccount(addr ledger.AccountID, fun func(oid base.OutputID) bool) (err error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -233,13 +233,13 @@ func (r *Readable) IterateUTXOIDsInAccount(addr ledger.AccountID, fun func(oid l
 	}
 	accountPrefix := common.Concat(TriePartitionAccounts, byte(len(addr)), addr)
 
-	var oid ledger.OutputID
+	var oid base.OutputID
 
 	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
 	defer partition.Dispose()
 
 	r.trie.Iterator(accountPrefix).IterateKeys(func(k []byte) bool {
-		oid, err = ledger.OutputIDFromBytes(k[len(accountPrefix):])
+		oid, err = base.OutputIDFromBytes(k[len(accountPrefix):])
 		if err != nil {
 			return false
 		}
@@ -248,14 +248,14 @@ func (r *Readable) IterateUTXOIDsInAccount(addr ledger.AccountID, fun func(oid l
 	return err
 }
 
-func (r *Readable) GetUTXOForChainID(id ledger.ChainID) (*ledger.OutputDataWithID, error) {
+func (r *Readable) GetUTXOForChainID(id base.ChainID) (*ledger.OutputDataWithID, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	return r._getUTXOForChainID(id)
 }
 
-func (r *Readable) _getUTXOForChainID(id ledger.ChainID) (*ledger.OutputDataWithID, error) {
+func (r *Readable) _getUTXOForChainID(id base.ChainID) (*ledger.OutputDataWithID, error) {
 	chainPartition := common.MakeReaderPartition(r.trie, TriePartitionChainID)
 	outID := chainPartition.Get(id[:])
 	defer chainPartition.Dispose()
@@ -263,7 +263,7 @@ func (r *Readable) _getUTXOForChainID(id ledger.ChainID) (*ledger.OutputDataWith
 	if len(outID) == 0 {
 		return nil, ErrNotFound
 	}
-	oid, err := ledger.OutputIDFromBytes(outID)
+	oid, err := base.OutputIDFromBytes(outID)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func (r *Readable) GetStem() (base.Slot, []byte) {
 	r.trie.Iterator(accountPrefix).IterateKeys(func(k []byte) bool {
 		util.Assertf(count == 0, "inconsistency: must be exactly 1 index record for stem output")
 		count++
-		oid, err := ledger.OutputIDFromBytes(k[len(accountPrefix):])
+		oid, err := base.OutputIDFromBytes(k[len(accountPrefix):])
 		util.AssertNoError(err)
 		retSlot = oid.Slot()
 		retBytes, found = r._getUTXO(oid, partition)
@@ -319,7 +319,7 @@ func (r *Readable) Iterator(prefix []byte) common.KVIterator {
 
 // IterateKnownCommittedTransactions iterates transaction IDs in the state. Optionally, iteration is restricted
 // for a slot. In that case first iterates non-sequencer transactions, the sequencer transactions
-func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *ledger.TransactionID, slot base.Slot) bool, txidSlot ...base.Slot) {
+func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *base.TransactionID, slot base.Slot) bool, txidSlot ...base.Slot) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -333,7 +333,7 @@ func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *ledger.Trans
 	var slot base.Slot
 
 	iter.Iterate(func(k, v []byte) bool {
-		txid, err := ledger.TransactionIDFromBytes(k[1:])
+		txid, err := base.TransactionIDFromBytes(k[1:])
 		util.AssertNoError(err)
 		slot, err = base.SlotFromBytes(v)
 		util.AssertNoError(err)
@@ -346,7 +346,7 @@ func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	var oid ledger.OutputID
+	var oid base.OutputID
 	var err error
 
 	ret := make(map[string]LockedAccountInfo)
@@ -355,7 +355,7 @@ func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
 	defer partition.Dispose()
 
 	r.trie.Iterator([]byte{TriePartitionAccounts}).IterateKeys(func(k []byte) bool {
-		oid, err = ledger.OutputIDFromBytes(k[2+k[1]:])
+		oid, err = base.OutputIDFromBytes(k[2+k[1]:])
 		util.AssertNoError(err)
 
 		oData, found := r._getUTXO(oid, partition)
@@ -375,19 +375,19 @@ func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
 	return ret
 }
 
-func (r *Readable) IterateChainTips(fun func(chainID ledger.ChainID, oid ledger.OutputID) bool) error {
+func (r *Readable) IterateChainTips(fun func(chainID base.ChainID, oid base.OutputID) bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	var chainID ledger.ChainID
-	var oid ledger.OutputID
+	var chainID base.ChainID
+	var oid base.OutputID
 	var err error
 	r.trie.Iterator([]byte{TriePartitionChainID}).Iterate(func(k []byte, v []byte) bool {
-		chainID, err = ledger.ChainIDFromBytes(k[1:])
+		chainID, err = base.ChainIDFromBytes(k[1:])
 		if err != nil {
 			return false
 		}
-		oid, err = ledger.OutputIDFromBytes(v)
+		oid, err = base.OutputIDFromBytes(v)
 		if err != nil {
 			return false
 		}
@@ -413,8 +413,8 @@ func (u *Updatable) Root() common.VCommitment {
 }
 
 type RootRecordParams struct {
-	StemOutputID      ledger.OutputID
-	SeqID             ledger.ChainID
+	StemOutputID      base.OutputID
+	SeqID             base.ChainID
 	Coverage          uint64
 	SlotInflation     uint64
 	Supply            uint64

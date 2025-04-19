@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
 	"github.com/lunfardo314/unitrie/common"
@@ -26,7 +27,7 @@ type (
 		Header         *SnapshotHeader
 		LedgerIDData   []byte
 		LedgerIDParams *ledger.IdentityParameters
-		BranchID       ledger.TransactionID
+		BranchID       base.TransactionID
 		RootRecord     RootRecord
 		InChan         chan common.KVPairOrError
 		Close          func()
@@ -86,7 +87,7 @@ func _outKVPair(k, v []byte, counter int, out io.Writer) {
 
 }
 
-func snapshotFileName(branchID ledger.TransactionID) string {
+func snapshotFileName(branchID base.TransactionID) string {
 	return branchID.AsFileName() + ".snapshot"
 }
 
@@ -207,7 +208,7 @@ func OpenSnapshotFileStream(fname string) (*SnapshotFileStream, error) {
 	if pair.IsNil() || pair.Err != nil {
 		return nil, fmt.Errorf("OpenSnapshotFileStream: wrong ssecond key/value pair 1")
 	}
-	if ret.BranchID, err = ledger.TransactionIDFromBytes(pair.Key); err != nil {
+	if ret.BranchID, err = base.TransactionIDFromBytes(pair.Key); err != nil {
 		cancel()
 		return nil, fmt.Errorf("OpenSnapshotFileStream: wrong second key/value pair 2")
 	}

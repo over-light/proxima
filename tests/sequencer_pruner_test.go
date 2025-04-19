@@ -10,6 +10,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/sequencer"
 	"github.com/lunfardo314/proxima/util"
@@ -174,14 +175,14 @@ func Test1SequencerPrunerTransfers(t *testing.T) {
 		t:             t,
 		privateKey:    testData.privKeyFaucet,
 		remainder:     testData.faucetOutput,
-		tagAlongSeqID: []ledger.ChainID{testData.bootstrapChainID},
+		tagAlongSeqID: []base.ChainID{testData.bootstrapChainID},
 		target:        targetAddr,
 		pace:          30,
 		batchSize:     batchSize,
 		maxBatches:    maxBatches,
 		sendAmount:    sendAmount,
 		tagAlongFee:   tagAlongFee,
-		spammedTxIDs:  make([]ledger.TransactionID, 0),
+		spammedTxIDs:  make([]base.TransactionID, 0),
 	}
 	go testData.spamTransfers(par, ctx)
 
@@ -256,7 +257,7 @@ func Test5SequencersIdlePruner(t *testing.T) {
 		return true
 	})
 
-	testData.wrk.OnTxDeleted(func(txid ledger.TransactionID) bool {
+	testData.wrk.OnTxDeleted(func(txid base.TransactionID) bool {
 		t.Logf("REMOVED %s", txid.StringShort())
 		return true
 	})
@@ -302,14 +303,14 @@ func Test3Seq1TagAlong(t *testing.T) {
 		t:             t,
 		privateKey:    testData.privKeyFaucet,
 		remainder:     testData.faucetOutput,
-		tagAlongSeqID: []ledger.ChainID{testData.bootstrapChainID},
+		tagAlongSeqID: []base.ChainID{testData.bootstrapChainID},
 		target:        targetAddr,
 		pace:          30,
 		batchSize:     batchSize,
 		//maxBatches:    maxBatches,
 		sendAmount:   sendAmount,
 		tagAlongFee:  tagAlongFee,
-		spammedTxIDs: make([]ledger.TransactionID, 0),
+		spammedTxIDs: make([]base.TransactionID, 0),
 	}
 	go testData.spamTransfers(par, ctx)
 	go func() {
@@ -364,11 +365,11 @@ func Test3SeqMultiTagAlong(t *testing.T) {
 	targetPrivKey := testutil.GetTestingPrivateKey(10000)
 	targetAddr := ledger.AddressED25519FromPrivateKey(targetPrivKey)
 
-	tagAlongSeqIDs := []ledger.ChainID{testData.bootstrapChainID}
+	tagAlongSeqIDs := []base.ChainID{testData.bootstrapChainID}
 	for _, o := range testData.chainOrigins {
 		tagAlongSeqIDs = append(tagAlongSeqIDs, o.ChainID)
 	}
-	tagAlongInitBalances := make(map[ledger.ChainID]uint64)
+	tagAlongInitBalances := make(map[base.ChainID]uint64)
 	for _, seqID := range tagAlongSeqIDs {
 		tagAlongInitBalances[seqID] = rdr.BalanceOnChain(seqID)
 	}
@@ -385,7 +386,7 @@ func Test3SeqMultiTagAlong(t *testing.T) {
 		tagAlongLastOnly: true,
 		sendAmount:       sendAmount,
 		tagAlongFee:      tagAlongFee,
-		spammedTxIDs:     make([]ledger.TransactionID, 0),
+		spammedTxIDs:     make([]base.TransactionID, 0),
 		traceTx:          traceTx,
 	}
 	go testData.spamTransfers(par, ctx)

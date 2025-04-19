@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/peering"
 	"github.com/lunfardo314/proxima/txstore"
@@ -36,11 +37,11 @@ func (d *workflowDummyEnvironment) SyncServerDisabled() bool {
 	return true
 }
 
-func (d *workflowDummyEnvironment) PullFromNPeers(_ int, _ ledger.TransactionID) int {
+func (d *workflowDummyEnvironment) PullFromNPeers(_ int, _ base.TransactionID) int {
 	panic("not implemented")
 }
 
-func (d *workflowDummyEnvironment) GetOwnSequencerID() *ledger.ChainID {
+func (d *workflowDummyEnvironment) GetOwnSequencerID() *base.ChainID {
 	panic("not implemented")
 }
 
@@ -48,8 +49,8 @@ func (d *workflowDummyEnvironment) EvidenceNumberOfTxDependencies(_ int) {}
 
 func (d *workflowDummyEnvironment) EvidencePastConeSize(_ int) {}
 
-func (d *workflowDummyEnvironment) SnapshotBranchID() ledger.TransactionID {
-	return ledger.GenesisTransactionID()
+func (d *workflowDummyEnvironment) SnapshotBranchID() base.TransactionID {
+	return base.GenesisTransactionID()
 }
 
 func (d *workflowDummyEnvironment) DurationSinceLastMessageFromPeer() time.Duration {

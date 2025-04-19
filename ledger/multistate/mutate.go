@@ -22,22 +22,22 @@ type (
 	}
 
 	mutationAddOutput struct {
-		ID     ledger.OutputID
+		ID     base.OutputID
 		Output *ledger.Output // nil means delete
 	}
 
 	mutationDelOutput struct {
-		ID ledger.OutputID
+		ID base.OutputID
 	}
 
 	mutationAddTx struct {
-		ID              ledger.TransactionID
+		ID              base.TransactionID
 		TimeSlot        base.Slot
 		LastOutputIndex byte
 	}
 
 	mutationDelChain struct {
-		ChainID ledger.ChainID
+		ChainID base.ChainID
 	}
 
 	Mutations struct {
@@ -126,18 +126,18 @@ func (mut *Mutations) Sort() *Mutations {
 	return mut
 }
 
-func (mut *Mutations) InsertAddOutputMutation(id ledger.OutputID, o *ledger.Output) {
+func (mut *Mutations) InsertAddOutputMutation(id base.OutputID, o *ledger.Output) {
 	mut.mut = append(mut.mut, &mutationAddOutput{
 		ID:     id,
 		Output: o.Clone(),
 	})
 }
 
-func (mut *Mutations) InsertDelOutputMutation(id ledger.OutputID) {
+func (mut *Mutations) InsertDelOutputMutation(id base.OutputID) {
 	mut.mut = append(mut.mut, &mutationDelOutput{ID: id})
 }
 
-func (mut *Mutations) InsertAddTxMutation(id ledger.TransactionID, slot base.Slot, lastOutputIndex byte) {
+func (mut *Mutations) InsertAddTxMutation(id base.TransactionID, slot base.Slot, lastOutputIndex byte) {
 	mut.mut = append(mut.mut, &mutationAddTx{
 		ID:              id,
 		TimeSlot:        slot,
@@ -145,7 +145,7 @@ func (mut *Mutations) InsertAddTxMutation(id ledger.TransactionID, slot base.Slo
 	})
 }
 
-func (mut *Mutations) InsertDelChainMutation(id ledger.ChainID) {
+func (mut *Mutations) InsertDelChainMutation(id base.ChainID) {
 	mut.mut = append(mut.mut, &mutationDelChain{ChainID: id})
 }
 
@@ -167,8 +167,8 @@ func (mut *Mutations) Lines(prefix ...string) *lines.Lines {
 	return ret
 }
 
-func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID) error {
-	var stateKey [1 + ledger.OutputIDLength]byte
+func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid base.OutputID) error {
+	var stateKey [1 + base.OutputIDLength]byte
 	stateKey[0] = TriePartitionLedgerState
 	copy(stateKey[1:], oid[:])
 
@@ -192,8 +192,8 @@ func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID) er
 	return nil
 }
 
-func addOutputToTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID, out *ledger.Output) error {
-	var stateKey [1 + ledger.OutputIDLength]byte
+func addOutputToTrie(trie *immutable.TrieUpdatable, oid base.OutputID, out *ledger.Output) error {
+	var stateKey [1 + base.OutputIDLength]byte
 	stateKey[0] = TriePartitionLedgerState
 	copy(stateKey[1:], oid[:])
 	if trie.Update(stateKey[:], out.Bytes()) {
@@ -212,9 +212,9 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID, out *le
 		return nil
 	}
 	// update chain output records
-	var chainID ledger.ChainID
+	var chainID base.ChainID
 	if chainConstraint.IsOrigin() {
-		chainID = ledger.MakeOriginChainID(oid)
+		chainID = base.MakeOriginChainID(oid)
 	} else {
 		chainID = chainConstraint.ID
 	}
@@ -230,7 +230,7 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID, out *le
 			// previous chain record may or may not exist
 			// enforcing timestamp consistency
 			if prevBin := trie.TrieReader.Get(chainKey); len(prevBin) > 0 {
-				prevOutputID, err := ledger.OutputIDFromBytes(prevBin)
+				prevOutputID, err := base.OutputIDFromBytes(prevBin)
 				util.AssertNoError(err)
 				if !oid.Timestamp().After(prevOutputID.Timestamp()) {
 					return fmt.Errorf("addOutputToTrie: chain output id violates time constraint:\n   previous: %s\n   next: %s",
@@ -245,8 +245,8 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid ledger.OutputID, out *le
 	return nil
 }
 
-func addTxToTrie(trie *immutable.TrieUpdatable, txid *ledger.TransactionID, slot base.Slot, lastOutputIndex byte) error {
-	var stateKey [1 + ledger.TransactionIDLength]byte
+func addTxToTrie(trie *immutable.TrieUpdatable, txid *base.TransactionID, slot base.Slot, lastOutputIndex byte) error {
+	var stateKey [1 + base.TransactionIDLength]byte
 	stateKey[0] = TriePartitionCommittedTransactionID
 	copy(stateKey[1:], txid[:])
 
@@ -257,8 +257,8 @@ func addTxToTrie(trie *immutable.TrieUpdatable, txid *ledger.TransactionID, slot
 	return nil
 }
 
-func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID ledger.ChainID) error {
-	var stateKey [1 + ledger.ChainIDLength]byte
+func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID base.ChainID) error {
+	var stateKey [1 + base.ChainIDLength]byte
 	stateKey[0] = TriePartitionChainID
 	copy(stateKey[1:], chainID[:])
 
@@ -269,11 +269,11 @@ func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID ledger.ChainID) 
 	return nil
 }
 
-func makeAccountKey(id ledger.AccountID, oid ledger.OutputID) []byte {
+func makeAccountKey(id ledger.AccountID, oid base.OutputID) []byte {
 	return common.Concat([]byte{TriePartitionAccounts, byte(len(id))}, id[:], oid[:])
 }
 
-func makeChainIDKey(chainID *ledger.ChainID) []byte {
+func makeChainIDKey(chainID *base.ChainID) []byte {
 	return common.Concat([]byte{TriePartitionChainID}, chainID[:])
 }
 

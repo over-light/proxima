@@ -41,7 +41,7 @@ func (seq *Sequencer) FutureConeOwnMilestonesOrdered(rootOutput vertex.WrappedOu
 			continue
 		case !vid.IsSequencerMilestone():
 			continue
-		case !visited.Contains(vid.SequencerPredecessor(func(txid ledger.TransactionID) *vertex.WrappedTx {
+		case !visited.Contains(vid.SequencerPredecessor(func(txid base.TransactionID) *vertex.WrappedTx {
 			return attacher.AttachTxID(txid, seq, attacher.WithInvokedBy("FutureConeOwnMilestonesOrdered"))
 		})):
 			continue
@@ -90,12 +90,12 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 	}
 
 	withTime := outputsWithTime{
-		consumed: set.New[ledger.OutputID](),
+		consumed: set.New[base.OutputID](),
 		since:    time.Now(),
 	}
 	if vid.IsSequencerMilestone() {
 		// it can be non-sequencer milestone at the origin
-		prev := vid.SequencerPredecessor(func(txid ledger.TransactionID) *vertex.WrappedTx {
+		prev := vid.SequencerPredecessor(func(txid base.TransactionID) *vertex.WrappedTx {
 			return attacher.AttachTxID(txid, seq, attacher.WithInvokedBy("AddOwnMilestone"))
 		})
 		if prev != nil {
@@ -105,7 +105,7 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 		}
 		vid.Unwrap(vertex.UnwrapOptions{Vertex: func(v *vertex.Vertex) {
 			v.ForEachInputDependency(func(i byte, vidInput *vertex.WrappedTx) bool {
-				withTime.consumed.Insert(ledger.MustNewOutputID(vidInput.ID(), v.Tx.MustOutputIndexOfTheInput(i)))
+				withTime.consumed.Insert(base.MustNewOutputID(vidInput.ID(), v.Tx.MustOutputIndexOfTheInput(i)))
 				return true
 			})
 		}})

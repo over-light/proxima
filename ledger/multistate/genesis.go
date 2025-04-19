@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/lunfardo314/unitrie/immutable"
@@ -25,7 +26,7 @@ func CommitEmptyRootWithLedgerIdentity(id []byte, store StateStore) (common.VCom
 // Returns root commitment to the genesis ledger state and genesis chainID
 // The function is dependent on the global singleton of ledger definitions, because
 // origin outputs can be created only with the library
-func InitStateStoreWithGlobalLedgerIdentity(store StateStore) (ledger.ChainID, common.VCommitment) {
+func InitStateStoreWithGlobalLedgerIdentity(store StateStore) (base.ChainID, common.VCommitment) {
 	emptyRoot, err := CommitEmptyRootWithLedgerIdentity(ledger.L().IdentityData(), store)
 	util.AssertNoError(err)
 
@@ -51,7 +52,7 @@ func genesisUpdateMutations(genesisOut, genesisStemOut *ledger.OutputWithID) *Mu
 	ret := NewMutations()
 	ret.InsertAddOutputMutation(genesisOut.ID, genesisOut.Output)
 	ret.InsertAddOutputMutation(genesisStemOut.ID, genesisStemOut.Output)
-	ret.InsertAddTxMutation(ledger.GenesisTransactionID(), genesisOut.ID.Slot(), 1)
+	ret.InsertAddTxMutation(base.GenesisTransactionID(), genesisOut.ID.Slot(), 1)
 	return ret
 }
 
@@ -61,7 +62,7 @@ func ScanGenesisState(stateStore StateStore) (*ledger.IdentityParameters, common
 
 	// expecting a single branch in the genesis state
 	fetched, moreThan1 := false, false
-	IterateRootRecords(stateStore, func(_ ledger.TransactionID, rootData RootRecord) bool {
+	IterateRootRecords(stateStore, func(_ base.TransactionID, rootData RootRecord) bool {
 		if fetched {
 			moreThan1 = true
 			return false
@@ -80,7 +81,7 @@ func ScanGenesisState(stateStore StateStore) (*ledger.IdentityParameters, common
 	_, stateID, err := ledger.ParseLedgerIdYAML(yamlData)
 	util.AssertNoError(err)
 
-	genesisOid := ledger.GenesisOutputID()
+	genesisOid := base.GenesisOutputID()
 	out, err := rdr.GetOutputErr(genesisOid)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetOutputErr(%s): %w", genesisOid.StringShort(), err)

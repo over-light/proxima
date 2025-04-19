@@ -8,7 +8,6 @@ import (
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
-	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 )
@@ -18,7 +17,7 @@ type TxContext struct {
 	tree        *lazybytes.Tree
 	traceOption int
 	// calculated and cached values
-	txid            ledger.TransactionID
+	txid            base.TransactionID
 	sender          ledger.AddressED25519
 	inflationAmount uint64
 	// EasyFL constraint validation context
@@ -65,22 +64,8 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	return ret, nil
 }
 
-func TxContextFromState(tx *Transaction, rdr multistate.SugaredStateReader) (*TxContext, error) {
-	return TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
-		oid, err := tx.InputAt(i)
-		if err != nil {
-			return nil, err
-		}
-		ret := rdr.GetOutput(oid)
-		if ret == nil {
-			return nil, fmt.Errorf("can't load consumed output")
-		}
-		return ret, nil
-	})
-}
-
 // TxContextFromTransferableBytes constructs lazybytes.Tree from transaction bytes and consumed outputs
-func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid ledger.OutputID) ([]byte, bool), traceOption ...int) (*TxContext, error) {
+func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid base.OutputID) ([]byte, bool), traceOption ...int) (*TxContext, error) {
 	tx, err := FromBytes(txBytes, ParseSequencerData, ScanOutputs)
 	if err != nil {
 		return nil, err
@@ -115,7 +100,7 @@ func (ctx *TxContext) TransactionBytes() []byte {
 	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch))
 }
 
-func (ctx *TxContext) TransactionID() ledger.TransactionID {
+func (ctx *TxContext) TransactionID() base.TransactionID {
 	return ctx.txid
 }
 
@@ -123,12 +108,12 @@ func (ctx *TxContext) InputCommitment() []byte {
 	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxInputCommitment))
 }
 
-func (ctx *TxContext) ExplicitBaseline() (ledger.TransactionID, bool) {
+func (ctx *TxContext) ExplicitBaseline() (base.TransactionID, bool) {
 	data := ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxExplicitBaseline))
 	if len(data) == 0 {
-		return ledger.TransactionID{}, false
+		return base.TransactionID{}, false
 	}
-	ret, err := ledger.TransactionIDFromBytes(data)
+	ret, err := base.TransactionIDFromBytes(data)
 	util.AssertNoError(err)
 	return ret, true
 }
@@ -137,9 +122,9 @@ func (ctx *TxContext) Signature() []byte {
 	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxSignature))
 }
 
-func (ctx *TxContext) ForEachInputID(fun func(idx byte, oid *ledger.OutputID) bool) {
+func (ctx *TxContext) ForEachInputID(fun func(idx byte, oid *base.OutputID) bool) {
 	ctx.tree.ForEach(func(i byte, data []byte) bool {
-		oid, err := ledger.OutputIDFromBytes(data)
+		oid, err := base.OutputIDFromBytes(data)
 		util.AssertNoError(err)
 		if !fun(i, &oid) {
 			return false
@@ -148,9 +133,9 @@ func (ctx *TxContext) ForEachInputID(fun func(idx byte, oid *ledger.OutputID) bo
 	}, Path(ledger.TransactionBranch, ledger.TxInputIDs))
 }
 
-func (ctx *TxContext) ForEachEndorsement(fun func(idx byte, txid *ledger.TransactionID) bool) {
+func (ctx *TxContext) ForEachEndorsement(fun func(idx byte, txid *base.TransactionID) bool) {
 	ctx.tree.ForEach(func(i byte, data []byte) bool {
-		txid, err := ledger.TransactionIDFromBytes(data)
+		txid, err := base.TransactionIDFromBytes(data)
 		util.AssertNoError(err)
 		if !fun(i, &txid) {
 			return false
@@ -165,7 +150,7 @@ func (ctx *TxContext) ForEachProducedOutputData(fun func(idx byte, oData []byte)
 	}, ledger.PathToProducedOutputs)
 }
 
-func (ctx *TxContext) ForEachProducedOutput(fun func(idx byte, out *ledger.Output, oid *ledger.OutputID) bool) {
+func (ctx *TxContext) ForEachProducedOutput(fun func(idx byte, out *ledger.Output, oid *base.OutputID) bool) {
 	ctx.ForEachProducedOutputData(func(idx byte, oData []byte) bool {
 		out, _ := ledger.OutputFromBytesReadOnly(oData)
 		oid := ctx.OutputID(idx)
@@ -176,8 +161,8 @@ func (ctx *TxContext) ForEachProducedOutput(fun func(idx byte, out *ledger.Outpu
 	})
 }
 
-func (ctx *TxContext) ForEachConsumedOutput(fun func(idx byte, oid *ledger.OutputID, out *ledger.Output) bool) {
-	ctx.ForEachInputID(func(idx byte, oid *ledger.OutputID) bool {
+func (ctx *TxContext) ForEachConsumedOutput(fun func(idx byte, oid *base.OutputID, out *ledger.Output) bool) {
+	ctx.ForEachInputID(func(idx byte, oid *base.OutputID) bool {
 		out, _ := ctx.ConsumedOutput(idx)
 		if !fun(idx, oid, out) {
 			return false
@@ -226,9 +211,9 @@ func (ctx *TxContext) NumEndorsements() int {
 	return ctx.tree.NumElements([]byte{ledger.TransactionBranch, ledger.TxEndorsements})
 }
 
-func (ctx *TxContext) InputID(idx byte) ledger.OutputID {
+func (ctx *TxContext) InputID(idx byte) base.OutputID {
 	data := ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxInputIDs, idx))
-	ret, err := ledger.OutputIDFromBytes(data)
+	ret, err := base.OutputIDFromBytes(data)
 	util.AssertNoError(err)
 	return ret
 }
@@ -258,6 +243,6 @@ func (ctx *TxContext) TotalInflation() uint64 {
 	return ctx.inflationAmount
 }
 
-func (ctx *TxContext) OutputID(idx byte) ledger.OutputID {
-	return ledger.MustNewOutputID(ctx.txid, idx)
+func (ctx *TxContext) OutputID(idx byte) base.OutputID {
+	return base.MustNewOutputID(ctx.txid, idx)
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
@@ -24,7 +25,7 @@ func initChainsCmd() *cobra.Command {
 	return dbChainsCmd
 }
 
-func runChainsCmd(_ *cobra.Command, args []string) {
+func runChainsCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
@@ -42,7 +43,7 @@ func runChainsCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("---------------- chain infos in the LRB state ------------------")
 	glb.Infof("Chains: %d", len(accountInfo.ChainRecords))
-	chainIDSSorted := util.KeysSorted(accountInfo.ChainRecords, func(k1, k2 ledger.ChainID) bool {
+	chainIDSSorted := util.KeysSorted(accountInfo.ChainRecords, func(k1, k2 base.ChainID) bool {
 		return bytes.Compare(k1[:], k2[:]) < 0
 	})
 

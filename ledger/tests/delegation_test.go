@@ -15,7 +15,7 @@ import (
 )
 
 func TestIsOpenDelegationWindow(t *testing.T) {
-	chainID := ledger.RandomChainID()
+	chainID := base.RandomChainID()
 	t.Logf("chainID : %s", chainID.String())
 	nOpen := 0
 	nClosed := 0
@@ -46,7 +46,7 @@ func TestDelegationSigLock(t *testing.T) {
 	var txBytes []byte
 	var delegatedOutput *ledger.OutputWithChainID
 
-	initTest := func() ledger.ChainID {
+	initTest := func() base.ChainID {
 		u = utxodb.NewUTXODB(genesisPrivateKey, true)
 
 		privKey, _, addr := u.GenerateAddresses(0, 2)
@@ -308,9 +308,9 @@ func TestDelegationChainLock(t *testing.T) {
 	var delegationLock *ledger.DelegationLock
 	var txBytes []byte
 	var delegatedOutput, targetChainOut *ledger.OutputWithChainID
-	var targetChainID ledger.ChainID
+	var targetChainID base.ChainID
 
-	initTest := func(printTx bool) ledger.ChainID {
+	initTest := func(printTx bool) base.ChainID {
 		u = utxodb.NewUTXODB(genesisPrivateKey, true)
 
 		privKey, _, addr := u.GenerateAddresses(0, 2)
@@ -335,7 +335,7 @@ func TestDelegationChainLock(t *testing.T) {
 		par, err := u.MakeTransferInputData(privKey[0], nil, base.NilLedgerTime)
 		require.NoError(t, err)
 
-		delegationLock = ledger.NewDelegationLock(addr[0], targetChainID.AsChainLock(), 2, ledger.TimeNow(), delegatedTokens)
+		delegationLock = ledger.NewDelegationLock(addr[0], ledger.ChainLockFromChainID(targetChainID), 2, ledger.TimeNow(), delegatedTokens)
 		txBytes, err = txbuilder.MakeSimpleTransferTransaction(par.
 			WithAmount(delegatedTokens).
 			WithTargetLock(delegationLock).
@@ -355,7 +355,7 @@ func TestDelegationChainLock(t *testing.T) {
 		require.EqualValues(t, u.Supply()-u.FaucetBalance()-tokensFromFaucet0, u.Balance(u.GenesisControllerAddress()))
 		require.EqualValues(t, tokensFromFaucet0-tokensOnTargetChain, u.Balance(ownerAddr))
 		require.EqualValues(t, 2, u.NumUTXOs(ownerAddr))
-		require.EqualValues(t, 1, u.NumUTXOs(targetChainID.AsChainLock()))
+		require.EqualValues(t, 1, u.NumUTXOs(ledger.ChainLockFromChainID(targetChainID)))
 
 		rdr := multistate.MakeSugared(u.StateReader())
 
@@ -363,7 +363,7 @@ func TestDelegationChainLock(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, 0, len(outs))
 
-		outs, err = rdr.GetOutputsDelegatedToAccount(targetChainID.AsChainLock())
+		outs, err = rdr.GetOutputsDelegatedToAccount(ledger.ChainLockFromChainID(targetChainID))
 		require.NoError(t, err)
 		require.EqualValues(t, 1, len(outs))
 
@@ -464,7 +464,7 @@ func TestDelegationChainLock(t *testing.T) {
 		require.NoError(t, err)
 
 		rdr := multistate.MakeSugared(u.StateReader())
-		outs, err := rdr.GetOutputsDelegatedToAccount(targetChainID.AsChainLock())
+		outs, err := rdr.GetOutputsDelegatedToAccount(ledger.ChainLockFromChainID(targetChainID))
 		require.NoError(t, err)
 		require.EqualValues(t, 1, len(outs))
 

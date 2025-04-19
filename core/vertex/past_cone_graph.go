@@ -9,7 +9,7 @@ import (
 
 	"github.com/dominikbraun/graph"
 	"github.com/dominikbraun/graph/draw"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -59,7 +59,7 @@ const virtualConsumerName = "nil"
 func (pc *PastCone) MakeGraph() graph.Graph[string, string] {
 	ret := graph.New(graph.StringHash, graph.Directed(), graph.Acyclic())
 
-	seqMap := make(map[ledger.ChainID]int)
+	seqMap := make(map[base.ChainID]int)
 	pc.forAllVertices(func(vid *WrappedTx) bool {
 		pc.makeGraphNode(vid, ret, seqMap)
 		return true
@@ -80,7 +80,7 @@ func (pc *PastCone) SaveGraph(fname string) {
 	_ = dotFile.Close()
 }
 
-func fillColor(vid *WrappedTx, seqMap map[ledger.ChainID]int) func(*graph.VertexProperties) {
+func fillColor(vid *WrappedTx, seqMap map[base.ChainID]int) func(*graph.VertexProperties) {
 	seqID := vid.SequencerID.Load()
 	if seqID == nil {
 		return graph.VertexAttribute("fillcolor", strconv.Itoa(numColors))
@@ -103,7 +103,7 @@ func vertexID(vid *WrappedTx) string {
 	return vid.id.AsFileNameShort()
 }
 
-func (pc *PastCone) nodeAttributes(vid *WrappedTx, seqMap map[ledger.ChainID]int) (ret []func(*graph.VertexProperties)) {
+func (pc *PastCone) nodeAttributes(vid *WrappedTx, seqMap map[base.ChainID]int) (ret []func(*graph.VertexProperties)) {
 	switch {
 	case vid == nil:
 		ret = slices.Clone(nilNodeAttributes)
@@ -136,7 +136,7 @@ func (pc *PastCone) nodeAttributes(vid *WrappedTx, seqMap map[ledger.ChainID]int
 	return ret
 }
 
-func (pc *PastCone) makeGraphNode(vid *WrappedTx, gr graph.Graph[string, string], seqMap map[ledger.ChainID]int) {
+func (pc *PastCone) makeGraphNode(vid *WrappedTx, gr graph.Graph[string, string], seqMap map[base.ChainID]int) {
 	attr := pc.nodeAttributes(vid, seqMap)
 	err := gr.AddVertex(vertexID(vid), attr...)
 	pc.AssertNoError(err)

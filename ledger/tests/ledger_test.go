@@ -271,6 +271,7 @@ func TestSenderAddressED25519(t *testing.T) {
 	require.EqualValues(t, 0, u.NumUTXOs(addr1))
 
 	par, err := u.MakeTransferInputData(privKey0, nil, ledger.TimeNow())
+	require.NoError(t, err)
 	err = u.DoTransfer(par.
 		WithAmount(2000).
 		WithTargetLock(addr1).
@@ -712,7 +713,7 @@ func TestChainLock(t *testing.T) {
 	var privKey0, privKey1 ed25519.PrivateKey
 	var addr0, addr1 ledger.AddressED25519
 	var u *utxodb.UTXODB
-	var chainID ledger.ChainID
+	var chainID base.ChainID
 	var chainAddr ledger.ChainLock
 
 	initTest := func() {
@@ -920,6 +921,7 @@ func TestImmutable(t *testing.T) {
 
 	// create origin chain
 	par, err := u.MakeTransferInputData(privKey, nil, ledger.TimeNow())
+	require.NoError(t, err)
 	par.WithAmount(2000).
 		WithTargetLock(addr0).
 		WithConstraint(ledger.NewChainOrigin())

@@ -11,7 +11,6 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
@@ -42,7 +41,7 @@ var (
 	}
 )
 
-func sequencerNodeAttributes(v *vertex.Vertex, coverage uint64, dict map[ledger.ChainID]int) []func(*graph.VertexProperties) {
+func sequencerNodeAttributes(v *vertex.Vertex, coverage uint64, dict map[base.ChainID]int) []func(*graph.VertexProperties) {
 	seqID := v.Tx.SequencerTransactionData().SequencerID
 	if _, found := dict[seqID]; !found {
 		dict[seqID] = (len(dict) % 9) + 1
@@ -56,7 +55,7 @@ func sequencerNodeAttributes(v *vertex.Vertex, coverage uint64, dict map[ledger.
 	return ret
 }
 
-func makeGraphNode(vid *vertex.WrappedTx, gr graph.Graph[string, string], seqDict map[ledger.ChainID]int, highlighted bool) {
+func makeGraphNode(vid *vertex.WrappedTx, gr graph.Graph[string, string], seqDict map[base.ChainID]int, highlighted bool) {
 	id := vid.IDVeryShort()
 	attr := simpleNodeAttributes
 	var err error
@@ -151,7 +150,7 @@ func (d *MemDAG) MakeGraph(additionalVertices ...*vertex.WrappedTx) graph.Graph[
 	ret := graph.New(graph.StringHash, graph.Directed(), graph.Acyclic())
 
 	vertices := d.Vertices()
-	seqDict := make(map[ledger.ChainID]int)
+	seqDict := make(map[base.ChainID]int)
 	for _, vid := range vertices {
 		makeGraphNode(vid, ret, seqDict, false)
 	}
@@ -183,7 +182,7 @@ func MakeGraphPastCone(vid *vertex.WrappedTx, maxVertices ...int) graph.Graph[st
 		maxx = maxVertices[0]
 	}
 
-	seqDict := make(map[ledger.ChainID]int)
+	seqDict := make(map[base.ChainID]int)
 	count := 0
 
 	mkNode := func(vidCur *vertex.WrappedTx) bool {
@@ -235,7 +234,7 @@ func (d *MemDAG) SaveSequencerGraph(fname string) {
 func (d *MemDAG) MakeSequencerGraph() graph.Graph[string, string] {
 	ret := graph.New(graph.StringHash, graph.Directed(), graph.Acyclic())
 
-	seqDict := make(map[ledger.ChainID]int)
+	seqDict := make(map[base.ChainID]int)
 	seqVertices := make([]*vertex.WrappedTx, 0)
 	for _, vid := range d.Vertices() {
 		if !vid.IsSequencerMilestone() {
@@ -298,7 +297,7 @@ func makeSequencerGraphEdges(vid *vertex.WrappedTx, gr graph.Graph[string, strin
 
 // MakeDAGFromTxStore creates dummy MemDAG from past cones of tips. Only uses txBytes from txStore
 // It is used in testing, to visualize real transaction MemDAG, not the pruned cache kept in the node
-func MakeDAGFromTxStore(txStore global.TxBytesGet, oldestSlot base.Slot, tips ...ledger.TransactionID) *MemDAG {
+func MakeDAGFromTxStore(txStore global.TxBytesGet, oldestSlot base.Slot, tips ...base.TransactionID) *MemDAG {
 	d := New(nil)
 	for i := range tips {
 		d.loadPastConeFromTxStore(tips[i], txStore, oldestSlot)
@@ -307,7 +306,7 @@ func MakeDAGFromTxStore(txStore global.TxBytesGet, oldestSlot base.Slot, tips ..
 }
 
 // loadPastConeFromTxStore for generating graph only. Not thread safe
-func (d *MemDAG) loadPastConeFromTxStore(txid ledger.TransactionID, txStore global.TxBytesGet, oldestSlot base.Slot) *vertex.WrappedTx {
+func (d *MemDAG) loadPastConeFromTxStore(txid base.TransactionID, txStore global.TxBytesGet, oldestSlot base.Slot) *vertex.WrappedTx {
 	if txid.Slot() < oldestSlot {
 		return nil
 	}
@@ -338,7 +337,7 @@ func (d *MemDAG) loadPastConeFromTxStore(txid ledger.TransactionID, txStore glob
 	return vid
 }
 
-func SavePastConeFromTxStore(tip ledger.TransactionID, txStore global.TxBytesGet, oldestSlot base.Slot, fname string) {
+func SavePastConeFromTxStore(tip base.TransactionID, txStore global.TxBytesGet, oldestSlot base.Slot, fname string) {
 	tmpDag := MakeDAGFromTxStore(txStore, oldestSlot, tip)
 	tmpDag.SaveGraph(fname)
 }

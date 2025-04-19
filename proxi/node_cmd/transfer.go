@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/proxima/api/client"
-	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +38,7 @@ func runTransferCmd(_ *cobra.Command, args []string) {
 
 	target := glb.MustGetTarget()
 
-	var tagAlongSeqID *ledger.ChainID
+	var tagAlongSeqID *base.ChainID
 	feeAmount := glb.GetTagAlongFee()
 	glb.Assertf(feeAmount > 0, "tag-along fee is configured 0. Fee-less option not supported yet")
 	tagAlongSeqID = glb.GetTagAlongSequencerID()
