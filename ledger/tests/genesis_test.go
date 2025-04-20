@@ -78,6 +78,6 @@ func TestInitOrigin(t *testing.T) {
 }
 
 func TestBoostrapSequencerID(t *testing.T) {
-	t.Logf("bootstrap sequencer id: %s", ledger.BoostrapSequencerID.String())
+	t.Logf("bootstrap sequencer id: %s", base.BoostrapSequencerID.String())
 	t.Logf("bootstrap sequencer id hex: %s", ledger.BoostrapSequencerIDHex)
 }
