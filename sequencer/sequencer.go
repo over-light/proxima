@@ -229,7 +229,7 @@ func (seq *Sequencer) ensureFirstMilestone() bool {
 		return false
 	}
 	if startOutput.VID == nil || !startOutput.IsAvailable() {
-		seq.log.Errorf("failed to find a chain output to start")
+		seq.log.Errorf("failed to find chain output to start")
 		return false
 	}
 	if !seq.checkSequencerStartOutput(startOutput) {

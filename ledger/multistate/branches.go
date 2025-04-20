@@ -126,7 +126,8 @@ func (r *RootRecord) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("sequencer id: %s", r.SequencerID.String()).
 		Add("supply: %s", util.Th(r.Supply)).
-		Add("coverage: %s", util.Th(r.LedgerCoverage)).
+		Add("coverage delta: %s", util.Th(r.CoverageDelta)).
+		Add("ledger coverage: %s", util.Th(r.LedgerCoverage)).
 		Add("healthy(%s): %v", global.FractionHealthyBranch.String(), global.IsHealthyCoverageDelta(r.CoverageDelta, r.Supply, global.FractionHealthyBranch))
 	return ret
 }
