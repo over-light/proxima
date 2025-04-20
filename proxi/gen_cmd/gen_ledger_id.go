@@ -42,6 +42,6 @@ func runGenLedgerIDCommand(_ *cobra.Command, _ []string) {
 	yamlData := ledger.LibraryYAMLFromIdentityParameters(idParams, true)
 	err := os.WriteFile(glb.LedgerIDFileName, yamlData, 0666)
 	glb.AssertNoError(err)
-	glb.Infof("new ledger identity data has been stored in the file '%s':", glb.LedgerIDFileName)
+	glb.Infof("new ledger identity data has been stored in the file '%s'", glb.LedgerIDFileName)
 	glb.Infof("ledger ID parameters:\n--------------\n%s\n", idParams.Lines("    ").String())
 }

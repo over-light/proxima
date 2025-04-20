@@ -235,7 +235,7 @@ func FetchRootRecord(store common.KVReader, branchTxID base.TransactionID) (ret 
 // FetchAnyLatestRootRecord return first root record for the latest slot
 func FetchAnyLatestRootRecord(store StateStoreReader) RootRecord {
 	recs := FetchRootRecords(store, FetchLatestCommittedSlot(store))
-	util.Assertf(len(recs) > 0, "len(recs)>0")
+	util.Assertf(len(recs) > 0, "FetchAnyLatestRootRecord: can't find any root records in DB")
 	return recs[0]
 }
 
