@@ -57,7 +57,8 @@ type (
 		txMetadata        *txmetadata.TransactionMetadata
 		txSize            int
 		hrString          string
-		coverage          uint64
+		coverageDelta     uint64
+		ledgerCoverage    uint64
 		attacherName      string
 		strategyShortName string
 	}
@@ -169,9 +170,9 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 	proposalsSlice := maps.Values(proposals)
 	best := util.Maximum(proposalsSlice, func(p1, p2 *proposal) bool {
 		switch {
-		case p1.coverage < p2.coverage:
+		case p1.ledgerCoverage < p2.ledgerCoverage:
 			return true
-		case p1.coverage == p2.coverage:
+		case p1.ledgerCoverage == p2.ledgerCoverage:
 			// out of two with equal coverage we select the one with less size
 			return p1.txSize > p2.txSize
 		}
@@ -181,9 +182,9 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 	// check if newly generated non-branch transaction has coverage strongly bigger than previously generated
 	// non-branch transaction on the same slot
 	ownLatest := env.OwnLatestMilestoneOutput().VID
-	if !ownLatest.IsBranchTransaction() && ownLatest.Slot() == targetTs.Slot && best.coverage <= ownLatest.GetLedgerCoverage() {
+	if !ownLatest.IsBranchTransaction() && ownLatest.Slot() == targetTs.Slot && best.ledgerCoverage <= ownLatest.GetLedgerCoverage() {
 		return nil, nil, fmt.Errorf("%w (res: %s, best: %s, %s)",
-			ErrNotGoodEnough, util.Th(best.coverage), ownLatest.IDShortString(), util.Th(ownLatest.GetLedgerCoverage()))
+			ErrNotGoodEnough, util.Th(best.ledgerCoverage), ownLatest.IDShortString(), util.Th(ownLatest.GetLedgerCoverage()))
 	}
 	task.EvidenceBestProposalForTheTarget(best.strategyShortName)
 	return best.tx, best.txMetadata, nil

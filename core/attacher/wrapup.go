@@ -18,11 +18,11 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 	a.finals.baseline = a.baseline.ID()
 	a.finals.numVertices = a.pastCone.NumVertices()
 
-	a.finals.coverage = a.LedgerCoverage()
+	a.finals.ledgerCoverage, a.finals.coverageDelta = a.CoverageAndDelta()
 	a.finals.slotInflation = a.slotInflation
 
 	a.Tracef(TraceTagAttachMilestone, "set ledger coverage in %s to %s",
-		a.vid.IDShortString, func() string { return util.Th(a.finals.coverage) })
+		a.vid.IDShortString, func() string { return util.Th(a.finals.ledgerCoverage) })
 
 	if a.vid.IsBranchTransaction() {
 		a.commitBranch()
@@ -34,7 +34,8 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 	a.checkConsistencyWithMetadata()
 
 	calculatedMetadata := txmetadata.TransactionMetadata{
-		LedgerCoverage: util.Ref(a.finals.coverage),
+		CoverageDelta:  util.Ref(a.finals.coverageDelta),
+		LedgerCoverage: util.Ref(a.finals.ledgerCoverage),
 		SlotInflation:  util.Ref(a.finals.slotInflation),
 	}
 	if a.metadata != nil {
@@ -57,7 +58,7 @@ func (a *milestoneAttacher) commitBranch() {
 	seqID, stemOID := a.vid.MustSequencerIDAndStemID()
 	upd := multistate.MustNewUpdatable(a.StateStore(), a.BaselineSugaredStateReader().Root())
 	a.finals.supply = a.baselineSupply + a.finals.slotInflation
-	coverage := a.LedgerCoverage()
+	ledgerCoverage, coverageDelta := a.CoverageAndDelta()
 
 	util.Assertf(a.slotInflation == a.finals.slotInflation, "a.slotInflation == a.finals.slotInflation")
 	supply := a.FinalSupply()
@@ -65,7 +66,8 @@ func (a *milestoneAttacher) commitBranch() {
 	err := upd.Update(muts, &multistate.RootRecordParams{
 		StemOutputID:    stemOID,
 		SeqID:           seqID,
-		Coverage:        coverage,
+		CoverageDelta:   coverageDelta,
+		LedgerCoverage:  ledgerCoverage,
 		SlotInflation:   a.slotInflation,
 		Supply:          supply,
 		NumTransactions: a.finals.numNewTransactions,
@@ -80,5 +82,5 @@ func (a *milestoneAttacher) commitBranch() {
 
 	a.finals.root = upd.Root()
 
-	a.EvidenceBranchSlot(a.vid.Slot(), global.IsHealthyCoverage(coverage, supply, global.FractionHealthyBranch))
+	a.EvidenceBranchSlot(a.vid.Slot(), global.IsHealthyCoverageDelta(coverageDelta, supply, global.FractionHealthyBranch))
 }

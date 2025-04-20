@@ -85,6 +85,7 @@ func runBootstrapAccount(_ *cobra.Command, args []string) {
 
 	_, err = txStore.PersistTxBytesWithMetadata(txBytesBootstrapBalance, &txmetadata.TransactionMetadata{
 		StateRoot:      rr.Root,
+		CoverageDelta:  util.Ref(rr.CoverageDelta),
 		LedgerCoverage: util.Ref(rr.LedgerCoverage),
 		SlotInflation:  util.Ref(rr.SlotInflation),
 		Supply:         util.Ref(rr.Supply),

@@ -40,7 +40,8 @@ func InitStateStoreWithGlobalLedgerIdentity(store StateStore) (base.ChainID, com
 	updatable.MustUpdate(genesisUpdateMutations(&gout.OutputWithID, gStemOut), &RootRecordParams{
 		StemOutputID:      gStemOut.ID,
 		SeqID:             gout.ChainID,
-		Coverage:          initialSupply,
+		CoverageDelta:     initialSupply,
+		LedgerCoverage:    initialSupply,
 		SlotInflation:     initialSupply,
 		Supply:            initialSupply,
 		WriteEarliestSlot: true,

@@ -107,7 +107,8 @@ type (
 	attachFinals struct {
 		numInputs          int
 		numOutputs         int
-		coverage           uint64
+		coverageDelta      uint64
+		ledgerCoverage     uint64
 		slotInflation      uint64
 		supply             uint64
 		root               common.VCommitment

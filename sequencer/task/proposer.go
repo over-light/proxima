@@ -71,7 +71,7 @@ func (p *proposer) run() {
 func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 	util.Assertf(a.TargetTs() == p.targetTs, "a.targetTs() == p.taskData.targetTs")
 
-	coverage := a.LedgerCoverage()
+	ledgerCoverage, coverageDelta := a.CoverageAndDelta()
 
 	tx, hrString, err := p.makeTxProposal(a)
 	util.Assertf(a.IsClosed(), "a.IsClosed()")
@@ -84,10 +84,12 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 		txSize: len(tx.Bytes()),
 		txMetadata: &txmetadata.TransactionMetadata{
 			SourceTypeNonPersistent: txmetadata.SourceTypeSequencer,
-			LedgerCoverage:          util.Ref(coverage),
+			CoverageDelta:           util.Ref(coverageDelta),
+			LedgerCoverage:          util.Ref(ledgerCoverage),
 		},
 		hrString:          hrString,
-		coverage:          coverage,
+		coverageDelta:     coverageDelta,
+		ledgerCoverage:    ledgerCoverage,
 		attacherName:      a.Name(),
 		strategyShortName: p.strategy.ShortName,
 	}
@@ -95,7 +97,7 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 	trackProposals.RegisterPointer(_proposal)
 
 	if p.targetTs.IsSlotBoundary() {
-		_proposal.txMetadata.LedgerCoverage = util.Ref(coverage)
+		_proposal.txMetadata.LedgerCoverage = util.Ref(ledgerCoverage)
 		_proposal.txMetadata.Supply = util.Ref(a.FinalSupply())
 		_proposal.txMetadata.SlotInflation = util.Ref(a.SlotInflation())
 	}

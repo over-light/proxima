@@ -68,31 +68,53 @@ func FetchSnapshotBranchID(store common.KVTraversableReader) base.TransactionID 
 	return branchData.Stem.ID.TransactionID()
 }
 
-const numberOfElementsInRootRecord = 6
+const numberOfElementsInRootRecord = 7
 
 func (r *RootRecord) Bytes() []byte {
 	util.Assertf(r.LedgerCoverage > 0, "r.Coverage.LatestDelta() > 0")
 	arr := lazybytes.EmptyArray(numberOfElementsInRootRecord)
-	arr.Push(r.SequencerID.Bytes())
-	arr.Push(r.Root.Bytes())
+	arr.Push(r.SequencerID.Bytes())   // 0
+	arr.Push(r.Root.Bytes())          // 1
+	arr.PushUint64(r.CoverageDelta)   // 2
+	arr.PushUint64(r.LedgerCoverage)  // 3
+	arr.PushUint64(r.SlotInflation)   // 4
+	arr.PushUint64(r.Supply)          // 5
+	arr.PushUint32(r.NumTransactions) // 6
 
-	var coverage [8]byte
-	binary.BigEndian.PutUint64(coverage[:], r.LedgerCoverage)
-	arr.Push(coverage[:])
-
-	var slotInflationBin, supplyBin [8]byte
-	binary.BigEndian.PutUint64(slotInflationBin[:], r.SlotInflation)
-
-	arr.Push(slotInflationBin[:])
-	binary.BigEndian.PutUint64(supplyBin[:], r.Supply)
-
-	arr.Push(supplyBin[:])
-	var nTxBin [4]byte
-	binary.BigEndian.PutUint32(nTxBin[:], r.NumTransactions)
-
-	arr.Push(nTxBin[:])
 	util.Assertf(arr.NumElements() == numberOfElementsInRootRecord, "arr.NumElements() == 6")
 	return arr.Bytes()
+}
+
+func RootRecordFromBytes(data []byte) (RootRecord, error) {
+	arr, err := lazybytes.ParseArrayFromBytesReadOnly(data, numberOfElementsInRootRecord)
+	if err != nil {
+		return RootRecord{}, err
+	}
+	chainID, err := base.ChainIDFromBytes(arr.At(0))
+	if err != nil {
+		return RootRecord{}, err
+	}
+	root, err := common.VectorCommitmentFromBytes(ledger.CommitmentModel, arr.At(1))
+	if err != nil {
+		return RootRecord{}, err
+	}
+	for _, i := range []int{2, 3, 4, 5} {
+		if len(arr.At(i)) != 8 {
+			return RootRecord{}, fmt.Errorf("wrong data length")
+		}
+	}
+	if len(arr.At(6)) != 4 {
+		return RootRecord{}, fmt.Errorf("wrong data length")
+	}
+	return RootRecord{
+		Root:            root,
+		SequencerID:     chainID,
+		CoverageDelta:   binary.BigEndian.Uint64(arr.At(2)),
+		LedgerCoverage:  binary.BigEndian.Uint64(arr.At(3)),
+		SlotInflation:   binary.BigEndian.Uint64(arr.At(4)),
+		Supply:          binary.BigEndian.Uint64(arr.At(5)),
+		NumTransactions: binary.BigEndian.Uint32(arr.At(6)),
+	}, nil
 }
 
 func (r *RootRecord) StringShort() string {
@@ -105,7 +127,7 @@ func (r *RootRecord) Lines(prefix ...string) *lines.Lines {
 	ret.Add("sequencer id: %s", r.SequencerID.String()).
 		Add("supply: %s", util.Th(r.Supply)).
 		Add("coverage: %s", util.Th(r.LedgerCoverage)).
-		Add("healthy(%s): %v", global.FractionHealthyBranch.String(), global.IsHealthyCoverage(r.LedgerCoverage, r.Supply, global.FractionHealthyBranch))
+		Add("healthy(%s): %v", global.FractionHealthyBranch.String(), global.IsHealthyCoverageDelta(r.CoverageDelta, r.Supply, global.FractionHealthyBranch))
 	return ret
 }
 
@@ -130,32 +152,6 @@ func (br *BranchData) Lines(prefix ...string) *lines.Lines {
 	return br.RootRecord.Lines(prefix...).
 		Add("Stem output id: %s", br.Stem.ID.String()).
 		Add("Sequencer output id: %s", br.SequencerOutput.ID.String())
-}
-
-func RootRecordFromBytes(data []byte) (RootRecord, error) {
-	arr, err := lazybytes.ParseArrayFromBytesReadOnly(data, numberOfElementsInRootRecord)
-	if err != nil {
-		return RootRecord{}, err
-	}
-	chainID, err := base.ChainIDFromBytes(arr.At(0))
-	if err != nil {
-		return RootRecord{}, err
-	}
-	root, err := common.VectorCommitmentFromBytes(ledger.CommitmentModel, arr.At(1))
-	if err != nil {
-		return RootRecord{}, err
-	}
-	if len(arr.At(2)) != 8 || len(arr.At(3)) != 8 || len(arr.At(4)) != 8 || len(arr.At(5)) != 4 {
-		return RootRecord{}, fmt.Errorf("wrong data length")
-	}
-	return RootRecord{
-		Root:            root,
-		SequencerID:     chainID,
-		LedgerCoverage:  binary.BigEndian.Uint64(arr.At(2)),
-		SlotInflation:   binary.BigEndian.Uint64(arr.At(3)),
-		Supply:          binary.BigEndian.Uint64(arr.At(4)),
-		NumTransactions: binary.BigEndian.Uint32(arr.At(5)),
-	}, nil
 }
 
 func ValidInclusionThresholdFraction(numerator, denominator int) bool {
@@ -450,7 +446,7 @@ func FindLatestHealthySlot(store StateStoreReader, fraction global.Fraction) (ba
 }
 
 func (br *BranchData) IsHealthy(fraction global.Fraction) bool {
-	return global.IsHealthyCoverage(br.LedgerCoverage, br.Supply, fraction)
+	return global.IsHealthyCoverageDelta(br.CoverageDelta, br.Supply, fraction)
 }
 
 // FirstHealthySlotIsNotBefore determines if first healthy slot is not before tha refSlot.
@@ -501,7 +497,7 @@ func FindRootsFromLatestHealthySlot(store StateStoreReader, fraction global.Frac
 		maxElemIdx := util.IndexOfMaximum(roots, func(i, j int) bool {
 			return roots[i].LedgerCoverage < roots[j].LedgerCoverage
 		})
-		if global.IsHealthyCoverage(roots[maxElemIdx].LedgerCoverage, roots[maxElemIdx].Supply, fraction) {
+		if global.IsHealthyCoverageDelta(roots[maxElemIdx].CoverageDelta, roots[maxElemIdx].Supply, fraction) {
 			rootsFound = roots
 			return false
 		}
@@ -531,7 +527,7 @@ func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func
 }
 
 // FindLatestReliableBranch latest reliable branch (LRB) is the latest branch, which is contained in any
-// tip from the latest healthy branch with ledger coverage bigger than fraction total supply.
+// tip from the latest healthy branch with coverage delta bigger than fraction of total supply.
 // Reliable branch is the latest global consensus state with big probability
 // Returns nil if not found
 func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) *BranchData {
@@ -542,7 +538,7 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 	}
 	// filter out not healthy roots in the healthy slot
 	tipRoots = util.PurgeSlice(tipRoots, func(rr RootRecord) bool {
-		return global.IsHealthyCoverage(rr.LedgerCoverage, rr.Supply, fraction)
+		return global.IsHealthyCoverageDelta(rr.CoverageDelta, rr.Supply, fraction)
 	})
 	util.Assertf(len(tipRoots) > 0, "len(tipRoots)>0")
 	if len(tipRoots) == 1 {
@@ -556,8 +552,8 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 	rootMaxIdx := util.IndexOfMaximum(tipRoots, func(i, j int) bool {
 		return tipRoots[i].LedgerCoverage < tipRoots[j].LedgerCoverage
 	})
-	util.Assertf(global.IsHealthyCoverage(tipRoots[rootMaxIdx].LedgerCoverage, tipRoots[rootMaxIdx].Supply, fraction),
-		"global.IsHealthyCoverage(rootMax.LedgerCoverage, rootMax.Supply, fraction)")
+	util.Assertf(global.IsHealthyCoverageDelta(tipRoots[rootMaxIdx].CoverageDelta, tipRoots[rootMaxIdx].Supply, fraction),
+		"global.IsHealthyCoverageDelta(rootMax.LedgerCoverage, rootMax.Supply, fraction)")
 
 	// we will be checking if transaction is contained in all roots from the latest healthy slot
 	// For this we are creating a collection of state readers

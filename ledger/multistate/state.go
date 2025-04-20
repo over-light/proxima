@@ -35,6 +35,7 @@ type (
 		SequencerID base.ChainID
 		// Note: LedgerCoverage, SlotInflation and Supply are deterministic values calculated from the ledger past cone
 		// Each node calculates them itself, and they must be equal on each
+		CoverageDelta  uint64
 		LedgerCoverage uint64
 		// SlotInflation: total inflation delta from previous root. It is a sum of individual transaction inflation values
 		// of the previous slot/past cone. It includes the branch tx inflation itself and does not include inflation of the previous branch
@@ -415,7 +416,8 @@ func (u *Updatable) Root() common.VCommitment {
 type RootRecordParams struct {
 	StemOutputID      base.OutputID
 	SeqID             base.ChainID
-	Coverage          uint64
+	CoverageDelta     uint64
+	LedgerCoverage    uint64
 	SlotInflation     uint64
 	Supply            uint64
 	NumTransactions   uint32
@@ -457,7 +459,8 @@ func (u *Updatable) updateUTXOLedgerDB(updateFun func(updatable *immutable.TrieU
 		WriteRootRecord(batch, branchID, RootRecord{
 			Root:            newRoot,
 			SequencerID:     rootRecordsParams.SeqID,
-			LedgerCoverage:  rootRecordsParams.Coverage,
+			CoverageDelta:   rootRecordsParams.CoverageDelta,
+			LedgerCoverage:  rootRecordsParams.LedgerCoverage,
 			SlotInflation:   rootRecordsParams.SlotInflation,
 			Supply:          rootRecordsParams.Supply,
 			NumTransactions: rootRecordsParams.NumTransactions,

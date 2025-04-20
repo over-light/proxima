@@ -20,6 +20,7 @@ type (
 	TransactionMetadata struct {
 		// persistent
 		StateRoot      common.VCommitment // not nil may be for branch transactions
+		CoverageDelta  *uint64            // not nil may be for sequencer transactions
 		LedgerCoverage *uint64            // not nil may be for sequencer transactions
 		SlotInflation  *uint64            // not nil may be for sequencer transactions
 		Supply         *uint64            // not nil may be for branch transactions
@@ -31,15 +32,12 @@ type (
 	TransactionMetadataJSONAble struct {
 		// persistent
 		StateRoot      string `json:"state_root,omitempty"`
+		CoverageDelta  uint64 `json:"coverage_delta,omitempty"`
 		LedgerCoverage uint64 `json:"ledger_coverage,omitempty"`
 		SlotInflation  uint64 `json:"slot_inflation,omitempty"`
 		Supply         uint64 `json:"supply,omitempty"`
 	}
 
-	PortionInfo struct {
-		LastIndex uint16
-		Index     uint16
-	}
 	SourceType byte
 )
 
@@ -65,10 +63,11 @@ var allSourceTypes = map[SourceType]string{
 
 // persistent flags for (de)serialization
 const (
-	flagRootProvided          = 0b00000001
-	flagCoverageDeltaProvided = 0b00000010
-	flagSlotInflationProvided = 0b00000100
-	flagSupplyProvided        = 0b00001000
+	flagRootProvided           = 0b00000001
+	flagCoverageDeltaProvided  = 0b00000010
+	flagLedgerCoverageProvided = 0b00000100
+	flagSlotInflationProvided  = 0b00001000
+	flagSupplyProvided         = 0b00010000
 )
 
 func (s SourceType) String() string {
@@ -81,8 +80,11 @@ func (m *TransactionMetadata) flags() (ret byte) {
 	if !util.IsNil(m.StateRoot) {
 		ret |= flagRootProvided
 	}
-	if m.LedgerCoverage != nil {
+	if m.CoverageDelta != nil {
 		ret |= flagCoverageDeltaProvided
+	}
+	if m.LedgerCoverage != nil {
+		ret |= flagLedgerCoverageProvided
 	}
 	if m.SlotInflation != nil {
 		ret |= flagSlotInflationProvided
@@ -104,6 +106,7 @@ func (m *TransactionMetadata) Bytes() []byte {
 		return []byte{0}
 	}
 
+	util.Assertf((m.CoverageDelta == nil) == (m.LedgerCoverage == nil), "(m.CoverageDelta == nil) == (m.LedgerCoverage == nil)")
 	var buf bytes.Buffer
 	// size byte (will be filled-in in the end
 	buf.WriteByte(0)
@@ -111,20 +114,17 @@ func (m *TransactionMetadata) Bytes() []byte {
 	if !util.IsNil(m.StateRoot) {
 		buf.Write(m.StateRoot.Bytes())
 	}
+	if m.CoverageDelta != nil {
+		_ = binary.Write(&buf, binary.BigEndian, *m.CoverageDelta)
+	}
 	if m.LedgerCoverage != nil {
-		var coverageBin [8]byte
-		binary.BigEndian.PutUint64(coverageBin[:], *m.LedgerCoverage)
-		buf.Write(coverageBin[:])
+		_ = binary.Write(&buf, binary.BigEndian, *m.LedgerCoverage)
 	}
 	if m.SlotInflation != nil {
-		var slotInflationBin [8]byte
-		binary.BigEndian.PutUint64(slotInflationBin[:], *m.SlotInflation)
-		buf.Write(slotInflationBin[:])
+		_ = binary.Write(&buf, binary.BigEndian, *m.SlotInflation)
 	}
 	if m.Supply != nil {
-		var supplyBin [8]byte
-		binary.BigEndian.PutUint64(supplyBin[:], *m.Supply)
-		buf.Write(supplyBin[:])
+		_ = binary.Write(&buf, binary.BigEndian, *m.Supply)
 	}
 	ret := buf.Bytes()
 	util.Assertf(len(ret) <= 256, "too big TransactionMetadata")
@@ -162,6 +162,12 @@ func TransactionMetadataFromBytes(data []byte) (*TransactionMetadata, error) {
 		}
 	}
 	if flags&flagCoverageDeltaProvided != 0 {
+		ret.CoverageDelta = new(uint64)
+		if *ret.CoverageDelta, err = _readUint64(rdr); err != nil {
+			return nil, err
+		}
+	}
+	if flags&flagLedgerCoverageProvided != 0 {
 		ret.LedgerCoverage = new(uint64)
 		if *ret.LedgerCoverage, err = _readUint64(rdr); err != nil {
 			return nil, err
@@ -209,6 +215,9 @@ func (m *TransactionMetadata) Lines(prefix ...string) *lines.Lines {
 		return lines.New(prefix...).Add("<empty>")
 	}
 	ret := lines.New(prefix...)
+	if m.CoverageDelta != nil {
+		ret.Add("coverage delta: %s", util.Th(*m.CoverageDelta))
+	}
 	if m.LedgerCoverage != nil {
 		ret.Add("coverage: %s", util.Th(*m.LedgerCoverage))
 	}
@@ -260,6 +269,9 @@ func (m *TransactionMetadata) IsConsistentWith(m1 *TransactionMetadata) bool {
 		return true
 	}
 	if !util.IsNil(m.StateRoot) && !util.IsNil(m1.StateRoot) && !ledger.CommitmentModel.EqualCommitments(m.StateRoot, m1.StateRoot) {
+		return false
+	}
+	if m.CoverageDelta != nil && m1.CoverageDelta != nil && *m.CoverageDelta != *m1.CoverageDelta {
 		return false
 	}
 	if m.LedgerCoverage != nil && m1.LedgerCoverage != nil && *m.LedgerCoverage != *m1.LedgerCoverage {

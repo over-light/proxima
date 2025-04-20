@@ -465,18 +465,18 @@ func (seq *Sequencer) decideSubmitMilestone(tx *transaction.Transaction, meta *t
 		return false
 	}
 	if tx.IsBranchTransaction() {
-		healthy := global.IsHealthyCoverage(*meta.LedgerCoverage, *meta.Supply, global.FractionHealthyBranch)
-		bootstrapMode := seq.IsBootstrapMode()
-		if healthy || bootstrapMode {
+		healthy := global.IsHealthyCoverageDelta(*meta.CoverageDelta, *meta.Supply, global.FractionHealthyBranch)
+		//bootstrapMode := seq.IsBootstrapMode()
+		//if healthy || bootstrapMode {
+		if healthy {
 			seq.Log().Infof("SUBMIT BRANCH %s. Now: %s, proposer: %s, coverage: %s, inflation: %s",
 				tx.IDShortString(), ledger.TimeNow().String(), tx.SequencerTransactionData().SequencerOutputData.MilestoneData.Name,
 				util.Th(*meta.LedgerCoverage), util.Th(tx.InflationAmount()))
 			return true
 		}
-		seq.Log().Infof("WON'T SUBMIT BRANCH %s. Now: %s, p: %s, cov: %s, supply: %s, infl: %s, slot infl: %s, cov+i+si: %s",
+		seq.Log().Infof("WON'T SUBMIT BRANCH %s. Now: %s, p: %s, cov.delta: %s/%s, supply: %s, infl: %s, slot infl: %s",
 			tx.IDShortString(), ledger.TimeNow().String(), tx.SequencerTransactionData().SequencerOutputData.MilestoneData.Name,
-			util.Th(*meta.LedgerCoverage), util.Th(*meta.Supply), util.Th(tx.InflationAmount()), util.Th(*meta.SlotInflation),
-			util.Th(*meta.LedgerCoverage+tx.InflationAmount()+*meta.SlotInflation))
+			util.Th(*meta.LedgerCoverage), util.Th(*meta.CoverageDelta), util.Th(*meta.Supply), util.Th(tx.InflationAmount()), util.Th(*meta.SlotInflation))
 		return false
 	}
 

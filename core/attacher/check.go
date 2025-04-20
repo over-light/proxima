@@ -129,9 +129,11 @@ func (a *milestoneAttacher) _checkMonotonicityOfInputTransactions(v *vertex.Vert
 }
 
 func (a *milestoneAttacher) calculatedMetadata() *txmetadata.TransactionMetadata {
+	cov, covDelta := a.CoverageAndDelta()
 	return &txmetadata.TransactionMetadata{
 		StateRoot:      a.finals.root,
-		LedgerCoverage: util.Ref(a.LedgerCoverage()),
+		CoverageDelta:  util.Ref(covDelta),
+		LedgerCoverage: util.Ref(cov),
 		SlotInflation:  util.Ref(a.slotInflation),
 		Supply:         util.Ref(a.baselineSupply + a.slotInflation),
 	}
