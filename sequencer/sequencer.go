@@ -473,9 +473,9 @@ func (seq *Sequencer) decideSubmitMilestone(tx *transaction.Transaction, meta *t
 				healthy, bootstrapMode, util.Th(*meta.LedgerCoverage), util.Th(tx.InflationAmount()))
 			return true
 		}
-		seq.Log().Infof("WON'T SUBMIT BRANCH %s. Now: %s, proposer: %s, healthy: %v, bootstrap mode: %v, coverage: %s",
+		seq.Log().Infof("WON'T SUBMIT BRANCH %s. Now: %s, proposer: %s, healthy: %v, bootstrap mode: %v, coverage: %s, supply: %s",
 			tx.IDShortString(), ledger.TimeNow().String(), tx.SequencerTransactionData().SequencerOutputData.MilestoneData.Name,
-			healthy, bootstrapMode, util.Th(*meta.LedgerCoverage))
+			healthy, bootstrapMode, util.Th(*meta.LedgerCoverage), util.Th(*meta.Supply))
 		return false
 	}
 

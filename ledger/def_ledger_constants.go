@@ -204,7 +204,7 @@ func (id *IdentityParameters) Lines(prefix ...string) *lines.Lines {
 		Add("Genesis controller public key: %s", hex.EncodeToString(id.GenesisControllerPublicKey)).
 		Add("Genesis controller address (calculated): %s", id.GenesisControlledAddress().String()).
 		Add("Genesis Unix time: %d (%s)", id.GenesisTimeUnix, id.GenesisTime().Format(time.RFC3339)).
-		Add("ClockTime tick duration: %v", id.TickDuration).
+		Add("Tick duration: %v", id.TickDuration).
 		Add("Slot inflation base (constant C): %s", util.Th(id.SlotInflationBase)).
 		Add("Linear inflation slots (constant lambda): %s", util.Th(id.LinearInflationSlots)).
 		Add("Constant initial supply/slot inflation base: %s", util.Th(id.InitialSupply/id.SlotInflationBase)).
