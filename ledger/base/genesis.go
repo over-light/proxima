@@ -7,7 +7,12 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-const BoostrapSequencerIDHex = "8739faa34a6902e49bc16455bbd642fd3c649e8959d97089e43f214ca57ea0e5"
+const (
+	GenesisOutputIndex     = byte(0)
+	GenesisStemOutputIndex = byte(1)
+
+	BoostrapSequencerIDHex = "8739faa34a6902e49bc16455bbd642fd3c649e8959d97089e43f214ca57ea0e5"
+)
 
 // BoostrapSequencerID is a constant
 var BoostrapSequencerID ChainID
@@ -29,11 +34,6 @@ func init() {
 	oid := GenesisOutputID()
 	util.Assertf(MakeOriginChainID(oid) == BoostrapSequencerID, "MakeOriginChainID(&oid) == BoostrapSequencerID")
 }
-
-const (
-	GenesisOutputIndex     = byte(0)
-	GenesisStemOutputIndex = byte(1)
-)
 
 // GenesisTransactionIDShort set max index of produced UTXOs to 1
 func GenesisTransactionIDShort() (ret TransactionIDShort) {
