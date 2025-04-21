@@ -25,6 +25,7 @@ func Init() *cobra.Command {
 		txstore.Init(),
 		initChainsCmd(),
 		initFindTxCmd(),
+		initDbGetLedgerIDCmd(),
 	)
 	return dbCmd
 }
