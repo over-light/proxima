@@ -25,16 +25,17 @@ func initDbGetLedgerIDCmd() *cobra.Command {
 func dbGetLedgerIDCmd(_ *cobra.Command, _ []string) {
 	dbName := global.MultiStateDBName
 	glb.Infof("Multi-state database: %s", dbName)
-	if glb.FileExists(dbName) {
+	stateDB := badger_adaptor.MustCreateOrOpenBadgerDB(dbName)
+	stateStore := badger_adaptor.New(stateDB)
+	yamlData := multistate.LedgerIdentityBytesFromStore(stateStore)
+	defer glb.CloseDatabases()
+
+	if glb.FileExists(glb.LedgerIDFileName) {
 		if !glb.YesNoPrompt(fmt.Sprintf("file '%s' already exists. Owerwrite", glb.LedgerIDFileName), false) {
 			glb.Infof("exit")
 			return
 		}
 	}
-	stateDB := badger_adaptor.MustCreateOrOpenBadgerDB(dbName)
-	stateStore := badger_adaptor.New(stateDB)
-	yamlData := multistate.LedgerIdentityBytesFromStore(stateStore)
-	defer glb.CloseDatabases()
 
 	err := os.WriteFile(glb.LedgerIDFileName, yamlData, 0644)
 	glb.AssertNoError(err)
