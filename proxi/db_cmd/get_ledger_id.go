@@ -40,4 +40,5 @@ func dbGetLedgerIDCmd(_ *cobra.Command, _ []string) {
 
 	err := os.WriteFile(glb.LedgerIDFileName, yamlData, 0644)
 	glb.AssertNoError(err)
+	glb.Infof("ledger definitions has been saved to '%s'", glb.LedgerIDFileName)
 }
