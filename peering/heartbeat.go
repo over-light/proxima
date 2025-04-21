@@ -140,8 +140,6 @@ func (ps *Peers) heartbeatStreamHandler(stream network.Stream) {
 			}
 			ps._evidenceHeartBeat(p, hbInfo)
 		})
-		// return buffer for reuse
-		//bytepool.DisposeArray(msgData)
 	}
 }
 

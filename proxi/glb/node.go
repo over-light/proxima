@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/api/client"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/spf13/viper"
@@ -41,6 +42,18 @@ func GetClient(endpoint ...string) *client.APIClient {
 func InitLedgerFromNode() {
 	ledgerIDData, err := GetClient().GetLedgerIdentityData()
 	AssertNoError(err)
+	// pre-parse
+	fromYAML, err := easyfl.ReadLibraryFromYAML(ledgerIDData)
+	if err != nil {
+		Infof("failed to parse ledger definition")
+		if IsVerbose() {
+			Infof("easyfl.ReadLibraryFromYAML returned '%v'", err)
+		}
+		Assertf(false, "exit")
+		return
+	}
+	Infof("successfully parsed ledger definitions. Library hash = %s", fromYAML.Hash)
+
 	ledger.MustInitSingleton(ledgerIDData)
 	Infof("successfully connected to the node at %s", viper.GetString("api.endpoint"))
 	Infof("verbose = %v", IsVerbose())

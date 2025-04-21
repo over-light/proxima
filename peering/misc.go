@@ -29,8 +29,6 @@ func readFrame(stream network.Stream) ([]byte, error) {
 	}
 
 	msgBuf := make([]byte, size)
-	// makes it possible to return it to the pool for reuse
-	//msgBuf := bytepool.GetArray(int(size))
 
 	if n, err := io.ReadFull(stream, msgBuf); err != nil || n != int(size) {
 		if err == nil {
