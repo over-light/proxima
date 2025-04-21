@@ -50,6 +50,13 @@ func (ctx *TxContext) checkConstraint(constraintData []byte, constraintPath lazy
 }
 
 func (ctx *TxContext) Validate() error {
+	if err := ctx._validate(); err != nil {
+		return fmt.Errorf("%w. tx = %s (%s)", err, ctx.txid.StringShort(), ctx.txid.StringHex())
+	}
+	return nil
+}
+
+func (ctx *TxContext) _validate() error {
 	var inSum, outSum uint64
 	var err error
 
@@ -102,44 +109,44 @@ func (ctx *TxContext) writeStateMutationsTo(mut common.KVWriter) {
 
 // ValidateWithReportOnConsumedOutputs validates the transaction and returns indices of failing consumed outputs, if any
 // This for the convenience of automated VMs and sequencers
-func (ctx *TxContext) ValidateWithReportOnConsumedOutputs() ([]byte, error) {
-	var inSum, outSum uint64
-	var err error
-	var retFailedConsumed []byte
-
-	spool := slicepool.New()
-	defer spool.Dispose()
-
-	err = util.CatchPanicOrError(func() error {
-		var err1 error
-		inSum, retFailedConsumed, err1 = ctx._validateOutputs(true, false, spool)
-		return err1
-	})
-	if err != nil {
-		// return list of failed consumed outputs
-		return retFailedConsumed, err
-	}
-	err = util.CatchPanicOrError(func() error {
-		var err1 error
-		outSum, _, err1 = ctx._validateOutputs(false, true, spool)
-		return err1
-	})
-	if err != nil {
-		return nil, err
-	}
-	err = util.CatchPanicOrError(func() error {
-		return ctx.validateInputCommitment()
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if inSum+ctx.inflationAmount != outSum {
-		return nil, fmt.Errorf("unbalanced amount between inputs and outputs: inputs %s + inflation: %s != outputs %s",
-			util.Th(inSum), util.Th(ctx.inflationAmount), util.Th(outSum))
-	}
-	return nil, nil
-}
+//func (ctx *TxContext) ValidateWithReportOnConsumedOutputs() ([]byte, error) {
+//	var inSum, outSum uint64
+//	var err error
+//	var retFailedConsumed []byte
+//
+//	spool := slicepool.New()
+//	defer spool.Dispose()
+//
+//	err = util.CatchPanicOrError(func() error {
+//		var err1 error
+//		inSum, retFailedConsumed, err1 = ctx._validateOutputs(true, false, spool)
+//		return err1
+//	})
+//	if err != nil {
+//		// return list of failed consumed outputs
+//		return retFailedConsumed, err
+//	}
+//	err = util.CatchPanicOrError(func() error {
+//		var err1 error
+//		outSum, _, err1 = ctx._validateOutputs(false, true, spool)
+//		return err1
+//	})
+//	if err != nil {
+//		return nil, err
+//	}
+//	err = util.CatchPanicOrError(func() error {
+//		return ctx.validateInputCommitment()
+//	})
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	if inSum+ctx.inflationAmount != outSum {
+//		return nil, fmt.Errorf("unbalanced amount between inputs and outputs: inputs %s + inflation: %s != outputs %s",
+//			util.Th(inSum), util.Th(ctx.inflationAmount), util.Th(outSum))
+//	}
+//	return nil, nil
+//}
 
 func (ctx *TxContext) validateOutputsFailFast(consumedBranch bool, spool *slicepool.SlicePool) (uint64, error) {
 	totalAmount, _, err := ctx._validateOutputs(consumedBranch, true, spool)
