@@ -512,6 +512,8 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 	return true
 }
 
+// checkOutputInTheState expects the produced UTXO ID of the transaction is in the state.
+// If it is not, sets error that UTXO is already consumed
 func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID base.OutputID) bool {
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
 	o, err := a.BaselineSugaredStateReader().GetOutputWithID(inputID)
@@ -535,15 +537,23 @@ func (a *attacher) attachOutput(wOut vertex.WrappedOutput) bool {
 	a.Assertf(a.pastCone.IsKnown(wOut.VID), "a.pastCone.IsKnown(wOut.VID)")
 
 	if a.pastCone.IsInTheState(wOut.VID) {
+		// transaction is marked 'in the state, i.e. rooted'
 		if !a.checkOutputInTheState(wOut.VID, wOut.DecodeID()) {
+			// output is not in the state, it means it is consumed
 			return false
 		}
 	}
+	// output is available in the baseline state
 	if a.pastCone.Flags(wOut.VID).FlagsUp(vertex.FlagPastConeVertexDefined) {
 		return true
 	}
-	// not defined: not in the state or unknown
-	a.Assertf(!wOut.VID.IsBranchTransaction(), "!wOut.VID.IsBranchTransaction(): %s", wOut.IDStringShort)
+	// not marked yet as defined
+	if wOut.VID.IsBranchTransaction() {
+		// if it is on the branch tx, it must be marked as defined
+		a.pastCone.SetFlagsUp(wOut.VID, vertex.FlagPastConeVertexDefined)
+		return true
+	}
+	// not defined, not branch, not in the state or unknown
 	return a.attachVertexNonBranch(wOut.VID)
 }
 
