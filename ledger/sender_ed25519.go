@@ -77,6 +77,7 @@ func registerSenderED25519Constraint(lib *Library) {
 
 func initTestSenderED25519Constraint() {
 	addr := AddressED25519Null()
+
 	example := NewSenderED25519(addr)
 	sym, _, args, err := L().ParseBytecodeOneLevel(example.Bytes(), 1)
 	util.AssertNoError(err)
