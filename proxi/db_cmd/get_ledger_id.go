@@ -24,6 +24,7 @@ func initDbGetLedgerIDCmd() *cobra.Command {
 
 func dbGetLedgerIDCmd(_ *cobra.Command, _ []string) {
 	dbName := global.MultiStateDBName
+	glb.FileMustExist(dbName)
 	glb.Infof("Multi-state database: %s", dbName)
 	stateDB := badger_adaptor.MustCreateOrOpenBadgerDB(dbName)
 	stateStore := badger_adaptor.New(stateDB)
