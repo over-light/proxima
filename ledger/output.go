@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
@@ -405,9 +406,9 @@ func (o *Output) Lines(prefix ...string) *lines.Lines {
 	o.arr.ForEach(func(i int, data []byte) bool {
 		c, err := ConstraintFromBytes(data)
 		if err != nil {
-			ret.Add("%s%d: %v (%d bytes)", pref, i, err, len(data))
+			ret.Add("%s%d: %v   bytecode: %s", pref, i, err, easyfl_util.Fmt(data))
 		} else {
-			ret.Add("%s%d: %s (%d bytes)", pref, i, c.Source(), len(data))
+			ret.Add("%s%d: %s   bytecode: %s", pref, i, c.Source(), easyfl_util.Fmt(data))
 		}
 		return true
 	})

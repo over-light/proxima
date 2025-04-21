@@ -66,16 +66,12 @@ func SenderED25519FromBytes(data []byte) (*SenderED25519, error) {
 	if sym != SenderAddressED25519Name {
 		return nil, fmt.Errorf("not a SenderED25519 constraint")
 	}
-	addr := AddressED25519(easyfl.StripDataPrefix(args[0]))
-	if err != nil {
-		return nil, err
-	}
-	return &SenderED25519{addr}, nil
+	return &SenderED25519{easyfl.StripDataPrefix(args[0])}, nil
 }
 
 func registerSenderED25519Constraint(lib *Library) {
 	lib.mustRegisterConstraint(SenderAddressED25519Name, 1, func(data []byte) (Constraint, error) {
-		return SequencerConstraintFromBytes(data)
+		return SenderED25519FromBytes(data)
 	}, initTestSenderED25519Constraint)
 }
 

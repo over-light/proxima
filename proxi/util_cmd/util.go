@@ -19,6 +19,7 @@ func Init() *cobra.Command {
 		validateIDCmd(),
 		compileIDCmd(),
 		initParseTx(),
+		initParseBytecode(),
 	)
 	genCmd.InitDefaultHelpCmd()
 	return genCmd
