@@ -1,4 +1,4 @@
-package gen_cmd
+package util_cmd
 
 import (
 	"crypto/ed25519"

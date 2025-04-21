@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/ledger/txbuilder"
@@ -73,4 +74,18 @@ func MustValidateConstructedTransaction(txBytes []byte, txb *txbuilder.Transacti
 		Infof("------- failed transaction:\n" + transaction.StringFromTxBytes(txBytes, txb.LoadInput))
 	}
 	AssertNoError(err)
+}
+
+func ParseAndDisplayTx(txBytesWithMetadata []byte) {
+	metaBytes, txBytes, err := txmetadata.SplitTxBytesWithMetadata(txBytesWithMetadata)
+	AssertNoError(err)
+
+	meta, err := txmetadata.TransactionMetadataFromBytes(metaBytes)
+	AssertNoError(err)
+
+	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	AssertNoError(err)
+
+	Infof("--- transaction ---\n%s", tx.String())
+	Infof("--- metadata ---\n%s", meta.String())
 }

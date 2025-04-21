@@ -3,9 +3,7 @@ package txstore
 import (
 	"os"
 
-	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger/base"
-	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
 )
@@ -44,26 +42,12 @@ func runGetCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("FOUND transaction %s in the txStore\n%d bytes including metadata", txid.String(), len(txBytesWithMetadata))
 	if txStoreParse {
-		parseTx(txBytesWithMetadata)
+		glb.ParseAndDisplayTx(txBytesWithMetadata)
 	}
 
 	if txStoreSave {
 		saveTx(&txid, txBytesWithMetadata)
 	}
-}
-
-func parseTx(txBytesWithMetadata []byte) {
-	metaBytes, txBytes, err := txmetadata.SplitTxBytesWithMetadata(txBytesWithMetadata)
-	glb.AssertNoError(err)
-
-	meta, err := txmetadata.TransactionMetadataFromBytes(metaBytes)
-	glb.AssertNoError(err)
-
-	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
-	glb.AssertNoError(err)
-
-	glb.Infof("--- transaction ---\n%s", tx.String())
-	glb.Infof("--- metadata ---\n%s", meta.String())
 }
 
 func saveTx(txid *base.TransactionID, txBytesWithMetadata []byte) {

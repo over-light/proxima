@@ -1,4 +1,4 @@
-package gen_cmd
+package util_cmd
 
 import (
 	"github.com/spf13/cobra"
@@ -6,9 +6,9 @@ import (
 
 func Init() *cobra.Command {
 	genCmd := &cobra.Command{
-		Use:   "gen",
+		Use:   "util",
 		Args:  cobra.NoArgs,
-		Short: "utility functions for data generation and validation",
+		Short: "utility functions",
 		Run: func(cmd *cobra.Command, args []string) {
 		},
 	}
@@ -18,6 +18,7 @@ func Init() *cobra.Command {
 		genIDCmd(),
 		validateIDCmd(),
 		compileIDCmd(),
+		initParseTx(),
 	)
 	genCmd.InitDefaultHelpCmd()
 	return genCmd
