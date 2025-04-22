@@ -295,11 +295,11 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		case ledger.ChainLockName:
 			tagAlongInputs = append(tagAlongInputs, o)
 			// parse sequencer command if any
-			outputs, err := cmdParser.ParseSequencerCommandToOutputs(o)
+			runCmdOutputs, err := cmdParser.ParseSequencerCommandToOutputs(o)
 			if err != nil {
 				a.Tracef(TraceTagIncrementalAttacher, "error while parsing input: %v", err)
 			} else {
-				otherOutputs = append(otherOutputs, outputs...)
+				otherOutputs = append(otherOutputs, runCmdOutputs...)
 			}
 		case ledger.StemLockName:
 			a.Assertf(a.targetTs.IsSlotBoundary(), "a.targetTs.IsSlotBoundary()")

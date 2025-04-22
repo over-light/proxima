@@ -72,6 +72,7 @@ func (p CommandParser) ParseSequencerCommandToOutputs(input *ledger.OutputWithID
 		// silently ignore if parsing error
 		return nil, nil
 	}
+	// make withdrawal output
 	o := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(amount).WithLock(targetLock)
 	})

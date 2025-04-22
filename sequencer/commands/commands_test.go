@@ -35,7 +35,11 @@ func TestBase(t *testing.T) {
 		parser := NewCommandParser(addrController)
 		sendOutput, err := parser.ParseSequencerCommandToOutputs(&ledger.OutputWithID{Output: o})
 		require.NoError(t, err)
+		require.EqualValues(t, 1, len(sendOutput))
 		t.Logf("send output:\n%s", sendOutput[0].ToString("    "))
+
+		require.True(t, ledger.EqualConstraints(sendOutput[0].Lock(), addrTarget))
+		require.EqualValues(t, 1_000_000, sendOutput[0].Amount())
 	})
 	t.Run("not ok", func(t *testing.T) {
 		addrController := ledger.AddressED25519FromPrivateKey(testutil.GetTestingPrivateKey(1000))
@@ -47,6 +51,6 @@ func TestBase(t *testing.T) {
 			TagAlongFee:    500,
 			Amount:         1_000,
 		})
-		common.RequireErrorWith(t, err, "is less than required minimum")
+		common.RequireErrorWith(t, err, "withdraw amount must be at least")
 	})
 }

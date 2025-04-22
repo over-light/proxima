@@ -19,22 +19,21 @@ type MessageWithED25519Sender struct {
 }
 
 const messageWithED25519SenderSource = `
-// Enforces valid sender check in the output. It means, the ledger guarantees that the ED25511 address
-// data in the output is the one which signed the transaction which produced it.
+// Contains arbitrary message and enforces valid sender (originator) as part of the message. 
 // $0 - blake2b hash of the signature's public key
-// $1 - command data. Sender can a
+// $1 - arbitrary data
 func msgED25519: or(
     // always valid on consumed output
 	selfIsConsumedOutput,
-    // valid on produced output only if public key of the signature in the transaction 
-    // corresponds to the address bytes
+    // valid on produced output only if public key of the signature of the transaction 
+    // matches to the address bytes
 	and(
 		selfIsProducedOutput,
 		equal(
        		$0, 
 			blake2b(publicKeyED25519(txSignature))
 		),
-        $1 // to enforce second arg, can be any
+        $1 // to enforce 2 parameters, this can be any data
 	)
 )
 `
@@ -55,6 +54,8 @@ func NewMessageWithED25519SenderFromAddress(addr AddressED25519, data []byte) *M
 	}
 }
 
+var _ Constraint = &MessageWithED25519Sender{}
+
 func (s *MessageWithED25519Sender) Name() string {
 	return MessageWithED25519SenderName
 }
@@ -64,7 +65,7 @@ func (s *MessageWithED25519Sender) Bytes() []byte {
 }
 
 func (s *MessageWithED25519Sender) String() string {
-	return fmt.Sprintf("%s(%s,%s)", MessageWithED25519SenderName, easyfl_util.Fmt(s.SenderAddress), easyfl_util.Fmt(s.Msg))
+	return fmt.Sprintf("%s(%s,%s)", MessageWithED25519SenderName, s.SenderAddress.String(), easyfl_util.Fmt(s.Msg))
 }
 
 func (s *MessageWithED25519Sender) Source() string {
@@ -102,10 +103,4 @@ func initTestSenderED25519Constraint() {
 	util.Assertf(ok, "inconsistency: MessageWithED25519Sender 1")
 	util.Assertf(EqualConstraints(addr, cBack.SenderAddress), "inconsistency: MessageWithED25519Sender 2")
 	util.Assertf(bytes.Equal([]byte("12"), cBack.Msg), "inconsistency: MessageWithED25519Sender 3")
-	//
-	//
-	//sym, _, args, err := L().ParseBytecodeOneLevel(example.Bytes(), 2)
-	//util.AssertNoError(err)
-	//addrBin := easyfl.StripDataPrefix(args[0])
-	//util.Assertf(sym == MessageWithED25519SenderName && bytes.Equal(addrBin, addr), "inconsistency in 'senderAddressED25519'")
 }

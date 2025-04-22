@@ -65,14 +65,16 @@ func runSeqWithdrawCmd(_ *cobra.Command, args []string) {
 		return
 	}
 
+	// create command with withdraw request to the target lock
 	cmdData, err := commands.NewWithdrawCommandData(amount, targetLock.AsLock())
 	glb.AssertNoError(err)
 
+	// create transaction with withdraw request
 	transferData := txbuilder.NewTransferData(walletData.PrivateKey, walletData.Account, ledger.TimeNow()).
 		WithAmount(ownSequencerCmdFee).
 		WithTargetLock(ledger.ChainLockFromChainID(*walletData.Sequencer)).
 		MustWithInputs(walletOutputs...).
-		WithMessage(cmdData)
+		WithMessage(cmdData) // include message with the withdrawal request
 
 	txBytes, err := txbuilder.MakeSimpleTransferTransaction(transferData)
 	glb.AssertNoError(err)

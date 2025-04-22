@@ -408,7 +408,7 @@ func (o *Output) Lines(prefix ...string) *lines.Lines {
 		if err != nil {
 			ret.Add("%s%d: %v   bytecode: %s", pref, i, err, easyfl_util.Fmt(data))
 		} else {
-			ret.Add("%s%d: %s   bytecode: %s", pref, i, c.Source(), easyfl_util.Fmt(data))
+			ret.Add("%s%d: %s   bytecode: %s", pref, i, c.String(), easyfl_util.Fmt(data))
 		}
 		return true
 	})
