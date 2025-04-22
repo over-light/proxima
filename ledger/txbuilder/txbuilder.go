@@ -284,7 +284,8 @@ type (
 		Lock              ledger.Lock
 		Amount            uint64
 		AdjustToMinimum   bool
-		AddSender         bool
+		AddMessage        bool
+		MessageData       []byte
 		AddConstraints    [][]byte
 		MarkAsSequencerTx bool
 		UnlockData        []*UnlockData
@@ -387,8 +388,9 @@ func (t *TransferData) WithChainOutput(out *ledger.OutputWithChainID) *TransferD
 	return t
 }
 
-func (t *TransferData) WithSender() *TransferData {
-	t.AddSender = true
+func (t *TransferData) WithMessage(data []byte) *TransferData {
+	t.AddMessage = true
+	t.MessageData = data
 	return t
 }
 
@@ -531,9 +533,9 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 
 	mainOutput := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(amount).WithLock(par.Lock)
-		if par.AddSender {
-			senderAddr := ledger.AddressED25519FromPublicKey(par.SenderPublicKey)
-			if _, err = o.PushConstraint(ledger.NewSenderED25519(senderAddr).Bytes()); err != nil {
+		if par.AddMessage {
+			msg := ledger.NewMessageWithED25519SenderFromPublicKey(par.SenderPublicKey, par.MessageData)
+			if _, err = o.PushConstraint(msg.Bytes()); err != nil {
 				return
 			}
 		}
@@ -784,9 +786,9 @@ func MakeChainTransferTransaction(par *TransferData, disableEndorsementChecking 
 
 	mainOutput := ledger.NewOutput(func(o *ledger.Output) {
 		o.WithAmount(amount).WithLock(par.Lock)
-		if par.AddSender {
-			senderAddr := ledger.AddressED25519FromPublicKey(par.SenderPublicKey)
-			if _, err = o.PushConstraint(ledger.NewSenderED25519(senderAddr).Bytes()); err != nil {
+		if par.AddMessage {
+			msg := ledger.NewMessageWithED25519SenderFromPublicKey(par.SenderPublicKey, par.MessageData)
+			if _, err = o.PushConstraint(msg.Bytes()); err != nil {
 				return
 			}
 		}

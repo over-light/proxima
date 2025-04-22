@@ -1,10 +1,9 @@
 package commands
 
 import (
-	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -16,11 +15,46 @@ const (
 	// CommandCodeWithdrawAmount is a command to the sequencer to withdraw specified amount to the target lock
 	CommandCodeWithdrawAmount = byte(0xff)
 
-	MinimumAmountToRequestFromSequencer = 100_000
+	MinimumAmountToRequestFromSequencer = 1_000_000
 )
 
 type CommandParser struct {
 	ownerAddress ledger.AddressED25519
+}
+
+// sender message is treated the following way:
+// byte 0 is command code
+// bytes [1:] is lazy array of parameters
+
+func NewWithdrawCommandData(amount uint64, targetLock ledger.Lock) ([]byte, error) {
+	if amount < MinimumAmountToRequestFromSequencer {
+		return nil, fmt.Errorf("withdraw amount must be at least %s, got: %s", util.Th(MinimumAmountToRequestFromSequencer), util.Th(amount))
+	}
+	arr := lazybytes.MakeArrayFromDataReadOnly(easyfl_util.TrimmedLeadingZeroUint64(amount), targetLock.Bytes())
+	return common.Concat(CommandCodeWithdrawAmount, arr.Bytes()), nil
+}
+
+func parseWithdrawCommandData(data []byte) (uint64, ledger.Lock, bool) {
+	if len(data) == 0 || data[0] != CommandCodeWithdrawAmount {
+		return 0, nil, false
+	}
+	arr := lazybytes.ArrayFromBytesReadOnly(data[1:])
+	if arr.NumElements() != 2 {
+		return 0, nil, false
+	}
+	amount, err := easyfl_util.Uint64FromBytes(arr.At(0))
+	if err != nil {
+		return 0, nil, false
+	}
+	if amount < MinimumAmountToRequestFromSequencer {
+		// silently ignore
+		return 0, nil, false
+	}
+	targetLock, err := ledger.LockFromBytes(arr.At(1))
+	if err != nil {
+		return 0, nil, false
+	}
+	return amount, targetLock, true
 }
 
 func NewCommandParser(ownerAddress ledger.AddressED25519) CommandParser {
@@ -28,95 +62,20 @@ func NewCommandParser(ownerAddress ledger.AddressED25519) CommandParser {
 }
 
 func (p CommandParser) ParseSequencerCommandToOutputs(input *ledger.OutputWithID) ([]*ledger.Output, error) {
-	cmdCode, cmdParamArr := parseSenderCommand(p.ownerAddress, input)
-	if cmdParamArr == nil {
-		// command has not been found in the output. Ignore
+	msg, idx := input.Output.MessageWithED25519Sender()
+	if idx == 0xff || !ledger.EqualConstraints(p.ownerAddress, msg.SenderAddress) {
+		// security critical: parser will not produce any outputs if sender is on equal to the owner
 		return nil, nil
 	}
-
-	outputs, err := makeOutputFromCommandData(cmdCode, cmdParamArr)
-	if err != nil {
-		return nil, fmt.Errorf("ParseSequencerCommandToOutputs: error while parsing sequencer command input %s: %w", input.ID.StringShort(), err)
+	amount, targetLock, isWithdrawCmd := parseWithdrawCommandData(msg.Msg)
+	if !isWithdrawCmd {
+		// silently ignore if parsing error
+		return nil, nil
 	}
-	return outputs, nil
-}
-
-// parseSenderCommand analyzes the input and parses out raw sequencer command data, if any
-// Command is recognized by:
-//   - finding mandatory SenderED25519 constraint in the output. If not found, output is not a command output
-//   - taking constraint next after the SenderED25519. If it does not exist, parse fails
-//   - evaluating the constraint (as EasyFL bytecode). It will not fail, because the whole output is valid. The value of
-//     evaluation is non-empty byte slice D
-//   - the element D[0] is interpreted as command code
-//   - the remaining bytes D[1:] are parsed as lazy array of command parameters.
-//   - if operations are successful, cmd code and array of parameters represents syntactically correct sequencer command
-//     concat(D), where D = <cmd code byte>|<lazy array of command parameters>
-func parseSenderCommand(myAddr ledger.AddressED25519, input *ledger.OutputWithID) (byte, *lazybytes.Array) {
-	senderAddr, senderConstraintIdx := input.Output.SenderED25519()
-	if senderConstraintIdx == 0xff {
-		return 0, nil
-	}
-	if !ledger.EqualConstraints(myAddr, senderAddr) {
-		// if sender address is not equal to the controller address of the signature,
-		// the command is ignored
-		return 0, nil
-	}
-	// command data is expected in the constraint at the index next after the sender. The data itself is
-	// evaluation of the constraint without context. It can't be nil because each input is a valid output
-	commandDataIndex := senderConstraintIdx + 1
-	if int(commandDataIndex) >= input.Output.NumConstraints() {
-		// command data does not exist, ignore command
-		return 0, nil
-	}
-	// evaluating constraint without context to get the real command data
-	// Usually, data cmd is concat(....)
-	cmdDataConstrBytecode := input.Output.ConstraintAt(commandDataIndex)
-	cmdDataRaw, err := ledger.L().EvalFromBytecode(nil, cmdDataConstrBytecode)
-	if err != nil {
-		// this means constraint cannot be evaluated without context of the transaction
-		// It is valid because output is valid, however it cannot be used as command data
-		return 0, nil
-	}
-	util.Assertf(len(cmdDataRaw) > 0, "sequencer command data cannot be nil")
-	cmdParamsArr, err := lazybytes.ParseArrayFromBytesReadOnly(cmdDataRaw[1:])
-	if err != nil {
-		return 0, nil
-	}
-	util.AssertNotNil(cmdParamsArr)
-	return cmdDataRaw[0], cmdParamsArr
-}
-
-// makeOutputFromCommandData parses command data and makes output from it.
-// The output will be produced by the transaction which consumes inouts with command
-// Sequencer command raw data is parsed the following way
-// expected:
-// - byte 0: command code
-// - bytes [1:] is lazy array of parameters, interpreted depending on the command code
-func makeOutputFromCommandData(cmdCode byte, cmdParams *lazybytes.Array) ([]*ledger.Output, error) {
-	switch cmdCode {
-	case CommandCodeWithdrawAmount:
-		// expected 2 parameters:
-		// - #0 target lock bytecode
-		// - #1 amount 8 bytes
-		if cmdParams.NumElements() != 2 || len(cmdParams.At(1)) != 8 {
-			return nil, fmt.Errorf("wrong 'withdraw' command params")
-		}
-		targetLock, err := ledger.LockFromBytes(cmdParams.At(0))
-		if err != nil {
-			return nil, fmt.Errorf("wrong target lock in 'withdraw' command: %w", err)
-		}
-		amount := binary.BigEndian.Uint64(cmdParams.At(1))
-		if amount < MinimumAmountToRequestFromSequencer {
-			return nil, fmt.Errorf("the requested amount %d is less than minimum (%d) in the 'withdraw' command",
-				amount, MinimumAmountToRequestFromSequencer)
-		}
-		o := ledger.NewOutput(func(o *ledger.Output) {
-			o.WithAmount(amount).WithLock(targetLock)
-		})
-		return []*ledger.Output{o}, nil
-	default:
-		return nil, fmt.Errorf("command code %d is not supported", cmdCode)
-	}
+	o := ledger.NewOutput(func(o *ledger.Output) {
+		o.WithAmount(amount).WithLock(targetLock)
+	})
+	return []*ledger.Output{o}, nil
 }
 
 type MakeSequencerWithdrawCmdOutputParams struct {
@@ -128,27 +87,17 @@ type MakeSequencerWithdrawCmdOutputParams struct {
 }
 
 func MakeSequencerWithdrawCmdOutput(par MakeSequencerWithdrawCmdOutputParams) (*ledger.Output, error) {
-	if par.Amount < MinimumAmountToRequestFromSequencer {
-		return nil, fmt.Errorf("the reqested amount (%s) is less than required minimum (%s) if the sequencer command",
-			util.Th(par.Amount), util.Th(MinimumAmountToRequestFromSequencer))
+	cmdData, err := NewWithdrawCommandData(par.Amount, par.TargetLock)
+	if err != nil {
+		return nil, err
 	}
+	msg := ledger.NewMessageWithED25519SenderFromAddress(par.ControllerAddr, cmdData)
+
 	ret := ledger.NewOutput(func(o *ledger.Output) {
-		o.WithAmount(par.TagAlongFee).WithLock(ledger.ChainLockFromChainID(par.SeqID))
-		idx, err := o.PushConstraint(ledger.NewSenderED25519(par.ControllerAddr).Bytes())
+		o.WithAmount(par.TagAlongFee)
+		o.WithLock(ledger.ChainLockFromChainID(par.SeqID))
+		_, err = o.PushConstraint(msg.Bytes())
 		util.AssertNoError(err)
-		util.Assertf(idx == 2, "idx==2")
-		var amountBin [8]byte
-		binary.BigEndian.PutUint64(amountBin[:], par.Amount)
-		cmdParamsArr := lazybytes.MakeArrayFromDataReadOnly(par.TargetLock.Bytes(), amountBin[:])
-
-		rawData := common.Concat([]byte{CommandCodeWithdrawAmount}, cmdParamsArr.Bytes())
-		src := fmt.Sprintf("concat(0x%s)", hex.EncodeToString(rawData))
-
-		cmdConstraint, _, err := ledger.L().ExpressionSourceToBytecode(src)
-		util.AssertNoError(err)
-		idx, err = o.PushConstraint(cmdConstraint)
-		util.AssertNoError(err)
-		util.Assertf(idx == 3, "idx==3")
 	})
 	// reverse checking
 	cmdParserDummy := NewCommandParser(par.ControllerAddr)
@@ -159,21 +108,4 @@ func MakeSequencerWithdrawCmdOutput(par MakeSequencerWithdrawCmdOutputParams) (*
 	util.Assertf(out[0].Amount() == par.Amount, "out[0].Amount()==par.Amount")
 	util.Assertf(ledger.EqualConstraints(par.TargetLock, out[0].Lock()), "ledger.EqualConstraints(par.TargetLock, out[0].Lock())")
 	return ret, nil
-}
-
-const minimumWithdrawAmountFromSequencer = 1_000_000
-
-func MakeSequencerWithdrawCommand(amount uint64, targetLock ledger.Lock) (ledger.GeneralScript, error) {
-	if amount < minimumWithdrawAmountFromSequencer {
-		return nil, fmt.Errorf("withdraw from sequencer amount must be ar least %s", util.Th(minimumWithdrawAmountFromSequencer))
-	}
-	var amountBin [8]byte
-	binary.BigEndian.PutUint64(amountBin[:], amount)
-	cmdParArr := lazybytes.MakeArrayFromDataReadOnly(targetLock.Bytes(), amountBin[:])
-	cmdData := common.Concat(CommandCodeWithdrawAmount, cmdParArr)
-	constrSource := fmt.Sprintf("concat(0x%s)", hex.EncodeToString(cmdData))
-	cmdConstr, err := ledger.NewGeneralScriptFromSource(constrSource)
-	util.AssertNoError(err)
-
-	return cmdConstr, nil
 }

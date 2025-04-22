@@ -249,16 +249,16 @@ func (o *Output) TimeLock() (uint32, bool) {
 	return 0, false
 }
 
-// SenderED25519 return sender address and constraintIndex if found, otherwise nil, 0xff
-func (o *Output) SenderED25519() (AddressED25519, byte) {
-	var ret *SenderED25519
+// MessageWithED25519Sender return sender address and constraintIndex if found, otherwise nil, 0xff
+func (o *Output) MessageWithED25519Sender() (*MessageWithED25519Sender, byte) {
+	var ret *MessageWithED25519Sender
 	var err error
 	foundIdx := byte(0xff)
 	o.ForEachConstraint(func(idx byte, constr []byte) bool {
 		if idx < ConstraintIndexFirstOptionalConstraint {
 			return true
 		}
-		ret, err = SenderED25519FromBytes(constr)
+		ret, err = MessageWithSenderED25519FromBytes(constr)
 		if err == nil {
 			foundIdx = idx
 			return false
@@ -266,7 +266,7 @@ func (o *Output) SenderED25519() (AddressED25519, byte) {
 		return true
 	})
 	if foundIdx != 0xff {
-		return ret.Address, foundIdx
+		return ret, foundIdx
 	}
 	return nil, 0xff
 }

@@ -260,7 +260,7 @@ func TestTimelock(t *testing.T) {
 	})
 }
 
-func TestSenderAddressED25519(t *testing.T) {
+func TestMsgWithSenderED25519(t *testing.T) {
 	u := utxodb.NewUTXODB(genesisPrivateKey, true)
 	privKey0, _, addr0 := u.GenerateAddress(0)
 	err := u.TokensFromFaucet(addr0, 10000)
@@ -275,7 +275,7 @@ func TestSenderAddressED25519(t *testing.T) {
 	err = u.DoTransfer(par.
 		WithAmount(2000).
 		WithTargetLock(addr1).
-		WithSender(),
+		WithMessage([]byte("12")),
 	)
 	require.NoError(t, err)
 
@@ -288,9 +288,10 @@ func TestSenderAddressED25519(t *testing.T) {
 	require.NoError(t, err)
 
 	require.EqualValues(t, 1, len(outs))
-	saddr, idx := outs[0].Output.SenderED25519()
+	msg, idx := outs[0].Output.MessageWithED25519Sender()
 	require.True(t, idx != 0xff)
-	require.True(t, ledger.EqualConstraints(addr0, saddr))
+	require.True(t, ledger.EqualConstraints(addr0, msg.SenderAddress))
+	require.EqualValues(t, "12", string(msg.Msg))
 }
 
 func TestChain1(t *testing.T) {

@@ -234,7 +234,7 @@ func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (base.Tr
 	if err != nil {
 		return base.TransactionID{}, err
 	}
-	withdrawCmd, err := commands.MakeSequencerWithdrawCommand(fct.cfg.amount, targetLock.AsLock())
+	withdrawCmd, err := commands.NewWithdrawCommandData(fct.cfg.amount, targetLock.AsLock())
 	if err != nil {
 		return base.TransactionID{}, err
 	}
@@ -243,8 +243,7 @@ func (fct *faucetServer) redrawFromChain(targetLock ledger.Accountable) (base.Tr
 		WithAmount(glb.GetTagAlongFee()).
 		WithTargetLock(ledger.ChainLockFromChainID(*fct.walletData.Sequencer)).
 		MustWithInputs(walletOutputs...).
-		WithSender().
-		WithConstraint(withdrawCmd)
+		WithMessage(withdrawCmd)
 
 	txBytes, err := txbuilder.MakeSimpleTransferTransaction(transferData)
 	if err != nil {
