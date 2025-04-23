@@ -59,16 +59,21 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	if par.StemInput != nil {
 		nIn++
 	}
-	switch {
-	case nIn > 256:
+
+	if nIn > 256 {
 		return nil, nil, errP("too many inputs. Max 256")
-	case par.StemInput != nil && par.Timestamp.Tick != 0:
+	}
+	if par.StemInput != nil && par.Timestamp.Tick != 0 {
 		return nil, nil, errP("wrong timestamp for branch transaction: %s", par.Timestamp.String())
-	case par.Timestamp.Slot > par.ChainInput.ID.Slot() && par.Timestamp.Tick != 0 && len(par.Endorsements) == 0 && par.ExplicitBaseline == nil:
-		return nil, nil, errP("cross-slot sequencer tx must endorse another sequencer tx: chain input ts: %s, target: %s",
-			par.ChainInput.ID.Timestamp(), par.Timestamp)
-	case !par.ChainInput.ID.IsSequencerTransaction() && par.StemInput == nil && len(par.Endorsements) == 0:
-		return nil, nil, errP("chain predecessor is not a sequencer transaction -> endorsement of sequencer transaction is mandatory (unless making a branch)")
+	}
+	if par.ExplicitBaseline == nil {
+		if par.Timestamp.Slot > par.ChainInput.ID.Slot() && par.Timestamp.Tick != 0 && len(par.Endorsements) == 0 {
+			return nil, nil, errP("cross-slot sequencer tx must endorse another sequencer tx: chain input ts: %s, target: %s",
+				par.ChainInput.ID.Timestamp(), par.Timestamp)
+		}
+		if !par.ChainInput.ID.IsSequencerTransaction() && par.StemInput == nil && len(par.Endorsements) == 0 {
+			return nil, nil, errP("chain predecessor is not a sequencer transaction -> endorsement of sequencer transaction is mandatory")
+		}
 	}
 
 	txb := New()
