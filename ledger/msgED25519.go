@@ -33,7 +33,7 @@ func msgED25519: or(
        		$0, 
 			blake2b(publicKeyED25519(txSignature))
 		),
-        $1 // to enforce 2 parameters, this can be any data
+        equal($$1, $$1) // to enforce $1 parameter without evaluating it, this can be any data
 	)
 )
 `
