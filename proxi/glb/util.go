@@ -6,6 +6,7 @@ import (
 
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/txstore"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -65,7 +66,25 @@ func isDirEmpty(dir string) (bool, error) {
 	}
 	return false, err
 }
-func ParseAndDisplayTx(txBytesWithMetadata []byte) {
+func ParseAndDisplayTxBytes(txBytesWithMetadata []byte) {
+	metaBytes, txBytes, err := txmetadata.SplitTxBytesWithMetadata(txBytesWithMetadata)
+	AssertNoError(err)
+
+	meta, err := txmetadata.TransactionMetadataFromBytes(metaBytes)
+	AssertNoError(err)
+
+	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	AssertNoError(err)
+
+	Infof("--- transaction ---\n%s", tx.String())
+	Infof("--- metadata ---\n%s", meta.String())
+
+}
+
+func ParseAndDisplayTxFromSore(txid base.TransactionID) {
+	txBytesWithMetadata := TxBytesStore().GetTxBytesWithMetadata(&txid)
+	Assertf(len(txBytesWithMetadata) > 0, "transaction not found: %s", txid.String())
+
 	metaBytes, txBytes, err := txmetadata.SplitTxBytesWithMetadata(txBytesWithMetadata)
 	AssertNoError(err)
 

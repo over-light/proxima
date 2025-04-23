@@ -35,5 +35,5 @@ func runParseTx(_ *cobra.Command, args []string) {
 
 	ledger.MustInitSingleton(ledgerIDData)
 
-	glb.ParseAndDisplayTx(txBytesWithMetadata)
+	glb.ParseAndDisplayTxBytes(txBytesWithMetadata)
 }
