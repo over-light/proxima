@@ -25,12 +25,14 @@ func InitLedgerFromDB() {
 	stateDB = badger_adaptor.MustCreateOrOpenBadgerDB(dbName)
 	stateStore = badger_adaptor.New(stateDB)
 	multistate.InitLedgerFromStore(stateStore)
+	Infof("ledger was initialized from definitions provided in database '%s'", global.MultiStateDBName)
 }
 
 func InitLedgerFromProvidedID() {
 	idBytes, err := os.ReadFile(LedgerIDFileName)
 	AssertNoError(err)
 	ledger.MustInitSingleton(idBytes)
+	Infof("ledger was initialized from definitions provided in file '%s'", LedgerIDFileName)
 }
 
 func StateStore() multistate.StateStore {
