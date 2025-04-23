@@ -1,8 +1,11 @@
 package glb
 
 import (
+	"os"
+
 	"github.com/dgraph-io/badger/v4"
 	"github.com/lunfardo314/proxima/global"
+	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/txstore"
 	"github.com/lunfardo314/unitrie/adaptors/badger_adaptor"
@@ -22,6 +25,12 @@ func InitLedgerFromDB() {
 	stateDB = badger_adaptor.MustCreateOrOpenBadgerDB(dbName)
 	stateStore = badger_adaptor.New(stateDB)
 	multistate.InitLedgerFromStore(stateStore)
+}
+
+func InitLedgerFromProvidedID() {
+	idBytes, err := os.ReadFile(LedgerIDFileName)
+	AssertNoError(err)
+	ledger.MustInitSingleton(idBytes)
 }
 
 func StateStore() multistate.StateStore {

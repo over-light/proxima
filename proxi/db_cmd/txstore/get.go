@@ -1,6 +1,7 @@
 package txstore
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -9,8 +10,9 @@ import (
 )
 
 var (
-	txStoreParse bool
-	txStoreSave  bool
+	txStoreParse        bool
+	txStoreSave         bool
+	useProvidedLedgerID bool
 )
 
 func initGetCmd() *cobra.Command {
@@ -22,12 +24,17 @@ func initGetCmd() *cobra.Command {
 	}
 	getCmd.PersistentFlags().BoolVarP(&txStoreParse, "parse", "p", false, "parse and display transaction with metadata")
 	getCmd.PersistentFlags().BoolVarP(&txStoreSave, "save", "s", false, "save transaction with metadata as file")
+	getCmd.PersistentFlags().BoolVarP(&useProvidedLedgerID, "ledger_id", "l", false, fmt.Sprintf("use ledger definitions from '%s'", glb.LedgerIDFileName))
 	getCmd.InitDefaultHelpCmd()
 	return getCmd
 }
 
 func runGetCmd(_ *cobra.Command, args []string) {
-	glb.InitLedgerFromDB()
+	if useProvidedLedgerID {
+		glb.InitLedgerFromProvidedID()
+	} else {
+		glb.InitLedgerFromDB()
+	}
 	glb.InitTxStoreDB()
 	defer glb.CloseDatabases()
 
