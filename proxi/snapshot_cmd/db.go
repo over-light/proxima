@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -13,9 +14,9 @@ import (
 
 func initSnapshotDBCmd() *cobra.Command {
 	snapshotCmd := &cobra.Command{
-		Use:   "db",
+		Use:   "db [<slots back from LRB, default is 10>]",
 		Short: "writes state snapshot to file",
-		Args:  cobra.NoArgs,
+		Args:  cobra.MaximumNArgs(1),
 		Run:   runSnapshotCmd,
 	}
 
@@ -23,7 +24,9 @@ func initSnapshotDBCmd() *cobra.Command {
 	return snapshotCmd
 }
 
-func runSnapshotCmd(_ *cobra.Command, _ []string) {
+const defaultSlotsBackFromLRB = 10
+
+func runSnapshotCmd(_ *cobra.Command, args []string) {
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
@@ -31,7 +34,15 @@ func runSnapshotCmd(_ *cobra.Command, _ []string) {
 	if glb.IsVerbose() {
 		console = os.Stdout
 	}
-	snapshotBranch := multistate.FindLatestReliableBranchAndNSlotsBack(glb.StateStore(), 10, global.FractionHealthyBranch)
+
+	slotsBackFromLRB := defaultSlotsBackFromLRB
+	if len(args) > 0 {
+		var err error
+		slotsBackFromLRB, err = strconv.Atoi(args[0])
+		glb.AssertNoError(err)
+	}
+
+	snapshotBranch := multistate.FindLatestReliableBranchAndNSlotsBack(glb.StateStore(), slotsBackFromLRB, global.FractionHealthyBranch)
 	glb.Assertf(snapshotBranch != nil, "can't find latest reliable branch")
 	fname, stats, err := multistate.SaveSnapshot(glb.StateStore(), snapshotBranch, context.Background(), "", console)
 	glb.AssertNoError(err)
