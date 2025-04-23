@@ -16,7 +16,7 @@ func Init() *cobra.Command {
 		genEd25519Cmd(),
 		genHostIDCmd(),
 		genIDCmd(),
-		validateIDCmd(),
+		verifyIDCmd(),
 		compileIDCmd(),
 		initParseTx(),
 		initParseBytecode(),

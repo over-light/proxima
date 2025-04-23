@@ -12,24 +12,24 @@ import (
 	"github.com/spf13/viper"
 )
 
-func validateIDCmd() *cobra.Command {
-	validateLedgerIDCmd := &cobra.Command{
-		Use:   "validate_ledger_id",
+func verifyIDCmd() *cobra.Command {
+	verifyLedgerIDCmd := &cobra.Command{
+		Use:   "verify_ledger_id",
 		Args:  cobra.NoArgs,
 		Short: fmt.Sprintf("checks consistency of the ledger definition in file '%s'", glb.LedgerIDFileName),
 		PersistentPreRun: func(_ *cobra.Command, _ []string) {
 			glb.ReadInConfig()
 		},
-		Run: runGenValidateLedgerIDCommand,
+		Run: runGenVerifyLedgerIDCommand,
 	}
-	validateLedgerIDCmd.PersistentFlags().StringP("config", "c", "", "profile name")
-	err := viper.BindPFlag("config", validateLedgerIDCmd.PersistentFlags().Lookup("config"))
+	verifyLedgerIDCmd.PersistentFlags().StringP("config", "c", "", "profile name")
+	err := viper.BindPFlag("config", verifyLedgerIDCmd.PersistentFlags().Lookup("config"))
 	glb.AssertNoError(err)
 
-	return validateLedgerIDCmd
+	return verifyLedgerIDCmd
 }
 
-func runGenValidateLedgerIDCommand(_ *cobra.Command, _ []string) {
+func runGenVerifyLedgerIDCommand(_ *cobra.Command, _ []string) {
 	glb.Assertf(glb.FileExists(glb.LedgerIDFileName), "file %s does not exist", glb.LedgerIDFileName)
 	yamlData, err := os.ReadFile(glb.LedgerIDFileName)
 	glb.AssertNoError(err)
