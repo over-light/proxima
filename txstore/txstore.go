@@ -1,8 +1,11 @@
 package txstore
 
 import (
+	"errors"
+
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
+	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/unitrie/common"
@@ -138,4 +141,28 @@ func (d DummyTxBytesStore) GetTxBytesWithMetadata(_ *base.TransactionID) []byte 
 
 func (s DummyTxBytesStore) HasTxBytes(_ *base.TransactionID) bool {
 	return false
+}
+
+func LoadAndParseTransaction(store global.TxBytesGet, txid base.TransactionID) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
+	txBytesWithMetadata := store.GetTxBytesWithMetadata(&txid)
+	if len(txBytesWithMetadata) == 0 {
+		return nil, nil, errors.New("transaction not found")
+	}
+	txBytes, metadata, err := txmetadata.ParseTxMetadata(txBytesWithMetadata)
+	if err != nil {
+		return nil, nil, err
+	}
+	tx, err := transaction.FromBytes(txBytes, transaction.BaseValidation)
+	if err != nil {
+		return nil, nil, err
+	}
+	return tx, metadata, nil
+}
+
+func LoadOutput(store global.TxBytesGet, oid base.OutputID) (*ledger.Output, error) {
+	tx, _, err := LoadAndParseTransaction(store, oid.TransactionID())
+	if err != nil {
+		return nil, err
+	}
+	return tx.ProducedOutputAt(oid.Index())
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/transaction"
-	"github.com/lunfardo314/proxima/ledger/txbuilder"
+	"github.com/lunfardo314/proxima/txstore"
 	"github.com/lunfardo314/proxima/util/lines"
 )
 
@@ -65,17 +65,6 @@ func isDirEmpty(dir string) (bool, error) {
 	}
 	return false, err
 }
-
-func MustValidateConstructedTransaction(txBytes []byte, txb *txbuilder.TransactionBuilder) {
-	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
-	AssertNoError(err)
-	err = tx.Validate(transaction.ValidateOptionWithFullContext(txb.LoadInput))
-	if err != nil {
-		Infof("------- failed transaction:\n" + transaction.StringFromTxBytes(txBytes, txb.LoadInput))
-	}
-	AssertNoError(err)
-}
-
 func ParseAndDisplayTx(txBytesWithMetadata []byte) {
 	metaBytes, txBytes, err := txmetadata.SplitTxBytesWithMetadata(txBytesWithMetadata)
 	AssertNoError(err)
@@ -86,6 +75,12 @@ func ParseAndDisplayTx(txBytesWithMetadata []byte) {
 	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
 	AssertNoError(err)
 
-	Infof("--- transaction ---\n%s", tx.String())
+	ctx, err := transaction.TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
+		return txstore.LoadOutput(TxBytesStore(), tx.MustInputAt(i))
+	})
+	AssertNoError(err)
+
+	Infof("--- transaction ---\n%s", ctx.String())
 	Infof("--- metadata ---\n%s", meta.String())
+
 }
