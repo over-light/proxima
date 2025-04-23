@@ -66,8 +66,8 @@ func (ch *ChainConstraint) Bytes() []byte {
 }
 
 func (ch *ChainConstraint) String() string {
-	return fmt.Sprintf("%s(id=%s, predInIdx=%d, predConstrIdx=%d, transitionMode=%d)",
-		ChainConstraintName, ch.ID.StringShort(), ch.PredecessorInputIndex, ch.PredecessorConstraintIndex, ch.TransitionMode)
+	return fmt.Sprintf("%s(%s, predInIdx=%d, predConstrIdx=%d, transitionMode=%d)",
+		ChainConstraintName, ch.ID.String(), ch.PredecessorInputIndex, ch.PredecessorConstraintIndex, ch.TransitionMode)
 }
 
 func (ch *ChainConstraint) Source() string {
