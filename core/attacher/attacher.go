@@ -1,8 +1,6 @@
 package attacher
 
 import (
-	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -506,22 +504,7 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 			return false
 		}
 	}
-	// TODO debug
-	a.mustConsistentSolidInputs(v)
 	return true
-}
-func (a *attacher) mustConsistentSolidInputs(v *vertex.Vertex) {
-	for i, vidInp := range v.Inputs {
-		inpID := v.Tx.MustInputAt(byte(i))
-		o, err := vidInp.OutputAt(inpID.Index())
-		a.AssertNoError(err)
-		oData, _ := a.baselineStateReader().GetUTXO(inpID)
-		txStr := v.Tx.Lines(v.InputLoaderByIndex).String()
-		a.Assertf(bytes.Equal(oData, o.Bytes()), "inconsistency in the solidified vertex %s @ input index %d: '%s' != '%s'\n %s\n-------\n%s",
-			v.Tx.IDShortString(), i,
-			hex.EncodeToString(oData), hex.EncodeToString(o.Bytes()),
-			inpID.StringShort(), txStr)
-	}
 }
 
 // checkOutputInTheState expects the produced UTXO ID of the transaction is in the state.
