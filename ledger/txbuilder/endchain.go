@@ -52,7 +52,7 @@ func MakeEndChainTransaction(par EndChainParams) (*transaction.Transaction, erro
 
 	// finalize the transaction
 	txb.TransactionData.Timestamp = par.Timestamp
-	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
 	txb.SignED25519(par.PrivateKey)
 
 	tx, err := txb.Transaction()

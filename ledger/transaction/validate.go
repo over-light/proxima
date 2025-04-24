@@ -50,6 +50,9 @@ func (ctx *TxContext) checkConstraint(constraintData []byte, constraintPath lazy
 }
 
 func (ctx *TxContext) Validate() error {
+	if err := ctx.CheckInputCommitment(); err != nil {
+		return err
+	}
 	if err := ctx._validate(); err != nil {
 		return fmt.Errorf("%w. tx = %s (%s)", err, ctx.txid.StringShort(), ctx.txid.StringHex())
 	}

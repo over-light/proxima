@@ -596,3 +596,11 @@ func (o *Output) MinimumStorageDeposit(extraWeight uint32) uint64 {
 	}
 	return StorageDeposit(len(o.Bytes()))
 }
+
+func InputCommitment(outs ...*Output) [32]byte {
+	arr := lazybytes.EmptyArray(256)
+	for _, o := range outs {
+		arr.Push(o.Bytes())
+	}
+	return blake2b.Sum256(arr.Bytes())
+}

@@ -213,7 +213,7 @@ func (u *UTXODB) makeTransactionTokensFromFaucetMulti(addrs []ledger.AddressED25
 		}
 	}
 	txb.TransactionData.Timestamp = ts
-	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
 	txb.SignED25519(u.faucetPrivateKey)
 	return txb.TransactionData.Bytes(), nil
 }

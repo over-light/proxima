@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
@@ -245,4 +246,17 @@ func (ctx *TxContext) TotalInflation() uint64 {
 
 func (ctx *TxContext) OutputID(idx byte) base.OutputID {
 	return base.MustNewOutputID(ctx.txid, idx)
+}
+
+func (ctx *TxContext) CheckInputCommitment() error {
+	outs := make([]*ledger.Output, ctx.NumInputs())
+	ctx.ForEachConsumedOutput(func(idx byte, _ *base.OutputID, out *ledger.Output) bool {
+		outs[idx] = out
+		return true
+	})
+	ic := ledger.InputCommitment(outs...)
+	if !bytes.Equal(ctx.InputCommitment(), ic[:]) {
+		return fmt.Errorf("mismatch between provided and calculated inout commitments in %s (%s)", ctx.txid.StringShort(), ctx.txid.StringHex())
+	}
+	return nil
 }

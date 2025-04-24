@@ -18,7 +18,6 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/txutils"
 	"github.com/lunfardo314/unitrie/common"
-	"golang.org/x/crypto/blake2b"
 )
 
 type (
@@ -204,14 +203,6 @@ func (txb *TransactionBuilder) ProducedAmount() (uint64, uint64) {
 		retInflation += o.Inflation()
 	}
 	return retTotal, retInflation
-}
-
-func (txb *TransactionBuilder) InputCommitment() [32]byte {
-	arr := lazybytes.EmptyArray(256)
-	for _, o := range txb.ConsumedOutputs {
-		arr.Push(o.Bytes())
-	}
-	return blake2b.Sum256(arr.Bytes())
 }
 
 func (tx *transactionData) ToArray() *lazybytes.Array {
@@ -595,7 +586,7 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 	}
 	txb.TransactionData.Timestamp = adjustedTs
 	txb.TransactionData.Endorsements = par.Endorsements
-	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
 	txb.SignED25519(par.SenderPrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()
@@ -712,7 +703,7 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 	}
 
 	txb.TransactionData.Timestamp = par.Timestamp
-	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
 	txb.SignED25519(par.PrivateKey)
 
 	inputLoader := func(i byte) (*ledger.Output, error) {
@@ -817,7 +808,7 @@ func MakeChainTransferTransaction(par *TransferData, disableEndorsementChecking 
 	}
 
 	txb.TransactionData.Timestamp = adjustedTs
-	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
 	txb.SignED25519(par.SenderPrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()
