@@ -409,12 +409,8 @@ func (r *Readable) IterateUTXOsInSlot(slot base.Slot, fun func(oid base.OutputID
 	prefix := common.Concat(TriePartitionLedgerState, slot.Bytes())
 
 	var oid base.OutputID
-
-	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
-	defer partition.Dispose()
-
 	r.trie.Iterator(prefix).Iterate(func(k, v []byte) bool {
-		oid, err = base.OutputIDFromBytes(k[len(prefix):])
+		oid, err = base.OutputIDFromBytes(k[1:])
 		if err != nil {
 			return false
 		}
