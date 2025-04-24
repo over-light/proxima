@@ -89,7 +89,7 @@ func (v *Vertex) ValidateConstraints(traceOption ...int) error {
 	}
 	err = ctx.Validate()
 
-	const validateConstraintsVerbose = false
+	const validateConstraintsVerbose = true
 
 	if err != nil {
 		if validateConstraintsVerbose {
