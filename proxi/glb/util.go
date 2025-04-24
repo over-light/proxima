@@ -97,9 +97,13 @@ func ParseAndDisplayTxFromSore(txid base.TransactionID) {
 	ctx, err := transaction.TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
 		return txstore.LoadOutput(TxBytesStore(), tx.MustInputAt(i))
 	})
-	AssertNoError(err)
+	if err != nil {
+		Infof("!!! cannot create full transaction context: '%v'.\n Inputs will not be displayed", err)
+		Infof("--- transaction ---\n%s", tx.String())
+	} else {
+		Infof("--- transaction ---\n%s", ctx.String())
+	}
 
-	Infof("--- transaction ---\n%s", ctx.String())
 	Infof("--- metadata ---\n%s", meta.String())
 
 }
