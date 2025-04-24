@@ -2,6 +2,7 @@ package db_cmd
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sort"
 
@@ -46,12 +47,15 @@ func runDbInfoCmd(_ *cobra.Command, _ []string) {
 	glb.AssertNoError(err)
 
 	identityYAML := reader.MustLedgerIdentityBytes()
-	_, idParams, err := ledger.ParseLedgerIdYAML(identityYAML)
+	lib, idParams, err := ledger.ParseLedgerIdYAML(identityYAML)
 	glb.AssertNoError(err)
 
 	earliestSlot := multistate.FetchEarliestSlot(glb.StateStore())
 	glb.Infof("ledger time now is %s, earliest committed slot is %d", ledger.TimeNow().String(), earliestSlot)
 
+	h := lib.LibraryHash()
+
+	glb.Infof("ledger library hash: %s", hex.EncodeToString(h[:]))
 	glb.Verbosef("\n----------------- Ledger state identity ----------------")
 	glb.Verbosef("%s", idParams.String())
 	glb.Infof("----------------- Global branch data ----------------------")

@@ -1,6 +1,7 @@
 package glb
 
 import (
+	"encoding/hex"
 	"sync"
 	"time"
 
@@ -57,4 +58,6 @@ func InitLedgerFromNode() {
 	ledger.MustInitSingleton(ledgerIDData)
 	Infof("successfully connected to the node at %s", viper.GetString("api.endpoint"))
 	Infof("verbose = %v", IsVerbose())
+	h := ledger.L().LibraryHash()
+	Infof("ledger library hash: %s", hex.EncodeToString(h[:]))
 }
