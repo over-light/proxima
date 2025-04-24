@@ -26,7 +26,7 @@ func (p *ProximaNode) initMultiStateLedger() {
 
 	// initialize global ledger object with the ledger id data from DB
 	multistate.InitLedgerFromStore(p.multiStateDB)
-	p.Log().Infof("ledger identity:\n%s", ledger.L().ID.Lines("       ").String())
+	p.Log().Infof("ledger ID params:\n%s", ledger.L().ID.Lines("       ").String())
 	h := ledger.L().LibraryHash()
 	p.Log().Infof("ledger constraint library hash: %s", hex.EncodeToString(h[:]))
 

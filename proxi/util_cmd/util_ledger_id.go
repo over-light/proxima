@@ -1,10 +1,12 @@
 package util_cmd
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
@@ -38,10 +40,14 @@ func runGenLedgerIDCommand(_ *cobra.Command, _ []string) {
 
 	// create ledger identity
 	idParams := ledger.DefaultIdentityParameters(privKey, uint32(time.Now().Unix()))
-
 	yamlData := ledger.LibraryYAMLFromIdentityParameters(idParams, true)
-	err := os.WriteFile(glb.LedgerIDFileName, yamlData, 0666)
+	lib, err := easyfl.NewLibraryFromYAML(yamlData)
+	glb.AssertNoError(err)
+
+	err = os.WriteFile(glb.LedgerIDFileName, yamlData, 0666)
 	glb.AssertNoError(err)
 	glb.Infof("new ledger identity data has been stored in the file '%s'", glb.LedgerIDFileName)
+	h := lib.LibraryHash()
+	glb.Infof("library hash: %s", hex.EncodeToString(h[:]))
 	glb.Infof("ledger ID parameters:\n--------------\n%s\n", idParams.Lines("    ").String())
 }
