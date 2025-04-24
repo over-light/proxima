@@ -805,7 +805,7 @@ func (c *APIClient) MakeChainOrigin(par TransferFromED25519WalletParams) (*trans
 		}
 	}
 	txb.TransactionData.Timestamp = ts
-	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
 	txb.SignED25519(par.WalletPrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()
@@ -974,7 +974,7 @@ func MakeTransferTransaction(par MakeTransferTransactionParams) ([]byte, error) 
 	}
 
 	txb.TransactionData.Timestamp = par.Timestamp
-	txb.TransactionData.InputCommitment = txb.InputCommitment()
+	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
 	txb.SignED25519(par.PrivateKey)
 
 	return txb.TransactionData.Bytes(), nil
