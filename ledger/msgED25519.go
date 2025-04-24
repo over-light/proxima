@@ -19,7 +19,8 @@ type MessageWithED25519Sender struct {
 }
 
 const messageWithED25519SenderSource = `
-// Contains arbitrary message and enforces valid sender (originator) as part of the message. 
+// Contains arbitrary message and enforces valid sender (originator) as part of the message.
+// Once output is in the state, it is guaranteed to have the real sender
 // $0 - blake2b hash of the signature's public key
 // $1 - arbitrary data
 func msgED25519: or(
@@ -33,7 +34,7 @@ func msgED25519: or(
        		$0, 
 			blake2b(publicKeyED25519(txSignature))
 		),
-        equal($$1, $$1) // to enforce $1 parameter without evaluating it, this can be any data
+        $$1 // to enforce mandatory $1 parameter without evaluating it. This can be any data parsed by the receiver (e.g. sequencer)
 	)
 )
 `

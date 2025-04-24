@@ -253,6 +253,8 @@ func (a *IncrementalAttacher) InsertInput(wOut vertex.WrappedOutput) (bool, erro
 	return true, nil
 }
 
+const TraceSequencerCommands = "seqCmd"
+
 // MakeSequencerTransaction creates sequencer transaction from the incremental attacher.
 // Increments slotInflation by the amount inflated in the transaction
 func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKey ed25519.PrivateKey, cmdParser SequencerCommandParser) (*transaction.Transaction, error) {
@@ -297,8 +299,12 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 			// parse sequencer command if any
 			runCmdOutputs, err := cmdParser.ParseSequencerCommandToOutputs(o)
 			if err != nil {
-				a.Tracef(TraceTagIncrementalAttacher, "error while parsing input: %v", err)
+				a.Tracef(TraceSequencerCommands, "MakeSequencerTransaction: error while parsing input: %v", err)
 			} else {
+				if len(runCmdOutputs) > 0 {
+					a.Tracef(TraceSequencerCommands, ">>>>>> MakeSequencerTransaction: sequencer cmd input:\n%s\n>>>>>>>> cmd output[0](%d): %s",
+						o.String(), len(runCmdOutputs), runCmdOutputs[0].Lines().String())
+				}
 				otherOutputs = append(otherOutputs, runCmdOutputs...)
 			}
 		case ledger.StemLockName:
