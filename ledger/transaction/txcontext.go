@@ -256,7 +256,7 @@ func (ctx *TxContext) CheckInputCommitment() error {
 	})
 	ic := ledger.InputCommitment(outs...)
 	if !bytes.Equal(ctx.InputCommitment(), ic[:]) {
-		return fmt.Errorf("mismatch between provided and calculated inout commitments in %s (%s)", ctx.txid.StringShort(), ctx.txid.StringHex())
+		return fmt.Errorf("mismatch between provided and calculated input commitments in %s (%s)", ctx.txid.StringShort(), ctx.txid.StringHex())
 	}
 	return nil
 }

@@ -26,6 +26,7 @@ func Init() *cobra.Command {
 		initChainsCmd(),
 		initFindTxCmd(),
 		initDbGetLedgerIDCmd(),
+		initListUTXOsCmd(),
 	)
 	return dbCmd
 }

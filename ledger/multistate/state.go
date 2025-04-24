@@ -402,6 +402,27 @@ func (r *Readable) Root() common.VCommitment {
 	return r.trie.Root()
 }
 
+func (r *Readable) IterateUTXOsInSlot(slot base.Slot, fun func(oid base.OutputID, oData []byte) bool) (err error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	prefix := common.Concat(TriePartitionLedgerState, slot.Bytes())
+
+	var oid base.OutputID
+
+	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
+	defer partition.Dispose()
+
+	r.trie.Iterator(prefix).Iterate(func(k, v []byte) bool {
+		oid, err = base.OutputIDFromBytes(k[len(prefix):])
+		if err != nil {
+			return false
+		}
+		return fun(oid, v)
+	})
+	return err
+}
+
 func (u *Updatable) Readable() *Readable {
 	return &Readable{
 		mutex: &sync.Mutex{},
