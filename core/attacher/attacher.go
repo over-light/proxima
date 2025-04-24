@@ -1,9 +1,9 @@
 package attacher
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -497,19 +497,27 @@ func (a *attacher) attachInputs(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx
 }
 
 func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
-	for i, vidInp := range v.Inputs {
-		inpID := v.Tx.MustInputAt(byte(i))
+	for _, vidInp := range v.Inputs {
 		if vidInp == nil {
 			return false
 		}
 		if !a.pastCone.IsKnownDefined(vidInp) {
-			if strings.Contains(v.Tx.IDShortString(), "008238d07142") {
-				a.Tracef(TraceTagBranchAvailable, ">>?? input %d (%s) not defined", i, inpID.StringShort())
-			}
 			return false
 		}
 	}
+	// TODO debug
+	a.mustConsistentSolidInputs(v)
 	return true
+}
+func (a *attacher) mustConsistentSolidInputs(v *vertex.Vertex) {
+	for i, vidInp := range v.Inputs {
+		inpID := v.Tx.MustInputAt(byte(i))
+		o, err := vidInp.OutputAt(inpID.Index())
+		a.AssertNoError(err)
+		oData, _ := a.baselineStateReader().GetUTXO(inpID)
+		a.Assertf(bytes.Equal(oData, o.Bytes()), "inconsistency in the solidified vertex %s @ input index %d: %s",
+			v.Tx.IDShortString(), i, inpID.StringShort())
+	}
 }
 
 // checkOutputInTheState expects the produced UTXO ID of the transaction is in the state.
