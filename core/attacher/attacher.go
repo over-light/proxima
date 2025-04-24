@@ -515,8 +515,9 @@ func (a *attacher) mustConsistentSolidInputs(v *vertex.Vertex) {
 		o, err := vidInp.OutputAt(inpID.Index())
 		a.AssertNoError(err)
 		oData, _ := a.baselineStateReader().GetUTXO(inpID)
-		a.Assertf(bytes.Equal(oData, o.Bytes()), "inconsistency in the solidified vertex %s @ input index %d: %s",
-			v.Tx.IDShortString(), i, inpID.StringShort())
+		txStr := v.Tx.Lines(v.InputLoaderByIndex).String()
+		a.Assertf(bytes.Equal(oData, o.Bytes()), "inconsistency in the solidified vertex %s @ input index %d: %s\n-------\n%s",
+			v.Tx.IDShortString(), i, inpID.StringShort(), txStr)
 	}
 }
 
