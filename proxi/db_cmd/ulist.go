@@ -48,15 +48,17 @@ func runUlist(_ *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		branchData = &bd
+		branchID = branchData.Stem.ID.TransactionID()
 	} else {
 		branchData = multistate.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
 		if branchData == nil {
 			glb.Infof("latest reliable branch has not been found")
 			os.Exit(1)
 		}
+		branchID = branchData.Stem.ID.TransactionID()
+		glb.Infof("latest reliable branch (LRB) is %s", branchID.String())
 	}
-	branchID = branchData.Stem.ID.TransactionID()
-	glb.Infof("baseline branch is %s", branchID.String())
+	glb.Infof("baseline branch is %s (hex = %s)", branchID.String(), branchID.StringHex())
 
 	rdr, err := multistate.NewReadable(glb.StateStore(), branchData.Root)
 	glb.AssertNoError(err)
