@@ -501,7 +501,7 @@ func (a *attacher) attachInputs(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx
 	if a.allInputsDefined(v) {
 		a.pastCone.SetFlagsUp(vidUnwrapped, vertex.FlagPastConeVertexInputsSolid)
 		if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
-			a.Log().Infof(">>>>>>>> attachInputs(%d):\n%s", v.Lines().String())
+			a.Log().Infof(">>>>>>>> attachInputs:\n%s", v.Lines("      ").String())
 		}
 	}
 	return true
