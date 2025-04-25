@@ -66,6 +66,9 @@ func (ch *ChainConstraint) Bytes() []byte {
 }
 
 func (ch *ChainConstraint) String() string {
+	if ch.IsOrigin() {
+		return fmt.Sprintf("%s(ORIGIN)", ChainConstraintName)
+	}
 	return fmt.Sprintf("%s(%s, predInIdx=%d, predConstrIdx=%d, transitionMode=%d)",
 		ChainConstraintName, ch.ID.String(), ch.PredecessorInputIndex, ch.PredecessorConstraintIndex, ch.TransitionMode)
 }
