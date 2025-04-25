@@ -452,14 +452,14 @@ func (a *attacher) attachEndorsementDependency(vidEndorsed *vertex.WrappedTx) bo
 
 func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx, inputIdx byte) bool {
 	oid := v.Tx.MustInputAt(inputIdx)
-	if vidUnwrapped.IDHasFragment("012894c63cd7") {
+	if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
 		a.Log().Infof(">>>>>>>> attachInput(idx=%d) oid = %s", inputIdx, oid.StringShort())
 	}
 	vidDep := v.Inputs[inputIdx]
 
 	var ok bool
 	if vidDep == nil {
-		if vidUnwrapped.IDHasFragment("012894c63cd7") {
+		if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
 			a.Log().Infof(">>>>>>>> attachInput(idx=%d) oid = %s 1", inputIdx, oid.StringShort())
 		}
 		vidDep = AttachTxID(oid.TransactionID(), a,
@@ -490,7 +490,7 @@ func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx,
 
 func (a *attacher) attachInputs(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	for i := range v.Inputs {
-		if vidUnwrapped.IDHasFragment("012894c63cd7") {
+		if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
 			a.Log().Infof(">>>>>>>> attachInputs(%d)", i)
 		}
 		if !a.attachInput(v, vidUnwrapped, byte(i)) {
