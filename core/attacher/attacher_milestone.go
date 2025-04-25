@@ -419,7 +419,7 @@ func (a *milestoneAttacher) logErrorStatusString(err error) string {
 	bl := "baseline: N/A"
 	if a.baseline != nil {
 		id := a.baseline.ID()
-		bl = fmt.Sprintf("baseline: %s (hex = %s)", id.String(), id.StringHex())
+		bl = fmt.Sprintf("baseline: %s (hex = %s)", id.StringShort(), id.StringHex())
 	}
 	return fmt.Sprintf("ATTACH %s (%s) -> BAD(%v)", a.vid.IDShortString(), bl, err)
 }

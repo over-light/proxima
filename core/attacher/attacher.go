@@ -452,10 +452,16 @@ func (a *attacher) attachEndorsementDependency(vidEndorsed *vertex.WrappedTx) bo
 
 func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx, inputIdx byte) bool {
 	oid := v.Tx.MustInputAt(inputIdx)
+	if vidUnwrapped.IDHasFragment("012894c63cd7") {
+		fmt.Printf(">>>>>>>> attachInput(idx=%d) oid = %s\n", inputIdx, oid.StringShort())
+	}
 	vidDep := v.Inputs[inputIdx]
 
 	var ok bool
 	if vidDep == nil {
+		if vidUnwrapped.IDHasFragment("012894c63cd7") {
+			fmt.Printf(">>>>>>>> attachInput(idx=%d) oid = %s 1\n", inputIdx, oid.StringShort())
+		}
 		vidDep = AttachTxID(oid.TransactionID(), a,
 			WithInvokedBy(a.name),
 			WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
@@ -484,6 +490,9 @@ func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx,
 
 func (a *attacher) attachInputs(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	for i := range v.Inputs {
+		if vidUnwrapped.IDHasFragment("012894c63cd7") {
+			fmt.Printf(">>>>>>>> attachInputs(%d)\n", i)
+		}
 		if !a.attachInput(v, vidUnwrapped, byte(i)) {
 			a.Assertf(a.err != nil, "a.err!=nil in %s, idx %d", a.name, i)
 			return false
