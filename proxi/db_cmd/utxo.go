@@ -68,7 +68,11 @@ func runListUTXOs(_ *cobra.Command, args []string) {
 		o, err1 = ledger.OutputFromBytesReadOnly(oData)
 		glb.AssertNoError(err1)
 		glb.Infof("%s", oid.String())
-		glb.Infof("%s", o.Lines("     "))
+		if glb.IsVerbose() {
+			glb.Infof("%s", o.LinesVerbose("     "))
+		} else {
+			glb.Infof("%s", o.Lines("     "))
+		}
 		count++
 		return true
 	})
