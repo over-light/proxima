@@ -500,6 +500,9 @@ func (a *attacher) attachInputs(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx
 	}
 	if a.allInputsDefined(v) {
 		a.pastCone.SetFlagsUp(vidUnwrapped, vertex.FlagPastConeVertexInputsSolid)
+		if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
+			a.Log().Infof(">>>>>>>> attachInputs(%d):\n%s", v.Lines().String())
+		}
 	}
 	return true
 }
@@ -527,6 +530,10 @@ func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID base.Out
 	}
 	a.AssertNoError(err)
 
+	if inputID.Slot() <= 1 {
+		a.Log().Infof(">>>>>>>> checkOutputInTheState(%s, %s) ->\n%s",
+			vid.IDShortString(), inputID.StringShort(), o.String())
+	}
 	if err = vid.EnsureOutputWithID(o); err != nil {
 		a.setError(err)
 		return false
