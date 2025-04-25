@@ -398,17 +398,33 @@ func (o *Output) ToString(prefix ...string) string {
 }
 
 func (o *Output) Lines(prefix ...string) *lines.Lines {
-	ret := lines.New()
 	pref := ""
 	if len(prefix) > 0 {
 		pref = prefix[0]
 	}
+	return o._lines(pref, false)
+}
+
+func (o *Output) LinesVerbose(prefix ...string) *lines.Lines {
+	pref := ""
+	if len(prefix) > 0 {
+		pref = prefix[0]
+	}
+	return o._lines(pref, true)
+}
+
+func (o *Output) _lines(prefix string, verbose bool) *lines.Lines {
+	ret := lines.New()
 	o.arr.ForEach(func(i int, data []byte) bool {
+		bc := ""
+		if verbose {
+			bc = fmt.Sprintf(prefix+"   bytecode: %s", easyfl_util.Fmt(data))
+		}
 		c, err := ConstraintFromBytes(data)
 		if err != nil {
-			ret.Add("%s%d: %v   bytecode: %s", pref, i, err, easyfl_util.Fmt(data))
+			ret.Add("%s%d: %v%s", prefix, i, err, bc)
 		} else {
-			ret.Add("%s%d: %s   bytecode: %s", pref, i, c.String(), easyfl_util.Fmt(data))
+			ret.Add("%s%d: %s%s", prefix, i, c.String(), bc)
 		}
 		return true
 	})
