@@ -416,10 +416,10 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 }
 
 func (a *milestoneAttacher) logErrorStatusString(err error) string {
-	bl := "bl: N/A"
+	bl := "baseline: N/A"
 	if a.baseline != nil {
 		id := a.baseline.ID()
-		bl = fmt.Sprintf("bl: %s (hex = %s)", id.String(), id.StringHex())
+		bl = fmt.Sprintf("baseline: %s (hex = %s)", id.String(), id.StringHex())
 	}
-	return fmt.Sprintf("ATTACH %s (bl: %s) -> BAD(%v)", bl, a.vid.IDShortString(), err)
+	return fmt.Sprintf("ATTACH %s (%s) -> BAD(%v)", a.vid.IDShortString(), bl, err)
 }
