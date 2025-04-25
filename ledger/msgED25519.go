@@ -14,14 +14,14 @@ import (
 
 // MessageWithED25519Sender is a constraint which enforces trust-less sender identity next to arbitrary data in the UTXO
 type MessageWithED25519Sender struct {
-	SenderAddress AddressED25519 // sender address
-	Msg           []byte         // arbitrary data attached. Interpreted by the receiver, such as a sequencer
+	SenderHash [32]byte // blake2b hash of the sender public key
+	Msg        []byte   // arbitrary data attached. Interpreted by the receiver, such as a sequencer
 }
 
 const messageWithED25519SenderSource = `
 // Contains arbitrary message and enforces valid sender (originator) as part of the message.
 // Once output is in the state, it is guaranteed to have the real sender
-// $0 - blake2b hash of the signature's public key
+// $0 - blake2b hash of the signature's public key (not an address, just data)
 // $1 - arbitrary data
 func msgED25519: or(
     // always valid on consumed output
@@ -34,7 +34,7 @@ func msgED25519: or(
        		$0, 
 			blake2b(publicKeyED25519(txSignature))
 		),
-        $$1 // to enforce mandatory $1 parameter without evaluating it. This can be any data parsed by the receiver (e.g. sequencer)
+        $1 // to enforce mandatory $1 parameter. It is evaluated
 	)
 )
 `
@@ -49,10 +49,11 @@ func NewMessageWithED25519SenderFromPublicKey(pubKey ed25519.PublicKey, data []b
 }
 
 func NewMessageWithED25519SenderFromAddress(addr AddressED25519, data []byte) *MessageWithED25519Sender {
-	return &MessageWithED25519Sender{
-		SenderAddress: addr,
-		Msg:           data,
+	ret := &MessageWithED25519Sender{
+		Msg: data,
 	}
+	copy(ret.SenderHash[:], addr)
+	return ret
 }
 
 var _ Constraint = &MessageWithED25519Sender{}
@@ -66,11 +67,11 @@ func (s *MessageWithED25519Sender) Bytes() []byte {
 }
 
 func (s *MessageWithED25519Sender) String() string {
-	return fmt.Sprintf("%s(%s,%s)", MessageWithED25519SenderName, s.SenderAddress.String(), easyfl_util.Fmt(s.Msg))
+	return fmt.Sprintf("%s(%s,%s)", MessageWithED25519SenderName, easyfl_util.Fmt(s.SenderHash[:]), easyfl_util.Fmt(s.Msg))
 }
 
 func (s *MessageWithED25519Sender) Source() string {
-	return fmt.Sprintf(messageWithED25519SenderTemplate, hex.EncodeToString(s.SenderAddress), hex.EncodeToString(s.Msg))
+	return fmt.Sprintf(messageWithED25519SenderTemplate, hex.EncodeToString(s.SenderHash[:]), hex.EncodeToString(s.Msg))
 }
 
 func MessageWithSenderED25519FromBytes(data []byte) (*MessageWithED25519Sender, error) {
@@ -81,10 +82,11 @@ func MessageWithSenderED25519FromBytes(data []byte) (*MessageWithED25519Sender, 
 	if sym != MessageWithED25519SenderName {
 		return nil, fmt.Errorf("not a MessageWithED25519Sender constraint")
 	}
-	return &MessageWithED25519Sender{
-		SenderAddress: easyfl.StripDataPrefix(args[0]),
-		Msg:           easyfl.StripDataPrefix(args[1]),
-	}, nil
+	ret := &MessageWithED25519Sender{
+		Msg: easyfl.StripDataPrefix(args[1]),
+	}
+	copy(ret.SenderHash[:], easyfl.StripDataPrefix(args[0]))
+	return ret, nil
 }
 
 func registerMessageWithSenderED25519Constraint(lib *Library) {
@@ -102,6 +104,6 @@ func initTestSenderED25519Constraint() {
 	util.AssertNoError(err)
 	cBack, ok := c.(*MessageWithED25519Sender)
 	util.Assertf(ok, "inconsistency: MessageWithED25519Sender 1")
-	util.Assertf(EqualConstraints(addr, cBack.SenderAddress), "inconsistency: MessageWithED25519Sender 2")
+	util.Assertf(bytes.Equal(addr, cBack.SenderHash[:]), "inconsistency: MessageWithED25519Sender 2")
 	util.Assertf(bytes.Equal([]byte("12"), cBack.Msg), "inconsistency: MessageWithED25519Sender 3")
 }

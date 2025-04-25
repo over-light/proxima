@@ -290,7 +290,7 @@ func TestMsgWithSenderED25519(t *testing.T) {
 	require.EqualValues(t, 1, len(outs))
 	msg, idx := outs[0].Output.MessageWithED25519Sender()
 	require.True(t, idx != 0xff)
-	require.True(t, ledger.EqualConstraints(addr0, msg.SenderAddress))
+	require.True(t, bytes.Equal(addr0, msg.SenderHash[:]))
 	require.EqualValues(t, "12", string(msg.Msg))
 }
 

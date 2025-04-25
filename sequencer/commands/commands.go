@@ -63,7 +63,7 @@ func NewCommandParser(ownerAddress ledger.AddressED25519) CommandParser {
 
 func (p CommandParser) ParseSequencerCommandToOutputs(input *ledger.OutputWithID) ([]*ledger.Output, error) {
 	msg, idx := input.Output.MessageWithED25519Sender()
-	if idx == 0xff || !ledger.EqualConstraints(p.ownerAddress, msg.SenderAddress) {
+	if idx == 0xff || !ledger.EqualConstraints(p.ownerAddress, msg.SenderPublicKeyHash) {
 		// security critical: parser will not produce any outputs if sender is on equal to the owner
 		return nil, nil
 	}
