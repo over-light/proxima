@@ -63,12 +63,16 @@ func runListUTXOs(_ *cobra.Command, args []string) {
 
 	var o *ledger.Output
 	var err1 error
+	count := 0
 	err = rdr.IterateUTXOsInSlot(slot, func(oid base.OutputID, oData []byte) bool {
 		o, err1 = ledger.OutputFromBytesReadOnly(oData)
 		glb.AssertNoError(err1)
 		glb.Infof("%s", oid.String())
 		glb.Infof("%s", o.Lines("     "))
+		count++
 		return true
 	})
 	glb.AssertNoError(err)
+	glb.Infof("-------------------\nTOTAL %d UTXOs", count)
+
 }
