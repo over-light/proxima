@@ -45,7 +45,7 @@ func runSnapshotCheckCmd(_ *cobra.Command, args []string) {
 	glb.AssertNoError(err)
 
 	glb.Infof("snapshot format version: %s", ssData.fmtVersion)
-	glb.Infof("snapshot branch id: %s", ssData.branchID.String())
+	glb.Infof("snapshot branch id (hex = %s): %s", ssData.branchID.String(), ssData.branchID.StringHex())
 	glb.Infof("snapshot root record:\n%s", ssData.rootRecord.Lines("    ").String())
 
 	fromYAML, err := easyfl.ReadLibraryFromYAML(ssData.ledgerIDData)
