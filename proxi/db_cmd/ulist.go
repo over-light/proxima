@@ -13,21 +13,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func initListUTXOsCmd() *cobra.Command {
-	listUTXOsCmd := &cobra.Command{
-		Use:   "list_utxos",
-		Short: "display outputs in slot",
+func initUlistCmd() *cobra.Command {
+	ulistCmd := &cobra.Command{
+		Use:   "ulist",
+		Short: "display outputs (UTXOs) in the slot on LRB or a chosen branch",
 		Args:  cobra.ExactArgs(1),
-		Run:   runListUTXOs,
+		Run:   runUlist,
 	}
 
-	listUTXOsCmd.PersistentFlags().StringVarP(&branchIDStr, "branch", "b", "", "tip branch id hex")
-	listUTXOsCmd.InitDefaultHelpCmd()
+	ulistCmd.PersistentFlags().StringVarP(&branchIDStr, "branch", "b", "", "tip branch id hex")
+	ulistCmd.InitDefaultHelpCmd()
 
-	return listUTXOsCmd
+	return ulistCmd
 }
 
-func runListUTXOs(_ *cobra.Command, args []string) {
+func runUlist(_ *cobra.Command, args []string) {
 	slotInt, err := strconv.Atoi(args[0])
 	glb.AssertNoError(err)
 	glb.Assertf(slotInt < math.MaxUint32, "wrong slot number")
