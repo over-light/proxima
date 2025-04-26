@@ -10,6 +10,7 @@ import (
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/util"
+	"golang.org/x/crypto/blake2b"
 )
 
 // MessageWithED25519Sender is a constraint which enforces trust-less sender identity next to arbitrary data in the UTXO
@@ -26,15 +27,14 @@ const messageWithED25519SenderSource = `
 func msgED25519: or(
     // always valid on consumed output
 	selfIsConsumedOutput,
-    // valid on produced output only if public key of the signature of the transaction 
-    // matches to the address bytes
+    // valid on produced output only if public key of the signature of the transaction equal to $0
 	and(
 		selfIsProducedOutput,
 		equal(
        		$0, 
 			blake2b(publicKeyED25519(txSignature))
 		),
-        $1 // to enforce mandatory $1 parameter. It is evaluated
+        $1 // to enforce mandatory second parameter. It is evaluated
 	)
 )
 `
@@ -45,7 +45,10 @@ const (
 )
 
 func NewMessageWithED25519SenderFromPublicKey(pubKey ed25519.PublicKey, data []byte) *MessageWithED25519Sender {
-	return NewMessageWithED25519SenderFromAddress(AddressED25519FromPublicKey(pubKey), data)
+	return &MessageWithED25519Sender{
+		Msg:        data,
+		SenderHash: blake2b.Sum256(pubKey),
+	}
 }
 
 func NewMessageWithED25519SenderFromAddress(addr AddressED25519, data []byte) *MessageWithED25519Sender {
