@@ -350,6 +350,9 @@ func (a *attacher) finalTouchNonSequencer(v *vertex.Vertex, vid *vertex.WrappedT
 		vid.SetFlagsUpNoLock(vertex.FlagVertexTxAttachmentFinished)
 
 		// constraints are not validated yet
+		{ // debug
+			a.Log().Infof(">>>>>>> finalTouchNonSequencer:\n%s", v.Lines("     ").String())
+		}
 		if err := v.ValidateConstraints(); err != nil {
 			v.UnReferenceDependencies()
 			a.setError(err)
