@@ -596,33 +596,26 @@ func (vid *WrappedTx) BaselineBranch(reattachBranch ...func(txid base.Transactio
 	return
 }
 
-func (vid *WrappedTx) EnsureOutputWithID(o *ledger.OutputWithID) (err error) {
+func (vid *WrappedTx) MustEnsureOutput(o *ledger.Output, idx byte) {
 	vid.Unwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
-			idx := o.ID.Index()
-			if idx >= byte(v.Tx.NumProducedOutputs()) {
-				err = fmt.Errorf("EnsureOutputWithID: wrong output index in %s", util.Ref(v.Tx.OutputID(idx)).StringShort())
-				return
-			}
-			if !bytes.Equal(o.Output.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()) {
-				err = fmt.Errorf("EnsureOutputWithID: inconsistent output data in %s", util.Ref(v.Tx.OutputID(idx)).StringShort())
-			}
+			util.Assertf(bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()),
+				"MustEnsureOutput: inconsistent output data in %s",
+				func() string { return util.Ref(v.Tx.OutputID(idx)).StringShort() })
+			//if !bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()) {
+			//	err = fmt.Errorf("MustEnsureOutput: inconsistent output data in %s", util.Ref(v.Tx.OutputID(idx)).StringShort())
+			//}
 		},
 		DetachedVertex: func(v *DetachedVertex) {
-			idx := o.ID.Index()
-			if idx >= byte(v.Tx.NumProducedOutputs()) {
-				err = fmt.Errorf("EnsureOutputWithID: wrong output index in %s", util.Ref(v.Tx.OutputID(idx)).StringShort())
-				return
-			}
-			if !bytes.Equal(o.Output.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()) {
-				err = fmt.Errorf("EnsureOutputWithID: inconsistent output data in %s", util.Ref(v.Tx.OutputID(idx)).StringShort())
-			}
+			util.Assertf(bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()),
+				"MustEnsureOutput: inconsistent output data in %s",
+				func() string { return util.Ref(v.Tx.OutputID(idx)).StringShort() })
+			//if !bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()) {
 		},
 		VirtualTx: func(v *VirtualTransaction) {
-			err = v.addOutput(o.ID.Index(), o.Output)
+			v.mustAddOutput(idx, o)
 		},
 	})
-	return err
 }
 
 // AddConsumer stores consumer of the vid[outputIndex] consumed output.

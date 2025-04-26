@@ -22,10 +22,8 @@ func newVirtualBranchTx(br *multistate.BranchData) *VirtualTransaction {
 	v := newVirtualTx()
 	err := v._addSequencerIndices(br.SequencerOutput.ID.Index(), br.Stem.ID.Index())
 	util.AssertNoError(err)
-	err = v.addOutput(br.SequencerOutput.ID.Index(), br.SequencerOutput.Output)
-	util.AssertNoError(err)
-	err = v.addOutput(br.Stem.ID.Index(), br.Stem.Output)
-	util.AssertNoError(err)
+	v.mustAddOutput(br.SequencerOutput.ID.Index(), br.SequencerOutput.Output)
+	v.mustAddOutput(br.Stem.ID.Index(), br.Stem.Output)
 	v.pullRulesDefined = true
 	v.needsPull = false
 	return v
@@ -53,23 +51,23 @@ func WrapBranchDataAsVirtualTx(branchData *multistate.BranchData) *WrappedTx {
 	return ret
 }
 
-func (v *VirtualTransaction) addOutput(idx byte, o *ledger.Output) error {
+func (v *VirtualTransaction) mustAddOutput(idx byte, o *ledger.Output) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	return v._addOutput(idx, o)
+	v._mustAddOutput(idx, o)
 }
 
-func (v *VirtualTransaction) _addOutput(idx byte, o *ledger.Output) error {
+func (v *VirtualTransaction) _mustAddOutput(idx byte, o *ledger.Output) {
 	oOld, already := v.outputs[idx]
 	if already {
-		if !bytes.Equal(oOld.Bytes(), o.Bytes()) {
-			return fmt.Errorf("VirtualTransaction.addOutput: inconsistent input data at index %d", idx)
-		}
-		return nil
+		util.Assertf(bytes.Equal(oOld.Bytes(), o.Bytes()), "VirtualTransaction.mustAddOutput: inconsistent input data at index %d", idx)
+		//if !bytes.Equal(oOld.Bytes(), o.Bytes()) {
+		//	return fmt.Errorf("VirtualTransaction.mustAddOutput: inconsistent input data at index %d", idx)
+		//}
+		//return nil
 	}
 	v.outputs[idx] = o.Clone()
-	return nil
 }
 
 func (v *VirtualTransaction) _addSequencerIndices(seqIdx, stemIdx byte) error {

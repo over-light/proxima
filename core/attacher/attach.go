@@ -1,7 +1,6 @@
 package attacher
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
@@ -167,8 +166,9 @@ func AttachOutputID(oid base.OutputID, env Environment, opts ...AttachTxOption) 
 
 func AttachOutputWithID(o *ledger.OutputWithID, env Environment, opts ...AttachTxOption) (vertex.WrappedOutput, error) {
 	wOut := AttachOutputID(o.ID, env, opts...)
-	if err := wOut.VID.EnsureOutputWithID(o); err != nil {
-		return vertex.WrappedOutput{}, fmt.Errorf("cannot attach output %s: '%w'", o.ID.StringShort(), err)
-	}
+	wOut.VID.MustEnsureOutput(o.Output, o.ID.Index())
+	//if err := ; err != nil {
+	//	return vertex.WrappedOutput{}, fmt.Errorf("cannot attach output %s: '%w'", o.ID.StringShort(), err)
+	//}
 	return wOut, nil
 }
