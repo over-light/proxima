@@ -64,7 +64,7 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	ret.dataContext = base.NewDataContext(ret.tree)
 
 	if err := ret.CheckInputCommitment(); err != nil {
-		return nil, fmt.Errorf("TxContextFromTransaction: %w", err)
+		return nil, fmt.Errorf("TxContextFromTransaction: %w\n>>>>>>>>>>>>>>>>>>\n%s", err, ret.String())
 	}
 	return ret, nil
 }
