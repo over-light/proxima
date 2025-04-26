@@ -63,7 +63,7 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	ret.tree = lazybytes.TreeFromTreesReadOnly(tx.tree, e.AsTree())
 	ret.dataContext = base.NewDataContext(ret.tree)
 
-	if err := ret.CheckInputCommitment(); err != nil {
+	if err := ret.checkInputCommitment(); err != nil {
 		return nil, fmt.Errorf("TxContextFromTransaction: %w\n>>>>>>>>>>>>>>>>>>\n%s", err, ret.String())
 	}
 	return ret, nil
@@ -252,7 +252,7 @@ func (ctx *TxContext) OutputID(idx byte) base.OutputID {
 	return base.MustNewOutputID(ctx.txid, idx)
 }
 
-func (ctx *TxContext) CheckInputCommitment() error {
+func (ctx *TxContext) checkInputCommitment() error {
 	outs := make([]*ledger.Output, ctx.NumInputs())
 	ctx.ForEachConsumedOutput(func(idx byte, _ *base.OutputID, out *ledger.Output) bool {
 		outs[idx] = out
