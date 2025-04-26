@@ -533,10 +533,6 @@ func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID base.Out
 	}
 	a.AssertNoError(err)
 
-	//if inputID.Slot() <= 1 {
-	//	a.Log().Infof(">>>>>>>> checkOutputInTheState(%s, %s) ->\n%s",
-	//		vid.IDShortString(), inputID.StringShort(), o.String())
-	//}
 	if err = vid.EnsureOutputWithID(o); err != nil {
 		a.setError(err)
 		return false

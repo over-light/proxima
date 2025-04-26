@@ -62,15 +62,16 @@ func (v *Vertex) GetConsumedOutput(i byte) (ret *ledger.Output) {
 	if int(i) >= len(v.Inputs) || v.Inputs[i] == nil {
 		return
 	}
+	idx := v.Tx.MustOutputIndexOfTheInput(i)
 	v.Inputs[i].RUnwrap(UnwrapOptions{
 		Vertex: func(vCons *Vertex) {
-			ret = vCons.Tx.MustProducedOutputAt(v.Tx.MustOutputIndexOfTheInput(i))
+			ret = vCons.Tx.MustProducedOutputAt(idx)
 		},
-		DetachedVertex: func(v *DetachedVertex) {
-			ret = v.Tx.MustProducedOutputAt(v.Tx.MustOutputIndexOfTheInput(i))
+		DetachedVertex: func(vCons *DetachedVertex) {
+			ret = vCons.Tx.MustProducedOutputAt(idx)
 		},
 		VirtualTx: func(vCons *VirtualTransaction) {
-			ret, _ = vCons.OutputAt(v.Tx.MustOutputIndexOfTheInput(i))
+			ret, _ = vCons.OutputAt(idx)
 		},
 	})
 	return

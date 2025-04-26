@@ -62,6 +62,10 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	e := lazybytes.MakeArrayReadOnly(consumedOutputsArray) // one level deeper
 	ret.tree = lazybytes.TreeFromTreesReadOnly(tx.tree, e.AsTree())
 	ret.dataContext = base.NewDataContext(ret.tree)
+
+	if err := ret.CheckInputCommitment(); err != nil {
+		return nil, fmt.Errorf("TxContextFromTransaction: %w", err)
+	}
 	return ret, nil
 }
 
