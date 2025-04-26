@@ -50,7 +50,7 @@ func NewSlotData(slot base.Slot) *SlotData {
 		alreadyCheckedCombination: make(map[combinationHash]bool),
 	}
 
-	trackSlotData.RegisterPointer(ret)
+	//trackSlotData.RegisterPointer(ret)
 
 	return ret
 }

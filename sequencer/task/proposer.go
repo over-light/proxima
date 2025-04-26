@@ -38,9 +38,9 @@ func (p *proposer) run() {
 
 		a, forceExit = p.strategy.GenerateProposal(p)
 
-		if a != nil {
-			trackIncAttachers.RegisterPointer(a)
-		}
+		//if a != nil {
+		//	trackIncAttachers.RegisterPointer(a)
+		//}
 
 		if a == nil && forceExit {
 			return
@@ -94,7 +94,7 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 		strategyShortName: p.strategy.ShortName,
 	}
 
-	trackProposals.RegisterPointer(_proposal)
+	//trackProposals.RegisterPointer(_proposal)
 
 	if p.targetTs.IsSlotBoundary() {
 		_proposal.txMetadata.LedgerCoverage = util.Ref(ledgerCoverage)

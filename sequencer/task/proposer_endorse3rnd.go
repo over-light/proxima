@@ -43,7 +43,9 @@ func endorse3RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 	}
 
 	newOutputArrived := p.Backlog().ArrivedOutputsSince(p.slotData.lastTimeBacklogCheckedE3)
-	p.slotData.lastTimeBacklogCheckedE3 = time.Now()
+	p.slotData.withWriteLock(func() {
+		p.slotData.lastTimeBacklogCheckedE3 = time.Now()
+	})
 
 	// then try to add one endorsement more
 	var endorsing1 *vertex.WrappedTx

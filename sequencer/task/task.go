@@ -109,12 +109,12 @@ func allProposingStrategies() []*proposerStrategy {
 // The best proposal is selected and returned. Function only returns transaction which is better
 // than others in the tippool for the current slot. Otherwise, returns nil
 func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
-	startTask := time.Now()
-	defer func(start time.Time) {
-		runTaskDurationGauge.Set(float64(time.Since(start)) / float64(time.Millisecond))
-	}(startTask)
-
-	registerGCMetricsOnce(env)
+	//startTask := time.Now()
+	//defer func(start time.Time) {
+	//	runTaskDurationGauge.Set(float64(time.Since(start)) / float64(time.Millisecond))
+	//}(startTask)
+	//
+	//registerGCMetricsOnce(env)
 
 	deadline := ledger.ClockTime(targetTs)
 	nowis := time.Now()
@@ -130,7 +130,7 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 		Name:         fmt.Sprintf("%s[%s]", env.SequencerName(), targetTs.String()),
 	}
 
-	trackTasks.RegisterPointer(task)
+	//trackTasks.RegisterPointer(task)
 
 	// start proposers
 	var cancel func()
@@ -161,7 +161,7 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 	close(task.proposalChan)
 	<-readStop
 
-	numProposalsTask.Set(float64(len(proposals)))
+	//numProposalsTask.Set(float64(len(proposals)))
 
 	if len(proposals) == 0 {
 		return nil, nil, ErrNoProposals
@@ -201,7 +201,7 @@ func (t *taskData) newProposer(s *proposerStrategy) *proposer {
 		Name:     t.Name + "-" + s.Name,
 	}
 
-	trackProposers.RegisterPointer(ret)
+	//trackProposers.RegisterPointer(ret)
 
 	return ret
 }
