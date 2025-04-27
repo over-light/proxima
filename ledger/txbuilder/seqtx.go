@@ -288,7 +288,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	txb.TransactionData.Timestamp = par.Timestamp
 	txb.TransactionData.SequencerOutputIndex = chainOutIndex
 	txb.TransactionData.StemOutputIndex = stemOutputIndex
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 	txb.SignED25519(par.PrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()

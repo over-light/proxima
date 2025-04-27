@@ -156,7 +156,7 @@ func TestDelegationSigLock(t *testing.T) {
 		}
 
 		txb.TransactionData.Timestamp = ts
-		txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+		txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 		if unlockByOwner {
 			txb.SignED25519(ownerPrivateKey)
 		} else {
@@ -440,7 +440,7 @@ func TestDelegationChainLock(t *testing.T) {
 		}
 
 		txb.TransactionData.Timestamp = ts
-		txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+		txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 		txb.SignED25519(delegationPrivateKey)
 		txBytes = txb.TransactionData.Bytes()
 		if len(printtTx) > 0 && printtTx[0] {

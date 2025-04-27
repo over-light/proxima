@@ -586,7 +586,7 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 	}
 	txb.TransactionData.Timestamp = adjustedTs
 	txb.TransactionData.Endorsements = par.Endorsements
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 	txb.SignED25519(par.SenderPrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()
@@ -703,7 +703,7 @@ func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte,
 	}
 
 	txb.TransactionData.Timestamp = par.Timestamp
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 	txb.SignED25519(par.PrivateKey)
 
 	inputLoader := func(i byte) (*ledger.Output, error) {
@@ -808,7 +808,7 @@ func MakeChainTransferTransaction(par *TransferData, disableEndorsementChecking 
 	}
 
 	txb.TransactionData.Timestamp = adjustedTs
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 	txb.SignED25519(par.SenderPrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()

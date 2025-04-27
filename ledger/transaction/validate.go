@@ -56,6 +56,8 @@ func (ctx *TxContext) Validate() error {
 	return nil
 }
 
+// _validate runs scripts on consumed and produced parts. Does not check the consistency of input commitment, because
+// it already checked upon creation of the transaction context
 func (ctx *TxContext) _validate() error {
 	var inSum, outSum uint64
 	var err error
@@ -65,22 +67,13 @@ func (ctx *TxContext) _validate() error {
 
 	err = util.CatchPanicOrError(func() error {
 		var err1 error
-		inSum, err1 = ctx.validateOutputsFailFast(true, spool)
-		return err1
-	})
-	if err != nil {
-		return err
-	}
-	err = util.CatchPanicOrError(func() error {
-		var err1 error
-		outSum, err1 = ctx.validateOutputsFailFast(false, spool)
-		return err1
-	})
-	if err != nil {
-		return err
-	}
-	err = util.CatchPanicOrError(func() error {
-		return ctx.validateInputCommitment()
+		if inSum, err1 = ctx.validateOutputsFailFast(true, spool); err1 != nil {
+			return err1
+		}
+		if outSum, err1 = ctx.validateOutputsFailFast(false, spool); err1 != nil {
+			return err1
+		}
+		return nil
 	})
 	if err != nil {
 		return err
@@ -135,7 +128,7 @@ func (ctx *TxContext) writeStateMutationsTo(mut common.KVWriter) {
 //		return nil, err
 //	}
 //	err = util.CatchPanicOrError(func() error {
-//		return ctx.validateInputCommitment()
+//		return ctx.validateInputCommitmentSafe()
 //	})
 //	if err != nil {
 //		return nil, err
@@ -267,16 +260,19 @@ func (ctx *TxContext) runOutput(consumedBranch bool, output *ledger.Output, path
 	return extraStorageDepositWeight, nil
 }
 
-func (ctx *TxContext) validateInputCommitment() error {
-	consumeOutputHash := ctx.ConsumedOutputHash()
-	inputCommitment := ctx.InputCommitment()
-	if !bytes.Equal(consumeOutputHash[:], inputCommitment) {
-		return fmt.Errorf("hash of consumed outputs %v not equal to input commitment %v",
-			easyfl_util.Fmt(consumeOutputHash[:]), easyfl_util.Fmt(inputCommitment))
-	}
-	return nil
+func (ctx *TxContext) validateInputCommitmentSafe() error {
+	return util.CatchPanicOrError(func() error {
+		consumeOutputHash := ctx.ConsumedOutputHash()
+		inputCommitment := ctx.InputCommitment()
+		if !bytes.Equal(consumeOutputHash[:], inputCommitment) {
+			return fmt.Errorf("hash of consumed outputs %v not equal to input commitment %v",
+				easyfl_util.Fmt(consumeOutputHash[:]), easyfl_util.Fmt(inputCommitment))
+		}
+		return nil
+	})
 }
 
+// ConsumedOutputHash is ias blake2b hash of the lazyarray composed of output data
 func (ctx *TxContext) ConsumedOutputHash() [32]byte {
 	consumedOutputBytes := ctx.tree.BytesAtPath(Path(ledger.ConsumedBranch, ledger.ConsumedOutputsBranch))
 	return blake2b.Sum256(consumedOutputBytes)

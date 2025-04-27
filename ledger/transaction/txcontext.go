@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
@@ -61,11 +60,11 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	}
 	e := lazybytes.MakeArrayReadOnly(consumedOutputsArray) // one level deeper
 	ret.tree = lazybytes.TreeFromTreesReadOnly(tx.tree, e.AsTree())
-	ret.dataContext = base.NewDataContext(ret.tree)
-
-	if err := ret.checkInputCommitment(); err != nil {
+	// always check the consistency of the transaction with the input context
+	if err := ret.validateInputCommitmentSafe(); err != nil {
 		return nil, fmt.Errorf("TxContextFromTransaction: %w\n>>>>>>>>>>>>>>>>>>\n%s", err, ret.String())
 	}
+	ret.dataContext = base.NewDataContext(ret.tree)
 	return ret, nil
 }
 
@@ -250,17 +249,4 @@ func (ctx *TxContext) TotalInflation() uint64 {
 
 func (ctx *TxContext) OutputID(idx byte) base.OutputID {
 	return base.MustNewOutputID(ctx.txid, idx)
-}
-
-func (ctx *TxContext) checkInputCommitment() error {
-	outs := make([]*ledger.Output, ctx.NumInputs())
-	ctx.ForEachConsumedOutput(func(idx byte, _ *base.OutputID, out *ledger.Output) bool {
-		outs[idx] = out
-		return true
-	})
-	ic := ledger.InputCommitment(outs...)
-	if !bytes.Equal(ctx.InputCommitment(), ic[:]) {
-		return fmt.Errorf("mismatch between provided and calculated input commitments in %s (%s)", ctx.txid.StringShort(), ctx.txid.StringHex())
-	}
-	return nil
 }

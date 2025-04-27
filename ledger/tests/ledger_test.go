@@ -450,7 +450,7 @@ func TestChain1(t *testing.T) {
 
 		// finalize the transaction
 		txb.TransactionData.Timestamp = ts
-		txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+		txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 		txb.SignED25519(privKey0)
 
 		txbytes := txb.TransactionData.Bytes()
@@ -569,7 +569,7 @@ func TestChain2(t *testing.T) {
 		txb.PutSignatureUnlock(0)
 
 		txb.TransactionData.Timestamp = ts
-		txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+		txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 
 		txb.SignED25519(privKey0)
 
@@ -693,7 +693,7 @@ func TestChain3(t *testing.T) {
 	txb.PutSignatureUnlock(0)
 
 	txb.TransactionData.Timestamp = ts
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 
 	txb.SignED25519(privKey0)
 
@@ -982,7 +982,7 @@ func TestImmutable(t *testing.T) {
 	txb.PutSignatureUnlock(0)
 
 	txb.TransactionData.Timestamp = ts
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 
 	txb.SignED25519(privKey)
 
@@ -1018,7 +1018,7 @@ func TestImmutable(t *testing.T) {
 	txb.PutSignatureUnlock(0)
 
 	txb.TransactionData.Timestamp = ts
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 
 	txb.SignED25519(privKey)
 
@@ -1063,7 +1063,7 @@ func TestImmutable(t *testing.T) {
 	txb.PutSignatureUnlock(0)
 
 	txb.TransactionData.Timestamp = ts
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 
 	txb.SignED25519(privKey)
 
@@ -1109,7 +1109,7 @@ func TestImmutable(t *testing.T) {
 	txb.PutSignatureUnlock(0)
 
 	txb.TransactionData.Timestamp = ts
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 
 	txb.SignED25519(privKey)
 

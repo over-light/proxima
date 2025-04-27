@@ -261,7 +261,7 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 	})
 	_, _ = txb.ProduceOutput(tagAlongOut)
 
-	txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+	txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 	txb.TransactionData.Timestamp = td.auxOutput.Timestamp().AddTicks(ledger.TransactionPace())
 	txb.SignED25519(td.privKeyAux)
 
@@ -834,7 +834,7 @@ func (td *workflowTestData) spamWithdrawCommands(par spammerWithdrawCmdParams, c
 		require.NoError(td.t, err)
 
 		txb.TransactionData.Timestamp = ledger.TimeNow()
-		txb.TransactionData.InputCommitment = ledger.InputCommitment(txb.ConsumedOutputs...)
+		txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
 		txb.SignED25519(par.seqControllerPrivateKey)
 		txBytes := txb.TransactionData.Bytes()
 

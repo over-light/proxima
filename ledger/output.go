@@ -613,7 +613,8 @@ func (o *Output) MinimumStorageDeposit(extraWeight uint32) uint64 {
 	return StorageDeposit(len(o.Bytes()))
 }
 
-func InputCommitment(outs ...*Output) [32]byte {
+// HashOutputs calculates input commitment from outputs: the hash of lazyarray composed of output data
+func HashOutputs(outs ...*Output) [32]byte {
 	arr := lazybytes.EmptyArray(256)
 	for _, o := range outs {
 		arr.Push(o.Bytes())
