@@ -617,8 +617,9 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multis
 	baseline := pc.getBaseline()
 	pc.Assertf(baseline != nil, "pc.hasBaseline()")
 	pc.Assertf(pcb.baseline != nil, "pcb.baseline != nil")
-	// pcb should not be younger than pc (cannot check here if baselines must are compatible (on the same chain)
-	pc.Assertf(pc.baseline.Timestamp().AfterOrEqual(pcb.baseline.Timestamp()), "pc.baseline.Timestamp().AfterOrEqual(pcb.baseline.Timestamp())")
+	// pcb should not be younger than pc (cannot check here if baselines are compatible (on the same chain)
+	pc.Assertf(pc.baseline.Timestamp().AfterOrEqual(pcb.baseline.Timestamp()), "pc.baseline.Timestamp(%s).AfterOrEqual(pcb.baseline.Timestamp(%s))",
+		pc.baseline.Timestamp().String, pcb.baseline.Timestamp().String)
 
 	if len(pcb.vertices) == 0 {
 		return

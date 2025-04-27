@@ -266,6 +266,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 		return
 	}
 	if deterministicPastCone != nil {
+		// FIXME with boot proposer deterministicPastCone can be after attacher
 		a.pastCone.AppendPastCone(deterministicPastCone, a.baselineStateReader())
 		ok = true
 		defined = true
