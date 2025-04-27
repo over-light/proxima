@@ -340,6 +340,7 @@ func (a *attacher) attachVertexUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.
 	return true
 }
 
+// finalTouchNonSequencer finishes validation of non-sequencer transactions
 func (a *attacher) finalTouchNonSequencer(v *vertex.Vertex, vid *vertex.WrappedTx) (ok bool) {
 	a.Assertf(!vid.IsSequencerMilestone(), "non-sequencer tx expected, got %s", vid.IDShortString)
 
@@ -349,10 +350,11 @@ func (a *attacher) finalTouchNonSequencer(v *vertex.Vertex, vid *vertex.WrappedT
 		// finished and transaction ready to be pruned from the memDAG
 		vid.SetFlagsUpNoLock(vertex.FlagVertexTxAttachmentFinished)
 
+		//{ // debug
+		//	a.Log().Infof(">>>>>>> finalTouchNonSequencer:\n%s", v.Lines("     ").String())
+		//}
+
 		// constraints are not validated yet
-		{ // debug
-			a.Log().Infof(">>>>>>> finalTouchNonSequencer:\n%s", v.Lines("     ").String())
-		}
 		if err := v.ValidateConstraints(); err != nil {
 			v.UnReferenceDependencies()
 			a.setError(err)
@@ -455,16 +457,10 @@ func (a *attacher) attachEndorsementDependency(vidEndorsed *vertex.WrappedTx) bo
 
 func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx, inputIdx byte) bool {
 	oid := v.Tx.MustInputAt(inputIdx)
-	if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
-		a.Log().Infof(">>>>>>>> attachInput(idx=%d) oid = %s", inputIdx, oid.StringShort())
-	}
 	vidDep := v.Inputs[inputIdx]
 
 	var ok bool
 	if vidDep == nil {
-		if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
-			a.Log().Infof(">>>>>>>> attachInput(idx=%d) oid = %s 1", inputIdx, oid.StringShort())
-		}
 		vidDep = AttachTxID(oid.TransactionID(), a,
 			WithInvokedBy(a.name),
 			WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
@@ -493,9 +489,6 @@ func (a *attacher) attachInput(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx,
 
 func (a *attacher) attachInputs(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	for i := range v.Inputs {
-		if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
-			a.Log().Infof(">>>>>>>> attachInputs(%d)", i)
-		}
 		if !a.attachInput(v, vidUnwrapped, byte(i)) {
 			a.Assertf(a.err != nil, "a.err!=nil in %s, idx %d", a.name, i)
 			return false
@@ -503,9 +496,6 @@ func (a *attacher) attachInputs(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx
 	}
 	if a.allInputsDefined(v) {
 		a.pastCone.SetFlagsUp(vidUnwrapped, vertex.FlagPastConeVertexInputsSolid)
-		if vidUnwrapped.IDHasFragment("0119629ddb04e3") {
-			a.Log().Infof(">>>>>>>> attachInputs:\n%s", v.Lines("      ").String())
-		}
 	}
 	return true
 }
@@ -523,7 +513,7 @@ func (a *attacher) allInputsDefined(v *vertex.Vertex) bool {
 }
 
 // checkOutputInTheState expects the produced UTXO ID of the transaction is in the state.
-// If it is not, sets error that UTXO is already consumed
+// If it is not, sets an error that UTXO is already consumed
 func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID base.OutputID) bool {
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
 	o, err := a.BaselineSugaredStateReader().GetOutputWithID(inputID)
@@ -532,13 +522,7 @@ func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID base.Out
 		return false
 	}
 	a.AssertNoError(err)
-
 	vid.MustEnsureOutput(o.Output, o.ID.Index())
-	//
-	//if err = vid.MustEnsureOutput(o.Output, o.ID.Index()); err != nil {
-	//	a.setError(err)
-	//	return false
-	//}
 	return true
 }
 
