@@ -613,16 +613,16 @@ func (pc *PastCone) getBaseline() *WrappedTx {
 }
 
 // AppendPastCone appends deterministic past cone to the current one. Does not check for conflicts
-func (pc *PastCone) AppendPastCone(pcb *PastConeBase, getStateReader func() multistate.IndexedStateReader) {
+func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multistate.IndexedStateReader) {
 	baseline := pc.getBaseline()
 	pc.Assertf(baseline != nil, "pc.hasBaseline()")
 	pc.Assertf(pcb.baseline != nil, "pcb.baseline != nil")
-	pc.Assertf(baseline.IsContainingBranchOf(pcb.baseline, getStateReader), "baseline.IsContainingBranchOf(pcb.baseline, getStateReader)")
-	// we require baselines must be compatible (on the same chain) of pcb should not be younger than pc
+	// pcb should not be younger than pc (cannot check here if baselines must are compatible (on the same chain)
+	pc.Assertf(pc.baseline.Timestamp().AfterOrEqual(pcb.baseline.Timestamp()), "pc.baseline.Timestamp().AfterOrEqual(pcb.baseline.Timestamp())")
+
 	if len(pcb.vertices) == 0 {
 		return
 	}
-	baselineStateReader := getStateReader()
 
 	for vid, flags := range pcb.vertices {
 		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",

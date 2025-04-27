@@ -266,7 +266,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 		return
 	}
 	if deterministicPastCone != nil {
-		a.pastCone.AppendPastCone(deterministicPastCone, a.baselineStateReader)
+		a.pastCone.AppendPastCone(deterministicPastCone, a.baselineStateReader())
 		ok = true
 		defined = true
 	}

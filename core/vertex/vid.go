@@ -10,7 +10,6 @@ import (
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
-	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -922,22 +921,6 @@ func (vid *WrappedTx) SetAttachmentDepthNoLock(depth int) {
 
 func (vid *WrappedTx) GetAttachmentDepthNoLock() int {
 	return vid.attachmentDepth
-}
-
-func (vid *WrappedTx) IsContainingBranchOf(vid1 *WrappedTx, getStateReader func() multistate.IndexedStateReader) bool {
-	util.Assertf(vid.IsBranchTransaction(), "descendant must be a branch: %s", vid.IDShortString)
-	util.Assertf(vid1.IsBranchTransaction(), "predecessor must be a branch: %s", vid1.IDShortString)
-	if vid == vid1 {
-		return true
-	}
-	if vid1.Slot() == vid.Slot() {
-		// branches on the same slot are conflicting
-		return false
-	}
-	if b := vid.BaselineBranch(); b == vid1 || (b != nil && b.BaselineBranch() == vid1) {
-		return true
-	}
-	return getStateReader().KnowsCommittedTransaction(vid1.id)
 }
 
 func (vid *WrappedTx) IDHasFragment(frag ...string) bool {
