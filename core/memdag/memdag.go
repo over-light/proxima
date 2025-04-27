@@ -23,6 +23,7 @@ type (
 		StateStore() multistate.StateStore
 		DisableMemDAGGC() bool
 		PostEventTxDeleted(txid base.TransactionID)
+		IsSynced() bool
 	}
 
 	_vertexRecord struct {
@@ -42,7 +43,6 @@ type (
 		mutex    sync.RWMutex
 		vertices map[base.TransactionID]_vertexRecord
 
-		// latestBranchSlot maintained by EvidenceBranchSlot
 		latestBranchSlot        base.Slot
 		latestHealthyBranchSlot base.Slot
 
@@ -175,7 +175,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 			}
 		}
 	})
-	if len(expired) == 0 {
+	if len(expired) == 0 || !d.IsSynced() {
 		return
 	}
 	for _, vid := range expired {
