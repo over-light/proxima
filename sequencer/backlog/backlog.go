@@ -275,11 +275,7 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID base.ChainID) error {
 	if err != nil {
 		return fmt.Errorf("LoadSequencerStartTips: can't load chain output for %s: %w", seqID.StringShort(), err)
 	}
-	wOut, err := attacher.AttachOutputWithID(chainOut, b, attacher.WithInvokedBy("LoadSequencerStartTips"))
-	if err != nil {
-		return fmt.Errorf("LoadSequencerStartTips: can't attach chain output: %w\n%s", err, chainOut.Lines("     ").String())
-	}
-
+	wOut := attacher.AttachOutputWithID(*chainOut, b, attacher.WithInvokedBy("LoadSequencerStartTips"))
 	loadedTxs.Insert(wOut.VID)
 
 	b.Log().Infof("loaded sequencer start output from branch %s\n%s",
@@ -290,14 +286,11 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID base.ChainID) error {
 	util.AssertNoError(err)
 	for _, oid := range oids {
 		o := rdr.MustGetOutputWithID(oid)
-		wOut, err = attacher.AttachOutputWithID(o, b, attacher.WithInvokedBy("LoadSequencerStartTips"))
-		if err != nil {
-			return err
-		}
+		wOut = attacher.AttachOutputWithID(*o, b, attacher.WithInvokedBy("LoadSequencerStartTips"))
 		b.Log().Infof("loaded tag-along input for sequencer %s: %s from branch %s", seqID.StringShort(), oid.StringShort(), vidBranch.IDShortString())
 		loadedTxs.Insert(wOut.VID)
 	}
-	// post new tx event for each transaction
+	// post a new tx event for each transaction
 	for vid := range loadedTxs {
 		b.PostEventNewTransaction(vid)
 	}

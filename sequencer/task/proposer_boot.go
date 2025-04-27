@@ -31,10 +31,9 @@ func init() {
 
 func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	//p.Tracef(TraceTagBootProposer, "IN base proposer %s", p.Name)
-
 	extend := p.OwnLatestMilestoneOutput()
 	if extend.VID == nil {
-		p.Log().Warnf("BootProposer-%s: can't find own milestone output", p.Name)
+		p.Log().Warnf("BootProposer-%s: can't find latest reliable branch", p.Name)
 		return nil, true
 	}
 

@@ -66,18 +66,12 @@ func (seq *Sequencer) OwnLatestMilestoneOutput() vertex.WrappedOutput {
 	if ret != nil {
 		seq.AddOwnMilestone(ret)
 		chainOut := ret.FindChainOutput(&seq.sequencerID)
-		if chainOut == nil {
+		if chainOut.Output == nil {
 			return vertex.WrappedOutput{}
 		}
-		wOut, err := attacher.AttachOutputWithID(chainOut, seq, attacher.WithInvokedBy("OwnLatestMilestoneOutput"))
-		if err == nil {
-			return wOut
-		}
-		seq.Log().Errorf("OwnLatestMilestoneOutput: %v", err)
-		return vertex.WrappedOutput{}
+		return attacher.AttachOutputWithID(*chainOut, seq, attacher.WithInvokedBy("OwnLatestMilestoneOutput"))
 	}
-	// there's no own milestone in the tippool (startup)
-	// find in one of baseline states of other sequencers
+	// there's no own milestone in the tippool, find in one of the baseline states of other sequencers or in LRB
 	return seq.bootstrapOwnMilestoneOutput()
 }
 
@@ -94,7 +88,7 @@ func (seq *Sequencer) AddOwnMilestone(vid *vertex.WrappedTx) {
 		since:    time.Now(),
 	}
 	if vid.IsSequencerMilestone() {
-		// it can be non-sequencer milestone at the origin
+		// it can be a non-sequencer milestone at the origin
 		prev := vid.SequencerPredecessor(func(txid base.TransactionID) *vertex.WrappedTx {
 			return attacher.AttachTxID(txid, seq, attacher.WithInvokedBy("AddOwnMilestone"))
 		})

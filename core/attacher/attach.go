@@ -164,11 +164,8 @@ func AttachOutputID(oid base.OutputID, env Environment, opts ...AttachTxOption) 
 	}
 }
 
-func AttachOutputWithID(o *ledger.OutputWithID, env Environment, opts ...AttachTxOption) (vertex.WrappedOutput, error) {
-	wOut := AttachOutputID(o.ID, env, opts...)
+func AttachOutputWithID(o ledger.OutputWithID, env Environment, opts ...AttachTxOption) (wOut vertex.WrappedOutput) {
+	wOut = AttachOutputID(o.ID, env, opts...)
 	wOut.VID.MustEnsureOutput(o.Output, o.ID.Index())
-	//if err := ; err != nil {
-	//	return vertex.WrappedOutput{}, fmt.Errorf("cannot attach output %s: '%w'", o.ID.StringShort(), err)
-	//}
-	return wOut, nil
+	return
 }

@@ -584,6 +584,7 @@ func (seq *Sequencer) BacklogTTLSlots() (int, int) {
 	return seq.config.BacklogTagAlongTTLSlots, seq.config.BacklogDelegationTTLSlots
 }
 
+// bootstrapOwnMilestoneOutput find own milestone output in one of the latest milestones, or, alternatively in the LRB
 func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {
 	milestones := seq.LatestMilestonesDescending()
 	for _, ms := range milestones {
@@ -598,11 +599,21 @@ func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {
 		}
 		seq.AssertNoError(err)
 
-		ret, err := attacher.AttachOutputWithID(chainOut, seq, attacher.WithInvokedBy("tippool"))
-		seq.AssertNoError(err)
-		return ret
+		return attacher.AttachOutputWithID(*chainOut, seq, attacher.WithInvokedBy("tippool 1"))
 	}
-	return vertex.WrappedOutput{}
+	// didn't find in latest milestones in the tippool, try LRB
+	branchData := multistate.FindLatestReliableBranch(seq.StateStore(), global.FractionHealthyBranch)
+	if branchData == nil {
+		seq.Log().Warnf("bootstrapOwnMilestoneOutput: can't find LRB")
+		return vertex.WrappedOutput{}
+	}
+	rdr := multistate.MakeSugared(seq.GetStateReaderForTheBranch(branchData.TxID()))
+	chainOut, err := rdr.GetChainOutput(seq.SequencerID())
+	if err != nil {
+		seq.Log().Warnf("bootstrapOwnMilestoneOutput: can't load own milestone output from LRB")
+		return vertex.WrappedOutput{}
+	}
+	return attacher.AttachOutputWithID(*chainOut, seq, attacher.WithInvokedBy("tippool 2"))
 }
 
 func (seq *Sequencer) generateMilestoneForTarget(targetTs base.LedgerTime) (*transaction.Transaction, *txmetadata.TransactionMetadata, error) {
