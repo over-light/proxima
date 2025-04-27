@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var listAll bool
+
 func initIDListCmd() *cobra.Command {
 	idlistCmd := &cobra.Command{
 		Use:   "idlist <slot>",
@@ -16,6 +18,7 @@ func initIDListCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run:   runIdListCmd,
 	}
+	idlistCmd.PersistentFlags().BoolVarP(&listAll, "all", "a", false, "list all keys in txstore")
 	return idlistCmd
 }
 
@@ -30,7 +33,12 @@ func runIdListCmd(_ *cobra.Command, args []string) {
 
 	var txid base.TransactionID
 	count := 0
-	db.Iterator(slot.Bytes()).IterateKeys(func(k []byte) bool {
+
+	var prefix []byte
+	if !listAll {
+		prefix = slot.Bytes()
+	}
+	db.Iterator(prefix).IterateKeys(func(k []byte) bool {
 		txid, err = base.TransactionIDFromBytes(k)
 		glb.AssertNoError(err)
 		glb.Infof("%s    hex = %s", txid.String(), txid.StringHex())
