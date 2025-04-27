@@ -1,6 +1,7 @@
 package txstore
 
 import (
+	"encoding/hex"
 	"strconv"
 
 	"github.com/lunfardo314/proxima/global"
@@ -30,16 +31,18 @@ func runIdListCmd(_ *cobra.Command, args []string) {
 	count := 0
 
 	var prefix []byte
+	var sint int
 	var slot base.Slot
 	var err error
 
 	if !listAll {
 		glb.Assertf(len(args) == 1, "wrong number of arguments")
-		sint, err := strconv.Atoi(args[0])
+		sint, err = strconv.Atoi(args[0])
 		glb.AssertNoError(err)
 		glb.Assertf(sint <= base.MaxSlot, "wrong slot number")
 		slot = base.Slot(sint)
 		prefix = slot.Bytes()
+		glb.Infof("slot = %d, hex: %s", slot, hex.EncodeToString(prefix))
 	}
 
 	db.Iterator(prefix).IterateKeys(func(k []byte) bool {
