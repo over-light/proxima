@@ -60,3 +60,10 @@ func InitTxStoreDB() {
 func TxBytesStore() global.TxBytesStore {
 	return txBytesStore
 }
+
+func InitDBRaw(dbName string) *badger_adaptor.DB {
+	Infof("Opening raw database: %s", dbName)
+	FileMustExist(dbName)
+	stateDB = badger_adaptor.MustCreateOrOpenBadgerDB(dbName)
+	return badger_adaptor.New(stateDB)
+}

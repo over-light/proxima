@@ -507,8 +507,8 @@ func FindRootsFromLatestHealthySlot(store StateStoreReader, fraction global.Frac
 	return rootsFound, len(rootsFound) > 0
 }
 
-// IterateBranchChainBack iterates past chain of the tip branch (including the tip)
-// Stops when current branch have no predecessor
+// IterateBranchChainBack iterates the past chain of the tip branch (including the tip)
+// Stops when the current branch has no predecessor
 func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func(branchID *base.TransactionID, branch *BranchData) bool) {
 	branchID := branch.Stem.ID.TransactionID()
 	for {
@@ -528,7 +528,7 @@ func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func
 }
 
 // FindLatestReliableBranch latest reliable branch (LRB) is the latest branch, which is contained in any
-// tip from the latest healthy branch with coverage delta bigger than fraction of total supply.
+// tip from the latest healthy branch with coverage delta bigger than the fraction of total supply.
 // Reliable branch is the latest global consensus state with big probability
 // Returns nil if not found
 func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) *BranchData {

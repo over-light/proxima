@@ -78,7 +78,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 
 	txb := New()
 
-	// calculate delegation outputs. Offset = 1 because input are consumed starting from index 1
+	// calculate delegation outputs. Offset = 1 because inputs are consumed starting from index 1
 	delegationTransitions, delegationTotalIn, delegationTotalOut, delegationMargin, err :=
 		makeDelegationTransitions(par.DelegationOutputs, 1, par.Timestamp, par.DelegationInflationMarginPromille)
 	if err != nil {

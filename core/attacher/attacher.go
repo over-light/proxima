@@ -44,9 +44,9 @@ func (a *attacher) setError(err error) {
 	a.err = err
 }
 
-// solidifyBaselineVertex directs attachment process down the MemDAG to reach the deterministically known baseline state
+// solidifyBaselineVertex directs the attachment process down the MemDAG to reach the deterministically known baseline state
 // for a sequencer milestone. Existence of it is guaranteed by the ledger constraints
-// Success of the baseline solidification is when function returns true and v.BaselineBranch != nil
+// Success of the baseline solidification is when the function returns true and v.BaselineBranch != nil
 func (a *attacher) solidifyBaselineVertex(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	a.Assertf(a.baseline == nil, "a.baseline == nil")
 	if v.Tx.IsBranchTransaction() {
@@ -117,11 +117,11 @@ func (a *attacher) handleExplicitBaseline(v *vertex.Vertex) (*vertex.WrappedTx, 
 		return nil, fmt.Errorf("explicit baseline %s is unknown to the snapshot state %s: can't solidify baseline",
 			explicitBaselineID.StringShort(), snapID.StringShort())
 	}
-	// explicit baseline is not known for the node, needs attaching and solidification
+	// the explicit baseline is not known for the node, needs attaching and solidification
 	return AttachTxID(explicitBaselineID, a, WithInvokedBy(a.name)), nil
 }
 
-// findBaselineDirection return either first endorsement, or predecessor. That will be the direction
+// findBaselineDirection return either first endorsement or the predecessor. That will be the direction
 // where to find non-explicit baseline branch
 func (a *attacher) findBaselineDirection(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ret *vertex.WrappedTx) {
 	// regular sequencer tx. Go to the direction of the baseline branch
@@ -173,7 +173,7 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 		baselineDirection = a.findBaselineDirection(v, vidUnwrapped)
 	}
 
-	// here we reference baseline direction
+	// here we reference the baseline direction
 	if !a.pastCone.MarkVertexKnown(baselineDirection) {
 		// wasn't able to reference baseline direction (pruned) but it is ok
 		return true
@@ -198,7 +198,7 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 	case vertex.Bad:
 		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is BAD", baselineDirection.IDShortString)
 
-		err := baselineDirection.GetError()
+		err = baselineDirection.GetError()
 		a.Assertf(err != nil, "err!=nil")
 		a.setError(err)
 		return false
