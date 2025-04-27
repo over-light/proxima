@@ -614,21 +614,15 @@ func (pc *PastCone) getBaseline() *WrappedTx {
 
 // AppendPastCone appends deterministic past cone to the current one. Does not check for conflicts
 func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multistate.IndexedStateReader) {
-	baseline := pc.getBaseline()
-	pc.Assertf(baseline != nil, "pc.hasBaseline()")
-	pc.Assertf(pcb.baseline != nil, "pcb.baseline != nil")
-	// pcb should not be younger than pc (cannot check here if baselines are compatible (on the same chain)
-	pc.Assertf(pc.baseline.Timestamp().AfterOrEqual(pcb.baseline.Timestamp()), "pc.baseline.Timestamp(%s).AfterOrEqual(pcb.baseline.Timestamp(%s))",
-		pc.baseline.Timestamp().String, pcb.baseline.Timestamp().String)
-
 	if len(pcb.vertices) == 0 {
 		return
 	}
+	pc.Assertf(pc.getBaseline() != nil, "pc.getBaseline() != nil")
+	pc.Assertf(pcb.baseline != nil, "pcb.baseline != nil")
 
 	for vid, flags := range pcb.vertices {
 		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
 			flags.String, vid.IDShortString, pcb.Lines("    ").String)
-
 		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
 			// if vertex is in the state of the appended past cone, it will be in the state of the new baseline
 			// When vertex not in appended baseline, check if it didn't become known in the new one
