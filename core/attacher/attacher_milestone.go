@@ -104,7 +104,7 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 }
 
 func (a *milestoneAttacher) run() error {
-	// first solidify baseline state
+	// first determine the baseline state
 
 	if status := a.solidifyBaseline(); status != vertex.Good {
 		a.Tracef(TraceTagAttachMilestone, "baseline solidification failed. Reason: %v", a.err)
@@ -149,24 +149,24 @@ func (a *milestoneAttacher) run() error {
 		a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 	}
 
-	//{ // debug
-	//	const (
-	//		lastCheck     = false
-	//		printPastCone = false
-	//	)
-	//	if lastCheck {
-	//		err = a.pastCone.CheckFinalPastCone(a.baselineStateReader)
-	//		if err != nil {
-	//			err = fmt.Errorf("%w\n------ past cone of %s ------\n%s",
-	//				err, a.vid.IDShortString(), a.pastCone.Lines("     ").Join("\n"))
-	//			memdag.SaveGraphPastCone(a.vid, "past_cone_CheckFinalPastCone")
-	//		}
-	//		a.AssertNoError(err)
-	//	}
-	//	if printPastCone {
-	//		a.Log().Infof(">>>>>>>>>>>>> past cone of attacher %s\n%s", a.Name(), a.pastCone.Lines("      ").String())
-	//	}
-	//}
+	{ // debug
+		const (
+			lastCheck     = true
+			printPastCone = false
+		)
+		if lastCheck {
+			err = a.pastCone.CheckFinalPastCone(a.baselineStateReader)
+			if err != nil {
+				err = fmt.Errorf("%w\n------ past cone of %s ------\n%s",
+					err, a.vid.IDShortString(), a.pastCone.Lines("     ").Join("\n"))
+				memdag.SaveGraphPastCone(a.vid, "past_cone_CheckFinalPastCone")
+			}
+			a.AssertNoError(err)
+		}
+		if printPastCone {
+			a.Log().Infof(">>>>>>>>>>>>> past cone of attacher %s\n%s", a.Name(), a.pastCone.Lines("      ").String())
+		}
+	}
 
 	a.SendToTippool(a.vid)
 
@@ -293,7 +293,7 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 					// dispose vertex
 					return
 				}
-				const doubleCheck = false
+				const doubleCheck = true
 				if doubleCheck && finalSuccess {
 					// double check
 					lc := a.LedgerCoverage()

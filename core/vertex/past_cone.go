@@ -644,7 +644,7 @@ func (pc *PastCone) CheckFinalPastCone(getStateReader func() multistate.IndexedS
 		return fmt.Errorf("CheckFinalPastCone: still contains undefined Vertices")
 	}
 
-	// should be at least one 'rooted' output ( ledger baselineCoverage must be > 0)
+	// should be at least one 'rooted' output (ledger baselineCoverage must be > 0)
 	if !pc.hasRooted() {
 		return fmt.Errorf("CheckFinalPastCone: at least one rooted output is expected")
 	}
@@ -660,7 +660,7 @@ func (pc *PastCone) CheckFinalPastCone(getStateReader func() multistate.IndexedS
 			return fmt.Errorf("BAD vertex in the past cone: %s", vid.IDShortString())
 		}
 		if pc.IsInTheState(vid) {
-			// do not check dependencies if transaction is Rooted
+			// do not check dependencies if the transaction is rooted
 			continue
 		}
 		vid.Unwrap(UnwrapOptions{Vertex: func(v *Vertex) {

@@ -52,7 +52,7 @@ func (a *attacher) solidifyBaselineVertex(v *vertex.Vertex, vidUnwrapped *vertex
 	if v.Tx.IsBranchTransaction() {
 		return a.solidifyStemOfTheVertex(v, vidUnwrapped)
 	}
-	return a.solidifySequencerBaseline(v)
+	return a.solidifySequencerBaseline(v, vidUnwrapped)
 }
 
 func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
@@ -72,7 +72,7 @@ func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *verte
 
 	switch stemVid.GetTxStatus() {
 	case vertex.Good:
-		// it is 'good' and referenced branch -> make it baseline
+		// it is GOOD -> make it a baseline
 		v.BaselineBranch = stemVid
 		// !!!!
 		a.pastCone.SetFlagsUp(stemVid, vertex.FlagPastConeVertexCheckedInTheState|vertex.FlagPastConeVertexInTheState|vertex.FlagPastConeVertexDefined)
@@ -94,7 +94,7 @@ func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *verte
 
 const TraceTagSolidifySequencerBaseline = "seqBase"
 
-func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex) (ok bool) {
+func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
 	defer a.Tracef(TraceTagSolidifySequencerBaseline, "OUT for %s", v.Tx.IDShortString)
 
@@ -111,7 +111,10 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex) (ok bool) {
 		a.setError(err)
 		return false
 	}
-	baselineDirection := AttachTxID(baselineDirectionID, a, WithInvokedBy(a.name))
+	baselineDirection := AttachTxID(baselineDirectionID, a,
+		WithInvokedBy(a.name),
+		WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
+	)
 	a.pastCone.MarkVertexKnown(baselineDirection)
 
 	switch baselineDirection.GetTxStatus() {
@@ -187,8 +190,12 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 				a.Log().Fatalf("inconsistency: wrong tx status")
 			}
 		},
-		DetachedVertex: func(_ *vertex.DetachedVertex) {
-			ok = true //<<<<<< ??
+		DetachedVertex: func(v *vertex.DetachedVertex) {
+			AttachTransaction(v.Tx, a,
+				WithInvokedBy(a.name),
+				WithAttachmentDepth(vid.GetAttachmentDepthNoLock()+1),
+			)
+			ok = true
 		},
 		VirtualTx: func(_ *vertex.VirtualTransaction) {
 			ok = true
