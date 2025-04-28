@@ -286,7 +286,7 @@ func Test3Seq1TagAlong(t *testing.T) {
 		nSequencers     = 2 // in addition to bootstrap
 		batchSize       = 10
 		sendAmount      = 2000
-		spammingTimeout = 30 * time.Second
+		spammingTimeout = 20 * time.Second
 	)
 	testData := initMultiSequencerTest(t, nSequencers, true)
 

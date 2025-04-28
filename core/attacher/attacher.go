@@ -44,57 +44,57 @@ func (a *attacher) setError(err error) {
 	a.err = err
 }
 
-// solidifyBaselineVertex directs the attachment process down the MemDAG to reach the deterministically known baseline state
-// for a sequencer milestone. Existence of it is guaranteed by the ledger constraints
-// Success of the baseline solidification is when the function returns true and v.BaselineBranch != nil
-func (a *attacher) solidifyBaselineVertex(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
-	a.Assertf(a.baseline == nil, "a.baseline == nil")
-	if v.Tx.IsBranchTransaction() {
-		return a.solidifyStemOfTheVertex(v, vidUnwrapped)
-	}
-	return a.solidifySequencerBaseline(v, vidUnwrapped)
-}
+//func (a *attacher) solidifyBaselineVertex(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
+//	a.Assertf(a.baseline == nil, "a.baseline == nil")
+//	//if v.Tx.IsBranchTransaction() {
+//	//	return a.solidifyStemOfTheVertex(v, vidUnwrapped)
+//	//}
+//	return a.solidifySequencerBaseline(v, vidUnwrapped)
+//}
 
-func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
-	a.Assertf(v.BaselineBranch == nil, "v.BaselineBranch == nil")
-
-	stemInputIdx := v.StemInputIndex()
-	stemInputOid := v.Tx.MustInputAt(stemInputIdx)
-	stemTxID := stemInputOid.TransactionID()
-	stemVid := AttachTxID(stemTxID, a,
-		WithInvokedBy(a.name),
-		WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
-	)
-
-	a.Assertf(stemVid.IsBranchTransaction(), "stemVid.IsBranchTransaction()")
-
-	a.pastCone.MarkVertexKnown(stemVid)
-
-	switch stemVid.GetTxStatus() {
-	case vertex.Good:
-		// it is GOOD -> make it a baseline
-		v.BaselineBranch = stemVid
-		// !!!!
-		a.pastCone.SetFlagsUp(stemVid, vertex.FlagPastConeVertexCheckedInTheState|vertex.FlagPastConeVertexInTheState|vertex.FlagPastConeVertexDefined)
-		a.Tracef(TraceTagBranchAvailable, "$$$$$$$ stemVid GOOD: %s", stemVid.IDShortString)
-		return true
-
-	case vertex.Bad:
-		err := stemVid.GetError()
-		a.Assertf(err != nil, "err!=nil")
-		a.setError(err)
-		return false
-
-	case vertex.Undefined:
-		a.Tracef(TraceTagBranchAvailable, "$$$$$$$ stemVid UNDEF: %s", stemVid.IDShortString)
-		return a.pullIfNeeded(stemVid, "solidifyStem")
-	}
-	panic("wrong vertex state")
-}
+//func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
+//	a.Assertf(v.BaselineBranch == nil, "v.BaselineBranch == nil")
+//
+//	stemInputIdx := v.StemInputIndex()
+//	stemInputOid := v.Tx.MustInputAt(stemInputIdx)
+//	stemTxID := stemInputOid.TransactionID()
+//	stemVid := AttachTxID(stemTxID, a,
+//		WithInvokedBy(a.name),
+//		WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
+//	)
+//
+//	a.Assertf(stemVid.IsBranchTransaction(), "stemVid.IsBranchTransaction()")
+//
+//	a.pastCone.MarkVertexKnown(stemVid)
+//
+//	switch stemVid.GetTxStatus() {
+//	case vertex.Good:
+//		// it is GOOD -> make it a baseline
+//		v.BaselineBranch = stemVid
+//		// !!!!
+//		a.pastCone.SetFlagsUp(stemVid, vertex.FlagPastConeVertexCheckedInTheState|vertex.FlagPastConeVertexInTheState|vertex.FlagPastConeVertexDefined)
+//		a.Tracef(TraceTagBranchAvailable, "$$$$$$$ stemVid GOOD: %s", stemVid.IDShortString)
+//		return true
+//
+//	case vertex.Bad:
+//		err := stemVid.GetError()
+//		a.Assertf(err != nil, "err!=nil")
+//		a.setError(err)
+//		return false
+//
+//	case vertex.Undefined:
+//		a.Tracef(TraceTagBranchAvailable, "$$$$$$$ stemVid UNDEF: %s", stemVid.IDShortString)
+//		return a.pullIfNeeded(stemVid, "solidifyStem")
+//	}
+//	panic("wrong vertex state")
+//}
 
 const TraceTagSolidifySequencerBaseline = "seqBase"
 
-func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
+// solidifySequencerBaseline directs the attachment process down the MemDAG to reach the deterministically known baseline state
+// for a sequencer milestone. Existence of it is guaranteed by the ledger constraints
+// Success of the baseline solidification is when the function returns true and v.BaselineBranch != nil
+func (a *attacher) solidifyBaselineUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
 	defer a.Tracef(TraceTagSolidifySequencerBaseline, "OUT for %s", v.Tx.IDShortString)
 
@@ -142,7 +142,7 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 	case vertex.Undefined:
 		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is UNDEF -> pullIfNeeded", baselineDirection.IDShortString)
 
-		return a.pullIfNeeded(baselineDirection, "solidifySequencerBaseline")
+		return a.pullIfNeeded(baselineDirection, "solidifyBaselineUnwrapped")
 	}
 	panic("wrong vertex state")
 }

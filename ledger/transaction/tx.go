@@ -989,6 +989,11 @@ func (tx *Transaction) BaselineDirection() (ret base.TransactionID) {
 	predOid, idx := tx.SequencerChainPredecessor()
 	util.Assertf(idx != 0xff, "inconsistency: sequencer milestone cannot be a chain origin. %s hex = %s", tx.IDShortString, tx.IDStringHex)
 
+	if tx.IsBranchTransaction() {
+		ret = predOid.TransactionID()
+		return
+	}
+	// not branch tx
 	if predOid.Slot() != tx.Slot() || !predOid.IsSequencerTransaction() {
 		util.Assertf(tx.NumEndorsements() > 0, "tx.NumEndorsements()>0")
 		// follow the endorsement if it is cross-slot or the predecessor is not a sequencer tx

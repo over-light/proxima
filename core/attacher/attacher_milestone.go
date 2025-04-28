@@ -204,15 +204,11 @@ func (a *milestoneAttacher) lazyRepeat(loopName string, fun func() vertex.Status
 		select {
 		case <-a.pokeChan:
 			a.finals.numPokes++
-			a.Tracef(TraceTagAttachMilestone, "poked")
-
 		case <-a.ctx.Done():
 			a.setError(fmt.Errorf("%w. Undefined past cone: %s", global.ErrInterrupted, a.pastCone.UndefinedListLines().Join(", ")))
 			return vertex.Bad
-
 		case <-time.After(periodicCheckEach):
 			a.finals.numPeriodic++
-			a.Tracef(TraceTagAttachMilestone, "periodic check")
 		}
 
 		if !a.DeadlockCatchingDisabled() {
@@ -248,7 +244,8 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 				a.Assertf(a.vid.GetTxStatusNoLock() == vertex.Undefined, "a.vid.GetTxStatusNoLock() == vertex.Undefined:\n%s", a.vid.StringNoLock)
 				a.Assertf(a.baseline == nil, "a.baseline == nil")
 
-				ok = a.solidifyBaselineVertex(v, a.vid)
+				//ok = a.solidifyBaselineVertex(v, a.vid)
+				ok = a.solidifyBaselineUnwrapped(v, a.vid)
 				if ok && v.BaselineBranch != nil {
 					finalSuccess = a.setBaseline(v.BaselineBranch)
 				}
