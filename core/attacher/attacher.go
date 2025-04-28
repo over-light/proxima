@@ -106,6 +106,7 @@ func (a *attacher) handleExplicitBaseline(v *vertex.Vertex) (*vertex.WrappedTx, 
 	if _, found := multistate.FetchRootRecord(a.StateStore(), explicitBaselineID); found {
 		return AttachTxID(explicitBaselineID, a, WithInvokedBy(a.name)), nil
 	}
+	// Warning: snapshot branch is non-deterministic!!!
 	snapID := a.SnapshotBranchID()
 	if explicitBaselineID.Timestamp().BeforeOrEqual(snapID.Timestamp()) {
 		// explicit baseline is earlier than snapshot. Check if explicit baseline is known to the snapshot state.
@@ -152,7 +153,7 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
 	defer a.Tracef(TraceTagSolidifySequencerBaseline, "OUT for %s", v.Tx.IDShortString)
 
-	// check if transaction has explicit baseline set and assume it as baseline direction
+	// check if the transaction has an explicit baseline set and assume it as a baseline direction
 	baselineDirection, err := a.handleExplicitBaseline(v)
 	if err != nil {
 		a.setError(err)
@@ -160,9 +161,10 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 	}
 
 	if baselineDirection == nil {
+		// Warning: snapshot branch is non-deterministic!!!
 		snapID := a.SnapshotBranchID()
 		if snapID.Timestamp().AfterOrEqual(vidUnwrapped.Timestamp()) {
-			// If attacher is before the snapshot, baseline needs special treatment
+			// If attacher is before the snapshot, the baseline needs special treatment
 			// Set baseline equal to the snapshot branch. Snapshot state always exists
 			v.BaselineBranch = AttachTxID(snapID, a, WithInvokedBy(a.name))
 			a.Log().Infof("%s: snapshot branch %s was assumed as the baseline for the transaction %s",

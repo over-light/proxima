@@ -47,7 +47,7 @@ type (
 		// immutable id. It does not change with the change of the underlying wrapped vertex type
 		id base.TransactionID
 		// sequencer id not nil for sequencer transactions only. Once it is set not nil, it is immutable since.
-		// It is set whenever transaction becomes available
+		// It is set whenever the transaction becomes available
 		SequencerID atomic.Pointer[base.ChainID]
 		mutex       sync.RWMutex // *sema.Sema // sync.RWMutex // protects _genericVertex
 		flags       Flags
@@ -62,9 +62,8 @@ type (
 		mutexDescendants sync.RWMutex
 		consumed         map[byte]set.Set[*WrappedTx]
 		attachmentDepth  int
-		//references       atomic.Int32
-		SlotWhenAdded base.Slot // immutable
-		pastCone      *PastConeBase
+		SlotWhenAdded    base.Slot // immutable
+		pastCone         *PastConeBase
 	}
 
 	WrappedOutput struct {

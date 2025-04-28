@@ -296,7 +296,7 @@ func makeSequencerGraphEdges(vid *vertex.WrappedTx, gr graph.Graph[string, strin
 }
 
 // MakeDAGFromTxStore creates dummy MemDAG from past cones of tips. Only uses txBytes from txStore
-// It is used in testing, to visualize real transaction MemDAG, not the pruned cache kept in the node
+// It is used in testing to visualize real transaction MemDAG, not the pruned cache kept in the node
 func MakeDAGFromTxStore(txStore global.TxBytesGet, oldestSlot base.Slot, tips ...base.TransactionID) *MemDAG {
 	d := New(nil)
 	for i := range tips {
