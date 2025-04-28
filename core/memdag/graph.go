@@ -143,6 +143,9 @@ func makeGraphEdges(vid *vertex.WrappedTx, gr graph.Graph[string, string]) {
 			//util.Assertf(err == nil || errors.Is(err, graph.ErrEdgeAlreadyExists), "%v", err)
 			return true
 		})
+		if eid, ok := v.Tx.ExplicitBaseline(); ok {
+			_ = gr.AddEdge(id, eid.StringVeryShort(), graph.EdgeAttribute("color", "blue"))
+		}
 	}})
 }
 
@@ -330,6 +333,9 @@ func (d *MemDAG) loadPastConeFromTxStore(txid base.TransactionID, txStore global
 	for i := range v.Endorsements {
 		endID := tx.EndorsementAt(byte(i))
 		v.Endorsements[i] = d.loadPastConeFromTxStore(endID, txStore, oldestSlot)
+	}
+	if explicitBaselineID, ok := tx.ExplicitBaseline(); ok {
+		d.loadPastConeFromTxStore(explicitBaselineID, txStore, oldestSlot)
 	}
 	vid := v.Wrap()
 	vid.SetTxStatusGood(nil, 0)
