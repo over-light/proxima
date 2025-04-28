@@ -140,12 +140,12 @@ func BaseValidation(tx *Transaction) error {
 	if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
 		return fmt.Errorf("wrong stem output index")
 	}
-	// parse total amount as trimmed-prefix uint68. Validity of the sum is not checked here
+	// parse the total amount as trimmed-prefix uint68. Validity of the sum is not checked here
 	tx.totalAmount, err = easyfl_util.Uint64FromBytes(tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount)))
 	if err != nil {
 		return fmt.Errorf("wrong total amount in transaction: %v", err)
 	}
-	// check if number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
+	// check if the number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
 	numProducedOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
 	if numProducedOutputs <= 0 || numProducedOutputs > 256 {
 		return fmt.Errorf("number of outputs must be positive and not exceed 256")
@@ -823,21 +823,20 @@ func (tx *Transaction) SequencerAndStemInputData() (seqInputIdx *byte, stemInput
 // SequencerChainPredecessor returns chain predecessor output ID
 // If it is chain origin, it returns nil. Otherwise, it may or may not be a sequencer ID
 // It also returns index of the inout
-func (tx *Transaction) SequencerChainPredecessor() (*base.OutputID, byte) {
+func (tx *Transaction) SequencerChainPredecessor() (base.OutputID, byte) {
 	seqMeta := tx.SequencerTransactionData()
 	util.Assertf(seqMeta != nil, "SequencerChainPredecessor: must be a sequencer transaction")
 
 	if seqMeta.SequencerOutputData.ChainConstraint.IsOrigin() {
-		return nil, 0xff
+		return base.OutputID{}, 0xff
 	}
-
 	ret, err := tx.InputAt(seqMeta.SequencerOutputData.ChainConstraint.PredecessorInputIndex)
 	util.AssertNoError(err)
 	// The following is ensured by the 'chain' and 'sequencer' constraints on the transaction
 	// Returned predecessor outputID must be:
 	// - if the transaction is branch tx, then it returns tx id which may or may not be a sequencer transaction id
 	// - if the transaction is not a branch tx, it must always return sequencer tx id (which may or may not be a branch)
-	return &ret, seqMeta.SequencerOutputData.ChainConstraint.PredecessorInputIndex
+	return ret, seqMeta.SequencerOutputData.ChainConstraint.PredecessorInputIndex
 }
 
 func (tx *Transaction) FindChainOutput(chainID base.ChainID) *ledger.OutputWithID {
@@ -976,4 +975,26 @@ func LinesFromTransactionBytes(txBytes []byte, inputLoader func(i byte) (*ledger
 		return lines.New(prefix...).Add("TxContextFromTransaction returned: %v", err)
 	}
 	return txCtx.Lines(prefix...)
+}
+
+// BaselineDirection is the input, endorsement or explicit baseline of the sequencer transaction where to look for a baseline branch
+// It is not a baseline yet (but it can be one).
+// It is assumed tx is a sequencer transaction and not the origin of the sequencer chain
+func (tx *Transaction) BaselineDirection() (ret base.TransactionID) {
+	util.Assertf(tx.IsSequencerTransaction(), "tx.IsSequencerTransaction()")
+	var ok bool
+	if ret, ok = tx.ExplicitBaseline(); ok {
+		return
+	}
+	predOid, idx := tx.SequencerChainPredecessor()
+	util.Assertf(idx != 0xff, "inconsistency: sequencer milestone cannot be a chain origin. %s hex = %s", tx.IDShortString, tx.IDStringHex)
+
+	if predOid.Slot() != tx.Slot() || !predOid.IsSequencerTransaction() {
+		util.Assertf(tx.NumEndorsements() > 0, "tx.NumEndorsements()>0")
+		// follow the endorsement if it is cross-slot or the predecessor is not a sequencer tx
+		ret = tx.EndorsementAt(0)
+	} else {
+		ret = predOid.TransactionID()
+	}
+	return
 }

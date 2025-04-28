@@ -254,8 +254,9 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
-				// TODO reattach?
-				a.Log().Fatalf("solidifyBaseline: unexpected detached tx %s", a.vid.StringNoLock())
+				// reattach
+				AttachTransaction(v.Tx, a, WithInvokedBy(a.name+"_reattach"))
+				//a.Log().Fatalf("solidifyBaseline: unexpected detached tx %s", a.vid.StringNoLock())
 			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyBaseline: unexpected virtual tx %s", a.vid.StringNoLock())

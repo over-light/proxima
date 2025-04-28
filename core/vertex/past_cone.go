@@ -280,9 +280,8 @@ func (pc *PastCone) IsInTheState(vid *WrappedTx) (rooted bool) {
 	return pc.IsKnown(vid) && pc.isVertexInTheState(vid)
 }
 
-func (pc *PastCone) MarkVertexKnown(vid *WrappedTx) bool {
+func (pc *PastCone) MarkVertexKnown(vid *WrappedTx) {
 	pc.SetFlagsUp(vid, FlagPastConeVertexKnown)
-	return true
 }
 
 func (pc *PastCone) markVertexWithFlags(vid *WrappedTx, flags FlagsPastCone) bool {

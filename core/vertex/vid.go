@@ -573,7 +573,7 @@ func (vid *WrappedTx) NumProducedOutputs() int {
 }
 
 // BaselineBranch baseline branch of the vertex
-func (vid *WrappedTx) BaselineBranch(reattachBranch ...func(txid base.TransactionID) *WrappedTx) (baselineBranch *WrappedTx) {
+func (vid *WrappedTx) BaselineBranch(reattachBranch ...func(tx base.TransactionID) *WrappedTx) (baselineBranch *WrappedTx) {
 	if vid.id.IsBranchTransaction() {
 		return vid
 	}

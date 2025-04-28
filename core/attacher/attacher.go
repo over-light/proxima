@@ -52,7 +52,7 @@ func (a *attacher) solidifyBaselineVertex(v *vertex.Vertex, vidUnwrapped *vertex
 	if v.Tx.IsBranchTransaction() {
 		return a.solidifyStemOfTheVertex(v, vidUnwrapped)
 	}
-	return a.solidifySequencerBaseline(v, vidUnwrapped)
+	return a.solidifySequencerBaseline(v)
 }
 
 func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
@@ -68,11 +68,7 @@ func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *verte
 
 	a.Assertf(stemVid.IsBranchTransaction(), "stemVid.IsBranchTransaction()")
 
-	// here it is referenced from the attacher
-	if !a.pastCone.MarkVertexKnown(stemVid) {
-		// failed to reference (pruned), but it is ok (rare event)
-		return true
-	}
+	a.pastCone.MarkVertexKnown(stemVid)
 
 	switch stemVid.GetTxStatus() {
 	case vertex.Good:
@@ -98,95 +94,30 @@ func (a *attacher) solidifyStemOfTheVertex(v *vertex.Vertex, vidUnwrapped *verte
 
 const TraceTagSolidifySequencerBaseline = "seqBase"
 
-func (a *attacher) handleExplicitBaseline(v *vertex.Vertex) (*vertex.WrappedTx, error) {
-	explicitBaselineID, exists := v.Tx.ExplicitBaseline()
-	if !exists {
-		return nil, nil
-	}
-	if _, found := multistate.FetchRootRecord(a.StateStore(), explicitBaselineID); found {
-		return AttachTxID(explicitBaselineID, a, WithInvokedBy(a.name)), nil
-	}
-	// Warning: snapshot branch is non-deterministic!!!
-	snapID := a.SnapshotBranchID()
-	if explicitBaselineID.Timestamp().BeforeOrEqual(snapID.Timestamp()) {
-		// explicit baseline is earlier than snapshot. Check if explicit baseline is known to the snapshot state.
-		// snapshot state always exists
-		if a.GetStateReaderForTheBranch(snapID).KnowsCommittedTransaction(explicitBaselineID) {
-			// assume snapshot branch as an explicit baseline
-			return AttachTxID(snapID, a, WithInvokedBy(a.name)), nil
-		}
-		return nil, fmt.Errorf("explicit baseline %s is unknown to the snapshot state %s: can't solidify baseline",
-			explicitBaselineID.StringShort(), snapID.StringShort())
-	}
-	// the explicit baseline is not known for the node, needs attaching and solidification
-	return AttachTxID(explicitBaselineID, a, WithInvokedBy(a.name)), nil
-}
-
-// findBaselineDirection return either first endorsement or the predecessor. That will be the direction
-// where to find non-explicit baseline branch
-func (a *attacher) findBaselineDirection(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ret *vertex.WrappedTx) {
-	// regular sequencer tx. Go to the direction of the baseline branch
-	predOid, _ := v.Tx.SequencerChainPredecessor()
-	a.Assertf(predOid != nil, "inconsistency: sequencer milestone cannot be a chain origin")
-
-	// follow the endorsement if it is cross-slot or predecessor is not sequencer tx
-	followTheEndorsement := predOid.Slot() != v.Tx.Slot() || !predOid.IsSequencerTransaction()
-	if followTheEndorsement {
-		// predecessor is on the earlier slot -> follow the first endorsement (guaranteed by the ledger constraint layer)
-		a.Assertf(v.Tx.NumEndorsements() > 0, "v.Tx.NumEndorsements()>0")
-		ret = AttachTxID(v.Tx.EndorsementAt(0), a,
-			WithInvokedBy(a.name),
-			WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
-		)
-		a.Tracef(TraceTagSolidifySequencerBaseline, "follow the endorsement %s", ret.IDShortString)
-	} else {
-		ret = AttachTxID(predOid.TransactionID(), a,
-			WithInvokedBy(a.name),
-			WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
-		)
-		a.Tracef(TraceTagSolidifySequencerBaseline, "follow the predecessor %s", ret.IDShortString)
-	}
-	return
-}
-
-func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
+func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex) (ok bool) {
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
 	defer a.Tracef(TraceTagSolidifySequencerBaseline, "OUT for %s", v.Tx.IDShortString)
 
-	// check if the transaction has an explicit baseline set and assume it as a baseline direction
-	baselineDirection, err := a.handleExplicitBaseline(v)
-	if err != nil {
+	// determine the baseline
+	baselineDirectionID := v.Tx.BaselineDirection()
+	util.Assertf(baselineDirectionID != base.TransactionID{}, "baselineDirectionID!=base.TransactionID()")
+
+	snapID := a.SnapshotBranchID()
+	if baselineDirectionID.Timestamp().Before(snapID.Timestamp()) {
+		// enforce solidification error. That makes the node operator to use snapshot old enough.
+		// This may be too strong, but better to avoid non-determinism with the snapshot
+		err := fmt.Errorf("baseline direction %s is before the snapshot slot %d: can't solidify baseline",
+			baselineDirectionID.String(), snapID.Slot())
 		a.setError(err)
 		return false
 	}
-
-	if baselineDirection == nil {
-		// Warning: snapshot branch is non-deterministic!!!
-		snapID := a.SnapshotBranchID()
-		if snapID.Timestamp().AfterOrEqual(vidUnwrapped.Timestamp()) {
-			// If attacher is before the snapshot, the baseline needs special treatment
-			// Set baseline equal to the snapshot branch. Snapshot state always exists
-			v.BaselineBranch = AttachTxID(snapID, a, WithInvokedBy(a.name))
-			a.Log().Infof("%s: snapshot branch %s was assumed as the baseline for the transaction %s",
-				a.name, v.BaselineBranch.IDShortString(), vidUnwrapped.IDShortString())
-			return true
-		}
-		// regular sequencer tx. Go to the direction of the baseline branch
-		baselineDirection = a.findBaselineDirection(v, vidUnwrapped)
-	}
-
-	// here we reference the baseline direction
-	if !a.pastCone.MarkVertexKnown(baselineDirection) {
-		// wasn't able to reference baseline direction (pruned) but it is ok
-		return true
-	}
+	baselineDirection := AttachTxID(baselineDirectionID, a, WithInvokedBy(a.name))
+	a.pastCone.MarkVertexKnown(baselineDirection)
 
 	switch baselineDirection.GetTxStatus() {
 	case vertex.Good:
 		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is GOOD", baselineDirection.IDShortString)
-
-		// 'good' baseline direction must have not-nil baseline.
-		// In case it was already detached, we provide reattach function for the branch
+		// in case the baseline is already detached, we provide a reattach function for the branch
 		baseline := baselineDirection.BaselineBranch(func(txid base.TransactionID) *vertex.WrappedTx {
 			return AttachTxID(txid, a, WithInvokedBy(a.name))
 		})
@@ -200,7 +131,7 @@ func (a *attacher) solidifySequencerBaseline(v *vertex.Vertex, vidUnwrapped *ver
 	case vertex.Bad:
 		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is BAD", baselineDirection.IDShortString)
 
-		err = baselineDirection.GetError()
+		err := baselineDirection.GetError()
 		a.Assertf(err != nil, "err!=nil")
 		a.setError(err)
 		return false
@@ -384,10 +315,7 @@ func (a *attacher) refreshDependencyStatus(vidDep *vertex.WrappedTx) (ok bool) {
 		return false
 	}
 
-	if !a.pastCone.MarkVertexKnown(vidDep) {
-		// not referenced but it is ok
-		return true
-	}
+	a.pastCone.MarkVertexKnown(vidDep)
 	a.defineInTheStateStatus(vidDep)
 	if !a.pullIfNeeded(vidDep, "refreshDependencyStatus") {
 		return false
