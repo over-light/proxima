@@ -681,7 +681,7 @@ func (tx *Transaction) ForEachOutputData(fun func(idx byte, oData []byte) bool) 
 
 // ForEachProducedOutput traverses all produced outputs
 // Inside callback function the correct outputID must be obtained with OutputID(idx byte) ledger.OutputID
-// because stem output ID has special form
+// because stem output ID has a special form
 func (tx *Transaction) ForEachProducedOutput(fun func(idx byte, o *ledger.Output, oid base.OutputID) bool) {
 	tx.ForEachOutputData(func(idx byte, oData []byte) bool {
 		o, _ := ledger.OutputFromBytesReadOnly(oData)

@@ -107,8 +107,11 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 			chainIdStr = "                      chainID: " + cid.StringShort()
 		}
 		ret.Add("  #%d %s", idx, oid.String()).
-			Add("       bytes (%d): %s", len(out.Bytes()), hex.EncodeToString(out.Bytes())).
-			Append(out.Lines("     ")).
+			Add("       bytes (%d): %s", len(out.Bytes()), hex.EncodeToString(out.Bytes()))
+		if msd := ledger.ParseMilestoneData(out); msd != nil {
+			ret.Add("       seq: %s", msd.Name)
+		}
+		ret.Append(out.Lines("     ")).
 			Add(chainIdStr)
 		return true
 	})
