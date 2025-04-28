@@ -45,7 +45,7 @@ func runIdListCmd(_ *cobra.Command, args []string) {
 		glb.Infof("slot = %d, hex: %s", slot, hex.EncodeToString(prefix))
 	}
 
-	db.Iterator(prefix).Iterate(func(k, _ []byte) bool {
+	db.Iterator(prefix).IterateKeys(func(k []byte) bool {
 		txid, err = base.TransactionIDFromBytes(k)
 		glb.AssertNoError(err)
 		glb.Infof("%s    hex = %s", txid.String(), txid.StringHex())
