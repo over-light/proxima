@@ -46,7 +46,7 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 	}
 	util.Assertf(txid.IsBranchTransaction(), "txid.IsBranchTransaction()")
 
-	// new branch transaction. DB look up outside the global lock -> prevent congestion
+	// new branch transaction. DB look-up is outside the global lock -> prevent congestion
 	branchData, branchAvailable := multistate.FetchBranchData(env.StateStore(), txid)
 
 	env.WithGlobalWriteLock(func() {
@@ -54,7 +54,7 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 			return
 		}
 		if branchAvailable {
-			// corresponding state has been found, it is solid -> put virtual branch tx to the memDAG
+			// the corresponding state has been found, it is solid -> put virtual branch tx to the memDAG
 			vid = vertex.WrapBranchDataAsVirtualTx(&branchData)
 			env.AddVertexNoLock(vid)
 			env.Assertf(vid.GetTxStatusNoLock() == vertex.Good, "vid.GetTxStatusNoLock()==vertex.Good")
@@ -73,8 +73,8 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 	return
 }
 
-// AttachTransaction attaches new incoming transaction. For sequencer transaction it starts milestoneAttacher routine
-// which manages solidification pulling until transaction becomes solid or stopped by the context
+// AttachTransaction attaches the new incoming transaction. For sequencer transaction it starts the milestoneAttacher routine
+// which manages solidification pulling until the transaction becomes solid or stopped by the context
 func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...AttachTxOption) (vid *vertex.WrappedTx) {
 	options := &_attacherOptions{}
 	for _, opt := range opts {

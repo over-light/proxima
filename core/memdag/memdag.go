@@ -24,6 +24,7 @@ type (
 		DisableMemDAGGC() bool
 		PostEventTxDeleted(txid base.TransactionID)
 		IsSynced() bool
+		SnapshotBranchID() base.TransactionID
 	}
 
 	_vertexRecord struct {
@@ -224,8 +225,23 @@ func (d *MemDAG) cleanupCachedStateReaders() (int, int) {
 	return count, len(d.stateReaders)
 }
 
+// GetStateReaderForTheBranch returns a state reader for the branch or nil if the state does not exist.
+// If the branch is before the snapshot and branch ID is known in the snapshot state, it returns the snapshot state (which always exists)
 func (d *MemDAG) GetStateReaderForTheBranch(branchID base.TransactionID) multistate.IndexedStateReader {
 	util.Assertf(branchID.IsBranchTransaction(), "GetStateReaderForTheBranchExt: branch tx expected. Got: %s", branchID.StringShort())
+
+	snapID := d.SnapshotBranchID()
+	switch {
+	case branchID.Slot() < snapID.Slot():
+		// recursive but won't deadlock because the snapshot state always exists
+		snapRdr := d.GetStateReaderForTheBranch(snapID)
+		if snapRdr.KnowsCommittedTransaction(branchID) {
+			return snapRdr
+		}
+		return nil
+	case branchID.Slot() == snapID.Slot() && branchID != snapID:
+		return nil
+	}
 
 	d.stateReadersMutex.Lock()
 	defer d.stateReadersMutex.Unlock()
