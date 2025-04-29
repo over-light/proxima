@@ -92,16 +92,13 @@ func (vid *WrappedTx) ConvertToDetached() {
 		Vertex: func(v *Vertex) {
 			vid.convertToDetachedTxUnlocked(v)
 			vid.pastCone = nil
-			//fmt.Printf(">>>>>>> ConvertToDetached Vertex %s\n", vid.IDShortString())
 		},
 		DetachedVertex: func(v *DetachedVertex) {
 			util.Assertf(vid.pastCone == nil || vid.IsBranchTransaction(), "vid.pastCone == nil ||vid.IsBranchTransaction()")
 			vid.pastCone = nil // Important: if not this, memdag leaks memory
-			//fmt.Printf(">>>>>>> ConvertToDetached DetachedVertex %s\n", vid.IDShortString())
 		},
 		VirtualTx: func(v *VirtualTransaction) {
 			util.Assertf(vid.pastCone == nil, "vid.pastCone == nil")
-			//fmt.Printf(">>>>>>> ConvertToDetached VirtualTx %s\n", vid.IDShortString())
 		},
 	})
 }
@@ -111,9 +108,6 @@ func (vid *WrappedTx) convertToDetachedTxUnlocked(v *Vertex) {
 	v.UnReferenceDependencies()
 	vid.OnPokeNop()
 	vid.SetFlagsUpNoLock(FlagVertexIgnoreAbsenceOfPastCone)
-	//vid.pastCone.Dispose()
-	//vid.pastCone = nil
-	//vid.consumed = nil
 }
 
 func (vid *WrappedTx) GetTxStatus() Status {
@@ -146,6 +140,10 @@ func (vid *WrappedTx) SetTxStatusGood(pastCone *PastConeBase, coverage uint64) {
 	vid.mutex.Lock()
 	defer vid.mutex.Unlock()
 
+	vid.SetTxStatusGoodNoLock(pastCone, coverage)
+}
+
+func (vid *WrappedTx) SetTxStatusGoodNoLock(pastCone *PastConeBase, coverage uint64) {
 	util.Assertf(vid.GetTxStatusNoLock() != Bad, "vid.GetTxStatusNoLock() != Bad (%s)", vid.StringNoLock)
 
 	vid.flags.SetFlagsUp(FlagVertexDefined)
@@ -185,19 +183,6 @@ func (vid *WrappedTx) SetTxStatusBadNoLock(reason error) {
 	vid.err = reason
 }
 
-//func (vid *WrappedTx) Reference() {
-//	vid.references.Add(1)
-//}
-//
-//func (vid *WrappedTx) UnReference() {
-//	v := vid.references.Add(-1)
-//	util.Assertf(v >= 0, "vertex reference counter should not go below 0 in %s", vid.IDShortString)
-//}
-//
-//func (vid *WrappedTx) NumReferences() int {
-//	return int(vid.references.Load())
-//}
-
 func (vid *WrappedTx) GetError() error {
 	vid.mutex.RLock()
 	defer vid.mutex.RUnlock()
@@ -236,9 +221,9 @@ func (vid *WrappedTx) Poke() {
 	vid.onPoke.Load().(func())()
 }
 
-// WrapTxID creates VID with virtualTx which only contains txid.
-// Also sets solidification deadline, after which IsPullDeadlineDue will start returning true
-// The pull deadline will be dropped after transaction will become available and virtualTx will be converted
+// WrapTxID creates VID with a virtualTx which only contains txid.
+// Also sets the solidification deadline, after which IsPullDeadlineDue will start returning true
+// The pull deadline will be dropped after transaction becomes available and virtualTx will be converted
 // to full vertex
 func WrapTxID(txid base.TransactionID) *WrappedTx {
 	return _newVID(_virtualTx{newVirtualTx()}, txid, nil)
@@ -601,15 +586,11 @@ func (vid *WrappedTx) MustEnsureOutput(o *ledger.Output, idx byte) {
 			util.Assertf(bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()),
 				"MustEnsureOutput: inconsistent output data in %s",
 				func() string { return util.Ref(v.Tx.OutputID(idx)).StringShort() })
-			//if !bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()) {
-			//	err = fmt.Errorf("MustEnsureOutput: inconsistent output data in %s", util.Ref(v.Tx.OutputID(idx)).StringShort())
-			//}
 		},
 		DetachedVertex: func(v *DetachedVertex) {
 			util.Assertf(bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()),
 				"MustEnsureOutput: inconsistent output data in %s",
 				func() string { return util.Ref(v.Tx.OutputID(idx)).StringShort() })
-			//if !bytes.Equal(o.Bytes(), v.Tx.MustProducedOutputAt(idx).Bytes()) {
 		},
 		VirtualTx: func(v *VirtualTransaction) {
 			v.mustAddOutput(idx, o)
@@ -618,7 +599,7 @@ func (vid *WrappedTx) MustEnsureOutput(o *ledger.Output, idx byte) {
 }
 
 // AddConsumer stores consumer of the vid[outputIndex] consumed output.
-// Function checkConflicts checks if new consumer conflicts with already existing ones
+// Function checkConflicts checks if the new consumer conflicts with already existing ones
 func (vid *WrappedTx) AddConsumer(outputIndex byte, consumer *WrappedTx) {
 	util.Assertf(int(outputIndex) < vid.NumProducedOutputs(), "wrong output index")
 

@@ -49,7 +49,7 @@ const TraceTagSolidifySequencerBaseline = "seqBase"
 // solidifySequencerBaseline directs the attachment process down the MemDAG to reach the deterministically known baseline state
 // for a sequencer milestone. Existence of it is guaranteed by the ledger constraints
 // Success of the baseline solidification is when the function returns true and v.BaselineBranch != nil
-// Special edge case: when baseline branch is before the snapshot state, it has to be taken into account if
+// Special edge case: when the baseline branch is before the snapshot state, it has to be taken into account if
 // it can be used as a baseline or not
 func (a *attacher) solidifyBaselineUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
 	a.Tracef(TraceTagSolidifySequencerBaseline, "IN for %s", v.Tx.IDShortString)
@@ -67,49 +67,22 @@ func (a *attacher) solidifyBaselineUnwrapped(v *vertex.Vertex, vidUnwrapped *ver
 
 	switch baselineDirection.GetTxStatus() {
 	case vertex.Good:
-		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is GOOD", baselineDirection.IDShortString)
 		// in case the baseline is already detached, we provide a reattach function for the branch
 		baseline := baselineDirection.BaselineBranch(func(txid base.TransactionID) *vertex.WrappedTx {
 			return AttachTxID(txid, a, WithInvokedBy(a.name+"_reattach"))
 		})
 		a.Assertf(baseline != nil, "baseline is nil in %s. Baseline direction:\n%s",
 			a.name, func() string { return baselineDirection.Lines("    ").String() })
-		a.Assertf(baseline.IsBranchTransaction(), "baseline.IsBranchTransaction()")
 
 		v.BaselineBranch = baseline
 		return true
 
 	case vertex.Bad:
-		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is BAD", baselineDirection.IDShortString)
-
-		err := baselineDirection.GetError()
-		a.Assertf(err != nil, "err!=nil")
-		a.setError(err)
+		a.setError(baselineDirection.GetError())
 		return false
 
 	case vertex.Undefined:
-		a.Tracef(TraceTagSolidifySequencerBaseline, "baselineDirection %s is UNDEF -> pullIfNeeded", baselineDirection.IDShortString)
-		snapID := a.SnapshotBranchID()
-		if !baselineDirectionID.IsBranchTransaction() || baselineDirectionID.Slot() > snapID.Slot() {
-			// baseline direction is not a branch, or it is after the snapshot -> pull it
-			return a.pullIfNeeded(baselineDirection, "solidifyBaselineUnwrapped")
-		}
-
-		a.Assertf(baselineDirectionID.IsBranchTransaction() && baselineDirectionID.Slot() <= snapID.Slot(),
-			"branch before snapshot is expected, got %s", baselineDirectionID.String)
-
-		// it is a branch before the snapshot
-		if a.GetStateReaderForTheBranch(baselineDirectionID) != nil {
-			// state is available (original or snapshot) -> can be used as a baseline
-			// TODO set it GOOD?
-			v.BaselineBranch = baselineDirection
-			return true
-		}
-		// it is not known in the snapshot state, so it cannot be solidified
-		err := fmt.Errorf("baseline branch state %s is before snapshot slot %d and is not available -> can't solidify baseline",
-			baselineDirectionID.String(), snapID.Slot())
-		a.setError(err)
-		return false
+		return a.pullIfNeeded(baselineDirection, "solidifyBaselineUnwrapped")
 	}
 	panic("wrong vertex state")
 }

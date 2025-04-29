@@ -1,6 +1,7 @@
 package attacher
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
@@ -62,13 +63,27 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 			env.SendToTippool(vid)
 			return
 		}
-		// the corresponding state is not in the multistate DB
-		//   -> put virtualTx to the utangle
-		//   -> pull is up to the attacher
+		// the corresponding state is not in the multistate DB. Create virtual Tx for the ID
 		vid = vertex.WrapTxID(txid)
 		env.AddVertexNoLock(vid)
-
 		vid.SetAttachmentDepthNoLock(options.depth)
+
+		snapID := env.SnapshotBranchID()
+		if txid.Slot() > snapID.Slot() {
+			// the branch is definitely post-snapshot
+			return
+		}
+		// check if the transaction is in the snapshot
+		// edge case when the branch is before or at the snapshot baseline
+		if env.GetStateReaderForTheBranch(snapID).KnowsCommittedTransaction(txid) {
+			// it is in the snapshot state -> mark it GOOD branch
+			vid.SetTxStatusGoodNoLock(nil, 0)
+		} else {
+			// it is not in the snapshot state -> mark it BAD branch
+			err := fmt.Errorf("baseline branch state %s is before snapshot slot %d and is not available -> can't solidify baseline",
+				txid.String(), snapID.Slot())
+			vid.SetTxStatusBadNoLock(err)
+		}
 	})
 	return
 }

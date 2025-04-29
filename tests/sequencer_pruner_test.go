@@ -278,7 +278,7 @@ func Test5SequencersIdlePruner(t *testing.T) {
 	multistate.SaveBranchTree(testData.wrk.StateStore(), fmt.Sprintf("utangle_tree_%d", nSequencers+1))
 }
 
-// FIXME sometimes fails (timeout?)
+// FIXME sometimes fails final amounts (timeout?)
 
 func Test3Seq1TagAlong(t *testing.T) {
 	const (

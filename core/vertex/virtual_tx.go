@@ -62,10 +62,6 @@ func (v *VirtualTransaction) _mustAddOutput(idx byte, o *ledger.Output) {
 	oOld, already := v.outputs[idx]
 	if already {
 		util.Assertf(bytes.Equal(oOld.Bytes(), o.Bytes()), "VirtualTransaction.mustAddOutput: inconsistent input data at index %d", idx)
-		//if !bytes.Equal(oOld.Bytes(), o.Bytes()) {
-		//	return fmt.Errorf("VirtualTransaction.mustAddOutput: inconsistent input data at index %d", idx)
-		//}
-		//return nil
 	}
 	v.outputs[idx] = o.Clone()
 }
