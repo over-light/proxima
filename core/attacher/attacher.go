@@ -455,16 +455,15 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 
 	// FIXME baseline may not be in the state due to snapshot
 
-	rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID())
-	if !found {
-		// it can happen when the root record is pruned
-		a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline can't fetch root record for %s", baselineVID.IDShortString)
-		return false
+	if rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID()); found {
+		a.baseline = baselineVID
+		a.baselineSupply = rr.Supply
+		return true
 	}
 
-	a.baseline = baselineVID
-	a.baselineSupply = rr.Supply
-	return true
+	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline can't fetch root record for %s", baselineVID.IDShortString)
+	// it can happen when the root record is pruned
+	return false
 }
 
 // dumpLines beware deadlocks
