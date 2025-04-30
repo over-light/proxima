@@ -181,20 +181,17 @@ func (pc *PastCone) Assertf(cond bool, format string, args ...any) {
 	pc.Logging.Assertf(cond, format+"\n---- past cone ----\n%s", argsExt...)
 }
 
-func (pc *PastCone) SetBaseline(vid *WrappedTx) bool {
+func (pc *PastCone) SetBaseline(vid *WrappedTx) {
 	pc.Assertf(vid.IsBranchTransaction(), "vid.IsBranchTransaction(): %s", vid.IDShortString)
 	pc.Assertf(pc.baseline == nil, "SetBaseline: pc.baseline == nil in %s", pc.LinesShort("     ").String)
 
-	if !pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState) {
-		return false
-	}
+	pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState)
 	if pc.delta == nil {
 		pc.baseline = vid
 	} else {
 		pc.Assertf(pc.delta.baseline == nil, "SetBaseline: pc.delta.baseline == nil")
 		pc.delta.baseline = vid
 	}
-	return true
 }
 
 func (pc *PastCone) BeginDelta() {
@@ -284,9 +281,8 @@ func (pc *PastCone) MarkVertexKnown(vid *WrappedTx) {
 	pc.SetFlagsUp(vid, FlagPastConeVertexKnown)
 }
 
-func (pc *PastCone) markVertexWithFlags(vid *WrappedTx, flags FlagsPastCone) bool {
+func (pc *PastCone) markVertexWithFlags(vid *WrappedTx, flags FlagsPastCone) {
 	pc.SetFlagsUp(vid, flags)
-	return true
 }
 
 // MustMarkVertexNotInTheState is marked definitely not rooted

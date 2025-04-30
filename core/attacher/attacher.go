@@ -450,16 +450,14 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
 
-	// it may already be referenced, but this ensures it is done only once
-	if !a.pastCone.SetBaseline(baselineVID) {
-		return false
-	}
-
+	a.pastCone.SetBaseline(baselineVID)
 	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
+
+	// FIXME baseline may not be in the state due to snapshot
 
 	rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID())
 	if !found {
-		// it can happen when root record is pruned
+		// it can happen when the root record is pruned
 		a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline can't fetch root record for %s", baselineVID.IDShortString)
 		return false
 	}
