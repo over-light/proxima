@@ -19,6 +19,7 @@ type (
 		global.NodeGlobal
 		StateStore() multistate.StateStore
 		GetOwnSequencerID() *base.ChainID
+		IsSynced() bool
 	}
 
 	Snapshot struct {
@@ -102,6 +103,10 @@ func directoryExists(dir string) bool {
 }
 
 func (s *Snapshot) doSnapshot() {
+	if !s.IsSynced() {
+		s.Log().Infof("[snapshot] not synced, skipping snapshot")
+		return
+	}
 	snapshotBranch := multistate.FindLatestReliableBranchAndNSlotsBack(s.StateStore(), s.safeSlotsBack, global.FractionHealthyBranch)
 	if snapshotBranch == nil {
 		s.Log().Errorf("[snapshot] can't find latest reliable branch")

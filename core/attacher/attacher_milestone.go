@@ -20,7 +20,8 @@ import (
 
 const (
 	TraceTagAttachMilestone = "milestone"
-	periodicCheckEach       = 50 * time.Millisecond
+	// lazyRepeatEach polling time. TODO Probably should be adaptable rather than a constant
+	lazyRepeatEach = 200 * time.Millisecond // 50 * time.Millisecond
 )
 
 func runMilestoneAttacher(
@@ -207,7 +208,7 @@ func (a *milestoneAttacher) lazyRepeat(loopName string, fun func() vertex.Status
 		case <-a.ctx.Done():
 			a.setError(fmt.Errorf("%w. Undefined past cone: %s", global.ErrInterrupted, a.pastCone.UndefinedListLines().Join(", ")))
 			return vertex.Bad
-		case <-time.After(periodicCheckEach):
+		case <-time.After(lazyRepeatEach):
 			a.finals.numPeriodic++
 		}
 

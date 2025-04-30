@@ -162,6 +162,19 @@ func (d *MemDAG) deleteNoLock(txid base.TransactionID) {
 // -- nullifies strong references of those expired thus preparing them for GC
 func (d *MemDAG) doGC() (detached, deleted int) {
 	expired := make([]*vertex.WrappedTx, 0)
+	if !d.IsSynced() {
+		// if not synced, simplified scenario: just delete all GCed vertices
+		d.WithGlobalWriteLock(func() {
+			for txid, rec := range d.vertices {
+				if rec.Pointer.Value() == nil {
+					d.deleteNoLock(txid)
+					deleted++
+				}
+			}
+		})
+		return
+	}
+	// is synced.
 	// collect those expired
 	d.WithGlobalWriteLock(func() {
 		slotNow := ledger.TimeNow().Slot
@@ -176,7 +189,7 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 			}
 		}
 	})
-	if len(expired) == 0 || !d.IsSynced() {
+	if len(expired) == 0 {
 		return
 	}
 	for _, vid := range expired {
