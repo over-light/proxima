@@ -44,7 +44,7 @@ func (v *Vertex) ReferenceEndorsement(i byte, vid *WrappedTx) {
 func (v *Vertex) UnReferenceDependencies() {
 	clear(v.Inputs)
 	clear(v.Endorsements)
-	v.BaselineBranch = nil
+	v.BaselineBranchID = nil
 }
 
 // InputLoaderByIndex returns consumed output at index i or nil (if input is orphaned or inaccessible in the virtualTx)

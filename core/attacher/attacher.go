@@ -37,7 +37,10 @@ func (a *attacher) BaselineSugaredStateReader() multistate.SugaredStateReader {
 }
 
 func (a *attacher) baselineStateReader() multistate.IndexedStateReader {
-	return a.GetStateReaderForTheBranch(a.baseline.ID())
+	if a.baseline == nil {
+		return nil
+	}
+	return a.GetStateReaderForTheBranch(*a.baseline)
 }
 
 func (a *attacher) setError(err error) {
@@ -48,7 +51,7 @@ const TraceTagSolidifySequencerBaseline = "seqBase"
 
 // solidifySequencerBaseline directs the attachment process down the MemDAG to reach the deterministically known baseline state
 // for a sequencer milestone. Existence of it is guaranteed by the ledger constraints
-// Success of the baseline solidification is when the function returns true and v.BaselineBranch != nil
+// Success of the baseline solidification is when the function returns true and v.BaselineBranchID != nil
 // Special edge case: when the baseline branch is before the snapshot state, it has to be taken into account if
 // it can be used as a baseline or not
 func (a *attacher) solidifyBaselineUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
@@ -68,13 +71,11 @@ func (a *attacher) solidifyBaselineUnwrapped(v *vertex.Vertex, vidUnwrapped *ver
 	switch baselineDirection.GetTxStatus() {
 	case vertex.Good:
 		// in case the baseline is already detached, we provide a reattach function for the branch
-		baseline := baselineDirection.BaselineBranch(func(txid base.TransactionID) *vertex.WrappedTx {
-			return AttachTxID(txid, a, WithInvokedBy(a.name+"_reattach"))
-		})
-		a.Assertf(baseline != nil, "baseline is nil in %s. Baseline direction:\n%s",
+		baseline, ok := baselineDirection.BaselineBranch()
+		a.Assertf(ok, "baseline is not known for %s. Baseline direction:\n%s",
 			a.name, func() string { return baselineDirection.Lines("    ").String() })
 
-		v.BaselineBranch = baseline
+		v.BaselineBranchID = util.Ref(baseline)
 		return true
 
 	case vertex.Bad:
@@ -115,7 +116,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 				}
 			case vertex.Good:
 				a.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerTransaction()")
-				if !a.branchesCompatible(a.baseline, v.BaselineBranch) {
+				if !a.branchesCompatible(a.baseline, v.BaselineBranchID) {
 					a.setError(fmt.Errorf("conflicting baseline of %s", vid.IDShortString()))
 					return
 				}
@@ -322,11 +323,11 @@ func (a *attacher) attachEndorsementDependency(vidEndorsed *vertex.WrappedTx) bo
 		return false
 	}
 	if vidEndorsed.IsBranchTransaction() {
-		if vidEndorsed != a.baseline {
+		if vidEndorsed.ID() != *a.baseline {
 			a.setError(fmt.Errorf("conflicting branch endorsement %s", vidEndorsed.IDShortString()))
 			return false
 		}
-		a.Assertf(a.pastCone.IsKnownDefined(vidEndorsed), "expected to be 'defined': %s", vidEndorsed.IDShortString())
+		a.Assertf(a.pastCone.IsKnownDefined(vidEndorsed), "expected to be 'defined': %s", vidEndorsed.IDShortString)
 		return true
 	}
 	return a.attachVertexNonBranch(vidEndorsed)
@@ -430,8 +431,10 @@ func (a *attacher) attachOutput(wOut vertex.WrappedOutput) bool {
 	return a.attachVertexNonBranch(wOut.VID)
 }
 
-func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) bool {
-	a.Assertf(vidBranch1.IsBranchTransaction() && vidBranch1.IsBranchTransaction(), "vidBranch1.IsBranchTransaction() && vidBranch1.IsBranchTransaction()")
+func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *base.TransactionID) bool {
+	a.Assertf(vidBranch1 != nil && vidBranch2 != nil, "vidBranch1 != nil && vidBranch2 != nil")
+	a.Assertf(vidBranch1.IsBranchTransaction() && vidBranch2.IsBranchTransaction(), "vidBranch1.IsBranchTransaction() && vidBranch2.IsBranchTransaction()")
+
 	switch {
 	case vidBranch1 == vidBranch2:
 		return true
@@ -439,30 +442,30 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 		// two different branches on the same slot conflicts
 		return false
 	case vidBranch1.Slot() < vidBranch2.Slot():
-		return multistate.BranchKnowsTransaction(vidBranch2.ID(), vidBranch1.ID(), func() common.KVReader { return a.StateStore() })
+		return multistate.BranchKnowsTransaction(*vidBranch2, *vidBranch1, func() common.KVReader { return a.StateStore() })
 	default:
-		return multistate.BranchKnowsTransaction(vidBranch1.ID(), vidBranch2.ID(), func() common.KVReader { return a.StateStore() })
+		return multistate.BranchKnowsTransaction(*vidBranch1, *vidBranch2, func() common.KVReader { return a.StateStore() })
 	}
 }
 
 // setBaseline sets baseline, references it from the attacher
 // For sequencer transaction baseline will be on the same slot, for branch transactions it can be further in the past
-func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
-	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
-	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
+func (a *attacher) setBaseline(baselineID base.TransactionID) bool {
+	a.Assertf(baselineID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
+	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineID.StringShort)
 
 	// FIXME baseline may not be in the state due to snapshot
 
-	a.pastCone.SetBaseline(baselineVID)
-	a.baseline = baselineVID
+	a.pastCone.SetBaseline(baselineID)
+	a.baseline = baselineID
 
-	if rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID()); found {
+	if rr, found := multistate.FetchRootRecord(a.StateStore(), baselineID.ID()); found {
 		a.baselineSupply = rr.Supply
 	} else {
 		// it can happen when the root record is pruned
 		snapID := a.SnapshotBranchID()
 		a.Log().Warnf("setBaseline: root record %s is not available. Snapshot branch is: %s",
-			baselineVID.IDShortString(), snapID.StringShort())
+			baselineID.IDShortString(), snapID.StringShort())
 	}
 	return a.baseline != nil
 }
@@ -520,5 +523,5 @@ func (a *attacher) LedgerCoverage() uint64 {
 }
 
 func (a *attacher) CoverageAndDelta() (uint64, uint64) {
-	return a.pastCone.CoverageAndDelta()
+	return a.pastCone.CoverageDelta()
 }

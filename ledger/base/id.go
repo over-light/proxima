@@ -43,6 +43,8 @@ type (
 	ChainID [ChainIDLength]byte
 )
 
+var NilTransactionID TransactionID
+
 func NewTransactionID(ts LedgerTime, h TransactionIDShort, sequencerTxFlag bool) (ret TransactionID) {
 	copy(ret[:TimeByteLength], ts.Bytes())
 	copy(ret[TimeByteLength:], h[:])

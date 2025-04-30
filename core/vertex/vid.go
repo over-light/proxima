@@ -558,23 +558,24 @@ func (vid *WrappedTx) NumProducedOutputs() int {
 }
 
 // BaselineBranch baseline branch of the vertex
-func (vid *WrappedTx) BaselineBranch(reattachBranch ...func(tx base.TransactionID) *WrappedTx) (baselineBranch *WrappedTx) {
+func (vid *WrappedTx) BaselineBranch() (baselineBranchID base.TransactionID, ok bool) {
 	if vid.id.IsBranchTransaction() {
-		return vid
+		return vid.id, true
 	}
 	vid.RUnwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
-			baselineBranch = v.BaselineBranch
+			if v.BaselineBranchID != nil {
+				baselineBranchID = *v.BaselineBranchID
+				ok = true
+			}
 		},
 		DetachedVertex: func(v *DetachedVertex) {
 			// it means tx was already attached and vertex does not contain reference to the baseline reference.
 			util.Assertf(v.BranchID.IsBranchTransaction(), "v.BranchID.IsBranchTransaction()")
-			if len(reattachBranch) > 0 {
-				baselineBranch = reattachBranch[0](v.BranchID)
-			} // otherwise nil
+			baselineBranchID = v.BranchID
 		},
 		VirtualTx: func(v *VirtualTransaction) {
-			util.Panicf("BaselineBranch(%s): can't access baseline branch in virtual tx", vid.IDShortString())
+			util.Panicf("BaselineBranchID(%s): can't access baseline branch in virtual tx", vid.IDShortString())
 		},
 	})
 	return

@@ -58,7 +58,7 @@ type (
 		pastCone      *vertex.PastCone
 		name          string
 		err           error
-		baseline      *vertex.WrappedTx
+		baseline      *base.TransactionID
 		closed        bool
 		pokeMe        func(vid *vertex.WrappedTx)
 		slotInflation uint64

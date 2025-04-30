@@ -38,7 +38,7 @@ type (
 	}
 
 	PastConeBase struct {
-		baseline          *WrappedTx
+		baseline          *base.TransactionID
 		vertices          map[*WrappedTx]FlagsPastCone // byte is used by attacher for flags
 		virtuallyConsumed map[*WrappedTx]set.Set[byte]
 		//num               int // tmp
@@ -74,10 +74,10 @@ func (f FlagsPastCone) String() string {
 
 // we are using sync.Pool for heap optimization
 
-func NewPastConeBase(baseline *WrappedTx) *PastConeBase {
+func NewPastConeBase(baselineID *base.TransactionID) *PastConeBase {
 	ret := &PastConeBase{
 		vertices: make(map[*WrappedTx]FlagsPastCone),
-		baseline: baseline,
+		baseline: baselineID,
 	}
 	return ret
 }
@@ -126,11 +126,7 @@ func (pb *PastConeBase) Lines(prefix ...string) *lines.Lines {
 		ret.Add("<nil pastCone>")
 		return ret
 	}
-	if pb.baseline == nil {
-		ret.Add("baseline: <nil>")
-	} else {
-		ret.Add("baseline: %s", pb.baseline.IDShortString())
-	}
+	ret.Add("baseline: %s", pb.baseline.String())
 	for vid := range pb.vertices {
 		ret.Add("  dept %s", vid.IDShortString())
 	}
@@ -181,16 +177,16 @@ func (pc *PastCone) Assertf(cond bool, format string, args ...any) {
 	pc.Logging.Assertf(cond, format+"\n---- past cone ----\n%s", argsExt...)
 }
 
-func (pc *PastCone) SetBaseline(vid *WrappedTx) {
-	pc.Assertf(vid.IsBranchTransaction(), "vid.IsBranchTransaction(): %s", vid.IDShortString)
-	pc.Assertf(pc.baseline == nil, "SetBaseline: pc.baseline == nil in %s", pc.LinesShort("     ").String)
+func (pc *PastCone) SetBaseline(baselineID base.TransactionID) {
+	pc.Assertf(baselineID.IsBranchTransaction(), "branch tx expected in past cone %s, got %s", pc.name, baselineID.StringShort)
+	pc.Assertf(pc.baseline == nil, "SetBaseline: nil baseline expected in %s", pc.LinesShort("     ").String)
 
-	pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState)
+	//pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState)
 	if pc.delta == nil {
-		pc.baseline = vid
+		pc.baseline = util.Ref(baselineID)
 	} else {
 		pc.Assertf(pc.delta.baseline == nil, "SetBaseline: pc.delta.baseline == nil")
-		pc.delta.baseline = vid
+		pc.delta.baseline = util.Ref(baselineID)
 	}
 }
 
@@ -202,7 +198,7 @@ func (pc *PastCone) BeginDelta() {
 
 func (pc *PastCone) CommitDelta() {
 	util.Assertf(pc.delta != nil, "CommitDelta: pc.delta != nil")
-	util.Assertf(pc.baseline == nil || pc.baseline == pc.delta.baseline, "pc.baseline==nil || pc.baseline == pc.delta.baseline")
+	util.Assertf(pc.baseline == nil || pc.baseline == pc.delta.baseline, "pc.baseline == base.TransactionID{} || pc.baseline == pc.delta.baseline")
 
 	pc.baseline = pc.delta.baseline
 	for vid, flags := range pc.delta.vertices {
@@ -339,12 +335,8 @@ func (pc *PastCone) forAllVertices(fun func(vid *WrappedTx) bool, sortAsc ...boo
 
 func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
-	pbStr := "<nil>"
-	if pc.baseline != nil {
-		pc.baseline.IDShortString()
-	}
 	ret.Add("------ past cone: '%s'", pc.name).
-		Add("------ baseline: %s, coverage: %s", pbStr, pc.baseline.GetLedgerCoverageString())
+		Add("------ baseline: %s", pc.baseline.StringShort())
 
 	//rooted := make([]WrappedOutput, 0)
 	counter := 0
@@ -360,8 +352,7 @@ func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 			ret.Add("   %s: %+v", vid.IDShortString(), maps.Keys(consumedIndices))
 		}
 	}
-	coverage, delta := pc.CoverageAndDelta()
-	ret.Add("ledger coverage: %s, delta: %s", util.Th(coverage), util.Th(delta))
+	ret.Add("ledger coverage delta: %s", util.Th(pc.CoverageDelta()))
 	return ret
 }
 
@@ -392,12 +383,8 @@ func (pc *PastCone) _addVertexLine(n int, vid *WrappedTx, ln *lines.Lines) {
 
 func (pc *PastCone) LinesShort(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
-	blStr := "<nil>"
-	if pc.baseline != nil {
-		blStr = pc.baseline.IDShortString()
-	}
 	ret.Add("------ past cone: '%s'", pc.name).
-		Add("------ baseline: %s, coverage: %s", blStr, pc.baseline.GetLedgerCoverageString())
+		Add("------ baseline: %s", pc.baseline.StringShort())
 	counter := 0
 	pc.forAllVertices(func(vid *WrappedTx) bool {
 		ret.Add("#%d %s : %s", counter, vid.IDShortString(), pc.vertices[vid].String())
@@ -597,7 +584,7 @@ func (pc *PastCone) IsComplete() bool {
 	return true
 }
 
-func (pc *PastCone) getBaseline() *WrappedTx {
+func (pc *PastCone) getBaseline() *base.TransactionID {
 	if pc.baseline != nil {
 		return pc.baseline
 	}
@@ -692,9 +679,8 @@ func (pc *PastCone) checkFinalFlags(vid *WrappedTx) error {
 			wrongFlag = "FlagPastConeVertexCheckedInTheState"
 		}
 	case vid.IsBranchTransaction():
-		switch {
-		case pc.baseline == vid:
-			return fmt.Errorf("checkFinalFlags: must be baseline")
+		if pc.baseline == nil || *pc.baseline != vid.ID() {
+			return fmt.Errorf("checkFinalFlags: inconsistent baseline")
 		}
 	default:
 		switch {
@@ -813,23 +799,11 @@ func (pc *PastCone) CalculateSlotInflation() (ret uint64) {
 	return
 }
 
-func (pc *PastCone) CoverageAndDelta() (coverage, delta uint64) {
+func (pc *PastCone) CoverageDelta() (delta uint64) {
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 	pc.Assertf(pc.baseline != nil, "pc.baseline != nil")
 
-	delta = pc.coverageDelta
-	ts := pc.targetTs
-	if pc.tip != nil {
-		ts = pc.tip.Timestamp()
-	}
-	diffSlots := ts.Slot - pc.baseline.Slot()
-	if ts.IsSlotBoundary() {
-		coverage = (pc.baseline.GetLedgerCoverage() >> diffSlots) + delta
-	} else {
-		coverage = (pc.baseline.GetLedgerCoverage() >> (diffSlots + 1)) + delta
-	}
-	coverage += pc.ledgerCoverageAdjustment()
-	return
+	return pc.coverageDelta
 }
 
 // ledgerCoverageAdjustment if sequencer output of the baseline in not consumed,
@@ -844,10 +818,10 @@ func (pc *PastCone) ledgerCoverageAdjustment() uint64 {
 	return 0
 }
 
-func (pc *PastCone) LedgerCoverage() uint64 {
-	ret, _ := pc.CoverageAndDelta()
-	return ret
-}
+//func (pc *PastCone) LedgerCoverage() uint64 {
+//	ret, _ := pc.CoverageDelta()
+//	return ret
+//}
 
 func (pc *PastCone) UndefinedList() []*WrappedTx {
 	pc.Assertf(pc.delta == nil, "pc.delta==nil")

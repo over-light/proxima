@@ -151,7 +151,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs base.LedgerTime) []
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesDescending(func(seqID base.ChainID, vid *vertex.WrappedTx) bool {
 		if vid.BaselineBranch() == nil {
-			fmt.Printf("vid.BaselineBranch() == nil: %s\n", vid.IDShortString())
+			fmt.Printf("vid.BaselineBranchID() == nil: %s\n", vid.IDShortString())
 			return false
 		}
 		return vid.Slot() == targetSlot && seqID != ownSeqID && ledger.ValidSequencerPace(vid.Timestamp(), targetTs)
