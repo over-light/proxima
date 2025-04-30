@@ -450,7 +450,7 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
 
-	// it may already be referenced but this ensures it is done only once
+	// it may already be referenced, but this ensures it is done only once
 	if !a.pastCone.SetBaseline(baselineVID) {
 		return false
 	}

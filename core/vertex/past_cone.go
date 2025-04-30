@@ -182,8 +182,8 @@ func (pc *PastCone) Assertf(cond bool, format string, args ...any) {
 }
 
 func (pc *PastCone) SetBaseline(vid *WrappedTx) bool {
-	pc.Assertf(pc.baseline == nil, "SetBaseline: pc.baseline == nil")
 	pc.Assertf(vid.IsBranchTransaction(), "vid.IsBranchTransaction(): %s", vid.IDShortString)
+	pc.Assertf(pc.baseline == nil, "SetBaseline: pc.baseline == nil in %s", pc.LinesShort("     ").String)
 
 	if !pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState) {
 		return false

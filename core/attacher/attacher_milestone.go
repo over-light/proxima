@@ -21,7 +21,7 @@ import (
 const (
 	TraceTagAttachMilestone = "milestone"
 	// lazyRepeatEach polling time. TODO Probably should be adaptable rather than a constant
-	lazyRepeatEach = 200 * time.Millisecond // 50 * time.Millisecond
+	lazyRepeatEach = 50 * time.Millisecond
 )
 
 func runMilestoneAttacher(
@@ -245,7 +245,6 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 				a.Assertf(a.vid.GetTxStatusNoLock() == vertex.Undefined, "a.vid.GetTxStatusNoLock() == vertex.Undefined:\n%s", a.vid.StringNoLock)
 				a.Assertf(a.baseline == nil, "a.baseline == nil")
 
-				//ok = a.solidifyBaselineVertex(v, a.vid)
 				ok = a.solidifyBaselineUnwrapped(v, a.vid)
 				if ok && v.BaselineBranch != nil {
 					finalSuccess = a.setBaseline(v.BaselineBranch)
