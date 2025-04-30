@@ -410,9 +410,9 @@ func (a *attacher) attachOutput(wOut vertex.WrappedOutput) bool {
 	a.Assertf(a.pastCone.IsKnown(wOut.VID), "a.pastCone.IsKnown(wOut.VID)")
 
 	if a.pastCone.IsInTheState(wOut.VID) {
-		// transaction is marked 'in the state, i.e. rooted'
+		// transaction is marked 'is in the state, aka 'rooted'
 		if !a.checkOutputInTheState(wOut.VID, wOut.DecodeID()) {
-			// output is not in the state, it means it is consumed
+			// output is not in the state -> is consumed
 			return false
 		}
 	}
@@ -449,21 +449,20 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 // For sequencer transaction baseline will be on the same slot, for branch transactions it can be further in the past
 func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
-
 	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
-
 	// FIXME baseline may not be in the state due to snapshot
 
 	if rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID()); found {
 		a.pastCone.SetBaseline(baselineVID)
 		a.baseline = baselineVID
 		a.baselineSupply = rr.Supply
-		return true
+	} else {
+		// it can happen when the root record is pruned
+		snapID := a.SnapshotBranchID()
+		a.Log().Warnf("setBaseline can't fetch root record for %s, snapshot btanch is: %s",
+			baselineVID.IDShortString, snapID.StringShort())
 	}
-
-	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline can't fetch root record for %s", baselineVID.IDShortString)
-	// it can happen when the root record is pruned
-	return false
+	return a.baseline != nil
 }
 
 // dumpLines beware deadlocks
