@@ -460,7 +460,7 @@ func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 		// it can happen when the root record is pruned
 		snapID := a.SnapshotBranchID()
 		a.Log().Warnf("setBaseline can't fetch root record for %s, snapshot btanch is: %s",
-			baselineVID.IDShortString, snapID.StringShort())
+			baselineVID.IDShortString(), snapID.StringShort())
 	}
 	return a.baseline != nil
 }
