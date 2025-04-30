@@ -247,7 +247,8 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 
 				ok = a.solidifyBaselineUnwrapped(v, a.vid)
 				if ok && v.BaselineBranch != nil {
-					finalSuccess = a.setBaseline(v.BaselineBranch)
+					a.setBaseline(v.BaselineBranch)
+					finalSuccess = true
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
