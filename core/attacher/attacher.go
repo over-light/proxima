@@ -450,12 +450,12 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
 
-	a.pastCone.SetBaseline(baselineVID)
 	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
 
 	// FIXME baseline may not be in the state due to snapshot
 
 	if rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID()); found {
+		a.pastCone.SetBaseline(baselineVID)
 		a.baseline = baselineVID
 		a.baselineSupply = rr.Supply
 		return true
