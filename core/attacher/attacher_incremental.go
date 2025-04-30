@@ -135,7 +135,9 @@ func (a *IncrementalAttacher) IsClosed() bool {
 }
 
 func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx, targetTs base.LedgerTime, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
-	a.setBaseline(baseline)
+	if !a.setBaseline(baseline) {
+		return fmt.Errorf("NewIncrementalAttacher: failed to set baseline branch of %s", extend.IDStringShort())
+	}
 	a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). baseline: %s",
 		a.name, baseline.IDShortString)
 

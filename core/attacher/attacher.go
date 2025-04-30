@@ -447,18 +447,26 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *vertex.WrappedTx) 
 
 // setBaseline sets baseline, references it from the attacher
 // For sequencer transaction baseline will be on the same slot, for branch transactions it can be further in the past
-func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) {
+func (a *attacher) setBaseline(baselineVID *vertex.WrappedTx) bool {
 	a.Assertf(baselineVID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
 
 	// it may already be referenced, but this ensures it is done only once
-	a.pastCone.SetBaseline(baselineVID)
-	a.baseline = baselineVID
+	if !a.pastCone.SetBaseline(baselineVID) {
+		return false
+	}
 
 	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineVID.IDShortString)
-	if rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID()); found {
-		a.baselineSupply = rr.Supply
+
+	rr, found := multistate.FetchRootRecord(a.StateStore(), baselineVID.ID())
+	if !found {
+		// it can happen when root record is pruned
+		a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline can't fetch root record for %s", baselineVID.IDShortString)
+		return false
 	}
-	// it can happen when the root record is pruned the baselineSupply is 0
+
+	a.baseline = baselineVID
+	a.baselineSupply = rr.Supply
+	return true
 }
 
 // dumpLines beware deadlocks
