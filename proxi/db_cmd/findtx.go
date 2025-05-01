@@ -3,7 +3,6 @@ package db_cmd
 import (
 	"strings"
 
-	"github.com/lunfardo314/proxima/core/core_module/branches"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -52,7 +51,7 @@ func runFindTxCmd(_ *cobra.Command, _ []string) {
 	if branchIDStr != "" {
 		b, err := base.TransactionIDFromHexString(branchIDStr)
 		glb.AssertNoError(err)
-		rr, found := branches.FetchBranchData(glb.StateStore(), b)
+		rr, found := multistate.FetchBranchData(glb.StateStore(), b)
 		glb.Assertf(found, "didn't find branch %s", b.String())
 		glb.Infof("branch id: %s", b.String())
 		root = rr.Root

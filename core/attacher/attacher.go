@@ -37,10 +37,10 @@ func (a *attacher) BaselineSugaredStateReader() multistate.SugaredStateReader {
 }
 
 func (a *attacher) baselineStateReader() multistate.IndexedStateReader {
-	if a.baseline == nil {
+	if a.baselineBranchID == nil {
 		return nil
 	}
-	return a.GetStateReaderForTheBranch(*a.baseline)
+	return a.GetStateReaderForTheBranch(*a.baselineBranchID)
 }
 
 func (a *attacher) setError(err error) {
@@ -116,7 +116,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 				}
 			case vertex.Good:
 				a.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerTransaction()")
-				if !a.branchesCompatible(a.baseline, v.BaselineBranchID) {
+				if !a.branchesCompatible(a.baselineBranchID, v.BaselineBranchID) {
 					a.setError(fmt.Errorf("conflicting baseline of %s", vid.IDShortString()))
 					return
 				}
@@ -168,7 +168,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 // Otherwise, repetition reaches vertex.Bad vertex and exits
 // Returns OK (== not bad)
 func (a *attacher) attachVertexUnwrapped(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx) (ok bool) {
-	a.Assertf(!v.Tx.IsSequencerTransaction() || a.baseline != nil, "!v.Tx.IsSequencerTransaction() || a.baseline != nil in %s", v.Tx.IDShortString)
+	a.Assertf(!v.Tx.IsSequencerTransaction() || a.baselineBranchID != nil, "!v.Tx.IsSequencerTransaction() || a.baseline != nil in %s", v.Tx.IDShortString)
 
 	if vidUnwrapped.GetTxStatusNoLock() == vertex.Bad {
 		a.setError(vidUnwrapped.GetErrorNoLock())
@@ -274,7 +274,7 @@ func (a *attacher) refreshDependencyStatus(vidDep *vertex.WrappedTx) (ok bool) {
 // defineInTheStateStatus checks if dependency is in the baseline state and marks it correspondingly, if possible
 func (a *attacher) defineInTheStateStatus(vid *vertex.WrappedTx) {
 	a.Assertf(a.pastCone.IsKnown(vid), "a.pastCone.IsKnown(vid): %s", vid.IDShortString)
-	a.Assertf(a.baseline != nil, "a.baseline != nil")
+	a.Assertf(a.baselineBranchID != nil, "a.baseline != nil")
 
 	if a.pastCone.Flags(vid).FlagsUp(vertex.FlagPastConeVertexCheckedInTheState) {
 		return
@@ -323,7 +323,7 @@ func (a *attacher) attachEndorsementDependency(vidEndorsed *vertex.WrappedTx) bo
 		return false
 	}
 	if vidEndorsed.IsBranchTransaction() {
-		if vidEndorsed.ID() != *a.baseline {
+		if vidEndorsed.ID() != *a.baselineBranchID {
 			a.setError(fmt.Errorf("conflicting branch endorsement %s", vidEndorsed.IDShortString()))
 			return false
 		}
@@ -450,31 +450,21 @@ func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *base.TransactionID
 
 // setBaseline sets baseline, references it from the attacher
 // For sequencer transaction baseline will be on the same slot, for branch transactions it can be further in the past
-func (a *attacher) setBaseline(baselineID base.TransactionID) bool {
+func (a *attacher) setBaseline(baselineID *base.TransactionID) {
 	a.Assertf(baselineID.IsBranchTransaction(), "setBaseline: baselineVID.IsBranchTransaction()")
-	a.Tracef(TraceTagSolidifySequencerBaseline, "setBaseline %s", baselineID.StringShort)
-
-	// FIXME baseline may not be in the state due to snapshot
 
 	a.pastCone.SetBaseline(baselineID)
-	a.baseline = baselineID
-
-	if rr, found := multistate.FetchRootRecord(a.StateStore(), baselineID.ID()); found {
-		a.baselineSupply = rr.Supply
-	} else {
-		// it can happen when the root record is pruned
-		snapID := a.SnapshotBranchID()
-		a.Log().Warnf("setBaseline: root record %s is not available. Snapshot branch is: %s",
-			baselineID.IDShortString(), snapID.StringShort())
+	a.baselineBranchID = baselineID
+	if _, ok := a.Branches().Get(*baselineID); !ok {
+		a.Log().Warnf("setBaseline: branch record %s is not available", baselineID.StringShort())
 	}
-	return a.baseline != nil
 }
 
 // dumpLines beware deadlocks
 func (a *attacher) dumpLines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("attacher %s", a.name).
-		Add("   baseline: %s", a.baseline.IDShortString()).
+		Add("   baseline: %s", a.baselineBranchID.StringShort()).
 		Add("   baselineSupply: %s", util.Th(a.baselineSupply)).
 		Add("   Past cone:").
 		Append(a.pastCone.Lines(prefix...))
@@ -518,10 +508,15 @@ func (a *attacher) FinalSupply() uint64 {
 	return a.baselineSupply + a.slotInflation
 }
 
-func (a *attacher) LedgerCoverage() uint64 {
-	return a.pastCone.LedgerCoverage()
-}
-
-func (a *attacher) CoverageAndDelta() (uint64, uint64) {
-	return a.pastCone.CoverageDelta()
+func (a *attacher) LedgerCoverage(currentTs base.LedgerTime) uint64 {
+	var baselineLC uint64
+	if a.baselineBranchID != nil {
+		baselineLC = a.Branches().LedgerCoverage(*a.baselineBranchID)
+	}
+	util.Assertf(currentTs.Before(a.baselineBranchID.Timestamp()), "inconsistent timestamps: %s vs %s", currentTs.String, a.baselineBranchID.Timestamp().String())
+	shift := uint32(currentTs.Slot - a.baselineBranchID.Slot())
+	if !currentTs.IsSlotBoundary() {
+		shift += 1
+	}
+	return a.pastCone.CoverageDelta() + (baselineLC >> shift)
 }

@@ -36,12 +36,11 @@ type (
 		// Note: CoverageDelta, SlotInflation and Supply are deterministic values calculated from the ledger past cone
 		// Each node calculates them itself, and they must be equal on each
 		CoverageDelta uint64
+		// Supply: total supply of the ledger. It is a sum of all outputs of the ledger, including the branch tx outputs
+		Supply uint64
 		// SlotInflation: total inflation delta from previous root. It is a sum of individual transaction inflation values
 		// of the previous slot/past cone. It includes the branch tx inflation itself and does not include inflation of the previous branch
 		SlotInflation uint64
-		// Supply: total supply at this root (including the branch itself, excluding prev branch).
-		// It is the sum of the Supply of the previous branch and SlotInflation of the current
-		Supply uint64
 		// Number of new transactions in the slot of the branch
 		NumTransactions uint32
 		// TODO probably there's a need for other deterministic values, such as total number of outputs, of transactions, of chains

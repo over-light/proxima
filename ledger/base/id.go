@@ -190,18 +190,30 @@ func TransactionIDAsFileName(ts LedgerTime, txHash []byte, sequencerFlag, branch
 }
 
 func (txid *TransactionID) String() string {
+	if txid == nil {
+		return "<nil>"
+	}
 	return TransactionIDString(txid.Timestamp(), txid.ShortID(), txid.IsSequencerMilestone())
 }
 
 func (txid *TransactionID) StringHex() string {
+	if txid == nil {
+		return "00"
+	}
 	return hex.EncodeToString(txid[:])
 }
 
 func (txid *TransactionID) StringShort() string {
+	if txid == nil {
+		return "<nil>"
+	}
 	return TransactionIDStringShort(txid.Timestamp(), txid.ShortID(), txid.IsSequencerMilestone())
 }
 
 func (txid *TransactionID) StringVeryShort() string {
+	if txid == nil {
+		return "<nil>"
+	}
 	return TransactionIDStringVeryShort(txid.Timestamp(), txid.ShortID(), txid.IsSequencerMilestone())
 }
 

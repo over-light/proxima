@@ -55,8 +55,8 @@ func NewIncrementalAttacher(name string, env Environment, targetTs base.LedgerTi
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to determine baseline direction in %s",
 			name, extend.IDStringShort())
 	}
-	baseline := baselineDirection.BaselineBranch()
-	if baseline == nil {
+	baselineBranchID, found := baselineDirection.BaselineBranch()
+	if !found {
 		// may happen when baselineDirection is virtualTx
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to determine valid baselineDirection branch of %s. baseline direction: %s",
 			name, extend.IDStringShort(), baselineDirection.IDShortString())
@@ -69,7 +69,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs base.LedgerTi
 		targetTs: targetTs,
 	}
 
-	if err := ret.initIncrementalAttacher(baseline, targetTs, extend, endorse...); err != nil {
+	if err := ret.initIncrementalAttacher(baselineBranchID, targetTs, extend, endorse...); err != nil {
 		ret.Close()
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, ta
 		explicitBaselineID: util.Ref(baselineID),
 	}
 
-	if err := ret.initIncrementalAttacher(baseline, targetTs, extend); err != nil {
+	if err := ret.initIncrementalAttacher(baselineID, targetTs, extend); err != nil {
 		ret.Close()
 		return nil, err
 	}
@@ -134,12 +134,9 @@ func (a *IncrementalAttacher) IsClosed() bool {
 	return a.closed
 }
 
-func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx, targetTs base.LedgerTime, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
-	if !a.setBaseline(baseline) {
-		return fmt.Errorf("NewIncrementalAttacher: failed to set baseline branch of %s", extend.IDStringShort())
-	}
-	a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). baseline: %s",
-		a.name, baseline.IDShortString)
+func (a *IncrementalAttacher) initIncrementalAttacher(baselineBranchID base.TransactionID, targetTs base.LedgerTime, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
+	a.setBaseline(util.Ref(baselineBranchID))
+	a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). baseline: %s", a.name, baselineBranchID.StringShort)
 
 	// attach endorsements
 	for _, endorsement := range endorse {
@@ -158,9 +155,9 @@ func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx
 		// stem input, if any, will be at index 1
 		// for branches, include stem input
 		a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). insertStemInput", a.name)
-		a.stemOutput = a.GetStemWrappedOutput(baseline.ID())
+		a.stemOutput = a.GetStemWrappedOutput(baselineBranchID)
 		if a.stemOutput.VID == nil {
-			return fmt.Errorf("NewIncrementalAttacher: stem output is not available for baseline %s", baseline.IDShortString())
+			return fmt.Errorf("NewIncrementalAttacher: stem output is not available for baseline %s", baselineBranchID.StringShort())
 		}
 		if err := a.insertVirtuallyConsumedOutput(a.stemOutput); err != nil {
 			return err
@@ -169,8 +166,8 @@ func (a *IncrementalAttacher) initIncrementalAttacher(baseline *vertex.WrappedTx
 	return nil
 }
 
-func (a *IncrementalAttacher) BaselineBranch() *vertex.WrappedTx {
-	return a.baseline
+func (a *IncrementalAttacher) BaselineBranch() *base.TransactionID {
+	return a.baselineBranchID
 }
 
 func (a *IncrementalAttacher) insertVirtuallyConsumedOutput(wOut vertex.WrappedOutput) error {

@@ -15,7 +15,7 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 
 	a.slotInflation = a.pastCone.CalculateSlotInflation()
 
-	a.finals.baseline = a.baseline.ID()
+	a.finals.baseline = a.baselineBranchID.ID()
 	a.finals.numVertices = a.pastCone.NumVertices()
 
 	a.finals.ledgerCoverage, a.finals.coverageDelta = a.CoverageAndDelta()

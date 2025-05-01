@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/lunfardo314/proxima/core/core_module/branches"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -43,7 +42,7 @@ func runUlist(_ *cobra.Command, args []string) {
 	if branchIDStr != "" {
 		branchID, err = base.TransactionIDFromHexString(branchIDStr)
 		glb.AssertNoError(err)
-		bd, ok := branches.FetchBranchData(glb.StateStore(), branchID)
+		bd, ok := multistate.FetchBranchData(glb.StateStore(), branchID)
 		if !ok {
 			glb.Infof("can't find branch %s", branchIDStr)
 			os.Exit(1)

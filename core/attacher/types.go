@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/lunfardo314/proxima/core/core_module/branches"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
@@ -51,17 +52,18 @@ type (
 		EvidencePastConeSize(sz int)
 		SnapshotBranchID() base.TransactionID
 		DurationSinceLastMessageFromPeer() time.Duration
+		Branches() *branches.Branches
 	}
 
 	attacher struct {
 		Environment
-		pastCone      *vertex.PastCone
-		name          string
-		err           error
-		baseline      *base.TransactionID
-		closed        bool
-		pokeMe        func(vid *vertex.WrappedTx)
-		slotInflation uint64
+		pastCone         *vertex.PastCone
+		name             string
+		err              error
+		baselineBranchID *base.TransactionID
+		closed           bool
+		pokeMe           func(vid *vertex.WrappedTx)
+		slotInflation    uint64
 		// only supported for branch transactions
 		baselineSupply uint64
 		// trace this local attacher with all tags

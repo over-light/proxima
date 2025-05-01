@@ -249,6 +249,14 @@ func FetchLatestRootRecords(store StateStoreReader) []RootRecord {
 	return ret
 }
 
+// FetchBranchData returns branch data by the branch transaction id
+func FetchBranchData(store common.KVReader, branchTxID base.TransactionID) (BranchData, bool) {
+	if rd, found := FetchRootRecord(store, branchTxID); found {
+		return FetchBranchDataByRoot(store, rd), true
+	}
+	return BranchData{}, false
+}
+
 // FetchBranchDataByRoot returns existing branch data by root record. The root record usually returned by FetchRootRecord
 func FetchBranchDataByRoot(store common.KVReader, rootData RootRecord) BranchData {
 	rdr, err := NewSugaredReadableState(store, rootData.Root, 0)

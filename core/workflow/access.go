@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/lunfardo314/proxima/core/core_module/branches"
 	"github.com/lunfardo314/proxima/core/core_module/tippool"
 	"github.com/lunfardo314/proxima/core/memdag"
 	"github.com/lunfardo314/proxima/core/txmetadata"
@@ -128,4 +129,8 @@ func (w *Workflow) SubmitTxBytesFromInflator(txBytes []byte) {
 
 func (w *Workflow) DisableMemDAGGC() bool {
 	return w.cfg.disableMemDAGGC
+}
+
+func (w *Workflow) Branches() *branches.Branches {
+	return w.branches
 }

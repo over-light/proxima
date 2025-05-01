@@ -113,8 +113,8 @@ func (a *milestoneAttacher) run() error {
 		return a.err
 	}
 
-	a.Assertf(a.baseline != nil, "a.baseline != nil")
-	a.Tracef(TraceTagBranchAvailable, "baseline is OK <- %s", a.baseline.StringShort)
+	a.Assertf(a.baselineBranchID != nil, "a.baseline != nil")
+	a.Tracef(TraceTagBranchAvailable, "baseline is OK <- %s", a.baselineBranchID.StringShort)
 
 	// then solidify past cone
 
@@ -243,11 +243,12 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 		a.vid.Unwrap(vertex.UnwrapOptions{
 			Vertex: func(v *vertex.Vertex) {
 				a.Assertf(a.vid.GetTxStatusNoLock() == vertex.Undefined, "a.vid.GetTxStatusNoLock() == vertex.Undefined:\n%s", a.vid.StringNoLock)
-				a.Assertf(a.baseline == nil, "a.baseline == nil")
+				a.Assertf(a.baselineBranchID == nil, "a.baseline == nil")
 
 				ok = a.solidifyBaselineUnwrapped(v, a.vid)
 				if ok && v.BaselineBranchID != nil {
-					finalSuccess = a.setBaseline(v.BaselineBranchID)
+					a.setBaseline(v.BaselineBranchID)
+					finalSuccess = true
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
@@ -416,8 +417,8 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 
 func (a *milestoneAttacher) logErrorStatusString(err error) string {
 	bl := "baseline: N/A"
-	if a.baseline != nil {
-		id := a.baseline.ID()
+	if a.baselineBranchID != nil {
+		id := a.baselineBranchID.ID()
 		bl = fmt.Sprintf("baseline: %s (hex = %s)", id.StringShort(), id.StringHex())
 	}
 	return fmt.Sprintf("ATTACH %s (%s) -> BAD(%v)", a.vid.IDShortString(), bl, err)

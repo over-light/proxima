@@ -1,3 +1,4 @@
+// Package branches implements caching of branch data
 package branches
 
 import (
@@ -7,7 +8,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/unitrie/common"
 )
 
 type (
@@ -18,15 +18,17 @@ type (
 
 	Branches struct {
 		environment
-		mutex sync.Mutex
-		m     map[base.TransactionID]*multistate.BranchData
+		mutex            sync.Mutex
+		snapshotBranchID base.TransactionID
+		m                map[base.TransactionID]*multistate.BranchData
 	}
 )
 
 func New(env environment) *Branches {
 	return &Branches{
-		environment: env,
-		m:           make(map[base.TransactionID]*multistate.BranchData),
+		environment:      env,
+		snapshotBranchID: multistate.FetchSnapshotBranchID(env.StateStore()),
+		m:                make(map[base.TransactionID]*multistate.BranchData),
 	}
 }
 
@@ -40,14 +42,27 @@ func (b *Branches) Get(branchTxID base.TransactionID) (multistate.BranchData, bo
 	return *ret, ok
 }
 
-func (b *Branches) getNoLock(branchTxID base.TransactionID) (*multistate.BranchData, bool) {
-	if bd, ok := b.m[branchTxID]; ok {
+func (b *Branches) SnapshotBranchID() base.TransactionID {
+	return b.snapshotBranchID
+}
+
+func (b *Branches) SnapshotSlot() base.Slot {
+	return b.snapshotBranchID.Slot()
+}
+
+func (b *Branches) getNoLock(branchID base.TransactionID) (*multistate.BranchData, bool) {
+	if branchID.Slot() < b.snapshotBranchID.Slot() ||
+		(branchID.Slot() == b.snapshotBranchID.Slot() && branchID != b.snapshotBranchID) {
+		return nil, false
+	}
+
+	if bd, ok := b.m[branchID]; ok {
 		return bd, true
 	}
-	if rd, found := multistate.FetchRootRecord(b.StateStore(), branchTxID); found {
+	if rd, found := multistate.FetchRootRecord(b.StateStore(), branchID); found {
 		bdRec := multistate.FetchBranchDataByRoot(b.StateStore(), rd)
 		bdRec.LedgerCoverage = bdRec.CoverageDelta + b.calcLedgerCoveragePast(bdRec.TxID(), bdRec.StemPredecessorBranchID())
-		b.m[branchTxID] = &bdRec
+		b.m[branchID] = &bdRec
 	}
 	return nil, false
 }
@@ -66,14 +81,21 @@ func (b *Branches) calcLedgerCoveragePast(branchID, predBranchID base.Transactio
 		return 0
 	}
 	return bdPred.LedgerCoverage >> shift
-
 }
 
-// FetchBranchData returns branch data by the branch transaction id
-// Deprecated: use Get instead
-func FetchBranchData(store common.KVReader, branchTxID base.TransactionID) (multistate.BranchData, bool) {
-	if rd, found := multistate.FetchRootRecord(store, branchTxID); found {
-		return multistate.FetchBranchDataByRoot(store, rd), true
+// LedgerCoverage strictly speaking, is non-deterministic if the snapshot is after genesis
+// However:
+//   - if branchID is far enough (63 slots), it is guaranteed to be the real value and therefore deterministic
+//   - if the snapshot is N slots behind the branchID, it is guaranteed that the returned value differs from
+//     the real value no more than by 1/2^N
+func (b *Branches) LedgerCoverage(branchID base.TransactionID) uint64 {
+	util.Assertf(branchID.IsBranchTransaction(), "branch transaction ID expected. Got %s", branchID.StringShort)
+
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if bd, ok := b.getNoLock(branchID); ok {
+		return bd.LedgerCoverage
 	}
-	return multistate.BranchData{}, false
+	return 0
 }
