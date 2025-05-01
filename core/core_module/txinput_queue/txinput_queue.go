@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/lunfardo314/proxima/core/core_module"
 	"github.com/lunfardo314/proxima/core/txmetadata"
-	"github.com/lunfardo314/proxima/core/work_process"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -34,7 +34,7 @@ type (
 
 	TxInputQueue struct {
 		environment
-		*work_process.WorkProcess[Input]
+		*core_module.CoreModule[Input]
 		// bloom filter
 		inGate *inGate[base.TransactionID]
 		// metrics
@@ -73,8 +73,8 @@ func New(env environment) *TxInputQueue {
 		environment: env,
 		inGate:      newInGate[base.TransactionID](blackTTL, cleanIfExceeds),
 	}
-	ret.WorkProcess = work_process.New[Input](env, Name, ret.consume)
-	ret.WorkProcess.Start()
+	ret.CoreModule = core_module.New[Input](env, Name, ret.consume)
+	ret.CoreModule.Start()
 
 	ret.RepeatInBackground(Name+"_inGateCleanup", blackListCleanupPeriod, func() bool {
 		ret.inGate.purgeInGate()

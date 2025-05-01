@@ -7,6 +7,7 @@ import (
 	"time"
 	"weak"
 
+	"github.com/lunfardo314/proxima/core/core_module/branches"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -54,6 +55,8 @@ type (
 		// Inactive cached readers with their trie caches are constantly cleaned up by the pruner
 		stateReadersMutex sync.RWMutex
 		stateReaders      map[base.TransactionID]*cachedStateReader
+
+		branches *branches.Branches
 
 		metrics
 	}

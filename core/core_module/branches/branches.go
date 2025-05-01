@@ -1,29 +1,36 @@
-package multistate
+package branches
 
 import (
 	"sync"
 
+	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/base"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 )
 
 type (
+	environment interface {
+		global.NodeGlobal
+		StateStore() multistate.StateStore
+	}
+
 	Branches struct {
+		environment
 		mutex sync.Mutex
-		store StateStoreReader
-		m     map[base.TransactionID]*BranchData
+		m     map[base.TransactionID]*multistate.BranchData
 	}
 )
 
-func NewBranches(store StateStoreReader) *Branches {
+func New(env environment) *Branches {
 	return &Branches{
-		store: store,
-		m:     make(map[base.TransactionID]*BranchData),
+		environment: env,
+		m:           make(map[base.TransactionID]*multistate.BranchData),
 	}
 }
 
-func (b *Branches) Get(branchTxID base.TransactionID) (BranchData, bool) {
+func (b *Branches) Get(branchTxID base.TransactionID) (multistate.BranchData, bool) {
 	util.Assertf(branchTxID.IsBranchTransaction(), "branch transaction ID expected. Got %s", branchTxID.StringShort)
 
 	b.mutex.Lock()
@@ -33,12 +40,12 @@ func (b *Branches) Get(branchTxID base.TransactionID) (BranchData, bool) {
 	return *ret, ok
 }
 
-func (b *Branches) getNoLock(branchTxID base.TransactionID) (*BranchData, bool) {
+func (b *Branches) getNoLock(branchTxID base.TransactionID) (*multistate.BranchData, bool) {
 	if bd, ok := b.m[branchTxID]; ok {
 		return bd, true
 	}
-	if rd, found := FetchRootRecord(b.store, branchTxID); found {
-		bdRec := FetchBranchDataByRoot(b.store, rd)
+	if rd, found := multistate.FetchRootRecord(b.StateStore(), branchTxID); found {
+		bdRec := multistate.FetchBranchDataByRoot(b.StateStore(), rd)
 		bdRec.LedgerCoverage = bdRec.CoverageDelta + b.calcLedgerCoveragePast(bdRec.TxID(), bdRec.StemPredecessorBranchID())
 		b.m[branchTxID] = &bdRec
 	}
@@ -64,9 +71,9 @@ func (b *Branches) calcLedgerCoveragePast(branchID, predBranchID base.Transactio
 
 // FetchBranchData returns branch data by the branch transaction id
 // Deprecated: use Get instead
-func FetchBranchData(store common.KVReader, branchTxID base.TransactionID) (BranchData, bool) {
-	if rd, found := FetchRootRecord(store, branchTxID); found {
-		return FetchBranchDataByRoot(store, rd), true
+func FetchBranchData(store common.KVReader, branchTxID base.TransactionID) (multistate.BranchData, bool) {
+	if rd, found := multistate.FetchRootRecord(store, branchTxID); found {
+		return multistate.FetchBranchDataByRoot(store, rd), true
 	}
-	return BranchData{}, false
+	return multistate.BranchData{}, false
 }

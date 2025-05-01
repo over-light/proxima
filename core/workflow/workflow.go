@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/lunfardo314/proxima/core/core_module/branches"
+	"github.com/lunfardo314/proxima/core/core_module/events"
+	"github.com/lunfardo314/proxima/core/core_module/poker"
+	"github.com/lunfardo314/proxima/core/core_module/pull_tx_server"
+	"github.com/lunfardo314/proxima/core/core_module/snapshot"
+	"github.com/lunfardo314/proxima/core/core_module/tippool"
+	"github.com/lunfardo314/proxima/core/core_module/txinput_queue"
 	"github.com/lunfardo314/proxima/core/memdag"
 	"github.com/lunfardo314/proxima/core/txmetadata"
-	"github.com/lunfardo314/proxima/core/work_process/events"
-	"github.com/lunfardo314/proxima/core/work_process/poker"
-	"github.com/lunfardo314/proxima/core/work_process/pull_tx_server"
-	"github.com/lunfardo314/proxima/core/work_process/snapshot"
-	"github.com/lunfardo314/proxima/core/work_process/tippool"
-	"github.com/lunfardo314/proxima/core/work_process/txinput_queue"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -48,6 +49,7 @@ type (
 		events       *events.Events
 		txInputQueue *txinput_queue.TxInputQueue
 		tippool      *tippool.SequencerTips
+		branches     *branches.Branches
 		// particular event handlers
 		txListener *txListener
 		//
@@ -78,6 +80,7 @@ func Start(env environment, peers *peering.Peers, opts ...ConfigOption) *Workflo
 	ret.events = events.New(ret)
 	ret.pullTxServer = pull_tx_server.New(ret)
 	ret.tippool = tippool.New(ret)
+	ret.branches = branches.New(ret)
 	ret.txInputQueue = txinput_queue.New(ret)
 	snapshot.Start(ret)
 	ret.startListeningTransactions()

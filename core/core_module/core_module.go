@@ -1,4 +1,4 @@
-package work_process
+package core_module
 
 import (
 	"github.com/lunfardo314/proxima/global"
@@ -10,7 +10,7 @@ type (
 		global.NodeGlobal
 	}
 
-	WorkProcess[T any] struct {
+	CoreModule[T any] struct {
 		environment
 		*queue.Queue[T]
 		Name     string
@@ -18,15 +18,15 @@ type (
 	}
 )
 
-func New[T any](env environment, name string, consumer func(inp T)) *WorkProcess[T] {
-	return &WorkProcess[T]{
+func New[T any](env environment, name string, consumer func(inp T)) *CoreModule[T] {
+	return &CoreModule[T]{
 		environment: env,
 		Name:        name,
 		consumer:    consumer,
 	}
 }
 
-func (wp *WorkProcess[T]) Start() {
+func (wp *CoreModule[T]) Start() {
 	wp.Queue = queue.New(wp.consumer)
 	wp.MarkWorkProcessStarted(wp.Name)
 	wp.Log().Infof("[%s] STARTED", wp.Name)

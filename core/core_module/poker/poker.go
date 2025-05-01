@@ -3,8 +3,8 @@ package poker
 import (
 	"time"
 
+	"github.com/lunfardo314/proxima/core/core_module"
 	"github.com/lunfardo314/proxima/core/vertex"
-	"github.com/lunfardo314/proxima/core/work_process"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -21,7 +21,7 @@ type (
 	}
 
 	Poker struct {
-		*work_process.WorkProcess[Input]
+		*core_module.CoreModule[Input]
 		environment
 		m map[*vertex.WrappedTx]waitingList
 	}
@@ -52,8 +52,8 @@ func New(env environment) *Poker {
 		environment: env,
 		m:           make(map[*vertex.WrappedTx]waitingList),
 	}
-	ret.WorkProcess = work_process.New[Input](env, Name, ret.consume)
-	ret.WorkProcess.Start()
+	ret.CoreModule = core_module.New[Input](env, Name, ret.consume)
+	ret.CoreModule.Start()
 
 	env.RepeatInBackground(Name+"_cleanup_loop", cleanupLoopPeriod, func() bool {
 		ret.Push(Input{Cmd: CommandPeriodicCleanup}, true)
