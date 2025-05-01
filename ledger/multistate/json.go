@@ -10,12 +10,11 @@ import (
 
 type (
 	RootRecordJSONAble struct {
-		Root           string `json:"root"`
-		SequencerID    string `json:"sequencer_id"`
-		CoverageDelta  uint64 `json:"coverage_delta"`
-		LedgerCoverage uint64 `json:"ledger_coverage"`
-		SlotInflation  uint64 `json:"slot_inflation"`
-		Supply         uint64 `json:"supply"`
+		Root          string `json:"root"`
+		SequencerID   string `json:"sequencer_id"`
+		CoverageDelta uint64 `json:"coverage_delta"`
+		SlotInflation uint64 `json:"slot_inflation"`
+		Supply        uint64 `json:"supply"`
 	}
 
 	BranchDataJSONAble struct {
@@ -29,12 +28,11 @@ type (
 
 func (r *RootRecord) JSONAble() *RootRecordJSONAble {
 	return &RootRecordJSONAble{
-		Root:           r.Root.String(),
-		SequencerID:    r.SequencerID.StringHex(),
-		CoverageDelta:  r.CoverageDelta,
-		LedgerCoverage: r.LedgerCoverage,
-		SlotInflation:  r.SlotInflation,
-		Supply:         r.Supply,
+		Root:          r.Root.String(),
+		SequencerID:   r.SequencerID.StringHex(),
+		CoverageDelta: r.CoverageDelta,
+		SlotInflation: r.SlotInflation,
+		Supply:        r.Supply,
 	}
 }
 
@@ -57,7 +55,6 @@ func (r *RootRecordJSONAble) Parse() (*RootRecord, error) {
 		return nil, err
 	}
 	ret.CoverageDelta = r.CoverageDelta
-	ret.LedgerCoverage = r.LedgerCoverage
 	return ret, nil
 }
 

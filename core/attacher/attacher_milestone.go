@@ -114,7 +114,7 @@ func (a *milestoneAttacher) run() error {
 	}
 
 	a.Assertf(a.baseline != nil, "a.baseline != nil")
-	a.Tracef(TraceTagBranchAvailable, "baseline is OK <- %s", a.baseline.IDShortString)
+	a.Tracef(TraceTagBranchAvailable, "baseline is OK <- %s", a.baseline.StringShort)
 
 	// then solidify past cone
 

@@ -38,7 +38,7 @@ type (
 	}
 
 	PastConeBase struct {
-		baseline          *base.TransactionID
+		baselineBranchID  *base.TransactionID
 		vertices          map[*WrappedTx]FlagsPastCone // byte is used by attacher for flags
 		virtuallyConsumed map[*WrappedTx]set.Set[byte]
 		//num               int // tmp
@@ -76,8 +76,8 @@ func (f FlagsPastCone) String() string {
 
 func NewPastConeBase(baselineID *base.TransactionID) *PastConeBase {
 	ret := &PastConeBase{
-		vertices: make(map[*WrappedTx]FlagsPastCone),
-		baseline: baselineID,
+		vertices:         make(map[*WrappedTx]FlagsPastCone),
+		baselineBranchID: baselineID,
 	}
 	return ret
 }
@@ -100,8 +100,8 @@ func (pb *PastConeBase) CloneImmutable() *PastConeBase {
 	util.Assertf(len(pb.virtuallyConsumed) == 0, "len(pb.virtuallyConsumed)==0")
 
 	ret := &PastConeBase{
-		baseline: pb.baseline,
-		vertices: make(map[*WrappedTx]FlagsPastCone, len(pb.vertices)),
+		baselineBranchID: pb.baselineBranchID,
+		vertices:         make(map[*WrappedTx]FlagsPastCone, len(pb.vertices)),
 	}
 	for vid, flags := range pb.vertices {
 		ret.vertices[vid] = flags
@@ -126,7 +126,7 @@ func (pb *PastConeBase) Lines(prefix ...string) *lines.Lines {
 		ret.Add("<nil pastCone>")
 		return ret
 	}
-	ret.Add("baseline: %s", pb.baseline.String())
+	ret.Add("baseline: %s", pb.baselineBranchID.String())
 	for vid := range pb.vertices {
 		ret.Add("  dept %s", vid.IDShortString())
 	}
@@ -179,28 +179,28 @@ func (pc *PastCone) Assertf(cond bool, format string, args ...any) {
 
 func (pc *PastCone) SetBaseline(baselineID base.TransactionID) {
 	pc.Assertf(baselineID.IsBranchTransaction(), "branch tx expected in past cone %s, got %s", pc.name, baselineID.StringShort)
-	pc.Assertf(pc.baseline == nil, "SetBaseline: nil baseline expected in %s", pc.LinesShort("     ").String)
+	pc.Assertf(pc.baselineBranchID == nil, "SetBaseline: nil baseline expected in %s", pc.LinesShort("     ").String)
 
 	//pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState)
 	if pc.delta == nil {
-		pc.baseline = util.Ref(baselineID)
+		pc.baselineBranchID = util.Ref(baselineID)
 	} else {
-		pc.Assertf(pc.delta.baseline == nil, "SetBaseline: pc.delta.baseline == nil")
-		pc.delta.baseline = util.Ref(baselineID)
+		pc.Assertf(pc.delta.baselineBranchID == nil, "SetBaseline: pc.delta.baseline == nil")
+		pc.delta.baselineBranchID = util.Ref(baselineID)
 	}
 }
 
 func (pc *PastCone) BeginDelta() {
 	util.Assertf(pc.delta == nil, "BeginDelta: pc.delta == nil")
-	pc.delta = NewPastConeBase(pc.baseline)
+	pc.delta = NewPastConeBase(pc.baselineBranchID)
 	pc.savedCoverageDelta = pc.coverageDelta
 }
 
 func (pc *PastCone) CommitDelta() {
 	util.Assertf(pc.delta != nil, "CommitDelta: pc.delta != nil")
-	util.Assertf(pc.baseline == nil || pc.baseline == pc.delta.baseline, "pc.baseline == base.TransactionID{} || pc.baseline == pc.delta.baseline")
+	util.Assertf(pc.baselineBranchID == nil || pc.baselineBranchID == pc.delta.baselineBranchID, "pc.baseline == base.TransactionID{} || pc.baseline == pc.delta.baseline")
 
-	pc.baseline = pc.delta.baseline
+	pc.baselineBranchID = pc.delta.baselineBranchID
 	for vid, flags := range pc.delta.vertices {
 		pc.vertices[vid] = flags
 	}
@@ -336,7 +336,7 @@ func (pc *PastCone) forAllVertices(fun func(vid *WrappedTx) bool, sortAsc ...boo
 func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("------ past cone: '%s'", pc.name).
-		Add("------ baseline: %s", pc.baseline.StringShort())
+		Add("------ baseline: %s", pc.baselineBranchID.StringShort())
 
 	//rooted := make([]WrappedOutput, 0)
 	counter := 0
@@ -384,7 +384,7 @@ func (pc *PastCone) _addVertexLine(n int, vid *WrappedTx, ln *lines.Lines) {
 func (pc *PastCone) LinesShort(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("------ past cone: '%s'", pc.name).
-		Add("------ baseline: %s", pc.baseline.StringShort())
+		Add("------ baseline: %s", pc.baselineBranchID.StringShort())
 	counter := 0
 	pc.forAllVertices(func(vid *WrappedTx) bool {
 		ret.Add("#%d %s : %s", counter, vid.IDShortString(), pc.vertices[vid].String())
@@ -585,11 +585,11 @@ func (pc *PastCone) IsComplete() bool {
 }
 
 func (pc *PastCone) getBaseline() *base.TransactionID {
-	if pc.baseline != nil {
-		return pc.baseline
+	if pc.baselineBranchID != nil {
+		return pc.baselineBranchID
 	}
 	if pc.delta != nil {
-		return pc.delta.baseline
+		return pc.delta.baselineBranchID
 	}
 	return nil
 }
@@ -600,7 +600,7 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multis
 		return
 	}
 	pc.Assertf(pc.getBaseline() != nil, "pc.getBaseline() != nil")
-	pc.Assertf(pcb.baseline != nil, "pcb.baseline != nil")
+	pc.Assertf(pcb.baselineBranchID != nil, "pcb.baseline != nil")
 
 	for vid, flags := range pcb.vertices {
 		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
@@ -667,7 +667,7 @@ func (pc *PastCone) checkFinalFlags(vid *WrappedTx) error {
 	flags := pc.Flags(vid)
 	wrongFlag := ""
 
-	pc.Assertf(pc.baseline != nil, "checkFinalFlags: pc.baseline != nil")
+	pc.Assertf(pc.baselineBranchID != nil, "checkFinalFlags: pc.baseline != nil")
 
 	switch {
 	case !flags.FlagsUp(FlagPastConeVertexKnown):
@@ -679,7 +679,7 @@ func (pc *PastCone) checkFinalFlags(vid *WrappedTx) error {
 			wrongFlag = "FlagPastConeVertexCheckedInTheState"
 		}
 	case vid.IsBranchTransaction():
-		if pc.baseline == nil || *pc.baseline != vid.ID() {
+		if pc.baselineBranchID == nil || *pc.baselineBranchID != vid.ID() {
 			return fmt.Errorf("checkFinalFlags: inconsistent baseline")
 		}
 	default:
@@ -699,7 +699,7 @@ func (pc *PastCone) checkFinalFlags(vid *WrappedTx) error {
 func (pc *PastCone) CloneForDebugOnly(env global.Logging, name string) *PastCone {
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 	ret := NewPastCone(env, pc.tip, pc.targetTs, name+"_debug_clone")
-	ret.baseline = pc.baseline
+	ret.baselineBranchID = pc.baselineBranchID
 	ret.coverageDelta = pc.coverageDelta
 	ret.vertices = maps.Clone(pc.vertices)
 	ret.virtuallyConsumed = make(map[*WrappedTx]set.Set[byte])
@@ -734,7 +734,7 @@ func (pc *PastCone) Check(stateReader multistate.IndexedStateReader) (conflict *
 // CheckAndClean iterates past cone, checks for conflicts and removes those vertices
 // which has consumers and all consumers are already in the state
 func (pc *PastCone) CheckAndClean(stateReader multistate.IndexedStateReader) (conflict *WrappedOutput) {
-	pc.Assertf(pc.baseline != nil, "pc.baseline!=nil")
+	pc.Assertf(pc.baselineBranchID != nil, "pc.baseline!=nil")
 	pc.Assertf(len(pc.virtuallyConsumed) == 0, "len(pb.virtuallyConsumed)==0")
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 
@@ -801,7 +801,7 @@ func (pc *PastCone) CalculateSlotInflation() (ret uint64) {
 
 func (pc *PastCone) CoverageDelta() (delta uint64) {
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
-	pc.Assertf(pc.baseline != nil, "pc.baseline != nil")
+	pc.Assertf(pc.baselineBranchID != nil, "pc.baseline != nil")
 
 	return pc.coverageDelta
 }
@@ -809,12 +809,12 @@ func (pc *PastCone) CoverageDelta() (delta uint64) {
 // ledgerCoverageAdjustment if sequencer output of the baseline in not consumed,
 // ledger coverage must be adjusted by the branch inflation
 func (pc *PastCone) ledgerCoverageAdjustment() uint64 {
-	wOut := pc.baseline.SequencerWrappedOutput()
-	if len(pc.findConsumersOf(wOut)) == 0 {
-		o, err := pc.baseline.OutputAt(wOut.Index)
-		pc.AssertNoError(err)
-		return o.Inflation()
-	}
+	//wOut := pc.baselineBranchID.SequencerWrappedOutput()
+	//if len(pc.findConsumersOf(wOut)) == 0 {
+	//	o, err := pc.baselineBranchID.OutputAt(wOut.Index)
+	//	pc.AssertNoError(err)
+	//	return o.Inflation()
+	//}
 	return 0
 }
 
@@ -851,27 +851,6 @@ func (pc *PastCone) NumVertices() int {
 	return len(pc.vertices)
 }
 
-func (pb *PastConeBase) FindAllSuchAs(filter func(vid *WrappedTx) bool) (ret []*WrappedTx) {
-	ret = make([]*WrappedTx, 0)
-	if pb == nil {
-		return
-	}
-	if filter(pb.baseline) {
-		ret = append(ret, pb.baseline)
-	}
-	for vid := range pb.vertices {
-		if filter(vid) {
-			ret = append(ret, pb.baseline)
-		}
-	}
-	for vid := range pb.virtuallyConsumed {
-		if filter(vid) {
-			ret = append(ret, pb.baseline)
-		}
-	}
-	return
-}
-
 func (pc *PastCone) Dispose() {
 	if pc == nil {
 		return
@@ -887,52 +866,9 @@ func (pb *PastConeBase) Dispose() {
 	if pb == nil {
 		return
 	}
-	pb.baseline = nil
+	pb.baselineBranchID = nil
 	clear(pb.vertices)
 	pb.vertices = nil
 	clear(pb.virtuallyConsumed)
 	pb.virtuallyConsumed = nil
-}
-
-func (pb *PastConeBase) OldestReference() (ret *WrappedTx) {
-	if pb == nil {
-		return
-	}
-	ret = pb.baseline
-	for vid := range pb.vertices {
-		if ret == nil || vid.Timestamp().Before(ret.Timestamp()) {
-			ret = vid
-		}
-	}
-	for vid := range pb.virtuallyConsumed {
-		if ret == nil || vid.Timestamp().Before(ret.Timestamp()) {
-			ret = vid
-		}
-	}
-	return ret
-}
-
-func (pb *PastConeBase) DeepestReference(visited set.Set[*WrappedTx]) (ret *WrappedTx) {
-	if pb.baseline != nil {
-		ret = pb.baseline.DeepestPastConeReference(visited)
-	}
-	for vid := range pb.vertices {
-		deepest := vid.DeepestPastConeReference(visited)
-		if deepest == nil {
-			continue
-		}
-		if ret == nil || deepest.Timestamp().Before(ret.Timestamp()) {
-			ret = deepest
-		}
-	}
-	for vid := range pb.virtuallyConsumed {
-		deepest := vid.DeepestPastConeReference(visited)
-		if deepest == nil {
-			continue
-		}
-		if ret == nil || deepest.Timestamp().Before(ret.Timestamp()) {
-			ret = deepest
-		}
-	}
-	return
 }

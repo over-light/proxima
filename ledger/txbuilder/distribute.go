@@ -138,7 +138,6 @@ func MustDistributeInitialSupplyExt(stateStore multistate.StateStore, originPriv
 		StemOutputID:    nextStem.ID,
 		SeqID:           bootstrapChainID,
 		CoverageDelta:   stateID.InitialSupply,
-		LedgerCoverage:  (stateID.InitialSupply >> 1) + stateID.InitialSupply,
 		SlotInflation:   0,
 		Supply:          stateID.InitialSupply,
 		NumTransactions: 1,

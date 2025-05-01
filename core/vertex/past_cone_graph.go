@@ -118,7 +118,7 @@ func (pc *PastCone) nodeAttributes(vid *WrappedTx, seqMap map[base.ChainID]int) 
 		ret = slices.Clone(simpleNodeAttributes)
 	}
 	ret = append(ret, fillColor(vid, seqMap))
-	if pc.baseline == vid {
+	if pc.baselineBranchID != nil && *pc.baselineBranchID == vid.ID() {
 		ret = append(ret,
 			graph.VertexAttribute("penwidth", "5"),
 			graph.VertexAttribute("color", "red"),

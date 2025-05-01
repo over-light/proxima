@@ -572,7 +572,10 @@ func (vid *WrappedTx) BaselineBranch() (baselineBranchID base.TransactionID, ok 
 		DetachedVertex: func(v *DetachedVertex) {
 			// it means tx was already attached and vertex does not contain reference to the baseline reference.
 			util.Assertf(v.BranchID.IsBranchTransaction(), "v.BranchID.IsBranchTransaction()")
-			baselineBranchID = v.BranchID
+			if v.BranchID != nil {
+				baselineBranchID = *v.BranchID
+				ok = true
+			}
 		},
 		VirtualTx: func(v *VirtualTransaction) {
 			util.Panicf("BaselineBranchID(%s): can't access baseline branch in virtual tx", vid.IDShortString())
@@ -765,12 +768,9 @@ func (vid *WrappedTx) SequencerPredecessor(reattachBranch func(txid base.Transac
 			}
 		},
 		DetachedVertex: func(v *DetachedVertex) {
-			ret = reattachBranch(v.BranchID)
-			//if vid.IsBranchTransaction() {
-			//	ret = reattachBranch(v.BranchID)
-			//} else {
-			//	util.Panicf("SequencerPredecessor: can't get predecessor vertex in detached tx %s", vid.IDShortString())
-			//}
+			if v.BranchID != nil {
+				ret = reattachBranch(*v.BranchID)
+			}
 		},
 	})
 	return
@@ -947,52 +947,6 @@ func (vid *WrappedTx) GetTransaction() (tx *transaction.Transaction) {
 			tx = v.Tx
 		},
 	})
-	return
-}
-
-func (vid *WrappedTx) FindPastReferencesSuchAs(filter func(vid *WrappedTx) bool) (ret []*WrappedTx) {
-	if vid == nil {
-		return nil
-	}
-	vid.RUnwrap(UnwrapOptions{Vertex: func(v *Vertex) {
-		ret = vid.pastCone.FindAllSuchAs(filter)
-		v.ForEachInputDependency(func(_ byte, vidInput *WrappedTx) bool {
-			if filter(vidInput) {
-				ret = append(ret, vid)
-			}
-			return true
-		})
-		v.ForEachEndorsement(func(_ byte, vid *WrappedTx) bool {
-			if filter(vid) {
-				ret = append(ret, vid)
-			}
-			return true
-		})
-	}})
-	return
-}
-
-func (vid *WrappedTx) DeepestPastConeReference(visited set.Set[*WrappedTx]) (ret *WrappedTx) {
-	ret = vid
-	if visited.Contains(vid) {
-		return
-	}
-	visited.Insert(vid)
-
-	//vid.mutex.RLock()
-	pb := vid.GetPastConeNoLock()
-	//vid.mutex.RUnlock()
-
-	if pb == nil {
-		return
-	}
-	retDep := pb.DeepestReference(visited)
-	if retDep == nil {
-		return
-	}
-	if ret == nil || retDep.Timestamp().Before(ret.Timestamp()) {
-		ret = retDep
-	}
 	return
 }
 

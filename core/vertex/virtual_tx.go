@@ -32,9 +32,7 @@ func newVirtualBranchTx(br *multistate.BranchData) *VirtualTransaction {
 // toDetachedVertex preserves information about all outputs and baseline in the virtualTx
 func (v *Vertex) toDetachedVertex() *DetachedVertex {
 	ret := &DetachedVertex{Tx: v.Tx}
-	if v.BaselineBranchID != nil {
-		ret.BranchID = *v.BaselineBranchID
-	}
+	ret.BranchID = v.BaselineBranchID
 	return ret
 }
 

@@ -41,7 +41,6 @@ func InitStateStoreWithGlobalLedgerIdentity(store StateStore) (base.ChainID, com
 		StemOutputID:      gStemOut.ID,
 		SeqID:             gout.ChainID,
 		CoverageDelta:     initialSupply,
-		LedgerCoverage:    initialSupply,
 		SlotInflation:     initialSupply,
 		Supply:            initialSupply,
 		WriteEarliestSlot: true,

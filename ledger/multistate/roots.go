@@ -68,20 +68,18 @@ func FetchSnapshotBranchID(store common.KVTraversableReader) base.TransactionID 
 	return branchData.Stem.ID.TransactionID()
 }
 
-const numberOfElementsInRootRecord = 7
+const numberOfElementsInRootRecord = 6
 
 func (r *RootRecord) Bytes() []byte {
-	util.Assertf(r.LedgerCoverage > 0, "r.Coverage.LatestDelta() > 0")
 	arr := lazybytes.EmptyArray(numberOfElementsInRootRecord)
 	arr.Push(r.SequencerID.Bytes())   // 0
 	arr.Push(r.Root.Bytes())          // 1
 	arr.PushUint64(r.CoverageDelta)   // 2
-	arr.PushUint64(r.LedgerCoverage)  // 3
-	arr.PushUint64(r.SlotInflation)   // 4
-	arr.PushUint64(r.Supply)          // 5
-	arr.PushUint32(r.NumTransactions) // 6
+	arr.PushUint64(r.SlotInflation)   // 3
+	arr.PushUint64(r.Supply)          // 4
+	arr.PushUint32(r.NumTransactions) // 5
 
-	util.Assertf(arr.NumElements() == numberOfElementsInRootRecord, "arr.NumElements() == 6")
+	util.Assertf(arr.NumElements() == numberOfElementsInRootRecord, "arr.NumElements() == %d", numberOfElementsInRootRecord)
 	return arr.Bytes()
 }
 
@@ -98,7 +96,7 @@ func RootRecordFromBytes(data []byte) (RootRecord, error) {
 	if err != nil {
 		return RootRecord{}, err
 	}
-	for _, i := range []int{2, 3, 4, 5} {
+	for _, i := range []int{2, 3, 4} {
 		if len(arr.At(i)) != 8 {
 			return RootRecord{}, fmt.Errorf("wrong data length")
 		}
@@ -110,16 +108,15 @@ func RootRecordFromBytes(data []byte) (RootRecord, error) {
 		Root:            root,
 		SequencerID:     chainID,
 		CoverageDelta:   binary.BigEndian.Uint64(arr.At(2)),
-		LedgerCoverage:  binary.BigEndian.Uint64(arr.At(3)),
-		SlotInflation:   binary.BigEndian.Uint64(arr.At(4)),
-		Supply:          binary.BigEndian.Uint64(arr.At(5)),
-		NumTransactions: binary.BigEndian.Uint32(arr.At(6)),
+		SlotInflation:   binary.BigEndian.Uint64(arr.At(3)),
+		Supply:          binary.BigEndian.Uint64(arr.At(4)),
+		NumTransactions: binary.BigEndian.Uint32(arr.At(5)),
 	}, nil
 }
 
 func (r *RootRecord) StringShort() string {
 	return fmt.Sprintf("%s, %s, %s, %d",
-		r.SequencerID.StringShort(), util.Th(r.LedgerCoverage), r.Root.String(), r.NumTransactions)
+		r.SequencerID.StringShort(), util.Th(r.CoverageDelta), r.Root.String(), r.NumTransactions)
 }
 
 func (r *RootRecord) Lines(prefix ...string) *lines.Lines {
@@ -127,7 +124,6 @@ func (r *RootRecord) Lines(prefix ...string) *lines.Lines {
 	ret.Add("sequencer id: %s", r.SequencerID.String()).
 		Add("supply: %s", util.Th(r.Supply)).
 		Add("coverage delta: %s", util.Th(r.CoverageDelta)).
-		Add("ledger coverage: %s", util.Th(r.LedgerCoverage)).
 		Add("healthy(%s): %v", global.FractionHealthyBranch.String(), global.IsHealthyCoverageDelta(r.CoverageDelta, r.Supply, global.FractionHealthyBranch))
 	return ret
 }
@@ -138,41 +134,6 @@ func (r *RootRecord) LinesVerbose(prefix ...string) *lines.Lines {
 		Add("slot inflation: %s", util.Th(r.SlotInflation)).
 		Add("num transactions: %d", r.NumTransactions)
 	return ret
-}
-
-func (br *BranchData) LinesVerbose(prefix ...string) *lines.Lines {
-	ret := br.RootRecord.Lines(prefix...)
-	ret.Add("---- Stem ----").
-		Append(br.Stem.Lines(prefix...)).
-		Add("---- Sequencer output ----").
-		Append(br.SequencerOutput.Lines(prefix...))
-	return ret
-}
-
-func (br *BranchData) Lines(prefix ...string) *lines.Lines {
-	return br.RootRecord.Lines(prefix...).
-		Add("Stem output id: %s", br.Stem.ID.String()).
-		Add("Sequencer output id: %s", br.SequencerOutput.ID.String())
-}
-
-func ValidInclusionThresholdFraction(numerator, denominator int) bool {
-	return numerator > 0 && denominator > 0 && numerator < denominator && denominator >= 2
-}
-
-func AbsoluteStrongFinalityCoverageThreshold(supply uint64, numerator, denominator int) uint64 {
-	// 2 *supply * theta
-	return ((supply / uint64(denominator)) * uint64(numerator)) << 1 // this order to avoid overflow
-}
-
-// IsCoverageAboveThreshold the root is dominating if coverage last delta is more than numerator/denominator of the double supply
-func (r *RootRecord) IsCoverageAboveThreshold(numerator, denominator int) bool {
-	util.Assertf(ValidInclusionThresholdFraction(numerator, denominator), "IsCoverageAboveThreshold: fraction is wrong")
-	return r.LedgerCoverage > AbsoluteStrongFinalityCoverageThreshold(r.Supply, numerator, denominator)
-}
-
-// TxID transaction id of the branch, as taken from the stem output id
-func (br *BranchData) TxID() base.TransactionID {
-	return br.Stem.ID.TransactionID()
 }
 
 func iterateAllRootRecords(store common.Traversable, fun func(branchTxID base.TransactionID, rootData RootRecord) bool) {
@@ -279,12 +240,13 @@ func FetchRootRecords(store common.Traversable, slots ...base.Slot) []RootRecord
 	return ret
 }
 
-// FetchBranchData returns branch data by the branch transaction id
-func FetchBranchData(store common.KVReader, branchTxID base.TransactionID) (BranchData, bool) {
-	if rd, found := FetchRootRecord(store, branchTxID); found {
-		return FetchBranchDataByRoot(store, rd), true
-	}
-	return BranchData{}, false
+// FetchLatestRootRecords sorted descending by coverage
+func FetchLatestRootRecords(store StateStoreReader) []RootRecord {
+	ret := FetchRootRecords(store, FetchLatestCommittedSlot(store))
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].CoverageDelta > ret[j].CoverageDelta
+	})
+	return ret
 }
 
 // FetchBranchDataByRoot returns existing branch data by root record. The root record usually returned by FetchRootRecord
@@ -303,7 +265,7 @@ func FetchBranchDataByRoot(store common.KVReader, rootData RootRecord) BranchDat
 }
 
 // FetchBranchDataMulti returns branch records for particular root records
-func FetchBranchDataMulti(store common.KVReader, rootData ...RootRecord) []*BranchData {
+func FetchBranchDataMulti(store StateStoreReader, rootData ...RootRecord) []*BranchData {
 	ret := make([]*BranchData, len(rootData))
 	for i, rd := range rootData {
 		bd := FetchBranchDataByRoot(store, rd)
@@ -315,15 +277,6 @@ func FetchBranchDataMulti(store common.KVReader, rootData ...RootRecord) []*Bran
 // FetchLatestBranches branches of the latest slot sorted by coverage descending
 func FetchLatestBranches(store StateStoreReader) []*BranchData {
 	return FetchBranchDataMulti(store, FetchLatestRootRecords(store)...)
-}
-
-// FetchLatestRootRecords sorted descending by coverage
-func FetchLatestRootRecords(store StateStoreReader) []RootRecord {
-	ret := FetchRootRecords(store, FetchLatestCommittedSlot(store))
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].LedgerCoverage > ret[j].LedgerCoverage
-	})
-	return ret
 }
 
 // FetchLatestBranchTransactionIDs sorted descending by coverage
@@ -363,7 +316,7 @@ func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*Br
 	var lastInTheChain *BranchData
 
 	for _, bd := range latestBD {
-		if lastInTheChain == nil || bd.LedgerCoverage > lastInTheChain.LedgerCoverage {
+		if lastInTheChain == nil || bd.CoverageDelta > lastInTheChain.CoverageDelta {
 			lastInTheChain = bd
 		}
 	}
@@ -446,10 +399,6 @@ func FindLatestHealthySlot(store StateStoreReader, fraction global.Fraction) (ba
 	return ret.Stem.ID.Slot(), true
 }
 
-func (br *BranchData) IsHealthy(fraction global.Fraction) bool {
-	return global.IsHealthyCoverageDelta(br.CoverageDelta, br.Supply, fraction)
-}
-
 // FirstHealthySlotIsNotBefore determines if first healthy slot is not before tha refSlot.
 // Usually refSlot is just few slots back, so the operation does not require
 // each time traversing unbounded number of slots
@@ -496,7 +445,7 @@ func FindRootsFromLatestHealthySlot(store StateStoreReader, fraction global.Frac
 			return true
 		}
 		maxElemIdx := util.IndexOfMaximum(roots, func(i, j int) bool {
-			return roots[i].LedgerCoverage < roots[j].LedgerCoverage
+			return roots[i].CoverageDelta < roots[j].CoverageDelta
 		})
 		if global.IsHealthyCoverageDelta(roots[maxElemIdx].CoverageDelta, roots[maxElemIdx].Supply, fraction) {
 			rootsFound = roots
@@ -548,10 +497,10 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 	}
 
 	// there are several healthy roots in the latest healthy slot.
-	// We start traversing back from the heaviest one
+	// we start traversing back from the heaviest one
 	util.Assertf(len(tipRoots) > 1, "len(tipRoots)>1")
 	rootMaxIdx := util.IndexOfMaximum(tipRoots, func(i, j int) bool {
-		return tipRoots[i].LedgerCoverage < tipRoots[j].LedgerCoverage
+		return tipRoots[i].CoverageDelta < tipRoots[j].CoverageDelta
 	})
 	util.Assertf(global.IsHealthyCoverageDelta(tipRoots[rootMaxIdx].CoverageDelta, tipRoots[rootMaxIdx].Supply, fraction),
 		"global.IsHealthyCoverageDelta(rootMax.LedgerCoverage, rootMax.Supply, fraction)")
@@ -660,4 +609,34 @@ func CheckTransactionInLRB(store StateStoreReader, txid base.TransactionID, maxD
 		return true
 	})
 	return
+}
+
+func (br *BranchData) IsHealthy(fraction global.Fraction) bool {
+	return global.IsHealthyCoverageDelta(br.CoverageDelta, br.Supply, fraction)
+}
+
+func (br *BranchData) LinesVerbose(prefix ...string) *lines.Lines {
+	ret := br.RootRecord.Lines(prefix...)
+	ret.Add("---- Stem ----").
+		Append(br.Stem.Lines(prefix...)).
+		Add("---- Sequencer output ----").
+		Append(br.SequencerOutput.Lines(prefix...))
+	return ret
+}
+
+func (br *BranchData) Lines(prefix ...string) *lines.Lines {
+	return br.RootRecord.Lines(prefix...).
+		Add("Stem output id: %s", br.Stem.ID.String()).
+		Add("Sequencer output id: %s", br.SequencerOutput.ID.String())
+}
+
+// TxID transaction id of the branch, as taken from the stem output id
+func (br *BranchData) TxID() base.TransactionID {
+	return br.Stem.ID.TransactionID()
+}
+
+func (br *BranchData) StemPredecessorBranchID() base.TransactionID {
+	stemLock, ok := br.Stem.Output.StemLock()
+	util.Assertf(ok, "stem lock not found")
+	return stemLock.PredecessorOutputID.TransactionID()
 }

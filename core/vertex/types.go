@@ -24,7 +24,7 @@ type (
 
 	DetachedVertex struct {
 		Tx       *transaction.Transaction
-		BranchID base.TransactionID
+		BranchID *base.TransactionID
 	}
 
 	// VirtualTransaction is a collection of produced outputs

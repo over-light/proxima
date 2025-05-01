@@ -38,7 +38,7 @@ func MakeTree(stateStore StateStore, slots ...int) graph.Graph[string, string] {
 		byOid[b.Stem.ID] = b
 		txid := b.Stem.ID.TransactionID()
 		id := txid.StringShort()
-		err := ret.AddVertex(id, branchNodeAttributes(&b.SequencerID, b.LedgerCoverage, idDict)...)
+		err := ret.AddVertex(id, branchNodeAttributes(&b.SequencerID, b.CoverageDelta, idDict)...)
 		util.AssertNoError(err)
 	}
 
