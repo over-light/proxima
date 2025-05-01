@@ -59,12 +59,14 @@ func (seq *Sequencer) LogMilestoneSubmitDefault(ms *vertex.WrappedTx) {
 		msIndex = od.ChainHeight
 	}
 
+	bl, ok := ms.BaselineBranch()
+	seq.Assertf(ok, "LogMilestoneSubmitDefault: can't unwrap baseline branch for milestone %s", ms.IDShortString())
 	seq.log.Debugf("%s %d/%d: %s, bl: %s, cov: %s<-%s (infl: %s), in/out: %d/%d, feeOut: %d, mem: %d/%d",
 		msType,
 		msIndex,
 		branchIndex,
 		sequencerOutput.IDShort(),
-		ms.BaselineBranch().IDShortString(),
+		bl.StringShort(),
 		util.Th(info.LedgerCoverage),
 		util.Th(info.PrevLedgerCoverage),
 		util.Th(info.InflationAmount),

@@ -144,9 +144,9 @@ func (a *milestoneAttacher) run() error {
 		// branch transaction vertex is immediately detached. Thus branch transaction does not reference past cone
 		a.vid.ConvertToDetached()
 		//a.vid.SetTxStatusGood(nil, a.pastCone.LedgerCoverage())
-		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
+		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.LedgerCoverage(a.vid.Timestamp()))
 	} else {
-		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.pastCone.LedgerCoverage())
+		a.vid.SetTxStatusGood(a.pastCone.PastConeBase.CloneImmutable(), a.LedgerCoverage(a.vid.Timestamp()))
 		a.EvidencePastConeSize(a.pastCone.PastConeBase.Len())
 	}
 
@@ -294,10 +294,10 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 				const doubleCheck = true
 				if doubleCheck && finalSuccess {
 					// double check
-					lc := a.LedgerCoverage()
+					lc := a.LedgerCoverage(a.vid.Timestamp())
 					conflict := a.pastCone.Check(a.baselineStateReader())
 					a.Assertf(conflict == nil, "unexpected conflict %s in %s", conflict.IDStringShort(), a.name)
-					a.Assertf(lc == a.LedgerCoverage(), "lc == a.LedgerCoverage()")
+					a.Assertf(lc == a.LedgerCoverage(a.vid.Timestamp()), "lc == a.LedgerCoverage()")
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
@@ -418,8 +418,7 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 func (a *milestoneAttacher) logErrorStatusString(err error) string {
 	bl := "baseline: N/A"
 	if a.baselineBranchID != nil {
-		id := a.baselineBranchID.ID()
-		bl = fmt.Sprintf("baseline: %s (hex = %s)", id.StringShort(), id.StringHex())
+		bl = fmt.Sprintf("baseline: %s (hex = %s)", a.baselineBranchID.StringShort(), a.baselineBranchID.StringHex())
 	}
 	return fmt.Sprintf("ATTACH %s (%s) -> BAD(%v)", a.vid.IDShortString(), bl, err)
 }

@@ -508,6 +508,10 @@ func (a *attacher) FinalSupply() uint64 {
 	return a.baselineSupply + a.slotInflation
 }
 
+func (a *attacher) CoverageDelta() uint64 {
+	return a.pastCone.CoverageDelta()
+}
+
 func (a *attacher) LedgerCoverage(currentTs base.LedgerTime) uint64 {
 	var baselineLC uint64
 	if a.baselineBranchID != nil {

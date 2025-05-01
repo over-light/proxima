@@ -588,11 +588,11 @@ func (seq *Sequencer) BacklogTTLSlots() (int, int) {
 func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {
 	milestones := seq.LatestMilestonesDescending()
 	for _, ms := range milestones {
-		baseline := ms.BaselineBranch()
-		if baseline == nil {
+		baselineBranchID, ok := ms.BaselineBranch()
+		if !ok {
 			continue
 		}
-		rdr := multistate.MakeSugared(seq.GetStateReaderForTheBranch(baseline.ID()))
+		rdr := multistate.MakeSugared(seq.GetStateReaderForTheBranch(baselineBranchID))
 		chainOut, _, err := rdr.GetChainTips(seq.sequencerID)
 		if errors.Is(err, multistate.ErrNotFound) {
 			continue

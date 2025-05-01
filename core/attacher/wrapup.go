@@ -15,10 +15,11 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 
 	a.slotInflation = a.pastCone.CalculateSlotInflation()
 
-	a.finals.baseline = a.baselineBranchID.ID()
+	a.finals.baseline = *a.baselineBranchID
 	a.finals.numVertices = a.pastCone.NumVertices()
 
-	a.finals.ledgerCoverage, a.finals.coverageDelta = a.CoverageAndDelta()
+	a.finals.ledgerCoverage = a.LedgerCoverage(a.vid.Timestamp())
+	a.finals.coverageDelta = a.pastCone.CoverageDelta()
 	a.finals.slotInflation = a.slotInflation
 
 	a.Tracef(TraceTagAttachMilestone, "set ledger coverage in %s to %s",
@@ -58,7 +59,7 @@ func (a *milestoneAttacher) commitBranch() {
 	seqID, stemOID := a.vid.MustSequencerIDAndStemID()
 	upd := multistate.MustNewUpdatable(a.StateStore(), a.BaselineSugaredStateReader().Root())
 	a.finals.supply = a.baselineSupply + a.finals.slotInflation
-	ledgerCoverage, coverageDelta := a.CoverageAndDelta()
+	coverageDelta := a.pastCone.CoverageDelta()
 
 	util.Assertf(a.slotInflation == a.finals.slotInflation, "a.slotInflation == a.finals.slotInflation")
 	supply := a.FinalSupply()
@@ -67,7 +68,6 @@ func (a *milestoneAttacher) commitBranch() {
 		StemOutputID:    stemOID,
 		SeqID:           seqID,
 		CoverageDelta:   coverageDelta,
-		LedgerCoverage:  ledgerCoverage,
 		SlotInflation:   a.slotInflation,
 		Supply:          supply,
 		NumTransactions: a.finals.numNewTransactions,

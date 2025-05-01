@@ -55,7 +55,7 @@ func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		return nil, true
 	}
 	p.Tracef(TraceTagBootProposer, "%s created attacher with baseline %s, cov: %s",
-		p.Name, a.BaselineBranch().IDShortString, func() string { return util.Th(a.LedgerCoverage()) },
+		p.Name, a.BaselineBranch().StringShort, func() string { return util.Th(a.LedgerCoverage(p.targetTs)) },
 	)
 
 	p.Tracef(TraceTagBootProposer, "exit with proposal in %s: extend = %s", p.Name, extend.IDStringShort)

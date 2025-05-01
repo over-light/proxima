@@ -41,7 +41,7 @@ func (a *milestoneAttacher) _checkMonotonicityOfEndorsements(v *vertex.Vertex) (
 			err = fmt.Errorf("ledger coverage not set in the endorsed %s", vidEndorsed.IDShortString())
 			return false
 		}
-		lcCalc := a.LedgerCoverage()
+		lcCalc := a.LedgerCoverage(a.vid.Timestamp())
 		if lcCalc < *lc {
 			/* FIXME sometimes happens
 			----------------------------------------------------------------------------- loc1
@@ -116,7 +116,7 @@ func (a *milestoneAttacher) _checkMonotonicityOfInputTransactions(v *vertex.Vert
 			err = fmt.Errorf("ledger coverage not set in the input tx %s", vidInp.IDShortString())
 			return false
 		}
-		lcCalc := a.LedgerCoverage()
+		lcCalc := a.LedgerCoverage(a.vid.Timestamp())
 		if lcCalc < *lc {
 			diff := *lc - lcCalc
 			err = fmt.Errorf("ledger coverage should not decrease along consumed transactions on the same slot.\nGot: delta(%s) at %s <= delta(%s) in %s. diff: %s",
@@ -129,7 +129,8 @@ func (a *milestoneAttacher) _checkMonotonicityOfInputTransactions(v *vertex.Vert
 }
 
 func (a *milestoneAttacher) calculatedMetadata() *txmetadata.TransactionMetadata {
-	cov, covDelta := a.CoverageAndDelta()
+	cov := a.LedgerCoverage(a.vid.Timestamp())
+	covDelta := a.pastCone.CoverageDelta()
 	return &txmetadata.TransactionMetadata{
 		StateRoot:      a.finals.root,
 		CoverageDelta:  util.Ref(covDelta),

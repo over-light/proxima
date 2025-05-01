@@ -150,8 +150,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseSorted(targetTs base.LedgerTime) []
 	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesDescending(func(seqID base.ChainID, vid *vertex.WrappedTx) bool {
-		if vid.BaselineBranch() == nil {
-			fmt.Printf("vid.BaselineBranchID() == nil: %s\n", vid.IDShortString())
+		if _, ok := vid.BaselineBranch(); !ok {
 			return false
 		}
 		return vid.Slot() == targetSlot && seqID != ownSeqID && ledger.ValidSequencerPace(vid.Timestamp(), targetTs)
@@ -163,7 +162,7 @@ func (b *TagAlongBacklog) CandidatesToEndorseShuffled(targetTs base.LedgerTime) 
 	targetSlot := targetTs.Slot
 	ownSeqID := b.SequencerID()
 	return b.LatestMilestonesShuffled(func(seqID base.ChainID, vid *vertex.WrappedTx) bool {
-		if vid.BaselineBranch() == nil {
+		if _, ok := vid.BaselineBranch(); !ok {
 			return false
 		}
 		return vid.Slot() == targetSlot && seqID != ownSeqID && ledger.ValidSequencerPace(vid.Timestamp(), targetTs)

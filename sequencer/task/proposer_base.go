@@ -78,13 +78,13 @@ func baseProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		return nil, true
 	}
 	p.Tracef(TraceTagBaseProposer, "%s created attacher with baseline %s, cov: %s",
-		p.Name, a.BaselineBranch().IDShortString, func() string { return util.Th(a.LedgerCoverage()) },
+		p.Name, a.BaselineBranch().StringShort, func() string { return util.Th(a.LedgerCoverage(p.targetTs)) },
 	)
 	if p.targetTs.IsSlotBoundary() {
 		p.Tracef(TraceTagBaseProposer, "%s making branch, no tag-along, extending %s cov: %s, attacher %s cov: %s",
 			p.Name,
 			extend.IDStringShort, func() string { return util.Th(extend.VID.GetLedgerCoverage()) },
-			a.Name(), func() string { return util.Th(a.LedgerCoverage()) },
+			a.Name(), func() string { return util.Th(a.LedgerCoverage(p.targetTs)) },
 		)
 	} else {
 		p.Tracef(TraceTagBaseProposer, "%s making non-branch, extending %s, collecting and inserting tag-along inputs", p.Name, extend.IDStringShort)

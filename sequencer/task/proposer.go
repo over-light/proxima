@@ -71,7 +71,8 @@ func (p *proposer) run() {
 func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 	util.Assertf(a.TargetTs() == p.targetTs, "a.targetTs() == p.taskData.targetTs")
 
-	ledgerCoverage, coverageDelta := a.CoverageAndDelta()
+	ledgerCoverage := a.LedgerCoverage(p.targetTs)
+	coverageDelta := a.CoverageDelta()
 
 	tx, hrString, err := p.makeTxProposal(a)
 	util.Assertf(a.IsClosed(), "a.IsClosed()")
@@ -151,7 +152,10 @@ func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 				endorse.Timestamp().String(), p.targetTs.String())
 			continue
 		}
-		rdr := multistate.MakeSugared(p.GetStateReaderForTheBranch(endorse.BaselineBranch().ID()))
+		baselineBranchID, ok := endorse.BaselineBranch()
+		p.Assertf(ok, "baselineBranchID not found in %s", endorse.IDShortString)
+
+		rdr := multistate.MakeSugared(p.GetStateReaderForTheBranch(baselineBranchID))
 		seqOut, err := rdr.GetChainOutput(seqID)
 		if errors.Is(err, multistate.ErrNotFound) {
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> GetChainOutput not found -- %s", p.Name)
@@ -204,18 +208,18 @@ func (p *proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 			ret = a
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"first proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage(p.targetTs)))
 
-		case a.LedgerCoverage() > ret.LedgerCoverage():
+		case a.LedgerCoverage(p.targetTs) > ret.LedgerCoverage(p.targetTs):
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"new proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage(p.targetTs)))
 			ret.Close()
 			ret = a
 		default:
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"discard proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage()))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage(p.targetTs)))
 			a.Close()
 		}
 		p.taskData.slotData.markCombinationChecked(true, extend, endorse)
