@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/hex"
 
-	"github.com/lunfardo314/proxima/core/core_module/tippool"
+	"github.com/lunfardo314/proxima/core/core_modules/tippool"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"

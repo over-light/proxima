@@ -1,7 +1,7 @@
 package events
 
 import (
-	"github.com/lunfardo314/proxima/core/core_module"
+	"github.com/lunfardo314/proxima/core/core_modules"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/eventtype"
@@ -19,7 +19,7 @@ type (
 	}
 
 	Events struct {
-		*core_module.CoreModule[Input]
+		*core_modules.CoreModule[Input]
 		eventHandlers map[eventtype.EventCode][]func(any)
 	}
 )
@@ -38,7 +38,7 @@ func New(env environment) *Events {
 	ret := &Events{
 		eventHandlers: make(map[eventtype.EventCode][]func(any)),
 	}
-	ret.CoreModule = core_module.New[Input](env, Name, ret.consume)
+	ret.CoreModule = core_modules.New[Input](env, Name, ret.consume)
 	ret.CoreModule.Start()
 	return ret
 }

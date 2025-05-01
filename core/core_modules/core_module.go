@@ -1,4 +1,4 @@
-package core_module
+package core_modules
 
 import (
 	"github.com/lunfardo314/proxima/global"

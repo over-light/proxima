@@ -7,7 +7,7 @@ import (
 	"time"
 	"weak"
 
-	"github.com/lunfardo314/proxima/core/core_module/branches"
+	"github.com/lunfardo314/proxima/core/core_modules/branches"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"

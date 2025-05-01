@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/lunfardo314/proxima/core/core_module/branches"
-	"github.com/lunfardo314/proxima/core/core_module/tippool"
+	"github.com/lunfardo314/proxima/core/core_modules/branches"
+	"github.com/lunfardo314/proxima/core/core_modules/tippool"
 	"github.com/lunfardo314/proxima/core/memdag"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/vertex"

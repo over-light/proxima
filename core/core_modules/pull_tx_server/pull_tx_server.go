@@ -2,7 +2,7 @@ package pull_tx_server
 
 import (
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/lunfardo314/proxima/core/core_module"
+	"github.com/lunfardo314/proxima/core/core_modules"
 	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -27,7 +27,7 @@ type (
 
 	PullTxServer struct {
 		environment
-		*core_module.CoreModule[*Input]
+		*core_modules.CoreModule[*Input]
 		responseToPullCounter prometheus.Counter
 	}
 )
@@ -41,7 +41,7 @@ func New(env environment) *PullTxServer {
 	ret := &PullTxServer{
 		environment: env,
 	}
-	ret.CoreModule = core_module.New[*Input](env, Name, ret.consume)
+	ret.CoreModule = core_modules.New[*Input](env, Name, ret.consume)
 	ret.CoreModule.Start()
 	ret.registerMetrics()
 	return ret

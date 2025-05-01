@@ -101,7 +101,7 @@ func RootRecordFromBytes(data []byte) (RootRecord, error) {
 			return RootRecord{}, fmt.Errorf("wrong data length")
 		}
 	}
-	if len(arr.At(6)) != 4 {
+	if len(arr.At(5)) != 4 {
 		return RootRecord{}, fmt.Errorf("wrong data length")
 	}
 	return RootRecord{

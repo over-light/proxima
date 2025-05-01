@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lunfardo314/proxima/core/core_module"
+	"github.com/lunfardo314/proxima/core/core_modules"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -29,7 +29,7 @@ type (
 	// transactions for each sequencer id. One transaction per sequencer
 	// TODO input queue is not very much needed because TPS of sequencer transactions is low
 	SequencerTips struct {
-		*core_module.CoreModule[Input]
+		*core_modules.CoreModule[Input]
 		mutex                           sync.RWMutex
 		latestMilestones                map[base.ChainID]_activeMilestoneData
 		expectedSequencerActivityPeriod time.Duration
@@ -73,7 +73,7 @@ func New(env environment) *SequencerTips {
 		expectedSequencerActivityPeriod: time.Duration(expectedSequencerActivityPeriodInSlots) * ledger.L().ID.SlotDuration(),
 		latestSequencerData:             make(map[base.ChainID]LatestSequencerTipData),
 	}
-	ret.CoreModule = core_module.New[Input](env, Name, ret.consume)
+	ret.CoreModule = core_modules.New[Input](env, Name, ret.consume)
 	ret.CoreModule.Start()
 
 	ret.RepeatInBackground(Name+"_purge_and_log_loop", purgeLoopPeriod, func() bool {
