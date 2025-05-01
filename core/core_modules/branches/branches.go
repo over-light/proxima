@@ -38,8 +38,10 @@ func (b *Branches) Get(branchTxID base.TransactionID) (multistate.BranchData, bo
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	ret, ok := b.getNoLock(branchTxID)
-	return *ret, ok
+	if ret, ok := b.getNoLock(branchTxID); ok {
+		return *ret, ok
+	}
+	return multistate.BranchData{}, false
 }
 
 func (b *Branches) SnapshotBranchID() base.TransactionID {
@@ -70,7 +72,7 @@ func (b *Branches) getNoLock(branchID base.TransactionID) (*multistate.BranchDat
 func (b *Branches) calcLedgerCoveragePast(branchID, predBranchID base.TransactionID) uint64 {
 	slot := branchID.Slot()
 	slotPred := predBranchID.Slot()
-	util.Assertf(slotPred < slot, "slotPred < slot")
+	util.Assertf(slot == 0 || slotPred < slot, "slotPred < slot")
 
 	shift := slot - slotPred
 	if shift >= 64 {
