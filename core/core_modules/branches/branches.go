@@ -65,6 +65,7 @@ func (b *Branches) getNoLock(branchID base.TransactionID) (*multistate.BranchDat
 		bdRec := multistate.FetchBranchDataByRoot(b.StateStore(), rd)
 		bdRec.LedgerCoverage = bdRec.CoverageDelta + b.calcLedgerCoveragePast(bdRec.TxID(), bdRec.StemPredecessorBranchID())
 		b.m[branchID] = &bdRec
+		return &bdRec, true
 	}
 	return nil, false
 }

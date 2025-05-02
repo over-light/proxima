@@ -679,8 +679,14 @@ func (pc *PastCone) checkFinalFlags(vid *WrappedTx) error {
 			wrongFlag = "FlagPastConeVertexCheckedInTheState"
 		}
 	case vid.IsBranchTransaction():
-		if pc.baselineBranchID == nil || *pc.baselineBranchID != vid.ID() {
-			return fmt.Errorf("checkFinalFlags: inconsistent baseline")
+		if pc.baselineBranchID == nil {
+			if vid.ID() != pc.tip.ID() {
+				return fmt.Errorf("checkFinalFlags: inconsistent baseline 1")
+			}
+		} else {
+			if vid.ID() != pc.tip.ID() && vid.ID() != *pc.baselineBranchID {
+				return fmt.Errorf("checkFinalFlags: inconsistent baseline 2")
+			}
 		}
 	default:
 		switch {
@@ -808,6 +814,7 @@ func (pc *PastCone) CoverageDelta() (delta uint64) {
 
 // ledgerCoverageAdjustment if sequencer output of the baseline in not consumed,
 // ledger coverage must be adjusted by the branch inflation
+// TODO
 func (pc *PastCone) ledgerCoverageAdjustment() uint64 {
 	//wOut := pc.baselineBranchID.SequencerWrappedOutput()
 	//if len(pc.findConsumersOf(wOut)) == 0 {

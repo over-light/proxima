@@ -455,9 +455,12 @@ func (a *attacher) setBaseline(baselineID *base.TransactionID) {
 
 	a.pastCone.SetBaseline(baselineID)
 	a.baselineBranchID = baselineID
-	if _, ok := a.Branches().Get(*baselineID); !ok {
-		a.Log().Warnf("setBaseline: branch record %s is not available", baselineID.StringShort())
+
+	if bd, ok := a.Branches().Get(*baselineID); ok {
+		a.baselineSupply = bd.Supply
+		return
 	}
+	a.Log().Warnf("setBaseline: branch record %s is not available", baselineID.StringShort())
 }
 
 // dumpLines beware deadlocks
@@ -517,7 +520,7 @@ func (a *attacher) LedgerCoverage(currentTs base.LedgerTime) uint64 {
 	if a.baselineBranchID != nil {
 		baselineLC = a.Branches().LedgerCoverage(*a.baselineBranchID)
 	}
-	util.Assertf(currentTs.Before(a.baselineBranchID.Timestamp()), "inconsistent timestamps: %s vs %s", currentTs.String, a.baselineBranchID.Timestamp().String())
+	util.Assertf(currentTs.After(a.baselineBranchID.Timestamp()), "inconsistent timestamps: expected %s after %s", currentTs.String, a.baselineBranchID.Timestamp().String())
 	shift := uint32(currentTs.Slot - a.baselineBranchID.Slot())
 	if !currentTs.IsSlotBoundary() {
 		shift += 1
