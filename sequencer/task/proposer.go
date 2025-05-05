@@ -71,7 +71,7 @@ func (p *proposer) run() {
 func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 	util.Assertf(a.TargetTs() == p.targetTs, "a.targetTs() == p.taskData.targetTs")
 
-	ledgerCoverage := a.LedgerCoverage(p.targetTs)
+	ledgerCoverage := a.FinalLedgerCoverage(p.targetTs)
 	coverageDelta := a.CoverageDelta()
 
 	tx, hrString, err := p.makeTxProposal(a)
@@ -208,18 +208,18 @@ func (p *proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 			ret = a
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"first proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage(p.targetTs)))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.FinalLedgerCoverage(p.targetTs)))
 
-		case a.LedgerCoverage(p.targetTs) > ret.LedgerCoverage(p.targetTs):
+		case a.FinalLedgerCoverage(p.targetTs) > ret.FinalLedgerCoverage(p.targetTs):
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"new proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage(p.targetTs)))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.FinalLedgerCoverage(p.targetTs)))
 			ret.Close()
 			ret = a
 		default:
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
 				"discard proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.LedgerCoverage(p.targetTs)))
+				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.FinalLedgerCoverage(p.targetTs)))
 			a.Close()
 		}
 		p.taskData.slotData.markCombinationChecked(true, extend, endorse)

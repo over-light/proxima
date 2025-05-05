@@ -812,17 +812,8 @@ func (pc *PastCone) CoverageDelta() (delta uint64) {
 	return pc.coverageDelta
 }
 
-// ledgerCoverageAdjustment if sequencer output of the baseline in not consumed,
-// ledger coverage must be adjusted by the branch inflation
-// TODO
-func (pc *PastCone) ledgerCoverageAdjustment() uint64 {
-	//wOut := pc.baselineBranchID.SequencerWrappedOutput()
-	//if len(pc.findConsumersOf(wOut)) == 0 {
-	//	o, err := pc.baselineBranchID.OutputAt(wOut.Index)
-	//	pc.AssertNoError(err)
-	//	return o.Inflation()
-	//}
-	return 0
+func (pc *PastCone) IsConsumed(wOut WrappedOutput) bool {
+	return len(pc.findConsumersOf(wOut)) > 0
 }
 
 func (pc *PastCone) UndefinedList() []*WrappedTx {

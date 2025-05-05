@@ -455,12 +455,6 @@ func (a *attacher) setBaseline(baselineID *base.TransactionID) {
 
 	a.pastCone.SetBaseline(baselineID)
 	a.baselineBranchID = baselineID
-
-	if bd, ok := a.Branches().Get(*baselineID); ok {
-		a.baselineSupply = bd.Supply
-		return
-	}
-	a.Log().Warnf("setBaseline: branch record %s is not available", baselineID.StringShort())
 }
 
 // dumpLines beware deadlocks
@@ -468,7 +462,6 @@ func (a *attacher) dumpLines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("attacher %s", a.name).
 		Add("   baseline: %s", a.baselineBranchID.StringShort()).
-		Add("   baselineSupply: %s", util.Th(a.baselineSupply)).
 		Add("   Past cone:").
 		Append(a.pastCone.Lines(prefix...))
 	return ret
@@ -508,14 +501,14 @@ func (a *attacher) SlotInflation() uint64 {
 }
 
 func (a *attacher) FinalSupply() uint64 {
-	return a.baselineSupply + a.slotInflation
+	return a.baselineSupply() + a.slotInflation
 }
 
-func (a *attacher) CoverageDelta() uint64 {
-	return a.pastCone.CoverageDelta()
+func (a *attacher) baselineSupply() uint64 {
+	return a.Branches().Supply(*a.baselineBranchID)
 }
 
-func (a *attacher) LedgerCoverage(currentTs base.LedgerTime) uint64 {
+func (a *attacher) FinalLedgerCoverage(currentTs base.LedgerTime) uint64 {
 	var baselineLC uint64
 	if a.baselineBranchID != nil {
 		baselineLC = a.Branches().LedgerCoverage(*a.baselineBranchID)
@@ -526,4 +519,23 @@ func (a *attacher) LedgerCoverage(currentTs base.LedgerTime) uint64 {
 		shift += 1
 	}
 	return a.pastCone.CoverageDelta() + (baselineLC >> shift)
+}
+
+func (a *attacher) CoverageDelta() uint64 {
+	return a.pastCone.CoverageDelta() + a.coverageDeltaAdjustment()
+}
+
+// coverageDeltaAdjustment is equal:
+// - zero if the sequencer output of the baseline is consumed
+// - inflation of the branch, if the output is not consumed
+// This makes the minimum value of the coverage delta equal to the inflation of the baseline branch
+func (a *attacher) coverageDeltaAdjustment() uint64 {
+	a.Assertf(a.baselineBranchID != nil, "a.baselineBranchID != nil")
+	bd, ok := a.Branches().Get(*a.baselineBranchID)
+	a.Assertf(ok, "a.Branches().Get(*a.baselineBranchID)")
+
+	if wOut := AttachOutputID(bd.SequencerOutput.ID, a); !a.pastCone.IsConsumed(wOut) {
+		return wOut.Output().Inflation()
+	}
+	return 0
 }

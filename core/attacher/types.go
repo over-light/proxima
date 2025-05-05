@@ -64,13 +64,11 @@ type (
 		closed           bool
 		pokeMe           func(vid *vertex.WrappedTx)
 		slotInflation    uint64
-		// only supported for branch transactions
-		baselineSupply uint64
 		// trace this local attacher with all tags
 		forceTrace string
 	}
 
-	// IncrementalAttacher is used by the sequencer to build a sequencer milestone
+	// IncrementalAttacher the sequencer uses it to build a sequencer milestone
 	// transaction by adding new tag-along inputs one-by-one. It ensures the past cone is conflict-free
 	// It is used to generate the transaction and after that it is discarded
 	IncrementalAttacher struct {

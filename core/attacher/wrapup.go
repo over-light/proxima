@@ -18,7 +18,7 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 	a.finals.baseline = *a.baselineBranchID
 	a.finals.numVertices = a.pastCone.NumVertices()
 
-	a.finals.ledgerCoverage = a.LedgerCoverage(a.vid.Timestamp())
+	a.finals.ledgerCoverage = a.FinalLedgerCoverage(a.vid.Timestamp())
 	a.finals.coverageDelta = a.pastCone.CoverageDelta()
 	a.finals.slotInflation = a.slotInflation
 
@@ -44,7 +44,7 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 	}
 	if a.vid.IsBranchTransaction() {
 		calculatedMetadata.StateRoot = a.finals.root
-		calculatedMetadata.Supply = util.Ref(a.baselineSupply + a.slotInflation)
+		calculatedMetadata.Supply = util.Ref(a.baselineSupply() + a.slotInflation)
 	}
 	a.Tracef(TraceTagAttachMilestone, "%s: calculated metadata: %s", a.name, calculatedMetadata.String)
 }
@@ -58,8 +58,8 @@ func (a *milestoneAttacher) commitBranch() {
 
 	seqID, stemOID := a.vid.MustSequencerIDAndStemID()
 	upd := multistate.MustNewUpdatable(a.StateStore(), a.BaselineSugaredStateReader().Root())
-	a.finals.supply = a.baselineSupply + a.finals.slotInflation
-	coverageDelta := a.pastCone.CoverageDelta()
+	a.finals.supply = a.baselineSupply() + a.finals.slotInflation
+	coverageDelta := a.CoverageDelta()
 
 	util.Assertf(a.slotInflation == a.finals.slotInflation, "a.slotInflation == a.finals.slotInflation")
 	supply := a.FinalSupply()

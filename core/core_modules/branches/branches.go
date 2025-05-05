@@ -53,37 +53,46 @@ func (b *Branches) SnapshotSlot() base.Slot {
 }
 
 func (b *Branches) getNoLock(branchID base.TransactionID) (*multistate.BranchData, bool) {
+	if bd, ok := b.m[branchID]; ok {
+		if branchID.Slot() > 0 {
+			// branch record is in the cache. Ledger coverage (calculated) must always be bigger than coverage delta
+			b.Assertf(bd.LedgerCoverage > bd.CoverageDelta, "bd.LedgerCoverage > bd.CoverageDelta")
+		}
+		return bd, true
+	}
+
 	if branchID.Slot() < b.snapshotBranchID.Slot() ||
 		(branchID.Slot() == b.snapshotBranchID.Slot() && branchID != b.snapshotBranchID) {
+		// the branch is impossible assuming the snapshot baseline
 		return nil, false
 	}
 
-	if bd, ok := b.m[branchID]; ok {
-		return bd, true
-	}
+	// fetch branch from the database and calculate ledger coverage
 	if rd, found := multistate.FetchRootRecord(b.StateStore(), branchID); found {
 		bdRec := multistate.FetchBranchDataByRoot(b.StateStore(), rd)
-		bdRec.LedgerCoverage = bdRec.CoverageDelta + b.calcLedgerCoveragePast(bdRec.TxID(), bdRec.StemPredecessorBranchID())
+		b.calcAndCacheLedgerCoverage(branchID.Slot(), &bdRec)
 		b.m[branchID] = &bdRec
 		return &bdRec, true
 	}
 	return nil, false
 }
 
-func (b *Branches) calcLedgerCoveragePast(branchID, predBranchID base.TransactionID) uint64 {
-	slot := branchID.Slot()
-	slotPred := predBranchID.Slot()
-	util.Assertf(slot == 0 || slotPred < slot, "slotPred < slot")
+// calcAndCacheLedgerCoverage traverses branches back and calculate full coverage
+func (b *Branches) calcAndCacheLedgerCoverage(branchSlot base.Slot, bdRec *multistate.BranchData) {
+	bdRec.LedgerCoverage = bdRec.CoverageDelta
+	contrib := bdRec.CoverageDelta
+	for rec := b.predBranchRecord(bdRec); rec != nil && contrib > 0; rec = b.predBranchRecord(rec) {
+		b.Assertf(rec.Stem.ID.Slot() < branchSlot, "")
+		contrib = rec.CoverageDelta >> (branchSlot - rec.Stem.ID.Slot())
+		bdRec.LedgerCoverage += contrib
+	}
+}
 
-	shift := slot - slotPred
-	if shift >= 64 {
-		return 0
+func (b *Branches) predBranchRecord(br *multistate.BranchData) *multistate.BranchData {
+	if ret, ok := b.getNoLock(br.StemPredecessorBranchID()); ok {
+		return ret
 	}
-	bdPred, ok := b.getNoLock(predBranchID)
-	if !ok {
-		return 0
-	}
-	return bdPred.LedgerCoverage >> shift
+	return nil
 }
 
 // LedgerCoverage strictly speaking, is non-deterministic if the snapshot is after genesis
@@ -99,6 +108,18 @@ func (b *Branches) LedgerCoverage(branchID base.TransactionID) uint64 {
 
 	if bd, ok := b.getNoLock(branchID); ok {
 		return bd.LedgerCoverage
+	}
+	return 0
+}
+
+func (b *Branches) Supply(branchID base.TransactionID) uint64 {
+	util.Assertf(branchID.IsBranchTransaction(), "branch transaction ID expected. Got %s", branchID.StringShort)
+
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if bd, ok := b.getNoLock(branchID); ok {
+		return bd.Supply
 	}
 	return 0
 }
