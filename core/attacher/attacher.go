@@ -117,7 +117,7 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 			case vertex.Good:
 				a.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerTransaction()")
 				if !a.branchesCompatible(a.baselineBranchID, v.BaselineBranchID) {
-					a.setError(fmt.Errorf("conflicting baseline of %s", vid.IDShortString()))
+					a.setError(fmt.Errorf("conflicting baseline %s of %s", a.baselineBranchID.StringShort(), vid.IDShortString()))
 					return
 				}
 				ok = true
