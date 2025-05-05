@@ -431,20 +431,20 @@ func (a *attacher) attachOutput(wOut vertex.WrappedOutput) bool {
 	return a.attachVertexNonBranch(wOut.VID)
 }
 
-func (a *attacher) branchesCompatible(vidBranch1, vidBranch2 *base.TransactionID) bool {
-	a.Assertf(vidBranch1 != nil && vidBranch2 != nil, "vidBranch1 != nil && vidBranch2 != nil")
-	a.Assertf(vidBranch1.IsBranchTransaction() && vidBranch2.IsBranchTransaction(), "vidBranch1.IsBranchTransaction() && vidBranch2.IsBranchTransaction()")
+func (a *attacher) branchesCompatible(branchID1, branchID2 *base.TransactionID) bool {
+	a.Assertf(branchID1 != nil && branchID2 != nil, "branchID1 != nil && branchID2 != nil")
+	a.Assertf(branchID1.IsBranchTransaction() && branchID2.IsBranchTransaction(), "branchID1.IsBranchTransaction() && branchID2.IsBranchTransaction()")
 
 	switch {
-	case vidBranch1 == vidBranch2:
+	case *branchID1 == *branchID2:
 		return true
-	case vidBranch1.Slot() == vidBranch2.Slot():
+	case branchID1.Slot() == branchID2.Slot():
 		// two different branches on the same slot conflicts
 		return false
-	case vidBranch1.Slot() < vidBranch2.Slot():
-		return multistate.BranchKnowsTransaction(*vidBranch2, *vidBranch1, func() common.KVReader { return a.StateStore() })
+	case branchID1.Slot() < branchID2.Slot():
+		return multistate.BranchKnowsTransaction(*branchID2, *branchID1, func() common.KVReader { return a.StateStore() })
 	default:
-		return multistate.BranchKnowsTransaction(*vidBranch1, *vidBranch2, func() common.KVReader { return a.StateStore() })
+		return multistate.BranchKnowsTransaction(*branchID1, *branchID2, func() common.KVReader { return a.StateStore() })
 	}
 }
 

@@ -711,8 +711,8 @@ func TestAttachConflictsNAttachersOneFork(t *testing.T) {
 
 	t.Logf("expected BAD transaction %s", vidSeq.IDShortString())
 	require.EqualValues(t, vertex.Bad.String(), vidSeq.GetTxStatus().String())
-	conflictingBranchID := testData.forkOutput.ID.TransactionID()
-	util.RequireErrorWith(t, vidSeq.GetError(), conflictingBranchID.StringShort(), "conflicting baseline")
+	conflict := testData.forkOutput.ID.TransactionID()
+	util.RequireErrorWith(t, vidSeq.GetError(), conflict.StringShort(), "double-spend")
 	//testData.wrk.SaveGraph("utangle")
 }
 
@@ -871,8 +871,7 @@ func TestAttachConflictsNAttachersOneForkBranchesConflict(t *testing.T) {
 
 	require.EqualValues(t, vid.GetTxStatus(), vertex.Bad)
 	t.Logf("expected error: %v", vid.GetError())
-	conflictingBaselineID := testData.forkOutput.ID.TransactionID()
-	util.RequireErrorWith(t, vid.GetError(), conflictingBaselineID.StringShort(), "conflicting baseline")
+	util.RequireErrorWith(t, vid.GetError(), "conflicting branch endorsement")
 }
 
 func TestAttachSeqChains(t *testing.T) {
