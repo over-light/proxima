@@ -69,11 +69,11 @@ import (
 //		//time.Sleep(waitTimeout)
 //
 //		start := time.Now()
-//		nVert, nRdr := testData.wrk.NumVerticesAndStateReaders()
+//		nVert, nRdr := testData.wrk.NumVertices()
 //		for {
 //			t.Logf("%d vertices, %d state readers", nVert, nRdr)
 //			time.Sleep(1 * time.Second)
-//			nVert, nRdr = testData.wrk.NumVerticesAndStateReaders()
+//			nVert, nRdr = testData.wrk.NumVertices()
 //
 //			if nVert == 0 {
 //				t.Logf("memdag is empty after %v", time.Since(start))

@@ -48,7 +48,7 @@ func TestAttachBasic(t *testing.T) {
 		vidGenesis, err := wrk.EnsureBranch(genesisOut.ID.TransactionID())
 		require.NoError(t, err)
 
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidGenesis.ID()))
+		rdr := multistate.MakeSugared(wrk.Branches().GetStateReaderForTheBranch(vidGenesis.ID()))
 		genesisOut1 := rdr.GetStemOutput()
 		require.EqualValues(t, genesisOut.ID, genesisOut1.ID)
 		require.EqualValues(t, genesisOut.Output.Bytes(), genesisOut1.Output.Bytes())
@@ -97,7 +97,7 @@ func TestAttachBasic(t *testing.T) {
 		distribVID := wrk.GetVertex(vidDistrib.ID())
 		require.True(t, distribVID != nil)
 
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID()))
+		rdr := multistate.MakeSugared(wrk.Branches().GetStateReaderForTheBranch(distribVID.ID()))
 		stemOut := rdr.GetStemOutput()
 		require.EqualValues(t, distribTxID, stemOut.ID.TransactionID())
 		require.EqualValues(t, 0, stemOut.Output.Amount())
@@ -166,7 +166,7 @@ func TestAttachBasic(t *testing.T) {
 		env.Stop()
 		env.WaitAllWorkProcessesStop()
 
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(vidDistrib.ID()))
+		rdr := multistate.MakeSugared(wrk.Branches().GetStateReaderForTheBranch(vidDistrib.ID()))
 		stemOut := rdr.GetStemOutput()
 
 		require.EqualValues(t, distribTxID, stemOut.ID.TransactionID())
@@ -233,7 +233,7 @@ func TestAttachBasic(t *testing.T) {
 
 		distribVID := wrk.GetVertex(vidDistrib.ID())
 		require.True(t, distribVID != nil)
-		rdr := multistate.MakeSugared(wrk.GetStateReaderForTheBranch(distribVID.ID()))
+		rdr := multistate.MakeSugared(wrk.Branches().GetStateReaderForTheBranch(distribVID.ID()))
 		stemOut := rdr.GetStemOutput()
 
 		distribTxID, _, err := transaction.IDAndTimestampFromTransactionBytes(txBytes)

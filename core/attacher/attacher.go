@@ -10,7 +10,6 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lazyargs"
 	"github.com/lunfardo314/proxima/util/lines"
-	"github.com/lunfardo314/unitrie/common"
 )
 
 func newPastConeAttacher(env Environment, tip *vertex.WrappedTx, targetTs base.LedgerTime, name string) attacher {
@@ -40,7 +39,7 @@ func (a *attacher) baselineStateReader() multistate.IndexedStateReader {
 	if a.baselineBranchID == nil {
 		return nil
 	}
-	return a.GetStateReaderForTheBranch(*a.baselineBranchID)
+	return a.Branches().GetStateReaderForTheBranch(*a.baselineBranchID)
 }
 
 func (a *attacher) setError(err error) {
@@ -442,9 +441,11 @@ func (a *attacher) branchesCompatible(branchID1, branchID2 *base.TransactionID) 
 		// two different branches on the same slot conflicts
 		return false
 	case branchID1.Slot() < branchID2.Slot():
-		return multistate.BranchKnowsTransaction(*branchID2, *branchID1, func() common.KVReader { return a.StateStore() })
+		return a.Branches().BranchKnowsTransaction(*branchID2, *branchID1)
+		//return multistate.BranchKnowsTransaction(*branchID2, *branchID1, func() common.KVReader { return a.StateStore() })
 	default:
-		return multistate.BranchKnowsTransaction(*branchID1, *branchID2, func() common.KVReader { return a.StateStore() })
+		return a.Branches().BranchKnowsTransaction(*branchID1, *branchID2)
+		//return multistate.BranchKnowsTransaction(*branchID1, *branchID2, func() common.KVReader { return a.StateStore() })
 	}
 }
 

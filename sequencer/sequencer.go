@@ -592,7 +592,7 @@ func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {
 		if !ok {
 			continue
 		}
-		rdr := multistate.MakeSugared(seq.GetStateReaderForTheBranch(baselineBranchID))
+		rdr := multistate.MakeSugared(seq.Branches().GetStateReaderForTheBranch(baselineBranchID))
 		chainOut, _, err := rdr.GetChainTips(seq.sequencerID)
 		if errors.Is(err, multistate.ErrNotFound) {
 			continue
@@ -607,7 +607,7 @@ func (seq *Sequencer) bootstrapOwnMilestoneOutput() vertex.WrappedOutput {
 		seq.Log().Warnf("bootstrapOwnMilestoneOutput: can't find LRB")
 		return vertex.WrappedOutput{}
 	}
-	rdr := multistate.MakeSugared(seq.GetStateReaderForTheBranch(branchData.TxID()))
+	rdr := multistate.MakeSugared(seq.Branches().GetStateReaderForTheBranch(branchData.TxID()))
 	chainOut, err := rdr.GetChainOutput(seq.SequencerID())
 	if err != nil {
 		seq.Log().Warnf("bootstrapOwnMilestoneOutput: can't load own milestone output from LRB")

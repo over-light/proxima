@@ -1,16 +1,13 @@
 package memdag
 
 import (
-	"bytes"
 	"sort"
-	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
-	"github.com/lunfardo314/proxima/util/set"
 )
 
 func (d *MemDAG) Info(verbose ...bool) string {
@@ -20,11 +17,8 @@ func (d *MemDAG) Info(verbose ...bool) string {
 func (d *MemDAG) InfoLines(verbose ...bool) *lines.Lines {
 	ln := lines.New()
 
-	slots := d._timeSlotsOrdered()
-
 	d.mutex.RLock()
-	ln.Add("MemDAG:: vertices: %d, stateReaders: %d, slots: %d",
-		len(d.vertices), len(d.stateReaders), len(slots))
+	ln.Add("MemDAG:: vertices: %d", len(d.vertices))
 	d.mutex.RUnlock()
 
 	if len(verbose) > 0 && verbose[0] {
@@ -36,20 +30,6 @@ func (d *MemDAG) InfoLines(verbose ...bool) *lines.Lines {
 		for _, vid := range vertices {
 			ln.Add("    %s -- expired: %v", vid.ShortString(), verticesWithFlags[vid])
 		}
-
-		ln.Add("---- cached state readers (verbose)")
-		func() {
-			d.stateReadersMutex.RLock()
-			defer d.stateReadersMutex.RUnlock()
-
-			branches := util.KeysSorted(d.stateReaders, func(id1, id2 base.TransactionID) bool {
-				return bytes.Compare(id1[:], id2[:]) < 0
-			})
-			for _, br := range branches {
-				rdrData := d.stateReaders[br]
-				ln.Add("    %s, last activity %v", br.StringShort(), time.Since(rdrData.lastActivity))
-			}
-		}()
 	}
 	return ln
 }
@@ -66,25 +46,6 @@ func (d *MemDAG) VerticesInSlotAndAfter(slot base.Slot) []*vertex.WrappedTx {
 
 func (d *MemDAG) LinesVerticesInSlotAndAfter(slot base.Slot) *lines.Lines {
 	return vertex.VerticesLines(d.VerticesInSlotAndAfter(slot))
-}
-
-func (d *MemDAG) _timeSlotsOrdered(descOrder ...bool) []base.Slot {
-	desc := false
-	if len(descOrder) > 0 {
-		desc = descOrder[0]
-	}
-	slots := set.New[base.Slot]()
-	for br := range d.stateReaders {
-		slots.Insert(br.Slot())
-	}
-	if desc {
-		return util.KeysSorted(slots, func(e1, e2 base.Slot) bool {
-			return e1 > e2
-		})
-	}
-	return util.KeysSorted(slots, func(e1, e2 base.Slot) bool {
-		return e1 < e2
-	})
 }
 
 func (d *MemDAG) FetchSummarySupplyAndInflation(nBack int) *multistate.SummarySupplyAndInflation {

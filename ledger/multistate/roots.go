@@ -353,29 +353,6 @@ func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*Br
 	return ret
 }
 
-// BranchKnowsTransaction returns true if predecessor txid is known in the descendents state
-func BranchKnowsTransaction(branchID, txid base.TransactionID, getStore func() common.KVReader) bool {
-	util.Assertf(branchID.IsBranchTransaction(), "must be a branch tx: %s", branchID.StringShort)
-
-	if branchID == txid {
-		return true
-	}
-	if branchID.Timestamp().Before(txid.Timestamp()) {
-		return false
-	}
-	store := getStore()
-	rr, found := FetchRootRecord(store, branchID)
-	if !found {
-		return false
-	}
-	rdr, err := NewReadable(store, rr.Root)
-	if err != nil {
-		return false
-	}
-
-	return rdr.KnowsCommittedTransaction(txid)
-}
-
 func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) bool) *BranchData {
 	var ret BranchData
 	found := false

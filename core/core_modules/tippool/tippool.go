@@ -10,7 +10,6 @@ import (
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
-	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 	"golang.org/x/exp/rand"
 )
@@ -18,7 +17,6 @@ import (
 type (
 	environment interface {
 		global.NodeGlobal
-		GetStateReaderForTheBranch(branchID base.TransactionID) multistate.IndexedStateReader
 	}
 
 	Input struct {

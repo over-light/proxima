@@ -74,7 +74,7 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 		}
 		// check if the transaction is in the snapshot
 		// edge case when the branch is before or at the snapshot baseline
-		if env.GetStateReaderForTheBranch(snapID).KnowsCommittedTransaction(txid) {
+		if env.Branches().GetStateReaderForTheBranch(snapID).KnowsCommittedTransaction(txid) {
 			// it is in the snapshot state -> mark it GOOD branch
 			vid.SetTxStatusGoodNoLock(nil, 0)
 		} else {

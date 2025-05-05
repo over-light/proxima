@@ -23,7 +23,6 @@ type (
 		GetVertexNoLock(txid base.TransactionID) *vertex.WrappedTx
 		AddVertexNoLock(vid *vertex.WrappedTx)
 		StateStore() multistate.StateStore
-		GetStateReaderForTheBranch(branchID base.TransactionID) multistate.IndexedStateReader
 		GetStemWrappedOutput(branch base.TransactionID) vertex.WrappedOutput
 		SendToTippool(vid *vertex.WrappedTx)
 		EvidenceBranchSlot(s base.Slot, healthy bool)

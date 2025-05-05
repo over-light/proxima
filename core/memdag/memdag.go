@@ -7,7 +7,6 @@ import (
 	"time"
 	"weak"
 
-	"github.com/lunfardo314/proxima/core/core_modules/branches"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
@@ -48,23 +47,7 @@ type (
 		latestBranchSlot        base.Slot
 		latestHealthyBranchSlot base.Slot
 
-		// cache of state readers. One state (trie) reader for the branch/root. When accessed through the cache,
-		// reading is highly optimized because each state reader keeps its trie cache, so consequent calls to
-		// HasUTXO, GetUTXO and similar does not require database involvement during attachment and solidification
-		// in the same slot.
-		// Inactive cached readers with their trie caches are constantly cleaned up by the pruner
-		stateReadersMutex sync.RWMutex
-		stateReaders      map[base.TransactionID]*cachedStateReader
-
-		branches *branches.Branches
-
 		metrics
-	}
-
-	cachedStateReader struct {
-		multistate.IndexedStateReader
-		rootRecord   *multistate.RootRecord
-		lastActivity time.Time
 	}
 
 	metrics struct {
@@ -75,9 +58,8 @@ type (
 
 func New(env environment) *MemDAG {
 	ret := &MemDAG{
-		environment:  env,
-		vertices:     make(map[base.TransactionID]_vertexRecord),
-		stateReaders: make(map[base.TransactionID]*cachedStateReader),
+		environment: env,
+		vertices:    make(map[base.TransactionID]_vertexRecord),
 	}
 	if env != nil {
 		ret.registerMetrics()
@@ -92,9 +74,8 @@ func New(env environment) *MemDAG {
 		}
 
 		ret.RepeatInBackground("memdag-stats", 3*time.Second, func() bool {
-			ret.cleanupCachedStateReaders()
-			nVertices, nStateReaders := ret.NumVerticesAndStateReaders()
-			env.Log().Infof("[memdag stats] vertices: %d, state readers: %d", nVertices, nStateReaders)
+			nVertices := ret.NumVertices()
+			env.Log().Infof("[memdag stats] vertices: %d", nVertices)
 			ret.numVerticesGauge.Set(float64(nVertices))
 			return true
 		})
@@ -103,10 +84,8 @@ func New(env environment) *MemDAG {
 }
 
 const (
-	sharedStateReaderCacheSize = 3000
-	vertexTTLSlots             = 10
-	_vertexTTLSlotsMinimum     = 6
-	stateReaderTTLSlots        = 2
+	vertexTTLSlots         = 10
+	_vertexTTLSlotsMinimum = 6
 )
 
 func init() {
@@ -137,11 +116,11 @@ func (d *MemDAG) GetVertex(txid base.TransactionID) *vertex.WrappedTx {
 	return d.GetVertexNoLock(txid)
 }
 
-func (d *MemDAG) NumVerticesAndStateReaders() (int, int) {
+func (d *MemDAG) NumVertices() int {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	return len(d.vertices), len(d.stateReaders)
+	return len(d.vertices)
 }
 
 func (d *MemDAG) AddVertexNoLock(vid *vertex.WrappedTx) {
@@ -214,69 +193,6 @@ func (d *MemDAG) doGC() (detached, deleted int) {
 		}
 	})
 	return
-}
-
-var stateReaderTTL time.Duration
-
-func _stateReaderCacheTTL() time.Duration {
-	if stateReaderTTL == 0 {
-		stateReaderTTL = stateReaderTTLSlots * ledger.SlotDuration()
-	}
-	return stateReaderTTL
-}
-
-func (d *MemDAG) cleanupCachedStateReaders() (int, int) {
-	ttl := _stateReaderCacheTTL()
-	count := 0
-
-	d.stateReadersMutex.Lock()
-	defer d.stateReadersMutex.Unlock()
-
-	for txid, b := range d.stateReaders {
-		if time.Since(b.lastActivity) > ttl {
-			delete(d.stateReaders, txid)
-			count++
-		}
-	}
-	return count, len(d.stateReaders)
-}
-
-// GetStateReaderForTheBranch returns a state reader for the branch or nil if the state does not exist.
-// If the branch is before the snapshot and branch ID is known in the snapshot state, it returns the snapshot state (which always exists)
-func (d *MemDAG) GetStateReaderForTheBranch(branchID base.TransactionID) multistate.IndexedStateReader {
-	util.Assertf(branchID.IsBranchTransaction(), "GetStateReaderForTheBranchExt: branch tx expected. Got: %s", branchID.StringShort())
-
-	snapID := d.SnapshotBranchID()
-	switch {
-	case branchID.Slot() < snapID.Slot():
-		// recursive but won't deadlock because the snapshot state always exists
-		snapRdr := d.GetStateReaderForTheBranch(snapID)
-		if snapRdr.KnowsCommittedTransaction(branchID) {
-			return snapRdr
-		}
-		return nil
-	case branchID.Slot() == snapID.Slot() && branchID != snapID:
-		return nil
-	}
-
-	d.stateReadersMutex.Lock()
-	defer d.stateReadersMutex.Unlock()
-
-	ret := d.stateReaders[branchID]
-	if ret != nil {
-		ret.lastActivity = time.Now()
-		return ret.IndexedStateReader
-	}
-	rootRecord, found := multistate.FetchRootRecord(d.StateStore(), branchID)
-	if !found {
-		return nil
-	}
-	d.stateReaders[branchID] = &cachedStateReader{
-		IndexedStateReader: multistate.MustNewReadable(d.StateStore(), rootRecord.Root, sharedStateReaderCacheSize),
-		rootRecord:         &rootRecord,
-		lastActivity:       time.Now(),
-	}
-	return d.stateReaders[branchID]
 }
 
 func (d *MemDAG) GetStemWrappedOutput(branch base.TransactionID) (ret vertex.WrappedOutput) {
