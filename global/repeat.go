@@ -18,16 +18,6 @@ func (l *Global) RepeatInBackground(name string, period time.Duration, fun func(
 			}
 		}
 		l.RepeatSync(period, fun)
-		//for {
-		//	select {
-		//	case <-l.Ctx().Done():
-		//		return
-		//	case <-time.After(period):
-		//		if !fun() {
-		//			return
-		//		}
-		//	}
-		//}
 	}()
 }
 

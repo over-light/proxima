@@ -36,16 +36,16 @@ func (a *milestoneAttacher) _checkMonotonicityOfEndorsements(v *vertex.Vertex) (
 		if vidEndorsed.IsBranchTransaction() {
 			return true
 		}
-		lc := vidEndorsed.GetLedgerCoverageP()
-		if lc == nil {
+		lcEnd := vidEndorsed.GetLedgerCoverageP()
+		if lcEnd == nil {
 			err = fmt.Errorf("ledger coverage not set in the endorsed %s", vidEndorsed.IDShortString())
 			return false
 		}
 		lcCalc := a.FinalLedgerCoverage(a.vid.Timestamp())
-		if lcCalc < *lc {
-			diff := *lc - lcCalc
-			err = fmt.Errorf("ledger coverage should not decrease along endorsement.\nGot: delta(%s) at %s <= delta(%s) in %s. diff: %s",
-				util.Th(lcCalc), a.vid.Timestamp().String(), util.Th(*lc), vidEndorsed.IDShortString(), util.Th(diff))
+		if lcCalc < *lcEnd {
+			diff := *lcEnd - lcCalc
+			err = fmt.Errorf("ledger coverage should not decrease along endorsement.\nGot: LC(%s) at %s <= LC(%s) in %s. diff: %s",
+				util.Th(lcCalc), a.vid.Timestamp().String(), util.Th(*lcEnd), vidEndorsed.IDShortString(), util.Th(diff))
 			return false
 		}
 		return true

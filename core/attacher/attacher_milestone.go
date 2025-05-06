@@ -114,11 +114,14 @@ func (a *milestoneAttacher) run() error {
 	}
 
 	a.Assertf(a.baselineBranchID != nil, "a.baseline != nil")
-	a.Tracef(TraceTagBranchAvailable, "baseline is OK <- %s", a.baselineBranchID.StringShort)
+	a.Tracef(TraceTagAttachMilestone, "baseline is OK <- %s", a.baselineBranchID.StringShort)
 
 	// then solidify past cone
 
+	a.Tracef(TraceTagAttachMilestone, "BEFORE solidifyPastCone %s")
 	status := a.solidifyPastCone()
+	a.Tracef(TraceTagAttachMilestone, "AFTER solidifyPastCone %s")
+
 	a.Assertf(status != vertex.Undefined, "status!=vertex.Undefined")
 
 	if status != vertex.Good {
@@ -291,13 +294,13 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 					// dispose vertex
 					return
 				}
+				a.Tracef(TraceTagAttachVertex, "NOT final..")
+
 				const doubleCheck = true
 				if doubleCheck && finalSuccess {
 					// double check
-					lc := a.FinalLedgerCoverage(a.vid.Timestamp())
 					conflict := a.pastCone.Check(a.baselineStateReader())
 					a.Assertf(conflict == nil, "unexpected conflict %s in %s", conflict.IDStringShort(), a.name)
-					a.Assertf(lc == a.FinalLedgerCoverage(a.vid.Timestamp()), "lc == a.LedgerCoverage()")
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
@@ -328,7 +331,7 @@ const TraceTagValidateSequencer = "validateSeq"
 
 func (a *milestoneAttacher) validateSequencerTxUnwrapped(v *vertex.Vertex) (ok, finalSuccess bool) {
 	if a.pastCone.ContainsUndefined() {
-		a.Tracef(TraceTagValidateSequencer, "contains undefined in the past cone")
+		a.Tracef(TraceTagValidateSequencer, "contains undefined in the past cone:\n%s", a.pastCone.Lines("     ").Join("\n"))
 		return true, false
 	}
 	flags := a.pastCone.Flags(a.vid)

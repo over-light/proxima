@@ -182,6 +182,7 @@ func (pc *PastCone) SetBaseline(baselineID *base.TransactionID) {
 	pc.Assertf(pc.baselineBranchID == nil, "SetBaseline: nil baseline expected in %s", pc.LinesShort("     ").String)
 
 	//pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState)
+
 	if pc.delta == nil {
 		pc.baselineBranchID = baselineID
 	} else {
@@ -290,8 +291,15 @@ func (pc *PastCone) MustMarkVertexNotInTheState(vid *WrappedTx) {
 
 func (pc *PastCone) ContainsUndefined() bool {
 	util.Assertf(pc.delta == nil, "pc.delta==nil")
+	util.Assertf(pc.baselineBranchID != nil, "pc.baselineBranchID != nil")
 	for vid, flags := range pc.vertices {
-		if !flags.FlagsUp(FlagPastConeVertexDefined) && vid != pc.tip {
+		if vid == pc.tip {
+			continue
+		}
+		if *pc.baselineBranchID == vid.ID() {
+			continue
+		}
+		if !flags.FlagsUp(FlagPastConeVertexDefined) {
 			return true
 		}
 	}
@@ -603,6 +611,9 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multis
 	pc.Assertf(pcb.baselineBranchID != nil, "pcb.baseline != nil")
 
 	for vid, flags := range pcb.vertices {
+		if vid.ID() == *pcb.baselineBranchID {
+			continue
+		}
 		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
 			flags.String, vid.IDShortString, pcb.Lines("    ").String)
 		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
@@ -664,6 +675,11 @@ func (pc *PastCone) CheckFinalPastCone(getStateReader func() multistate.IndexedS
 }
 
 func (pc *PastCone) checkFinalFlags(vid *WrappedTx) error {
+	util.Assertf(pc.baselineBranchID != nil, "checkFinalFlags: pc.baseline != nil")
+	if vid.ID() == *pc.baselineBranchID {
+		return nil
+	}
+
 	flags := pc.Flags(vid)
 	wrongFlag := ""
 
@@ -719,10 +735,10 @@ func (pb *PastConeBase) Len() int {
 	return len(pb.vertices)
 }
 
-// Check returns double-spent output (conflict), or nil if past cone is consistent
-// The complexity is O(NxM) where N is number of vertices and M is average number of conflicts in the UTXO tangle
-// Practically, it is linear wrt number of vertices because M is 1 or close to 1.
-// for optimization, latest time value can be specified
+// Check returns double-spent output (conflict) or nil if the past cone is consistent
+// The complexity is O(NxM) where N is number of vertices and M is an average number of conflicts in the UTXO tangle
+// Practically, it is linear wrt the number of vertices because M is 1 or close to 1.
+// Also calculates coverage delta
 func (pc *PastCone) Check(stateReader multistate.IndexedStateReader) (conflict *WrappedOutput) {
 	var coverageDelta uint64
 	pc.coverageDelta = 0
@@ -748,7 +764,7 @@ func (pc *PastCone) CheckAndClean(stateReader multistate.IndexedStateReader) (co
 	var coverageDelta uint64
 
 	for vid, flags := range pc.vertices {
-		if vid == pc.tip {
+		if vid == pc.tip || vid.ID() == *pc.baselineBranchID {
 			continue
 		}
 		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState), "wrong flag in %s", vid.IDShortString)

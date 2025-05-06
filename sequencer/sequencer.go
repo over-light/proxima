@@ -491,11 +491,18 @@ func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetad
 		return nil
 	}
 
-	const submitTimeout = 5 * time.Second
+	//if tx.Timestamp() == base.NewLedgerTime(8, 12) {
+	//	seq.StartTracingTags(
+	//		attacher.TraceTagAttachMilestone,
+	//		attacher.TraceTagAttachVertex,
+	//		attacher.TraceTagValidateSequencer,
+	//	)
+	//}
+	const submitTimeout = 2 * time.Second
 	{
 		nm := "submit_" + tx.IDShortString()
 		check := checkpoints.New(func(name string) {
-			seq.Log().Errorf("STUCK: submitMilestone @ %s", name)
+			seq.Log().Fatalf("STUCK: submitMilestone @ %s", name)
 		})
 		check.Check(nm, submitTimeout)
 		defer check.CheckAndClose(nm)
