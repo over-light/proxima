@@ -765,7 +765,6 @@ func (pc *PastCone) CheckAndClean(getStateReader func(branchID base.TransactionI
 			delete(pc.vertices, vid)
 		}
 	}
-	//util.Assertf(nil == pc.CheckConflicts(getStateReader), "pc.CheckConflicts(getStateReader) == nil")
 	return
 }
 

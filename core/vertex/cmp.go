@@ -5,7 +5,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 )
 
-// AlignedCoverages shifts one of coverages, if necessary, so that to make them comparable
+// AlignedCoverages shifts one of the coverages, if necessary, so that to make them comparable
 func AlignedCoverages(vid1, vid2 *WrappedTx) (uint64, uint64) {
 	lc1 := vid1.GetLedgerCoverageP()
 	util.Assertf(lc1 != nil, "coverage not set in %s", vid1.IDShortString)
@@ -24,7 +24,7 @@ func AlignedCoverages(vid1, vid2 *WrappedTx) (uint64, uint64) {
 		lc1, lc2 = lc2, lc1
 		swapped = true
 	}
-	// now v1 is strongly before v2
+	// now v1 is strictly before v2
 	util.Assertf(v1.Timestamp().Before(v2.Timestamp()), "v1.Timestamp().Before(v2.Timestamp())")
 	lc1Ret := *lc1
 	lc2Ret := *lc2

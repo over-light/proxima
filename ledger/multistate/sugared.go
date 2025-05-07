@@ -130,7 +130,7 @@ func (s SugaredStateReader) GetChainOutput(chainID base.ChainID) (*ledger.Output
 }
 
 // GetChainTips return chain output and, if relevant, stem output for the chain id.
-// The stem output is nil if sequencer output is not in the branch
+// The stem output is nil if the sequencer output is not in the branch
 func (s SugaredStateReader) GetChainTips(chainID base.ChainID) (*ledger.OutputWithID, *ledger.OutputWithID, error) {
 	oData, err := s.IndexedStateReader.GetUTXOForChainID(chainID)
 	if err != nil {

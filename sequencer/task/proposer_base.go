@@ -32,13 +32,13 @@ func baseProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		return nil, true
 	}
 	if p.targetTs.IsSlotBoundary() && !extend.VID.IsBranchTransaction() && extend.VID.Slot()+1 != p.targetTs.Slot {
-		// latest output is beyond reach for the branch as next transaction
+		// the latest output is beyond reach for the branch as the next transaction
 		p.Tracef(TraceTagBaseProposerExit, "OUT base proposer %s: latest output is beyond reach: %s", p.Name, extend.IDStringShort())
 		return nil, true
 	}
 
 	if !ledger.ValidSequencerPace(extend.Timestamp(), p.targetTs) {
-		// it means proposer is obsolete, abandon it
+		// it means the proposer is obsolete, abandon it
 		p.Tracef(TraceTagBaseProposerExit, "force exit in %s: own latest milestone and target ledger time does not make valid pace %s",
 			p.Name, extend.IDStringShort)
 		return nil, true
@@ -47,7 +47,7 @@ func baseProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 	p.Tracef(TraceTagBaseProposer, "%s extending %s", p.Name, extend.IDStringShort)
 	// own latest milestone exists
 	if !p.targetTs.IsSlotBoundary() {
-		// target is not a branch target
+		// the target is not a branch target
 		p.Tracef(TraceTagBaseProposer, "%s target is not a branch target", p.Name)
 		if extend.Slot() != p.targetTs.Slot {
 			p.Tracef(TraceTagBaseProposerExit, "%s force exit: cross-slot %s", p.Name, extend.IDStringShort)

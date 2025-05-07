@@ -47,7 +47,7 @@ func (p *proposer) run() {
 		}
 		if a == nil || !a.Completed() {
 			if waitExit() {
-				// leave if its time
+				// leave if it's time
 				return
 			}
 			// attempt may be no luck. Keep trying if it is not the end yet
@@ -55,6 +55,7 @@ func (p *proposer) run() {
 		}
 
 		// attacher has been created and it is complete. Propose it
+		p.Assertf(!a.IsClosed(), "%s is closed", a.Name())
 		if err = p.propose(a); err != nil {
 			p.Log().Warnf("%v", err)
 			return
@@ -73,9 +74,9 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 
 	ledgerCoverage := a.FinalLedgerCoverage(p.targetTs)
 	coverageDelta := a.CoverageDelta()
+	supply := a.FinalSupply()
 
 	tx, hrString, err := p.makeTxProposal(a)
-	util.Assertf(a.IsClosed(), "a.IsClosed()")
 
 	if err != nil {
 		return err
@@ -99,7 +100,7 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 
 	if p.targetTs.IsSlotBoundary() {
 		_proposal.txMetadata.LedgerCoverage = util.Ref(ledgerCoverage)
-		_proposal.txMetadata.Supply = util.Ref(a.FinalSupply())
+		_proposal.txMetadata.Supply = util.Ref(supply)
 		_proposal.txMetadata.SlotInflation = util.Ref(a.SlotInflation())
 	}
 	p.proposalChan <- _proposal
@@ -110,7 +111,7 @@ func (p *proposer) makeTxProposal(a *attacher.IncrementalAttacher) (*transaction
 	cmdParser := commands.NewCommandParser(ledger.AddressED25519FromPrivateKey(p.ControllerPrivateKey()))
 	nm := p.environment.SequencerName() + "." + p.strategy.ShortName
 	tx, err := a.MakeSequencerTransaction(nm, p.ControllerPrivateKey(), cmdParser)
-	// attacher and references not needed anymore, should be released
+	// attacher and references are not needed anymore, it should be released
 	extEndorseString := a.ExtendEndorseLines().Join(", ")
 
 	a.Close()
@@ -122,7 +123,7 @@ const TraceTagChooseFirstExtendEndorsePair = "chooseFirstPair"
 // ChooseFirstExtendEndorsePair returns incremental attacher which corresponds to the first
 // extend-endorse pair encountered while traversing endorse candidates.
 // Endorse candidates are either sorted descending by coverage, or randomly shuffled
-// Pairs are filtered before checking. It allows to exclude repeating pairs
+// Pairs are filtered before checking. It allows of excluding the repeating pairs
 func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, pairFilter func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool) *attacher.IncrementalAttacher {
 	p.Tracef(TraceTagChooseFirstExtendEndorsePair, "IN %s", p.Name)
 

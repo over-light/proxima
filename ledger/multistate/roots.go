@@ -37,7 +37,7 @@ func WriteEarliestSlotRecord(w common.KVWriter, slot base.Slot) {
 	w.Set([]byte{earliestSlotDBPartition}, slot.Bytes())
 }
 
-// FetchLatestCommittedSlot fetches latest recorded slot
+// FetchLatestCommittedSlot fetches the latest recorded slot
 func FetchLatestCommittedSlot(store common.KVReader) base.Slot {
 	bin := store.Get([]byte{latestSlotDBPartition})
 	if len(bin) == 0 {
@@ -112,11 +112,6 @@ func RootRecordFromBytes(data []byte) (RootRecord, error) {
 		Supply:          binary.BigEndian.Uint64(arr.At(4)),
 		NumTransactions: binary.BigEndian.Uint32(arr.At(5)),
 	}, nil
-}
-
-func (r *RootRecord) StringShort() string {
-	return fmt.Sprintf("%s, %s, %s, %d",
-		r.SequencerID.StringShort(), util.Th(r.CoverageDelta), r.Root.String(), r.NumTransactions)
 }
 
 func (r *RootRecord) Lines(prefix ...string) *lines.Lines {
@@ -257,7 +252,7 @@ func FetchBranchData(store common.KVReader, branchTxID base.TransactionID) (Bran
 	return BranchData{}, false
 }
 
-// FetchBranchDataByRoot returns existing branch data by root record. The root record usually returned by FetchRootRecord
+// FetchBranchDataByRoot returns existing branch data by root record. The root record is usually returned by FetchRootRecord
 func FetchBranchDataByRoot(store common.KVReader, rootData RootRecord) BranchData {
 	rdr, err := NewSugaredReadableState(store, rootData.Root, 0)
 	util.AssertNoError(err)
@@ -353,7 +348,7 @@ func FetchHeaviestBranchChainNSlotsBack(store StateStoreReader, nBack int) []*Br
 	return ret
 }
 
-func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) bool) *BranchData {
+func FindFirstBranchThat(store StateStoreReader, filter func(branch *BranchData) bool) *BranchData {
 	var ret BranchData
 	found := false
 	IterateSlotsBack(store, func(slot base.Slot, roots []RootRecord) bool {
@@ -375,7 +370,7 @@ func FindFirstBranch(store StateStoreReader, filter func(branch *BranchData) boo
 // with coverage > numerator/denominator * 2 * totalSupply
 // Returns false flag if not found
 func FindLatestHealthySlot(store StateStoreReader, fraction global.Fraction) (base.Slot, bool) {
-	ret := FindFirstBranch(store, func(branch *BranchData) bool {
+	ret := FindFirstBranchThat(store, func(branch *BranchData) bool {
 		return branch.IsHealthy(fraction)
 	})
 	if ret == nil {
@@ -403,7 +398,7 @@ func FirstHealthySlotIsNotBefore(store StateStoreReader, refSlot base.Slot, frac
 	return
 }
 
-// IterateSlotsBack iterates  descending slots from latest committed slot down to the earliest available
+// IterateSlotsBack iterates descending slots from the latest committed slot down to the earliest available
 func IterateSlotsBack(store StateStoreReader, fun func(slot base.Slot, roots []RootRecord) bool) {
 	earliest := FetchEarliestSlot(store)
 	slot := FetchLatestCommittedSlot(store)
@@ -541,7 +536,7 @@ func FindLatestReliableBranchAndNSlotsBack(store StateStoreReader, n int, fracti
 	return
 }
 
-// FindLatestReliableBranchWithSequencerID finds first branch with the given sequencerID in the main LRBID chain
+// FindLatestReliableBranchWithSequencerID finds the first branch with the given sequencerID in the main LRBID chain
 func FindLatestReliableBranchWithSequencerID(store StateStoreReader, seqID base.ChainID, fraction global.Fraction) (ret *BranchData) {
 	lrb := FindLatestReliableBranch(store, fraction)
 	if lrb == nil {
@@ -557,6 +552,7 @@ func FindLatestReliableBranchWithSequencerID(store StateStoreReader, seqID base.
 	return
 }
 
+// GetMainChain returns the chain of branches starting from LRB
 func GetMainChain(store StateStoreReader, fraction global.Fraction, max ...int) ([]*BranchData, error) {
 	lrb := FindLatestReliableBranch(store, fraction)
 	if lrb == nil {
@@ -574,7 +570,7 @@ func GetMainChain(store StateStoreReader, fraction global.Fraction, max ...int) 
 }
 
 // CheckTransactionInLRB return number of slots behind the LRB which contains txid.
-// The backwards scan is capped by maxDepth parameter. If maxDepth == 0, it means only LRB is checked
+// The backwards scan is capped by the maxDepth parameter. If maxDepth == 0, it means only LRB is checked
 func CheckTransactionInLRB(store StateStoreReader, txid base.TransactionID, maxDepth int, fraction global.Fraction) (lrb *BranchData, foundAtDepth int) {
 	foundAtDepth = -1
 	lrb = FindLatestReliableBranch(store, fraction)
