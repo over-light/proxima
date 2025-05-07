@@ -639,7 +639,7 @@ func TestAttachConflictsNAttachersOneFork(t *testing.T) {
 	const (
 		nConflicts = 5  // 2
 		nChains    = 5  // 2
-		howLong    = 20 // 97 fails when crosses slot boundary
+		howLong    = 20 // 97 fails when crosses the slot boundary
 		pullYN     = true
 	)
 	var err error

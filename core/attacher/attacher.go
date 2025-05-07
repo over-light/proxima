@@ -267,9 +267,9 @@ func (a *attacher) refreshDependencyStatus(vidDep *vertex.WrappedTx) (ok bool) {
 		a.setError(vidDep.GetError())
 		return false
 	}
-
 	a.pastCone.MarkVertexKnown(vidDep)
 	a.defineInTheStateStatus(vidDep)
+
 	if !a.pullIfNeeded(vidDep, "refreshDependencyStatus") {
 		return false
 	}

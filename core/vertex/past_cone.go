@@ -352,10 +352,9 @@ func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 	ret.Add("------ past cone: '%s'", pc.name).
 		Add("------ baseline: %s", pc.baselineBranchID.StringShort())
 
-	//rooted := make([]WrappedOutput, 0)
 	counter := 0
 	pc.forAllVertices(func(vid *WrappedTx) bool {
-		pc._addVertexLine(counter, vid, ret)
+		ret.Add("#%d %s", counter, pc.VertexLine(vid))
 		counter++
 		return true
 	}, true)
@@ -369,7 +368,7 @@ func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 	return ret
 }
 
-func (pc *PastCone) _addVertexLine(n int, vid *WrappedTx, ln *lines.Lines) {
+func (pc *PastCone) VertexLine(vid *WrappedTx) string {
 	stateStr := "?"
 	if pc.IsInTheState(vid) {
 		stateStr = "+"
@@ -391,7 +390,7 @@ func (pc *PastCone) _addVertexLine(n int, vid *WrappedTx, ln *lines.Lines) {
 		}
 		lnOut.Add("%d: {%s}", idx, lnCons.Join(", "))
 	}
-	ln.Add("#%d S%s %s consumers: {%s} flags: %s", n, stateStr, vid.IDShortString(), lnOut.Join(", "), pc.Flags(vid).String())
+	return fmt.Sprintf("S%s %s consumers: {%s} flags: %s", stateStr, vid.IDShortString(), lnOut.Join(", "), pc.Flags(vid).String())
 }
 
 func (pc *PastCone) LinesShort(prefix ...string) *lines.Lines {
@@ -610,11 +609,10 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multis
 	pc.Assertf(pcb.baselineBranchID != nil, "pcb.baseline != nil")
 
 	for vid, flags := range pcb.vertices {
-		if vid.ID() == *pcb.baselineBranchID {
-			continue
+		if vid.ID() != *pcb.baselineBranchID {
+			pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
+				flags.String, vid.IDShortString, pcb.Lines("    ").String)
 		}
-		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
-			flags.String, vid.IDShortString, pcb.Lines("    ").String)
 		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
 			// if vertex is in the state of the appended past cone, it will be in the state of the new baseline
 			// When vertex not in appended baseline, check if it didn't become known in the new one
