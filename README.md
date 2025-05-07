@@ -34,7 +34,7 @@ yet the architecture operates in a leaderless manner without block proposers and
 
 Currently, the project is in an **ongoing development stage**. 
 
-The repository contains Proxima node prototype intended for experimental research and development. 
+The repository contains a prototype of the Proxima node. It is intended for experimental research and development. 
 It also contains some tools, which includes basic wallet functionality.
 
 ## Highlights of the system's architecture
@@ -50,7 +50,7 @@ There is no need for any kind of permissions, registration, committee selection 
 * Unlike in blockchains, the optimal strategy is **cooperative**, rather than **competitive**. Consensus is achieved by cooperation between actors rather than
 choosing one wining proposal among many. This facilitates social consensus among participants
 * **Auto-healing after network partitioning**. Network partitioning usually leads to forking to several branches with less coverage. 
-After network connections is restored, the fork with the biggest ledger coverage prevails, while other forks are be orphaned. Similarly to Bitcoin's _longest chain_.      
+After the network connections are restored, the fork with the biggest ledger coverage prevails, while other forks are be orphaned. Similarly to Bitcoin's _longest chain_.      
 * **High throughput**, as a result of **massive parallelism** and **absence of global bottlenecks**
 * **High level of decentralization**, probably the highest achievable in distributed ledgers 
 * **Low energy requirements**, unlike PoW. 
@@ -59,9 +59,9 @@ After network connections is restored, the fork with the biggest ledger coverage
 Participants are incentivized to maintain their clock approximately synchronized with the global clock. 
 * **Probabilistic finality**. Depends on subjective assumptions, similar to 6-block rule in Bitcoin. Normally 1-4 slots (10-40 sec) is enough. 
 Due to the UTXO transaction determinism, there's no need to wait for confirmation of the previous transaction, therefore transactions can be issued in batches or streams.
-* **Consensus rule is local**, it does not require any global knowledge of the dynamic system state, such as composition of the committee, assumptions about node weights/stakes, or other registries.
+* **Consensus rule is local**. It does not require any global knowledge of the dynamic system state, such as composition of the committee, assumptions about node weights/stakes, or other registries.
 * **1-tier trust assumptions**. Only token holders are involved in the process, as opposed to the multiple layers of trust required in other 
-blockchain systems such as PoW (which includes users and miners) and PoS (which includes at least users, block proposers, committee selection procedure and the committee).
+blockchain systems such as PoW (which includes users and miners) and PoS (which includes at least users, block proposers, committee selection procedure, and the committee).
 * **Absence of the deterministic global state**. Due to the non-determinism of the ledger account (a set of outputs controlled by a particular entity), 
 it cannot be used as a single global liquidity pool in the smart contract.
 * **Parallelism at the distributed consensus level**. Assets converge to their finality states in parallel, yet cooperating with each other.
@@ -71,7 +71,7 @@ it cannot be used as a single global liquidity pool in the smart contract.
 much simpler than most PoS systems, which are usually complex in their consensus layer and due to synchronicity requirements 
 
 ## Further information
-* [Technical whitepaper (pdf)](https://arxiv.org/abs/2411.16456) contains detailed description of the *cooperative ledger* concept
+* [Technical whitepaper (pdf)](https://arxiv.org/abs/2411.16456) contains a detailed description of the *cooperative ledger* concept
 * [Simplified presentation of Proxima concepts](https://hackmd.io/@Evaldas/Sy4Gka1DC) skips many technical details and adds more pictures
 * Tutorials and instructions (outdated somehow):
   * [CLI wallet program `proxi`](docs/proxi.md)
