@@ -73,7 +73,7 @@ func NewIncrementalAttacher(name string, env Environment, targetTs base.LedgerTi
 		ret.Close()
 		return nil, err
 	}
-	if conflict := ret.Check(); conflict != nil {
+	if conflict := ret.CheckConflicts(); conflict != nil {
 		ret.Close()
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to create incremental attacher extending  %s: double-spend (conflict) %s in the past cone",
 			name, extend.IDStringShort(), conflict.IDStringShort())
@@ -111,7 +111,7 @@ func NewIncrementalAttacherWithExplicitBaseline(name string, env Environment, ta
 		ret.Close()
 		return nil, err
 	}
-	if conflict := ret.Check(); conflict != nil {
+	if conflict := ret.CheckConflicts(); conflict != nil {
 		ret.Close()
 		return nil, fmt.Errorf("NewIncrementalAttacher %s: failed to create incremental attacher extending  %s: double-spend (conflict) %s in the past cone",
 			name, extend.IDStringShort(), conflict.IDStringShort())
@@ -166,10 +166,6 @@ func (a *IncrementalAttacher) initIncrementalAttacher(baselineBranchID base.Tran
 	return nil
 }
 
-func (a *IncrementalAttacher) BaselineBranch() *base.TransactionID {
-	return a.baselineBranchID
-}
-
 func (a *IncrementalAttacher) insertVirtuallyConsumedOutput(wOut vertex.WrappedOutput) error {
 	a.Assertf(wOut.ValidID(), "wOut.ValidID()")
 
@@ -182,7 +178,7 @@ func (a *IncrementalAttacher) insertVirtuallyConsumedOutput(wOut vertex.WrappedO
 	if !a.pastCone.IsKnownDefined(wOut.VID) {
 		return fmt.Errorf("output %s not solid yet", wOut.IDStringShort())
 	}
-	if conflict := a.pastCone.AddVirtuallyConsumedOutput(wOut, a.baselineStateReader()); conflict != nil {
+	if conflict := a.pastCone.AddVirtuallyConsumedOutput(wOut, a.Branches().GetStateReaderForTheBranch); conflict != nil {
 		return fmt.Errorf("past cone contains double-spend %s", conflict.IDStringShort())
 	}
 	a.inputs = append(a.inputs, wOut)
@@ -216,7 +212,7 @@ func (a *IncrementalAttacher) insertEndorsement(endorsement *vertex.WrappedTx) e
 		return a.err
 	}
 
-	if conflict := a.Check(); conflict != nil {
+	if conflict := a.CheckConflicts(); conflict != nil {
 		return fmt.Errorf("insertEndorsement: double-spend (conflict) %s in the past cone", conflict.IDStringShort())
 	}
 	a.endorse = append(a.endorse, endorsement)
@@ -407,10 +403,6 @@ func (a *IncrementalAttacher) Extending() vertex.WrappedOutput {
 func (a *IncrementalAttacher) Endorsing() []*vertex.WrappedTx {
 	a.Assertf(!a.IsClosed(), "!a.IsClosed() -- %s", a.name)
 	return a.endorse
-}
-
-func (a *IncrementalAttacher) Check() *vertex.WrappedOutput {
-	return a.pastCone.Check(a.baselineStateReader())
 }
 
 func (a *IncrementalAttacher) ExtendEndorseLines(prefix ...string) *lines.Lines {

@@ -25,7 +25,7 @@ func endorse2RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 		return nil, true
 	}
 
-	// Check peers in RANDOM order
+	// CheckConflicts peers in RANDOM order
 	a := p.ChooseFirstExtendEndorsePair(true, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
 		checked, consistent := p.taskData.slotData.wasCombinationChecked(extend, endorse)
 		return !checked || consistent

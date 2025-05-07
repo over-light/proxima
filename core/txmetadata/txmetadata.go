@@ -106,7 +106,7 @@ func (m *TransactionMetadata) Bytes() []byte {
 		return []byte{0}
 	}
 
-	util.Assertf((m.CoverageDelta == nil) == (m.LedgerCoverage == nil), "(m.CoverageDelta == nil) == (m.LedgerCoverage == nil)")
+	util.Assertf((m.CoverageDelta == nil) == (m.LedgerCoverage == nil), "(m.CoverageDeltaRaw == nil) == (m.LedgerCoverage == nil)")
 	var buf bytes.Buffer
 	// size byte (will be filled-in in the end
 	buf.WriteByte(0)

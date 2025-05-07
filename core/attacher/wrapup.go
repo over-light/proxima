@@ -15,11 +15,11 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 
 	a.slotInflation = a.pastCone.CalculateSlotInflation()
 
-	a.finals.baseline = *a.baselineBranchID
+	a.finals.baseline = *a.BaselineBranch()
 	a.finals.numVertices = a.pastCone.NumVertices()
 
 	a.finals.ledgerCoverage = a.FinalLedgerCoverage(a.vid.Timestamp())
-	a.finals.coverageDelta = a.pastCone.CoverageDelta()
+	a.finals.coverageDelta = a.CoverageDelta()
 	a.finals.slotInflation = a.slotInflation
 
 	a.Tracef(TraceTagAttachMilestone, "set ledger coverage in %s to %s",

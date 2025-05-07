@@ -26,7 +26,7 @@ func endorse3ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool)
 		return nil, true
 	}
 
-	// Check all pairs, in descending order
+	// CheckConflicts all pairs, in descending order
 	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
 		checked, consistent := p.taskData.slotData.wasCombinationChecked(extend, endorse)
 		return !checked || consistent

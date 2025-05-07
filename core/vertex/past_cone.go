@@ -26,12 +26,10 @@ type (
 	FlagsPastCone byte
 
 	PastCone struct {
-		global.Logging     // TODO not very necessary
-		tip                *WrappedTx
-		targetTs           base.LedgerTime
-		name               string
-		coverageDelta      uint64
-		savedCoverageDelta uint64
+		global.Logging // TODO not very necessary
+		tip            *WrappedTx
+		targetTs       base.LedgerTime
+		name           string
 
 		*PastConeBase
 		delta *PastConeBase
@@ -136,16 +134,16 @@ func (pb *PastConeBase) Lines(prefix ...string) *lines.Lines {
 	return ret
 }
 
-func (pc *PastCone) AddVirtuallyConsumedOutput(wOut WrappedOutput, stateReader multistate.IndexedStateReader) *WrappedOutput {
+func (pc *PastCone) AddVirtuallyConsumedOutput(wOut WrappedOutput, getStateReader func(branchID base.TransactionID) multistate.IndexedStateReader) *WrappedOutput {
 	if pc.delta == nil {
 		pc.addVirtuallyConsumedOutput(wOut)
-		return pc.Check(stateReader)
+		return pc.CheckConflicts(getStateReader)
 	}
 	if pc.isVirtuallyConsumed(wOut) {
 		return nil
 	}
 	pc.delta.addVirtuallyConsumedOutput(wOut)
-	return pc.Check(stateReader)
+	return pc.CheckConflicts(getStateReader)
 }
 
 func (pc *PastCone) isVirtuallyConsumed(wOut WrappedOutput) bool {
@@ -191,10 +189,19 @@ func (pc *PastCone) SetBaseline(baselineID *base.TransactionID) {
 	}
 }
 
+func (pc *PastCone) GetBaseline() *base.TransactionID {
+	if pc.baselineBranchID != nil {
+		return pc.baselineBranchID
+	}
+	if pc.delta != nil {
+		return pc.delta.baselineBranchID
+	}
+	return nil
+}
+
 func (pc *PastCone) BeginDelta() {
 	util.Assertf(pc.delta == nil, "BeginDelta: pc.delta == nil")
 	pc.delta = NewPastConeBase(pc.baselineBranchID)
-	pc.savedCoverageDelta = pc.coverageDelta
 }
 
 func (pc *PastCone) CommitDelta() {
@@ -218,7 +225,6 @@ func (pc *PastCone) RollbackDelta() {
 		return
 	}
 	pc.delta = nil
-	pc.coverageDelta = pc.savedCoverageDelta
 }
 
 func (pc *PastCone) Flags(vid *WrappedTx) FlagsPastCone {
@@ -360,7 +366,6 @@ func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 			ret.Add("   %s: %+v", vid.IDShortString(), maps.Keys(consumedIndices))
 		}
 	}
-	ret.Add("ledger coverage delta: %s", util.Th(pc.CoverageDelta()))
 	return ret
 }
 
@@ -481,6 +486,10 @@ func (pc *PastCone) consumersByOutputIndex(vid *WrappedTx) map[byte][]*WrappedTx
 	return nil
 }
 
+func (pc *PastCone) consumedUTXOIndices(vid *WrappedTx) []byte {
+	return maps.Keys(pc.consumersByOutputIndex(vid))
+}
+
 // mustNotConsumedIndices returns indices of the transaction which are definitely not consumed
 // panics in case of conflicting past cone
 func (pc *PastCone) producedIndices(vid *WrappedTx) []byte {
@@ -592,22 +601,12 @@ func (pc *PastCone) IsComplete() bool {
 	return true
 }
 
-func (pc *PastCone) getBaseline() *base.TransactionID {
-	if pc.baselineBranchID != nil {
-		return pc.baselineBranchID
-	}
-	if pc.delta != nil {
-		return pc.delta.baselineBranchID
-	}
-	return nil
-}
-
 // AppendPastCone appends deterministic past cone to the current one. Does not check for conflicts
 func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multistate.IndexedStateReader) {
 	if len(pcb.vertices) == 0 {
 		return
 	}
-	pc.Assertf(pc.getBaseline() != nil, "pc.getBaseline() != nil")
+	pc.Assertf(pc.GetBaseline() != nil, "pc.getBaseline() != nil")
 	pc.Assertf(pcb.baselineBranchID != nil, "pcb.baseline != nil")
 
 	for vid, flags := range pcb.vertices {
@@ -630,7 +629,7 @@ func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multis
 
 // CheckFinalPastCone check determinism consistency of the past cone
 // If rootVid == nil, past cone must be fully deterministic
-func (pc *PastCone) CheckFinalPastCone(getStateReader func() multistate.IndexedStateReader) (err error) {
+func (pc *PastCone) CheckFinalPastCone(getStateReader func(branchID base.TransactionID) multistate.IndexedStateReader) (err error) {
 	if pc.delta != nil {
 		return fmt.Errorf("CheckFinalPastCone: past cone has uncommitted delta")
 	}
@@ -668,7 +667,7 @@ func (pc *PastCone) CheckFinalPastCone(getStateReader func() multistate.IndexedS
 			return
 		}
 	}
-	if conflict := pc.Check(getStateReader()); conflict != nil {
+	if conflict := pc.CheckConflicts(getStateReader); conflict != nil {
 		return fmt.Errorf("past cone %s contains double-spent output %s", pc.name, conflict.IDStringShort())
 	}
 	return nil
@@ -722,7 +721,6 @@ func (pc *PastCone) CloneForDebugOnly(env global.Logging, name string) *PastCone
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 	ret := NewPastCone(env, pc.tip, pc.targetTs, name+"_debug_clone")
 	ret.baselineBranchID = pc.baselineBranchID
-	ret.coverageDelta = pc.coverageDelta
 	ret.vertices = maps.Clone(pc.vertices)
 	ret.virtuallyConsumed = make(map[*WrappedTx]set.Set[byte])
 	for vid, consumedIndices := range pc.virtuallyConsumed {
@@ -735,54 +733,45 @@ func (pb *PastConeBase) Len() int {
 	return len(pb.vertices)
 }
 
-// Check returns double-spent output (conflict) or nil if the past cone is consistent
+// CheckConflicts returns double-spent output (conflict) or nil if the past cone is consistent
 // The complexity is O(NxM) where N is number of vertices and M is an average number of conflicts in the UTXO tangle
 // Practically, it is linear wrt the number of vertices because M is 1 or close to 1.
-// Also calculates coverage delta
-func (pc *PastCone) Check(stateReader multistate.IndexedStateReader) (conflict *WrappedOutput) {
-	var coverageDelta uint64
-	pc.coverageDelta = 0
+func (pc *PastCone) CheckConflicts(getStateReader func(branchID base.TransactionID) multistate.IndexedStateReader) (conflict *WrappedOutput) {
+	rdr := getStateReader(*pc.GetBaseline())
 	pc.forAllVertices(func(vid *WrappedTx) bool {
-		conflict, _, coverageDelta = pc._checkVertex(vid, stateReader)
-		pc.coverageDelta += coverageDelta
+		conflict, _ = pc._checkVertex(vid, rdr)
 		return conflict == nil
 	})
-	if conflict != nil {
-		pc.coverageDelta = 0
-	}
 	return
 }
 
 // CheckAndClean iterates past cone, checks for conflicts and removes those vertices
-// which has consumers and all consumers are already in the state
-func (pc *PastCone) CheckAndClean(stateReader multistate.IndexedStateReader) (conflict *WrappedOutput) {
+// that have consumers and all consumers are already in the state
+func (pc *PastCone) CheckAndClean(getStateReader func(branchID base.TransactionID) multistate.IndexedStateReader) (conflict *WrappedOutput) {
 	pc.Assertf(pc.baselineBranchID != nil, "pc.baseline!=nil")
 	pc.Assertf(len(pc.virtuallyConsumed) == 0, "len(pb.virtuallyConsumed)==0")
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 
 	var canBeRemoved bool
-	var coverageDelta uint64
 
+	rdr := getStateReader(*pc.GetBaseline())
 	for vid, flags := range pc.vertices {
-		if vid == pc.tip || vid.ID() == *pc.baselineBranchID {
-			continue
+		if vid != pc.tip && vid.ID() != *pc.baselineBranchID {
+			pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState), "wrong flag in %s", vid.IDShortString)
 		}
-		pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState), "wrong flag in %s", vid.IDShortString)
-		conflict, canBeRemoved, coverageDelta = pc._checkVertex(vid, stateReader)
+		conflict, canBeRemoved = pc._checkVertex(vid, rdr)
 		if conflict != nil {
-			pc.coverageDelta = 0
 			return
 		}
 		if canBeRemoved {
 			delete(pc.vertices, vid)
-		} else {
-			pc.coverageDelta += coverageDelta
 		}
 	}
+	//util.Assertf(nil == pc.CheckConflicts(getStateReader), "pc.CheckConflicts(getStateReader) == nil")
 	return
 }
 
-func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedStateReader) (doubleSpend *WrappedOutput, canBeRemoved bool, coverageDelta uint64) {
+func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedStateReader) (doubleSpend *WrappedOutput, canBeRemoved bool) {
 	allConsumersAreInTheState := true
 	inTheState := pc.IsInTheState(vid)
 	byIdx := pc.consumersByOutputIndex(vid)
@@ -790,7 +779,7 @@ func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedS
 		wOut := WrappedOutput{VID: vid, Index: idx}
 		pc.Assertf(len(consumers) > 0, "len(consumers) > 0")
 		if len(consumers) != 1 {
-			return &wOut, false, 0
+			return &wOut, false
 		}
 		pc.Assertf(len(consumers) == 1, "len(consumers) == 1")
 
@@ -800,14 +789,12 @@ func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedS
 			if inTheState {
 				oid := wOut.DecodeID()
 				if !stateReader.HasUTXO(oid) {
-					return &wOut, false, 0
+					return &wOut, false
 				}
-				coverageDelta += vid.MustOutputAt(idx).Amount()
 			}
 		}
 	}
 	canBeRemoved = len(byIdx) > 0 && allConsumersAreInTheState
-	pc.Assertf(!canBeRemoved || coverageDelta == 0, "!canBeRemoved || coverageDelta == 0")
 	return
 }
 
@@ -821,11 +808,21 @@ func (pc *PastCone) CalculateSlotInflation() (ret uint64) {
 	return
 }
 
-func (pc *PastCone) CoverageDelta() (delta uint64) {
+// CoverageDeltaRaw is not adjusted. Function does not check the consistency of the past cone.
+// Calculates coverage by checking them right in the state
+func (pc *PastCone) CoverageDeltaRaw(getStateReader func(branchID base.TransactionID) multistate.IndexedStateReader) (delta uint64) {
 	pc.Assertf(pc.delta == nil, "pc.delta == nil")
 	pc.Assertf(pc.baselineBranchID != nil, "pc.baseline != nil")
 
-	return pc.coverageDelta
+	rdr := multistate.MakeSugared(getStateReader(*pc.GetBaseline()))
+	for vid := range pc.vertices {
+		for _, idx := range pc.consumedUTXOIndices(vid) {
+			if o := rdr.GetOutput(vid.OutputID(idx)); o != nil {
+				delta += o.Amount()
+			}
+		}
+	}
+	return
 }
 
 func (pc *PastCone) IsConsumed(wOut WrappedOutput) bool {

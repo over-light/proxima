@@ -56,13 +56,12 @@ type (
 
 	attacher struct {
 		Environment
-		pastCone         *vertex.PastCone
-		name             string
-		err              error
-		baselineBranchID *base.TransactionID
-		closed           bool
-		pokeMe           func(vid *vertex.WrappedTx)
-		slotInflation    uint64
+		pastCone      *vertex.PastCone
+		name          string
+		err           error
+		closed        bool
+		pokeMe        func(vid *vertex.WrappedTx)
+		slotInflation uint64
 		// trace this local attacher with all tags
 		forceTrace string
 	}

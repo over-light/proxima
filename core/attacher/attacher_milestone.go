@@ -113,8 +113,8 @@ func (a *milestoneAttacher) run() error {
 		return a.err
 	}
 
-	a.Assertf(a.baselineBranchID != nil, "a.baseline != nil")
-	a.Tracef(TraceTagAttachMilestone, "baseline is OK <- %s", a.baselineBranchID.StringShort)
+	a.Assertf(a.BaselineBranch() != nil, "a.baseline != nil")
+	a.Tracef(TraceTagAttachMilestone, "baseline is OK <- %s", a.BaselineBranch().StringShort)
 
 	// then solidify past cone
 
@@ -159,7 +159,7 @@ func (a *milestoneAttacher) run() error {
 			printPastCone = false
 		)
 		if lastCheck {
-			err = a.pastCone.CheckFinalPastCone(a.baselineStateReader)
+			err = a.pastCone.CheckFinalPastCone(a.Branches().GetStateReaderForTheBranch)
 			if err != nil {
 				err = fmt.Errorf("%w\n------ past cone of %s ------\n%s",
 					err, a.vid.IDShortString(), a.pastCone.Lines("     ").Join("\n"))
@@ -177,7 +177,7 @@ func (a *milestoneAttacher) run() error {
 	return nil
 }
 
-// deadlock catcher, if enabled, calls callback function whenever lazyRepeat loop is stuck for more than
+// deadlock catcher, if enabled, calls the callback function whenever lazyRepeat loop is stuck for more than
 // set duration threshold. EnableDeadlockCatching(0) disables deadlock catching
 // Default is enabled for 10 seconds
 
@@ -246,7 +246,7 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 		a.vid.Unwrap(vertex.UnwrapOptions{
 			Vertex: func(v *vertex.Vertex) {
 				a.Assertf(a.vid.GetTxStatusNoLock() == vertex.Undefined, "a.vid.GetTxStatusNoLock() == vertex.Undefined:\n%s", a.vid.StringNoLock)
-				a.Assertf(a.baselineBranchID == nil, "a.baseline == nil")
+				a.Assertf(a.BaselineBranch() == nil, "a.baseline == nil")
 
 				ok = a.solidifyBaselineUnwrapped(v, a.vid)
 				if ok && v.BaselineBranchID != nil {
@@ -291,7 +291,6 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 
 				if ok, finalSuccess = a.validateSequencerTxUnwrapped(v); !ok {
 					a.Assertf(a.err != nil, "a.err != nil")
-					// dispose vertex
 					return
 				}
 				a.Tracef(TraceTagAttachVertex, "NOT final..")
@@ -299,7 +298,7 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 				const doubleCheck = true
 				if doubleCheck && finalSuccess {
 					// double check
-					conflict := a.pastCone.Check(a.baselineStateReader())
+					conflict := a.CheckConflicts()
 					a.Assertf(conflict == nil, "unexpected conflict %s in %s", conflict.IDStringShort(), a.name)
 				}
 			},
@@ -351,12 +350,12 @@ func (a *milestoneAttacher) validateSequencerTxUnwrapped(v *vertex.Vertex) (ok, 
 	a.vid.SetFlagsUpNoLock(vertex.FlagVertexConstraintsValid)
 	a.Tracef(TraceTagValidateSequencer, "constraints has been validated OK: %s", v.Tx.IDShortString)
 
-	conflict := a.pastCone.CheckAndClean(a.baselineStateReader())
-	if conflict != nil {
+	if conflict := a.pastCone.CheckAndClean(a.Branches().GetStateReaderForTheBranch); conflict != nil {
 		a.setError(fmt.Errorf("double-spend %s in the past cone", conflict.IDStringShort()))
 		v.UnReferenceDependencies()
 		return false, false
 	}
+	//a.Assertf(nil == a.pastCone.CheckConflicts(a.Branches().GetStateReaderForTheBranch), ">>>> inconsistency <<<<<<")
 	return true, true
 }
 
@@ -419,9 +418,9 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 }
 
 func (a *milestoneAttacher) logErrorStatusString(err error) string {
-	bl := "baseline: N/A"
-	if a.baselineBranchID != nil {
-		bl = fmt.Sprintf("baseline: %s (hex = %s)", a.baselineBranchID.StringShort(), a.baselineBranchID.StringHex())
+	blStr := "baseline: N/A"
+	if bl := a.BaselineBranch(); bl != nil {
+		blStr = fmt.Sprintf("baseline: %s (hex = %s)", bl.StringShort(), bl.StringHex())
 	}
-	return fmt.Sprintf("ATTACH %s (%s) -> BAD(%v)", a.vid.IDShortString(), bl, err)
+	return fmt.Sprintf("ATTACH %s (%s) -> BAD(%v)", a.vid.IDShortString(), blStr, err)
 }

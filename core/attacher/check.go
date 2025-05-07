@@ -81,7 +81,7 @@ func (a *milestoneAttacher) _checkMonotonicityOfInputTransactions(v *vertex.Vert
 
 func (a *milestoneAttacher) calculatedMetadata() *txmetadata.TransactionMetadata {
 	cov := a.FinalLedgerCoverage(a.vid.Timestamp())
-	covDelta := a.pastCone.CoverageDelta()
+	covDelta := a.CoverageDelta()
 	return &txmetadata.TransactionMetadata{
 		StateRoot:      a.finals.root,
 		CoverageDelta:  util.Ref(covDelta),
