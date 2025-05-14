@@ -338,12 +338,8 @@ func (a *IncrementalAttacher) MakeSequencerTransaction(seqName string, privateKe
 		a.Log().Fatalf("IncrementalAttacher(%s).MakeSequencerTransaction: %v", a.name, err) // should produce correct transaction
 		return nil, err
 	}
-
-	a.slotInflation = a.pastCone.CalculateSlotInflation()
 	// in the incremental attacher we must add inflation on the branch
-	a.slotInflation += tx.InflationAmount()
-
-	//a.Log().Infof("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n%s\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", a.dumpLines().String())
+	a.inflationAmount += tx.InflationAmount()
 	return tx, nil
 }
 
@@ -371,11 +367,7 @@ func (a *IncrementalAttacher) makeSequencerTransactionWithExplicitBaseline(seqNa
 		a.Log().Fatalf("IncrementalAttacher(%s).MakeSequencerTransaction: %v", a.name, err) // should produce correct transaction
 		return nil, err
 	}
-
-	a.slotInflation = a.pastCone.CalculateSlotInflation()
-	// in the incremental attacher we must add inflation on the branch
-	a.slotInflation += tx.InflationAmount()
-
+	a.inflationAmount += tx.InflationAmount()
 	return tx, nil
 }
 

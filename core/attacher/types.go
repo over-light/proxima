@@ -54,12 +54,11 @@ type (
 
 	attacher struct {
 		Environment
-		pastCone      *vertex.PastCone
-		name          string
-		err           error
-		closed        bool
-		pokeMe        func(vid *vertex.WrappedTx)
-		slotInflation uint64
+		pastCone *vertex.PastCone
+		name     string
+		err      error
+		closed   bool
+		pokeMe   func(vid *vertex.WrappedTx)
 		// trace this local attacher with all tags
 		forceTrace string
 	}
@@ -74,6 +73,7 @@ type (
 		targetTs           base.LedgerTime
 		stemOutput         vertex.WrappedOutput
 		explicitBaselineID *base.TransactionID
+		inflationAmount    uint64
 	}
 
 	// milestoneAttacher is used to attach a sequencer transaction

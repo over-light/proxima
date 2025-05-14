@@ -74,13 +74,16 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 
 	ledgerCoverage := a.FinalLedgerCoverage(p.targetTs)
 	coverageDelta := a.CoverageDelta()
-	supply := a.FinalSupply()
+	slotInflation := a.SlotInflation()
+	baselineSupply := a.BaselineSupply()
 
-	tx, hrString, err := p.makeTxProposal(a)
-
+	tx, hrString, err := p.makeTxProposal(a) // << after this call attacher is closed
 	if err != nil {
 		return err
 	}
+
+	supply := baselineSupply + slotInflation + tx.InflationAmount()
+
 	_proposal := &proposal{
 		tx:     tx,
 		txSize: len(tx.Bytes()),
@@ -95,13 +98,12 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 		attacherName:      a.Name(),
 		strategyShortName: p.strategy.ShortName,
 	}
-
 	//trackProposals.RegisterPointer(_proposal)
 
-	if p.targetTs.IsSlotBoundary() {
+	if tx.IsBranchTransaction() {
 		_proposal.txMetadata.LedgerCoverage = util.Ref(ledgerCoverage)
 		_proposal.txMetadata.Supply = util.Ref(supply)
-		_proposal.txMetadata.SlotInflation = util.Ref(a.SlotInflation())
+		_proposal.txMetadata.SlotInflation = util.Ref(slotInflation)
 	}
 	p.proposalChan <- _proposal
 	return nil

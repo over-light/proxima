@@ -507,15 +507,7 @@ func (a *attacher) Tracef(traceLabel string, format string, args ...any) {
 	a.Environment.Tracef(traceLabel, a.name+format+" ", args...)
 }
 
-func (a *attacher) SlotInflation() uint64 {
-	return a.slotInflation
-}
-
-func (a *attacher) FinalSupply() uint64 {
-	return a.baselineSupply() + a.slotInflation
-}
-
-func (a *attacher) baselineSupply() uint64 {
+func (a *attacher) BaselineSupply() uint64 {
 	return a.Branches().Supply(*a.pastCone.GetBaseline())
 }
 
@@ -558,4 +550,8 @@ func (a *attacher) BaselineBranch() *base.TransactionID {
 
 func (a *attacher) CheckConflicts() *vertex.WrappedOutput {
 	return a.pastCone.CheckConflicts(a.Branches().GetStateReaderForTheBranch)
+}
+
+func (a *attacher) SlotInflation() uint64 {
+	return a.pastCone.SlotInflation()
 }

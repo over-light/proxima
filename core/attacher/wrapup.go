@@ -12,13 +12,11 @@ import (
 func (a *milestoneAttacher) wrapUpAttacher() {
 	a.Tracef(TraceTagAttachMilestone, "wrapUpAttacher")
 
-	a.slotInflation = a.pastCone.CalculateSlotInflation()
-
 	a.finals.baseline = *a.BaselineBranch()
 	a.finals.numVertices = a.pastCone.NumVertices()
 	a.finals.TransactionMetadata.LedgerCoverage = util.Ref(a.FinalLedgerCoverage(a.vid.Timestamp()))
 	a.finals.TransactionMetadata.CoverageDelta = util.Ref(a.CoverageDelta())
-	a.finals.TransactionMetadata.SlotInflation = util.Ref(a.slotInflation)
+	a.finals.TransactionMetadata.SlotInflation = util.Ref(a.SlotInflation())
 	if a.providedMetadata != nil {
 		a.finals.TransactionMetadata.SourceTypeNonPersistent = a.providedMetadata.SourceTypeNonPersistent
 	}
@@ -37,17 +35,15 @@ func (a *milestoneAttacher) commitBranch() {
 
 	seqID, stemOID := a.vid.MustSequencerIDAndStemID()
 	upd := multistate.MustNewUpdatable(a.StateStore(), a.BaselineSugaredStateReader().Root())
-	a.finals.TransactionMetadata.Supply = util.Ref(a.baselineSupply() + a.slotInflation)
+	supply := a.BaselineSupply() + a.SlotInflation()
+	a.finals.TransactionMetadata.Supply = util.Ref(supply)
 	coverageDelta := a.CoverageDelta()
-
-	util.Assertf(a.slotInflation == *a.finals.TransactionMetadata.SlotInflation, "a.slotInflation == *a.finals.TransactionMetadata.SlotInflation")
-	supply := a.FinalSupply()
 
 	err := upd.Update(muts, &multistate.RootRecordParams{
 		StemOutputID:    stemOID,
 		SeqID:           seqID,
 		CoverageDelta:   coverageDelta,
-		SlotInflation:   a.slotInflation,
+		SlotInflation:   a.SlotInflation(),
 		Supply:          supply,
 		NumTransactions: uint32(a.finals.MutationStats.NumTransactions),
 	})
