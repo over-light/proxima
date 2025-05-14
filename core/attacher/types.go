@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/lunfardo314/proxima/core/core_modules/branches"
@@ -14,7 +13,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
-	"github.com/lunfardo314/unitrie/common"
 )
 
 type (
@@ -82,7 +80,7 @@ type (
 	milestoneAttacher struct {
 		attacher
 		vid              *vertex.WrappedTx
-		metadata         *txmetadata.TransactionMetadata
+		providedMetadata *txmetadata.TransactionMetadata
 		ctx              context.Context // override global one if not nil
 		closeOnce        sync.Once
 		pokeChan         chan struct{}
@@ -101,25 +99,15 @@ type (
 	}
 	AttachTxOption func(*_attacherOptions)
 
-	// final values of attacher run. Ugly -> TODO refactor
+	// final values of attacher run.
 	attachFinals struct {
-		numInputs          int
-		numOutputs         int
-		coverageDelta      uint64
-		ledgerCoverage     uint64
-		slotInflation      uint64
-		supply             uint64
-		root               common.VCommitment
-		baseline           base.TransactionID
-		numVertices        int
-		numNewTransactions uint32
-		numCreatedOutputs  int
-		numDeletedOutputs  int
-		started            time.Time
-		numMissedPokes     atomic.Int32
-		numPokes           int
-		numPeriodic        int
-		numRooted          int
+		started     time.Time
+		numInputs   int
+		numOutputs  int
+		numVertices int
+		baseline    base.TransactionID
+		txmetadata.TransactionMetadata
+		vertex.MutationStats
 	}
 
 	SequencerCommandParser interface {

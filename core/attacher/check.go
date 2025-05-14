@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/proxima/core/memdag"
-	"github.com/lunfardo314/proxima/core/txmetadata"
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -79,23 +78,11 @@ func (a *milestoneAttacher) _checkMonotonicityOfInputTransactions(v *vertex.Vert
 	return
 }
 
-func (a *milestoneAttacher) calculatedMetadata() *txmetadata.TransactionMetadata {
-	cov := a.FinalLedgerCoverage(a.vid.Timestamp())
-	covDelta := a.CoverageDelta()
-	return &txmetadata.TransactionMetadata{
-		StateRoot:      a.finals.root,
-		CoverageDelta:  util.Ref(covDelta),
-		LedgerCoverage: util.Ref(cov),
-		SlotInflation:  util.Ref(a.slotInflation),
-		Supply:         util.Ref(a.baselineSupply() + a.slotInflation),
-	}
-}
-
-// checkConsistencyWithMetadata check but not enforces
+// checkConsistencyWithMetadata checks but not enforces
 func (a *milestoneAttacher) checkConsistencyWithMetadata() {
-	calcMeta := a.calculatedMetadata()
-	if !a.metadata.IsConsistentWith(calcMeta) {
-		a.Log().Errorf("inconsistency in metadata of %s (source seq: %s, '%s'):\n   calculated metadata: %s\n   provided metadata: %s",
-			a.vid.IDShortString(), a.vid.SequencerID.Load().StringShort(), a.vid.SequencerName(), calcMeta.String(), a.metadata.String())
+	if !a.providedMetadata.IsConsistentWith(&a.finals.TransactionMetadata) {
+		a.Log().Warnf("inconsistency in tx metadata of %s (source seq: %s, '%s'):\n   calculated metadata: %s\n   provided metadata: %s",
+			a.vid.IDShortString(), a.vid.SequencerID.Load().StringShort(), a.vid.SequencerName(),
+			a.finals.TransactionMetadata.String(), a.providedMetadata.String())
 	}
 }

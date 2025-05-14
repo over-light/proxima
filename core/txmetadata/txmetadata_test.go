@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/blake2b"
@@ -89,4 +90,40 @@ func TestTxMetadata(t *testing.T) {
 		require.EqualValues(t, 31415, *mBack.SlotInflation)
 		require.EqualValues(t, 2718281828, *mBack.Supply)
 	})
+	t.Run("5", func(t *testing.T) {
+		coverageDelta := uint64(222)
+		inflation := uint64(31415)
+		supply := uint64(2718281828)
+		m := &TransactionMetadata{
+			SourceTypeNonPersistent: SourceTypeSequencer,
+			CoverageDelta:           &coverageDelta,
+			SlotInflation:           &inflation,
+			Supply:                  &supply,
+		}
+		mBack, err := TransactionMetadataFromBytes(m.Bytes())
+		require.NoError(t, err)
+
+		require.EqualValues(t, SourceTypeUndef.String(), mBack.SourceTypeNonPersistent.String())
+		require.EqualValues(t, m.flags(), mBack.flags())
+		require.Nil(t, mBack.StateRoot)
+		require.EqualValues(t, 222, *mBack.CoverageDelta)
+		require.True(t, util.IsNil(mBack.LedgerCoverage))
+		require.EqualValues(t, 31415, *mBack.SlotInflation)
+		require.EqualValues(t, 2718281828, *mBack.Supply)
+	})
+	t.Run("6", func(t *testing.T) {
+		coverageDelta := uint64(222)
+		inflation := uint64(31415)
+		supply := uint64(2718281828)
+		m := &TransactionMetadata{
+			SourceTypeNonPersistent: SourceTypeSequencer,
+			CoverageDelta:           &coverageDelta,
+			SlotInflation:           &inflation,
+			Supply:                  &supply,
+		}
+		t.Logf("--------------\n%s", m.Lines("       ").String())
+		m.LedgerCoverage = util.Ref(uint64(1337))
+		t.Logf("--------------\n%s", m.Lines("       ").String())
+	})
+
 }

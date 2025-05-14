@@ -70,12 +70,12 @@ func newMilestoneAttacher(vid *vertex.WrappedTx, env Environment, metadata *txme
 	env.Assertf(vid.IsSequencerMilestone(), "newMilestoneAttacher: %s is not a sequencer milestone", vid.IDShortString)
 
 	ret := &milestoneAttacher{
-		attacher: newPastConeAttacher(env, vid, base.LedgerTime{}, vid.IDShortString()),
-		vid:      vid,
-		metadata: metadata,
-		pokeChan: make(chan struct{}),
-		finals:   attachFinals{started: time.Now()},
-		ctx:      providedCtx,
+		attacher:         newPastConeAttacher(env, vid, base.LedgerTime{}, vid.IDShortString()),
+		vid:              vid,
+		providedMetadata: metadata,
+		pokeChan:         make(chan struct{}),
+		finals:           attachFinals{started: time.Now()},
+		ctx:              providedCtx,
 	}
 	if ret.ctx == nil {
 		ret.ctx = env.Ctx()
@@ -207,12 +207,10 @@ func (a *milestoneAttacher) lazyRepeat(loopName string, fun func() vertex.Status
 		}
 		select {
 		case <-a.pokeChan:
-			a.finals.numPokes++
 		case <-a.ctx.Done():
 			a.setError(fmt.Errorf("%w. Undefined past cone: %s", global.ErrInterrupted, a.pastCone.UndefinedListLines().Join(", ")))
 			return vertex.Bad
 		case <-time.After(lazyRepeatEach):
-			a.finals.numPeriodic++
 		}
 
 		if !a.DeadlockCatchingDisabled() {
@@ -367,11 +365,8 @@ func (a *milestoneAttacher) _doPoke() {
 	if !a.closed {
 		select {
 		case a.pokeChan <- struct{}{}:
-			//a.Log().Warnf(">>>>>> poked ok %s", a.name)
 		default:
-			// poke is lost when blocked but that is ok because there's pull from the attacher's side
-			//a.Log().Warnf(">>>>>> missed poke in %s", a.name)
-			a.finals.numMissedPokes.Add(1)
+			// poke is lost when blocked, but that is ok because there's pull from the attacher's side
 		}
 	}
 }
@@ -396,7 +391,7 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 
 	if a.vid.IsBranchTransaction() {
 		msg = fmt.Sprintf("--- BRANCH%s %s(in %d, tx: %d), i = %s",
-			msDataStr, a.vid.IDShortString(), a.finals.numInputs, a.finals.numNewTransactions,
+			msDataStr, a.vid.IDShortString(), a.finals.numInputs, a.finals.MutationStats.NumTransactions,
 			util.Th(a.vid.InflationAmount()))
 	} else {
 		msg = fmt.Sprintf("--- SEQ TX%s %s(in %d), i = %s, lnow: %s",
@@ -405,12 +400,13 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 	if a.vid.GetTxStatus() == vertex.Bad {
 		msg += fmt.Sprintf("BAD: err = '%v'", a.vid.GetError())
 	} else {
-		msg += fmt.Sprintf(", base: %s, cov/delta: %s/%s", a.finals.baseline.StringShort(), util.Th(a.finals.ledgerCoverage), util.Th(a.finals.coverageDelta))
+		msg += fmt.Sprintf(", base: %s, cov/delta: %s/%s", a.finals.baseline.StringShort(),
+			util.Th(*a.finals.TransactionMetadata.LedgerCoverage), util.Th(*a.finals.TransactionMetadata.CoverageDelta))
 		if a.VerbosityLevel() > 0 {
 			if a.vid.IsBranchTransaction() {
-				msg += fmt.Sprintf(", slot inflation: %s, supply: %s", util.Th(a.finals.slotInflation), util.Th(a.finals.supply))
+				msg += fmt.Sprintf(", slot inflation: %s, supply: %s", util.Th(*a.finals.TransactionMetadata.SlotInflation), util.Th(*a.finals.TransactionMetadata.Supply))
 			} else {
-				msg += fmt.Sprintf(", slot inflation: %s", util.Th(a.finals.slotInflation))
+				msg += fmt.Sprintf(", slot inflation: %s", util.Th(*a.finals.TransactionMetadata.SlotInflation))
 			}
 		}
 	}

@@ -95,7 +95,7 @@ func (m *TransactionMetadata) flags() (ret byte) {
 	return
 }
 
-// Bytes of TransactionMetadata is nil-safe
+// Bytes receiver of TransactionMetadata is nil-safe
 func (m *TransactionMetadata) Bytes() []byte {
 	// flags == 0 means no persistent information is contained
 	if m == nil {
@@ -106,9 +106,8 @@ func (m *TransactionMetadata) Bytes() []byte {
 		return []byte{0}
 	}
 
-	util.Assertf((m.CoverageDelta == nil) == (m.LedgerCoverage == nil), "(m.CoverageDeltaRaw == nil) == (m.LedgerCoverage == nil)")
 	var buf bytes.Buffer
-	// size byte (will be filled-in in the end
+	// size byte (will be filled in at the end
 	buf.WriteByte(0)
 	buf.WriteByte(flags)
 	if !util.IsNil(m.StateRoot) {
