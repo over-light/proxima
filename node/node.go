@@ -50,6 +50,8 @@ type (
 		numTxDependencies     prometheus.Gauge
 		counterTxDependencies prometheus.Counter
 		diskSpace             prometheus.Gauge
+		validationTimeNs      prometheus.Gauge
+		validationNumUTXO     prometheus.Gauge
 	}
 )
 
@@ -83,7 +85,7 @@ func (p *ProximaNode) WaitAllWorkProcessesToStop() {
 	close(p.workProcessesStopStepChan) // second step signals to release DB close goroutines
 }
 
-// WaitAllDBClosed ensuring databases has been closed
+// WaitAllDBClosed ensuring databases have been closed
 func (p *ProximaNode) WaitAllDBClosed() {
 	p.dbClosedWG.Wait()
 }
@@ -326,6 +328,15 @@ func (p *ProximaNode) registerMetrics() {
 		Name: "proxima_disk_space",
 		Help: "available disk space in MB",
 	})
+	p.validationTimeNs = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "proxima_tx_validation_time_ns",
+		Help: "transaction validation time in nanoseconds",
+	})
+	p.validationNumUTXO = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "proxima_tx_validation_num_utxo",
+		Help: "total number of inputs and outputs in the transaction",
+	})
+
 	p.MetricsRegistry().MustRegister(
 		p.lrbCoverage,
 		p.lrbSlotsBehind,
@@ -335,6 +346,8 @@ func (p *ProximaNode) registerMetrics() {
 		p.numTxDependencies,
 		p.counterTxDependencies,
 		p.diskSpace,
+		p.validationTimeNs,
+		p.validationNumUTXO,
 	)
 }
 
@@ -355,6 +368,7 @@ func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 	return p.peers.DurationSinceLastMessageFromPeer()
 }
 
-func (p *ProximaNode) EvidenceTxValidationStats(valid bool, took time.Duration, numIn, numOut int) {
-	// TODO not finished
+func (p *ProximaNode) EvidenceTxValidationStats(took time.Duration, numIn, numOut int) {
+	p.validationTimeNs.Set(float64(took.Nanoseconds()))
+	p.validationNumUTXO.Set(float64(numIn + numOut))
 }

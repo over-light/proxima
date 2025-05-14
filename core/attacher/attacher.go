@@ -3,6 +3,7 @@ package attacher
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -262,7 +263,11 @@ func (a *attacher) finalTouchNonSequencer(v *vertex.Vertex, vid *vertex.WrappedT
 }
 
 func (a *attacher) validateVertex(v *vertex.Vertex) (err error) {
-	return v.ValidateConstraints()
+	start := time.Now()
+	if err = v.ValidateConstraints(); err == nil {
+		a.EvidenceTxValidationStats(time.Since(start), v.Tx.NumInputs(), v.Tx.NumProducedOutputs())
+	}
+	return
 }
 
 // refreshDependencyStatus ensures it is known in the past cone, checks in the state status, pulls if needed
