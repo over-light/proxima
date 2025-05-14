@@ -232,3 +232,21 @@ func (b *Branches) BranchKnowsTransaction(branchID, txid base.TransactionID) boo
 	return b.GetStateReaderForTheBranch(branchID).KnowsCommittedTransaction(txid)
 
 }
+
+func (b *Branches) FindLatestReliableBranch(fraction global.Fraction) *multistate.BranchData {
+	healthyRoots, ok := multistate.FindRootsFromLatestHealthySlot(b.StateStore(), fraction)
+	if !ok {
+		return nil
+	}
+	b.Assertf(len(healthyRoots) > 0, "healthyRoots is empty")
+
+	heaviestHealthyRoot := util.Maximum(healthyRoots, func(r1, r2 multistate.RootRecord) bool {
+		return r1.CoverageDelta < r2.CoverageDelta
+	})
+	bd := multistate.FetchBranchDataByRoot(b.StateStore(), heaviestHealthyRoot)
+	branchID := bd.TxID()
+	b.Get(branchID)
+	// TODO
+
+	return nil
+}

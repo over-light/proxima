@@ -262,6 +262,8 @@ func (a *attacher) finalTouchNonSequencer(v *vertex.Vertex, vid *vertex.WrappedT
 	return true
 }
 
+const a = time.Second / 1000
+
 func (a *attacher) validateVertex(v *vertex.Vertex) (err error) {
 	start := time.Now()
 	if err = v.ValidateConstraints(); err == nil {
