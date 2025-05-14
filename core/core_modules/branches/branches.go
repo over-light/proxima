@@ -86,7 +86,8 @@ func (b *Branches) getNoLock(branchID base.TransactionID) (*multistate.BranchDat
 	if bd, ok := b.m[branchID]; ok {
 		if branchID.Slot() > 0 {
 			// branch record is in the cache. Ledger coverage (calculated) must always be bigger than coverage delta
-			b.Assertf(bd.LedgerCoverage > bd.CoverageDelta, "bd.LedgerCoverage > bd.CoverageDeltaRaw")
+			b.Assertf(bd.LedgerCoverage > bd.CoverageDelta, "bd.LedgerCoverage(%s) > bd.CoverageDeltaRaw(%s)",
+				util.Th(bd.LedgerCoverage), util.Th(bd.CoverageDelta))
 		}
 		bd.LastActive = time.Now()
 		return bd, true
