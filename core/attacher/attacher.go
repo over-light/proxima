@@ -552,6 +552,8 @@ func (a *attacher) CheckConflicts() *vertex.WrappedOutput {
 	return a.pastCone.CheckConflicts(a.Branches().GetStateReaderForTheBranch)
 }
 
+// SlotInflation sums all inflation amounts in the past cone structure.
+// For the incremental attacher inflation at the tip is not included
 func (a *attacher) SlotInflation() uint64 {
 	return a.pastCone.SlotInflation()
 }

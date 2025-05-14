@@ -35,7 +35,7 @@ func (a *milestoneAttacher) commitBranch() {
 
 	seqID, stemOID := a.vid.MustSequencerIDAndStemID()
 	upd := multistate.MustNewUpdatable(a.StateStore(), a.BaselineSugaredStateReader().Root())
-	supply := a.BaselineSupply() + a.SlotInflation()
+	supply := a.BaselineSupply() + *a.finals.SlotInflation
 	a.finals.TransactionMetadata.Supply = util.Ref(supply)
 	coverageDelta := a.CoverageDelta()
 
@@ -43,7 +43,7 @@ func (a *milestoneAttacher) commitBranch() {
 		StemOutputID:    stemOID,
 		SeqID:           seqID,
 		CoverageDelta:   coverageDelta,
-		SlotInflation:   a.SlotInflation(),
+		SlotInflation:   *a.finals.SlotInflation,
 		Supply:          supply,
 		NumTransactions: uint32(a.finals.MutationStats.NumTransactions),
 	})

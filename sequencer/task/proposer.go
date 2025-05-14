@@ -74,7 +74,7 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 
 	ledgerCoverage := a.FinalLedgerCoverage(p.targetTs)
 	coverageDelta := a.CoverageDelta()
-	slotInflation := a.SlotInflation()
+	slotInflation := a.SlotInflation() // tip inflation is not included
 	baselineSupply := a.BaselineSupply()
 
 	tx, hrString, err := p.makeTxProposal(a) // << after this call attacher is closed
@@ -82,7 +82,8 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 		return err
 	}
 
-	supply := baselineSupply + slotInflation + tx.InflationAmount()
+	slotInflation += tx.InflationAmount() // include tip inflation
+	supply := baselineSupply + slotInflation
 
 	_proposal := &proposal{
 		tx:     tx,
