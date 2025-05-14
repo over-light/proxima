@@ -241,7 +241,7 @@ func (a *attacher) finalTouchNonSequencer(v *vertex.Vertex, vid *vertex.WrappedT
 		//}
 
 		// constraints are not validated yet
-		if err := v.ValidateConstraints(); err != nil {
+		if err := a.validateVertex(v); err != nil {
 			v.UnReferenceDependencies()
 			a.setError(err)
 			a.Tracef(TraceTagAttachVertex, "constraint validation failed in %s: '%v'", vid.IDShortString(), err)
@@ -259,6 +259,10 @@ func (a *attacher) finalTouchNonSequencer(v *vertex.Vertex, vid *vertex.WrappedT
 	// non-sequencer, all inputs solid, constraints valid -> we can mark it 'defined' in the attacher
 	a.pastCone.SetFlagsUp(vid, vertex.FlagPastConeVertexDefined)
 	return true
+}
+
+func (a *attacher) validateVertex(v *vertex.Vertex) (err error) {
+	return v.ValidateConstraints()
 }
 
 // refreshDependencyStatus ensures it is known in the past cone, checks in the state status, pulls if needed

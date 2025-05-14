@@ -35,6 +35,7 @@ type (
 		SnapshotBranchID() base.TransactionID
 		DurationSinceLastMessageFromPeer() time.Duration
 		SelfPeerID() peer.ID
+		EvidenceTxValidationStats(valid bool, took time.Duration, numIn, numOut int)
 	}
 
 	Workflow struct {

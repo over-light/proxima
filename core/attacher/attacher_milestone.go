@@ -339,7 +339,7 @@ func (a *milestoneAttacher) validateSequencerTxUnwrapped(v *vertex.Vertex) (ok, 
 	glbFlags := a.vid.FlagsNoLock()
 	a.Assertf(!glbFlags.FlagsUp(vertex.FlagVertexConstraintsValid), "%s: !glbFlags.FlagsUp(vertex.FlagConstraintsValid) in %s", a.name, a.vid.IDShortString)
 
-	if err := v.ValidateConstraints(); err != nil {
+	if err := a.validateVertex(v); err != nil {
 		a.setError(err)
 		v.UnReferenceDependencies()
 		a.Tracef(TraceTagValidateSequencer, "constraint validation failed in %s: '%v'", a.vid.IDShortString, err)

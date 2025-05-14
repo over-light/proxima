@@ -50,6 +50,7 @@ type (
 		SnapshotBranchID() base.TransactionID
 		DurationSinceLastMessageFromPeer() time.Duration
 		Branches() *branches.Branches
+		EvidenceTxValidationStats(valid bool, took time.Duration, numIn, numOut int)
 	}
 
 	attacher struct {

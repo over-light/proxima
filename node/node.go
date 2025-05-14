@@ -354,3 +354,7 @@ func (p *ProximaNode) SnapshotBranchID() base.TransactionID {
 func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 	return p.peers.DurationSinceLastMessageFromPeer()
 }
+
+func (p *ProximaNode) EvidenceTxValidationStats(valid bool, took time.Duration, numIn, numOut int) {
+	// TODO not finished
+}
