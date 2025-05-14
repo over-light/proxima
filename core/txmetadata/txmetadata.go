@@ -224,15 +224,20 @@ func (m *TransactionMetadata) Lines(prefix ...string) *lines.Lines {
 	} else {
 		ret.Add("coverage: n/a")
 	}
-	if !util.IsNil(m.StateRoot) {
-		ret.Add("root: %s", m.StateRoot.String())
-	} else {
-		ret.Add("root: n/a")
-	}
 	if m.SlotInflation != nil {
 		ret.Add("slot inflation: %s", util.Th(*m.SlotInflation))
 	} else {
 		ret.Add("slot inflation: n/a")
+	}
+	if m.Supply != nil {
+		ret.Add("supply: %s", util.Th(*m.Supply))
+	} else {
+		ret.Add("supply: n/a")
+	}
+	if !util.IsNil(m.StateRoot) {
+		ret.Add("root: %s", m.StateRoot.String())
+	} else {
+		ret.Add("root: n/a")
 	}
 	ret.Add("source type: %s", m.SourceTypeNonPersistent.String())
 	return ret
