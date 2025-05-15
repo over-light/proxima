@@ -90,6 +90,12 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 // AttachTransaction attaches the new incoming transaction. For sequencer transaction it starts the milestoneAttacher routine
 // which manages solidification pulling until the transaction becomes solid or stopped by the context
 func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...AttachTxOption) (vid *vertex.WrappedTx) {
+	{ // debug
+		if tx.IsBranchTransaction() {
+			env.Log().Infof("-------------------- %s\n----------------------", tx.String())
+		}
+	}
+
 	options := &_attacherOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -117,7 +123,7 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 
 		env.Tracef(TraceTagPull, "AttachTransaction %s. Since attachID: %v", tx.IDShortString, time.Since(v.Created))
 
-		// mark the vertex in order to prevent repetitive attachment
+		// mark the vertex to prevent repetitive attachment
 		vid.SetFlagsUpNoLock(vertex.FlagVertexTxAttachmentStarted)
 
 		// virtual tx is converted into full vertex with the full transaction
