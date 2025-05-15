@@ -3,7 +3,6 @@ package task
 import (
 	"github.com/lunfardo314/proxima/core/attacher"
 	"github.com/lunfardo314/proxima/global"
-	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -43,7 +42,9 @@ func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		return nil, true
 	}
 
-	lrb := multistate.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
+	//lrb := multistate.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
+
+	lrb := p.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)
 	if extend.VID == nil {
 		p.Log().Warnf("BootProposer-%s: can't find latest reliable branch", p.Name)
 		return nil, true

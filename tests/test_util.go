@@ -109,6 +109,10 @@ func (p *workflowDummyEnvironment) QueryTxIDStatusJSONAble(_ *base.TransactionID
 func (p *workflowDummyEnvironment) SubmitTxBytesFromAPI(_ []byte) {
 }
 
+func (p *workflowDummyEnvironment) EvidenceTxValidationStats(took time.Duration, numIn, numOut int) {
+
+}
+
 func newWorkflowDummyEnvironment(stateStore multistate.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {
 	ret := &workflowDummyEnvironment{
 		Global:       global.NewDefault(false),

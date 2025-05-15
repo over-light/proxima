@@ -233,20 +233,61 @@ func (b *Branches) BranchKnowsTransaction(branchID, txid base.TransactionID) boo
 
 }
 
+func (b *Branches) IterateBranchesBack(tip base.TransactionID, fun func(branchID base.TransactionID, branchData *multistate.BranchData) bool) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	bd, ok := b.getNoLock(tip)
+	for ok && fun(tip, bd) {
+		tip = bd.StemPredecessorBranchID()
+		bd, ok = b.getNoLock(tip)
+	}
+}
+
 func (b *Branches) FindLatestReliableBranch(fraction global.Fraction) *multistate.BranchData {
-	healthyRoots, ok := multistate.FindRootsFromLatestHealthySlot(b.StateStore(), fraction)
+	tipRoots, ok := multistate.FindRootsFromLatestHealthySlot(b.StateStore(), fraction)
 	if !ok {
 		return nil
 	}
-	b.Assertf(len(healthyRoots) > 0, "healthyRoots is empty")
+	b.Assertf(len(tipRoots) > 0, "healthyRoots is empty")
 
-	heaviestHealthyRoot := util.Maximum(healthyRoots, func(r1, r2 multistate.RootRecord) bool {
-		return r1.CoverageDelta < r2.CoverageDelta
+	rootMaxIdx := util.IndexOfMaximum(tipRoots, func(i, j int) bool {
+		return tipRoots[i].CoverageDelta < tipRoots[j].CoverageDelta
 	})
-	bd := multistate.FetchBranchDataByRoot(b.StateStore(), heaviestHealthyRoot)
-	branchID := bd.TxID()
-	b.Get(branchID)
-	// TODO
+	util.Assertf(global.IsHealthyCoverageDelta(tipRoots[rootMaxIdx].CoverageDelta, tipRoots[rootMaxIdx].Supply, fraction),
+		"global.IsHealthyCoverageDelta(rootMax.LedgerCoverage, rootMax.Supply, fraction)")
 
-	return nil
+	tipBranchID := multistate.FetchBranchIDByRoot(b.StateStore(), tipRoots[rootMaxIdx].Root)
+
+	readers := make([]*multistate.Readable, 0, len(tipRoots)-1)
+	for i := range tipRoots {
+		// no need to check in the main tip, skip it
+		if !ledger.CommitmentModel.EqualCommitments(tipRoots[i].Root, tipRoots[rootMaxIdx].Root) {
+			readers = append(readers, multistate.MustNewReadable(b.StateStore(), tipRoots[i].Root))
+		}
+	}
+	util.Assertf(len(readers) > 0, "len(readers) > 0")
+
+	var branchFound *multistate.BranchData
+	first := true
+
+	b.IterateBranchesBack(tipBranchID, func(branchID base.TransactionID, bd *multistate.BranchData) bool {
+		if first {
+			// skip the tip itself
+			first = false
+			return true
+		}
+		// check if the branch is included in every reader
+		for _, rdr := range readers {
+			if !rdr.KnowsCommittedTransaction(branchID) {
+				// the transaction is not known by at least one of selected states,
+				// it is not a reliable branch, keep traversing back
+				return true
+			}
+		}
+		// branchID is known in all tip states. It is the reliable one
+		branchFound = bd
+		return false
+	})
+	return branchFound
 }

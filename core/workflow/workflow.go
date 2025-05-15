@@ -36,6 +36,7 @@ type (
 		DurationSinceLastMessageFromPeer() time.Duration
 		SelfPeerID() peer.ID
 		EvidenceTxValidationStats(took time.Duration, numIn, numOut int)
+		LatestReliableState() (multistate.SugaredStateReader, error)
 	}
 
 	Workflow struct {

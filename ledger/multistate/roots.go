@@ -267,6 +267,11 @@ func FetchBranchDataByRoot(store common.KVReader, rootData RootRecord) BranchDat
 	}
 }
 
+func FetchBranchIDByRoot(store common.KVReader, root common.VCommitment) base.TransactionID {
+	stem := MustNewSugaredReadableState(store, root, 0).GetStemOutput()
+	return stem.ID.TransactionID()
+}
+
 // FetchBranchDataMulti returns branch records for particular root records
 func FetchBranchDataMulti(store StateStoreReader, rootData ...RootRecord) []*BranchData {
 	ret := make([]*BranchData, len(rootData))
