@@ -78,11 +78,30 @@ func (a *milestoneAttacher) _checkMonotonicityOfInputTransactions(v *vertex.Vert
 	return
 }
 
+// consistentCoveragesFromMetadata checks consistency between calculated and provided the ledger coverage
+// If the transaction is close to the snapshot, calculated coverage usually is less than provided
+func consistentCoveragesFromMetadata(calculated, provided *uint64, slotsFromSnapshot uint32) bool {
+	if calculated == nil || provided == nil {
+		return true
+	}
+	if slotsFromSnapshot >= 64 {
+		return *calculated == *provided
+	}
+	return *calculated <= *provided
+}
+
 // checkConsistencyWithMetadata checks but not enforces
 func (a *milestoneAttacher) checkConsistencyWithMetadata() {
-	if !a.providedMetadata.IsConsistentWith(&a.finals.TransactionMetadata) {
-		a.Log().Warnf("inconsistency in tx metadata of %s (source seq: %s, '%s'):\n   calculated metadata: %s\n   provided metadata: %s",
-			a.vid.IDShortString(), a.vid.SequencerID.Load().StringShort(), a.vid.SequencerName(),
+	msg := ""
+	if !consistentCoveragesFromMetadata(a.finals.TransactionMetadata.CoverageDelta, a.providedMetadata.LedgerCoverage, uint32(a.vid.Slot()-a.Branches().SnapshotSlot())) {
+		msg = fmt.Sprintf("inconsistent ledger coverage in tx metadata")
+	} else if !a.providedMetadata.IsConsistentWithExceptCoverage(&a.finals.TransactionMetadata) {
+		msg = fmt.Sprintf("inconsistency in tx metadata")
+	}
+	if msg != "" {
+		a.Log().Warnf("%s of %s (source seq: %s, '%s'):\n   calculated metadata: %s\n   provided metadata: %s",
+			msg, a.vid.IDShortString(), a.vid.SequencerID.Load().StringShort(), a.vid.SequencerName(),
 			a.finals.TransactionMetadata.String(), a.providedMetadata.String())
+
 	}
 }

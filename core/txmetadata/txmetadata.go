@@ -276,7 +276,9 @@ func (m *TransactionMetadata) JSONAble() *TransactionMetadataJSONAble {
 	return nil
 }
 
-func (m *TransactionMetadata) IsConsistentWith(m1 *TransactionMetadata) bool {
+// IsConsistentWithExceptCoverage check consistency of all fields except ledger coverage, because ledger coverage
+// calculated for the transaction can be less than the one arrived with the transaction
+func (m *TransactionMetadata) IsConsistentWithExceptCoverage(m1 *TransactionMetadata) bool {
 	if m == nil || m1 == nil {
 		return true
 	}
@@ -284,9 +286,6 @@ func (m *TransactionMetadata) IsConsistentWith(m1 *TransactionMetadata) bool {
 		return false
 	}
 	if m.CoverageDelta != nil && m1.CoverageDelta != nil && *m.CoverageDelta != *m1.CoverageDelta {
-		return false
-	}
-	if m.LedgerCoverage != nil && m1.LedgerCoverage != nil && *m.LedgerCoverage != *m1.LedgerCoverage {
 		return false
 	}
 	if m.SlotInflation != nil && m1.SlotInflation != nil && *m.SlotInflation != *m1.SlotInflation {
