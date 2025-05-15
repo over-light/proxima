@@ -81,13 +81,13 @@ func (a *milestoneAttacher) _checkMonotonicityOfInputTransactions(v *vertex.Vert
 // consistentCoveragesFromMetadata checks consistency between calculated and provided the ledger coverage
 // If the transaction is close to the snapshot, calculated coverage usually is less than provided
 func consistentCoveragesFromMetadata(calculated, provided *uint64, slotsFromSnapshot uint32) bool {
-	if calculated == nil || provided == nil {
+	if calculated == nil || provided == nil || *calculated == *provided {
 		return true
 	}
-	if slotsFromSnapshot >= 64 {
-		return *calculated == *provided
+	if slotsFromSnapshot < 64 {
+		return *calculated <= *provided
 	}
-	return *calculated <= *provided
+	return false
 }
 
 // checkConsistencyWithMetadata checks but not enforces
