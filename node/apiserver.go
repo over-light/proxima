@@ -126,7 +126,6 @@ func (p *ProximaNode) SubmitTxBytesFromInflator(txBytes []byte) {
 func (p *ProximaNode) GetLatestReliableBranch() (ret *multistate.BranchData) {
 	err := util.CatchPanicOrError(func() error {
 		ret = p.workflow.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)
-		//ret = multistate.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
 		return nil
 	})
 	if err != nil {

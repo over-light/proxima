@@ -42,8 +42,6 @@ func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		return nil, true
 	}
 
-	//lrb := multistate.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
-
 	lrb := p.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)
 	if extend.VID == nil {
 		p.Log().Warnf("BootProposer-%s: can't find latest reliable branch", p.Name)

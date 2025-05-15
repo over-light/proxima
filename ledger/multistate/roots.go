@@ -468,7 +468,7 @@ func IterateBranchChainBack(store StateStoreReader, branch *BranchData, fun func
 func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) *BranchData {
 	tipRoots, ok := FindRootsFromLatestHealthySlot(store, fraction)
 	if !ok {
-		// if healthy slot does not exist, reliable branch does not exist too
+		// if the healthy slot does not exist, the reliable branch does not exist either
 		return nil
 	}
 	// filter out not healthy roots in the healthy slot
@@ -537,22 +537,6 @@ func FindLatestReliableBranchAndNSlotsBack(store StateStoreReader, n int, fracti
 		ret = branch
 		n--
 		return n > 0
-	})
-	return
-}
-
-// FindLatestReliableBranchWithSequencerID finds the first branch with the given sequencerID in the main LRBID chain
-func FindLatestReliableBranchWithSequencerID(store StateStoreReader, seqID base.ChainID, fraction global.Fraction) (ret *BranchData) {
-	lrb := FindLatestReliableBranch(store, fraction)
-	if lrb == nil {
-		return nil
-	}
-	IterateBranchChainBack(store, lrb, func(_ *base.TransactionID, branch *BranchData) bool {
-		if branch.SequencerID == seqID {
-			ret = branch
-			return false
-		}
-		return true
 	})
 	return
 }

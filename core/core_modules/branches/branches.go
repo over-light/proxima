@@ -250,6 +250,17 @@ func (b *Branches) FindLatestReliableBranch(fraction global.Fraction) *multistat
 		return nil
 	}
 	b.Assertf(len(tipRoots) > 0, "healthyRoots is empty")
+	tipRoots = util.PurgeSlice(tipRoots, func(rr multistate.RootRecord) bool {
+		return global.IsHealthyCoverageDelta(rr.CoverageDelta, rr.Supply, fraction)
+	})
+	util.Assertf(len(tipRoots) > 0, "len(tipRoots)>0")
+
+	if len(tipRoots) == 1 {
+		// if only one branch is in the latest healthy slot, it is the one reliable
+		bd, ok := b.Get(multistate.FetchBranchIDByRoot(b.StateStore(), tipRoots[0].Root))
+		util.Assertf(ok, "inconsistency: branchID by root not found")
+		return util.Ref(bd)
+	}
 
 	rootMaxIdx := util.IndexOfMaximum(tipRoots, func(i, j int) bool {
 		return tipRoots[i].CoverageDelta < tipRoots[j].CoverageDelta
