@@ -110,7 +110,9 @@ func (p *workflowDummyEnvironment) SubmitTxBytesFromAPI(_ []byte) {
 }
 
 func (p *workflowDummyEnvironment) EvidenceTxValidationStats(took time.Duration, numIn, numOut int) {
+}
 
+func (p *workflowDummyEnvironment) EvidenceBranchInflationBonus(ib uint64) {
 }
 
 func newWorkflowDummyEnvironment(stateStore multistate.StateStore, txStore global.TxBytesStore) *workflowDummyEnvironment {

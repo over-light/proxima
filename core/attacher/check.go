@@ -92,6 +92,9 @@ func consistentCoveragesFromMetadata(calculated, provided *uint64, slotsFromSnap
 
 // checkConsistencyWithMetadata checks but not enforces
 func (a *milestoneAttacher) checkConsistencyWithMetadata() {
+	if a.providedMetadata == nil {
+		return
+	}
 	msg := ""
 	slotsFromSnapshot := uint32(a.vid.Slot() - a.Branches().SnapshotSlot())
 	if !consistentCoveragesFromMetadata(a.finals.TransactionMetadata.LedgerCoverage, a.providedMetadata.LedgerCoverage, slotsFromSnapshot) {
