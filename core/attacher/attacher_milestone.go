@@ -56,7 +56,14 @@ func runMilestoneAttacher(
 		msData := env.ParseMilestoneData(vid)
 		if vid.IsBranchTransaction() {
 			env.Infof0(a.logFinalStatusString(msData))
-			env.EvidenceBranchInflationBonus(a.vid.InflationAmount())
+			env.EvidenceBranchInflationBonus(vid.InflationAmount())
+			{ // debug
+				vid.Unwrap(vertex.UnwrapOptions{
+					Vertex: func(v *vertex.Vertex) {
+						env.Log().Infof("-------------------- %s\n----------------------", v.Tx.String())
+					},
+				})
+			}
 		} else {
 			env.Infof1(a.logFinalStatusString(msData))
 		}

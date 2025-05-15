@@ -9,6 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/blake2b"
 )
 
 // Validating and making sense of inflation-related constants
@@ -68,4 +69,24 @@ func TestInflation(t *testing.T) {
 			require.EqualValues(t, int(ledger.L().ID.SlotInflationBase)*m/100_000, i)
 		}
 	})
+}
+
+func TestBranchInflationBonus(t *testing.T) {
+	const numBins = 100
+	bins := make([]int, numBins)
+	for i := 0; i < 10000; i++ {
+		rndData := blake2b.Sum256([]byte(fmt.Sprintf("test%dtest%d", i, i)))
+		v := ledger.L().BranchInflationBonusFromRandomnessProof(rndData[:])
+		bins[int(v)%numBins]++
+	}
+	sum := 0
+	minVal := bins[0]
+	maxVal := bins[0]
+	for i, v := range bins {
+		sum += v
+		minVal = min(minVal, v)
+		maxVal = max(maxVal, v)
+		t.Logf("bin %3d: %d", i, v)
+	}
+	t.Logf("avg: %d, min: %d, max:%d", sum/numBins, minVal, maxVal)
 }
