@@ -47,7 +47,9 @@ func (lib *Library) BranchInFlationBonusBase() uint64 {
 func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
 	h := blake2b.Sum256(proof)
 	num := binary.BigEndian.Uint64(h[:8])
-	return num % (lib.BranchInFlationBonusBase() + 1)
+	denom := lib.BranchInFlationBonusBase() + 1
+	ret := num % denom
+	return ret
 }
 
 // BranchInflationBonusFromRandomnessProof makes uint64 in the range from 0 to BranchInflationBonusBase (incl)
