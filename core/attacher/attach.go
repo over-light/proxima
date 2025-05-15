@@ -94,11 +94,12 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 		if tx.IsBranchTransaction() {
 			env.Log().Infof("-------------------- %s\n----------------------", tx.String())
 			seqOut := tx.SequencerOutput()
-			inflSeq, idx := seqOut.Output.InflationConstraint()
-			if idx != 0xff {
+			if inflSeq, idx := seqOut.Output.InflationConstraint(); idx != 0xff {
 				stemOut := tx.StemOutput()
 				stemLock, _ := stemOut.Output.StemLock()
 				inflStem := ledger.L().BranchInflationBonusFromRandomnessProof(stemLock.VRFProof)
+				inflDirect := ledger.L().BranchInflationBonusDirect(stemLock.VRFProof)
+				env.Assertf(inflStem == inflDirect, "inflStem == inflDirect")
 				env.Assertf(inflStem == inflSeq.InflationAmount, "inflStem == inflSeq.InflationAmount")
 			}
 		}
