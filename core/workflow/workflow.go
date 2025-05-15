@@ -37,6 +37,7 @@ type (
 		SelfPeerID() peer.ID
 		EvidenceTxValidationStats(took time.Duration, numIn, numOut int)
 		LatestReliableState() (multistate.SugaredStateReader, error)
+		EvidenceBranchInflationBonus(ib uint64)
 	}
 
 	Workflow struct {

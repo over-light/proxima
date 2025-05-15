@@ -52,6 +52,7 @@ type (
 		diskSpace             prometheus.Gauge
 		validationTimeNs      prometheus.Gauge
 		validationNumUTXO     prometheus.Gauge
+		branchInflationBonus  prometheus.Gauge
 	}
 )
 
@@ -336,6 +337,10 @@ func (p *ProximaNode) registerMetrics() {
 		Name: "proxima_tx_validation_num_utxo",
 		Help: "total number of inputs and outputs in the transaction",
 	})
+	p.branchInflationBonus = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "proxima_branch_inflation_bonus",
+		Help: "branch inflation bonus values of attached branches",
+	})
 
 	p.MetricsRegistry().MustRegister(
 		p.lrbCoverage,
@@ -348,6 +353,7 @@ func (p *ProximaNode) registerMetrics() {
 		p.diskSpace,
 		p.validationTimeNs,
 		p.validationNumUTXO,
+		p.branchInflationBonus,
 	)
 }
 
@@ -371,4 +377,8 @@ func (p *ProximaNode) DurationSinceLastMessageFromPeer() time.Duration {
 func (p *ProximaNode) EvidenceTxValidationStats(took time.Duration, numIn, numOut int) {
 	p.validationTimeNs.Set(float64(took.Nanoseconds()))
 	p.validationNumUTXO.Set(float64(numIn + numOut))
+}
+
+func (p *ProximaNode) EvidenceBranchInflationBonus(ib uint64) {
+	p.branchInflationBonus.Set(float64(ib))
 }

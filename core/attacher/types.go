@@ -51,6 +51,7 @@ type (
 		DurationSinceLastMessageFromPeer() time.Duration
 		Branches() *branches.Branches
 		EvidenceTxValidationStats(took time.Duration, numIn, numOut int)
+		EvidenceBranchInflationBonus(ib uint64)
 	}
 
 	attacher struct {
