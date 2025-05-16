@@ -193,15 +193,36 @@ func (seq *Sequencer) ensureSyncedIfNecessary() bool {
 	return seq.IsSynced()
 }
 
+func (seq *Sequencer) ensureNotTooCloseToSnapshot() bool {
+	snapshotSlot := seq.Branches().SnapshotSlot()
+	if snapshotSlot == 0 {
+		return true
+	}
+	slotNow := ledger.TimeNow().Slot
+	if slotNow-snapshotSlot < 64 {
+		seq.log.Warnf("ensureNotTooCloseToSnapshot: current slot (%d) must be at least 64 slots from the snapshot slot (%d). Can't start sequencer. EXIT..",
+			slotNow, snapshotSlot)
+		return false
+	}
+	return true
+}
+
 func (seq *Sequencer) ensurePreConditions() bool {
 	if !seq.ensureSyncedIfNecessary() {
-		seq.log.Warnf("ensurePreConditions: node is not synced. EXIT..")
+		seq.log.Warnf("ensurePreConditions: node is not synced. Can't start sequencer. EXIT..")
 		return false
 	}
 	seq.log.Infof("ensurePreConditions: node is synced")
 
+	if !seq.ensureNotTooCloseToSnapshot() {
+		seq.log.Warnf("ensurePreConditions: Can't start sequencer. EXIT..")
+		return false
+	}
+	snapshotID := seq.Branches().SnapshotBranchID()
+	seq.log.Infof("ensurePreConditions: snapshot branch is %s", snapshotID.String())
+
 	if !seq.ensureFirstMilestone() {
-		seq.log.Warnf("ensurePreConditions: can't start sequencer. EXIT..")
+		seq.log.Warnf("ensurePreConditions: Can't start sequencer. EXIT..")
 		return false
 	}
 	seq.log.Infof("ensurePreConditions: waiting for %v (1 slot) before starting sequencer", ledger.L().ID.SlotDuration())

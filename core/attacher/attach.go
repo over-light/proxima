@@ -68,7 +68,7 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 		env.AddVertexNoLock(vid)
 		vid.SetAttachmentDepthNoLock(options.depth)
 
-		snapID := env.SnapshotBranchID()
+		snapID := env.Branches().SnapshotBranchID()
 		if txid.Slot() > snapID.Slot() {
 			// the branch is definitely post-snapshot
 			return
