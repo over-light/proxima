@@ -126,7 +126,13 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 	}
 	env.Tracef(TraceTagAttach, "AttachTransaction: %s", tx.IDShortString)
 
-	vid = AttachTxID(tx.ID(), env, WithInvokedBy("addTx"))
+	txid := tx.ID()
+	vid = AttachTxID(txid, env, WithInvokedBy("addTx"))
+
+	if env.Branches().TransactionIsInSnapshotState(txid) {
+		// if the transaction is in the snapshot state, no need to start attacher, transaction can stay virtual
+		return vid
+	}
 
 	vid.UnwrapVirtualTx(func(v *vertex.VirtualTransaction) {
 		if vid.FlagsUpNoLock(vertex.FlagVertexTxAttachmentStarted) {

@@ -274,7 +274,7 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 	})
 }
 
-// solidifyPastCone solidifies and validates sequencer transaction in the context of known baseline state
+// solidifyPastCone solidifies and validates sequencer transaction in the context of the known baseline state
 func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 	return a.lazyRepeat("past cone solidification", func() (status vertex.Status) {
 		ok := false

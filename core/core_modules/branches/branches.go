@@ -230,7 +230,13 @@ func (b *Branches) BranchKnowsTransaction(branchID, txid base.TransactionID) boo
 		return false
 	}
 	return b.GetStateReaderForTheBranch(branchID).KnowsCommittedTransaction(txid)
+}
 
+func (b *Branches) TransactionIsInSnapshotState(txid base.TransactionID) bool {
+	if txid.Timestamp().After(b.snapshotBranchID.Timestamp()) {
+		return false
+	}
+	return b.BranchKnowsTransaction(b.snapshotBranchID, txid)
 }
 
 func (b *Branches) IterateBranchesBack(tip base.TransactionID, fun func(branchID base.TransactionID, branchData *multistate.BranchData) bool) {

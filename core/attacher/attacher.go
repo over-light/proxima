@@ -413,7 +413,7 @@ func (a *attacher) checkOutputInTheState(vid *vertex.WrappedTx, inputID base.Out
 	a.Assertf(a.pastCone.IsInTheState(vid), "a.pastCone.IsInTheState(wOut.VID)")
 	o, err := a.BaselineSugaredStateReader().GetOutputWithID(inputID)
 	if errors.Is(err, multistate.ErrNotFound) {
-		a.setError(fmt.Errorf("output %s is already consumed", inputID.StringShort()))
+		a.setError(fmt.Errorf("checkOutputInTheState: output %s is already consumed", inputID.StringShort()))
 		return false
 	}
 	a.AssertNoError(err)
