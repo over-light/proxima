@@ -393,7 +393,7 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if sum < uint64(amount) {
-		api.WriteErr(w, fmt.Sprintf("not enough tokens in non-chained UTXOs: < than requested %s", util.Th(amount)))
+		api.WriteErr(w, fmt.Sprintf("not enough tokens in non-chained UTXOs: %s < than requested %s", util.Th(sum), util.Th(amount)))
 		return
 	}
 
