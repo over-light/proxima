@@ -47,3 +47,14 @@ func PurgeFilesInDirectory(directory, namePattern string, keepLatest int) error 
 	}
 	return nil
 }
+
+func AppendLineToFile(filename string, format string, args ...any) {
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>> Error opening file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	_, _ = fmt.Fprintf(f, format+"\n", args...)
+}
