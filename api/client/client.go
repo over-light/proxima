@@ -202,6 +202,7 @@ func (c *APIClient) GetSimpleSigLockedOutputs(addr ledger.AddressED25519, maxOut
 	return ret, &retLRBID, nil
 }
 
+// GetOutputsForAmount returns all UTXOs locked in the specified ED25519 address, which ar not chain outputs
 func (c *APIClient) GetOutputsForAmount(addr ledger.AddressED25519, amount uint64) ([]*ledger.OutputWithID, *base.TransactionID, uint64, error) {
 	path := fmt.Sprintf(api.PathGetOutputsForAmount+"?addr=%s&amount=%d", addr.Source(), amount)
 	body, err := c.getBody(path)

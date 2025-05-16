@@ -340,6 +340,7 @@ func (srv *server) getNonChainBalance(w http.ResponseWriter, r *http.Request) {
 	util.AssertNoError(err)
 }
 
+// does not return chain output
 func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	lst, ok := r.URL.Query()["addr"]
 	if !ok || len(lst) != 1 {
@@ -374,6 +375,10 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 			if o.Lock().Name() != ledger.AddressED25519Name {
 				return true
 			}
+			if _, idx := o.ChainConstraint(); idx != 0xff {
+				// filter out chained outputs
+				return true
+			}
 			if !ledger.EqualAccountables(targetAddr, o.Lock().(ledger.AddressED25519)) {
 				return true
 			}
@@ -388,7 +393,7 @@ func (srv *server) getOutputsForAmount(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if sum < uint64(amount) {
-		api.WriteErr(w, fmt.Sprintf("not enough tokens: < than requested %s", util.Th(amount)))
+		api.WriteErr(w, fmt.Sprintf("not enough tokens in non-chained UTXOs: < than requested %s", util.Th(amount)))
 		return
 	}
 
