@@ -75,7 +75,7 @@ func endorse2ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool)
 		p.Tracef(TraceTagEndorse2Proposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
 	if !addedSecond {
-		// no need to repeat job of endorse1
+		// no need to repeat the job of endorse1
 		a.Close()
 		return nil, false
 	}
@@ -83,10 +83,12 @@ func endorse2ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool)
 	p.insertInputs(a)
 
 	if !a.Completed() {
-		a.Close()
-		endorsing = a.Endorsing()[0]
-		extending = a.Extending()
-		p.Tracef(TraceTagEndorse2Proposer, "proposal [extend=%s, endorsing=%s] not complete 2", extending.IDStringShort, endorsing.IDShortString)
+		if !a.IsClosed() {
+			endorsing = a.Endorsing()[0]
+			extending = a.Extending()
+			p.Tracef(TraceTagEndorse2Proposer, "proposal [extend=%s, endorsing=%s] not complete 2", extending.IDStringShort, endorsing.IDShortString)
+			a.Close()
+		}
 		return nil, false
 	}
 

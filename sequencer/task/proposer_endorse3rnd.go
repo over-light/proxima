@@ -76,11 +76,11 @@ func endorse3RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 		p.Tracef(TraceTagEndorse3RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
 	if endorsing1 == nil {
-		// no need to repeat job of endorse1
+		// no need to repeat the job of endorse1
 		a.Close()
 		return nil, false
 	}
-	// try to add 3rd endorsement
+	// try to add the 3rd endorsement
 	var endorsing2 *vertex.WrappedTx
 
 	for _, endorsementCandidate := range p.Backlog().CandidatesToEndorseShuffled(p.targetTs) {
@@ -109,7 +109,7 @@ func endorse3RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 		p.Tracef(TraceTagEndorse3RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
 	if endorsing2 == nil {
-		// no need to repeat job of endorse2
+		// no need to repeat the job of endorse2
 		a.Close()
 		return nil, false
 	}
@@ -118,13 +118,15 @@ func endorse3RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 	p.insertInputs(a)
 
 	if !a.Completed() {
-		a.Close()
-		endorsing0 = a.Endorsing()[0]
-		endorsing1 = a.Endorsing()[1]
-		endorsing2 = a.Endorsing()[2]
-		extending = a.Extending()
-		p.Tracef(TraceTagEndorse3RndProposer, "proposal [extend=%s, endorsing=%s, %s, %s] not complete 2",
-			extending.IDStringShort, endorsing0.IDShortString, endorsing1.IDShortString, endorsing2.IDShortString)
+		if !a.IsClosed() {
+			endorsing0 = a.Endorsing()[0]
+			endorsing1 = a.Endorsing()[1]
+			endorsing2 = a.Endorsing()[2]
+			extending = a.Extending()
+			p.Tracef(TraceTagEndorse3RndProposer, "proposal [extend=%s, endorsing=%s, %s, %s] not complete 2",
+				extending.IDStringShort, endorsing0.IDShortString, endorsing1.IDShortString, endorsing2.IDShortString)
+			a.Close()
+		}
 		return nil, false
 	}
 	return a, false

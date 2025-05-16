@@ -85,10 +85,12 @@ func endorse2RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 	p.insertInputs(a)
 
 	if !a.Completed() {
-		a.Close()
-		endorsing = a.Endorsing()[0]
-		extending = a.Extending()
-		p.Tracef(TraceTagEndorse2Proposer, "proposal [extend=%s, endorsing=%s] not complete 2", extending.IDStringShort, endorsing.IDShortString)
+		if !a.IsClosed() {
+			endorsing = a.Endorsing()[0]
+			extending = a.Extending()
+			p.Tracef(TraceTagEndorse2Proposer, "proposal [extend=%s, endorsing=%s] not complete 2", extending.IDStringShort, endorsing.IDShortString)
+			a.Close()
+		}
 		return nil, false
 	}
 

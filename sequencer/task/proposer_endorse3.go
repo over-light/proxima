@@ -7,7 +7,7 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 )
 
-// e3 is a proposer strategy which proposes transactions with 3 endorsements chosen by selecting
+// e3 is a proposer strategy that proposes transactions with 3 endorsements chosen by selecting
 // endorsement targets with the priority of bigger coverage
 
 const TraceTagEndorse3Proposer = "propose-endorse3"
@@ -111,7 +111,7 @@ func endorse3ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool)
 		p.Tracef(TraceTagEndorse3Proposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
 	if endorsing2 == nil {
-		// no need to repeat job of endorse2
+		// no need to repeat the job of endorse2
 		a.Close()
 		return nil, false
 	}
@@ -120,13 +120,15 @@ func endorse3ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool)
 	p.insertInputs(a)
 
 	if !a.Completed() {
-		a.Close()
-		endorsing0 = a.Endorsing()[0]
-		endorsing1 = a.Endorsing()[1]
-		endorsing2 = a.Endorsing()[2]
-		extending = a.Extending()
-		p.Tracef(TraceTagEndorse3Proposer, "proposal [extend=%s, endorsing=%s, %s, %s] not complete 2",
-			extending.IDStringShort, endorsing0.IDShortString, endorsing1.IDShortString, endorsing2.IDShortString)
+		if !a.IsClosed() {
+			endorsing0 = a.Endorsing()[0]
+			endorsing1 = a.Endorsing()[1]
+			endorsing2 = a.Endorsing()[2]
+			extending = a.Extending()
+			p.Tracef(TraceTagEndorse3Proposer, "proposal [extend=%s, endorsing=%s, %s, %s] not complete 2",
+				extending.IDStringShort, endorsing0.IDShortString, endorsing1.IDShortString, endorsing2.IDShortString)
+			a.Close()
+		}
 		return nil, false
 	}
 
