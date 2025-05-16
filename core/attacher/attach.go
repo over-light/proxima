@@ -92,7 +92,7 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 // which manages solidification pulling until the transaction becomes solid or stopped by the context
 func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...AttachTxOption) (vid *vertex.WrappedTx) {
 	const (
-		traceBranches = true
+		traceBranches = false
 		bibFileName   = "branch_inflation.txt"
 	)
 	if traceBranches { // debug
