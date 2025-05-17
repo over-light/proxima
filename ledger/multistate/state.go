@@ -344,39 +344,6 @@ func (r *Readable) IterateKnownCommittedTransactions(fun func(txid *base.Transac
 	})
 }
 
-func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	var oid base.OutputID
-	var err error
-
-	ret := make(map[string]LockedAccountInfo)
-
-	partition := common.MakeReaderPartition(r.trie, TriePartitionLedgerState)
-	defer partition.Dispose()
-
-	r.trie.Iterator([]byte{TriePartitionAccounts}).IterateKeys(func(k []byte) bool {
-		oid, err = base.OutputIDFromBytes(k[2+k[1]:])
-		util.AssertNoError(err)
-
-		oData, found := r._getUTXO(oid, partition)
-		util.Assertf(found, "can't get output")
-
-		_, amount, lock, err := ledger.OutputFromBytesMain(oData)
-		util.AssertNoError(err)
-
-		lockStr := lock.String()
-		lockInfo := ret[lockStr]
-		lockInfo.Balance += uint64(amount)
-		lockInfo.NumOutputs++
-		ret[lockStr] = lockInfo
-
-		return true
-	})
-	return ret
-}
-
 func (r *Readable) IterateChainTips(fun func(chainID base.ChainID, oid base.OutputID) bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -401,6 +368,16 @@ func (r *Readable) IterateChainTips(fun func(chainID base.ChainID, oid base.Outp
 func (r *Readable) Root() common.VCommitment {
 	// non need to lock
 	return r.trie.Root()
+}
+
+func (r *Readable) IterateUTXOs(fun func(oid base.OutputID, o *ledger.Output) bool) {
+	r.Iterator([]byte{TriePartitionLedgerState}).Iterate(func(key, oData []byte) bool {
+		oid, err := base.OutputIDFromBytes(key[1:])
+		util.AssertNoError(err)
+		o, err := ledger.OutputFromBytesReadOnly(oData)
+		util.AssertNoError(err)
+		return fun(oid, o)
+	})
 }
 
 func (r *Readable) IterateUTXOsInSlot(slot base.Slot, fun func(oid base.OutputID, oData []byte) bool) (err error) {
