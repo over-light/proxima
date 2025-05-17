@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 
 	"github.com/lunfardo314/easyfl"
+	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
@@ -35,10 +36,11 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 }
 
 var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
-	"at":          evalPath,
-	"atPath":      evalAtPath,
-	"ticksBefore": evalTicksBefore64,
-	"vrfVerify":   evalVRFVerify,
+	"at":                 evalPath,
+	"atPath":             evalAtPath,
+	"ticksBefore":        evalTicksBefore64,
+	"vrfVerify":          evalVRFVerify,
+	"scaleBytesAsBigInt": evalScaleBytesAsBigInt,
 }
 
 func GetEmbeddedFunctionResolver(lib *easyfl.Library) func(sym string) easyfl.EmbeddedFunction {
@@ -82,6 +84,11 @@ functions:
       description: "Verifiable Random Function (VRF) verification, where $0 is public key, $1 is proof, $2 is message"
       numArgs: 3
       embedded: true
+   -
+      sym: scaleBytesAsBigInt
+      description: "treats $0 as big-endian big integer of arbitrary length, $1 is scale, returns big integer in [0,$1) as 8 big-endian uint64 bytes"
+      numArgs: 2
+      embedded: true
 `
 
 // embedded functions
@@ -110,6 +117,26 @@ func evalVRFVerify(par *easyfl.CallParams) []byte {
 	}
 	if err == nil && ok {
 		return par.AllocData(0xff)
+	}
+	return nil
+}
+
+func evalScaleBytesAsBigInt(par *easyfl.CallParams) []byte {
+	data := par.Arg(0)
+	scale := easyfl_util.MustUint64FromBytes(par.Arg(1))
+
+	var ret uint64
+	err := util.CatchPanicOrError(func() error {
+		ret = util.ScaleBytesAsBigInt(data, scale)
+		return nil
+	})
+	if err != nil {
+		par.Trace("'scaleBytesAsBigInt embedded' failed with: %v", err)
+	}
+	if err == nil {
+		var retBin [8]byte
+		binary.BigEndian.PutUint64(retBin[:], ret)
+		return par.AllocData(retBin[:]...)
 	}
 	return nil
 }

@@ -44,12 +44,18 @@ func (lib *Library) BranchInFlationBonusBase() uint64 {
 
 }
 
+// wrong. Was replaced with hash scaling
+//func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
+//	h := blake2b.Sum256(proof)
+//	num := binary.BigEndian.Uint64(h[:8])
+//	denom := lib.BranchInFlationBonusBase() + 1
+//	ret := num % denom
+//	return ret
+//}
+
 func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
 	h := blake2b.Sum256(proof)
-	num := binary.BigEndian.Uint64(h[:8])
-	denom := lib.BranchInFlationBonusBase() + 1
-	ret := num % denom
-	return ret
+	return util.ScaleBytesAsBigInt(h[:], lib.BranchInFlationBonusBase()) + 1
 }
 
 // BranchInflationBonusFromRandomnessProof makes uint64 in the range from 0 to BranchInflationBonusBase (incl)
@@ -99,10 +105,24 @@ func calcChainInflationAmount :
         )
     )
 
-// $0 - randomness proof
+// $0 - VRF proof
+// returns 8 bytes of big-endian uint64 value in the range from 1 to constBranchInflationBonusBase inclusive
+// taken from the VRF proof
 func branchInflationBonusFromRandomnessProof :
-	mod(
-        slice(blake2b($0),0,7), 
-        add(constBranchInflationBonusBase, u64/1)
+    add(
+       scaleBytesAsBigInt(
+          blake2b($0), 
+          constBranchInflationBonusBase
+       ), 
+       1
     )
 `
+
+// This is wrong as it introduces statistical bias towards small values
+// Instead of modulus operation, BigInt scaling of the blake2b-256 hash should be used
+
+//func branchInflationBonusFromRandomnessProof :
+//mod(
+//   slice(blake2b($0),0,7),
+//   add(constBranchInflationBonusBase, u64/1)
+//)

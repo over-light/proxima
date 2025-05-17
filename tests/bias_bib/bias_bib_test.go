@@ -74,6 +74,9 @@ func TestBias(t *testing.T) {
 			minBib = min(minBib, calculatedBib)
 		}
 		maxBib = max(maxBib, calculatedBib)
+		//if count == 1000 {
+		//	break
+		//}
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
@@ -120,6 +123,7 @@ func TestBias1(t *testing.T) {
 		bucketNo := (100 * int(v)) / 5_000_001
 		bucketsVrf[bucketNo]++
 	}
+	fmt.Printf("count: %d\n", count)
 	for i, v := range bucketsVrf {
 		fmt.Printf("#%2d   %d (%.2f%%)\n", i, v, float64(v)/float64(count)*100.0)
 	}
@@ -137,5 +141,35 @@ func TestBias2(t *testing.T) {
 	for scanner.Scan() {
 		util.Assertf(s.InsertNew(scanner.Text()), "duplicate 1")
 		util.Assertf(s1.InsertNew(scanner.Text()[:16]), "duplicate 2")
+	}
+}
+
+func TestScaling(t *testing.T) {
+	file, err := os.Open("strings.txt")
+	util.AssertNoError(err)
+	defer file.Close()
+
+	bucketsVrf := make([]int, 100)
+
+	// Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	count := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		lineBin, err := hex.DecodeString(line)
+		util.AssertNoError(err)
+
+		h := blake2b.Sum256(lineBin)
+		v := util.ScaleBytesAsBigInt(h[:], 5_000_000)
+		//h := blake2b.Sum512(lineBin)
+		count++
+		bucketNo := (100 * int(v)) / 5_000_001
+		bucketsVrf[bucketNo]++
+	}
+	fmt.Printf("count: %d\n", count)
+	for i, v := range bucketsVrf {
+		fmt.Printf("#%2d   %d (%.2f%%)\n", i, v, float64(v)/float64(count)*100.0)
 	}
 }
