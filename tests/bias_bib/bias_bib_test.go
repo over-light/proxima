@@ -160,12 +160,9 @@ func TestScaling(t *testing.T) {
 
 		lineBin, err := hex.DecodeString(line)
 		util.AssertNoError(err)
-
-		h := blake2b.Sum256(lineBin)
-		v := util.ScaleBytesAsBigInt(h[:], 5_000_000)
-		//h := blake2b.Sum512(lineBin)
+		v := util.RandomFromSeed(lineBin, 5_000_000)
 		count++
-		bucketNo := (100 * int(v)) / 5_000_001
+		bucketNo := (100 * int(v)) / 5_000_000
 		bucketsVrf[bucketNo]++
 	}
 	fmt.Printf("count: %d\n", count)

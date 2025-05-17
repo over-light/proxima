@@ -107,6 +107,7 @@ func TestBranchInflationBonus(t *testing.T) {
 		require.NoError(t, err)
 		vDirect := ledger.L().BranchInflationBonusDirect(proofBin)
 		vLedger := ledger.L().BranchInflationBonusFromRandomnessProof(proofBin)
+		require.EqualValues(t, vDirect, vLedger)
 		t.Logf("%s\n           vLedger =  %6d, vDirect: %6d", proof, vLedger, vDirect)
 	}
 }

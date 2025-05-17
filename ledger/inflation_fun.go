@@ -10,7 +10,6 @@ import (
 	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
-	"golang.org/x/crypto/blake2b"
 )
 
 // This file contains definitions of the inflation calculation functions in EasyFL (on-ledger)
@@ -37,7 +36,7 @@ func (lib *Library) CalcChainInflationAmount(inTs, outTs base.LedgerTime, inAmou
 	return binary.BigEndian.Uint64(ret)
 }
 
-func (lib *Library) BranchInFlationBonusBase() uint64 {
+func (lib *Library) BranchInflationBonusBase() uint64 {
 	res, err := lib.EvalFromSource(nil, "constBranchInflationBonusBase")
 	util.AssertNoError(err)
 	return easyfl_util.MustUint64FromBytes(res)
@@ -48,14 +47,13 @@ func (lib *Library) BranchInFlationBonusBase() uint64 {
 //func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
 //	h := blake2b.Sum256(proof)
 //	num := binary.BigEndian.Uint64(h[:8])
-//	denom := lib.BranchInFlationBonusBase() + 1
+//	denom := lib.BranchInflationBonusBase() + 1
 //	ret := num % denom
 //	return ret
 //}
 
 func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
-	h := blake2b.Sum256(proof)
-	return util.ScaleBytesAsBigInt(h[:], lib.BranchInFlationBonusBase()) + 1
+	return util.RandomFromSeed(proof, lib.BranchInflationBonusBase()) + 1
 }
 
 // BranchInflationBonusFromRandomnessProof makes uint64 in the range from 0 to BranchInflationBonusBase (incl)
@@ -106,16 +104,10 @@ func calcChainInflationAmount :
     )
 
 // $0 - VRF proof
-// returns 8 bytes of big-endian uint64 value in the range from 1 to constBranchInflationBonusBase inclusive
+// returns 8 bytes of big-endian uint64 value in the range from 1 to constBranchInflationBonusBase (inclusive)
 // taken from the VRF proof
 func branchInflationBonusFromRandomnessProof :
-    add(
-       scaleBytesAsBigInt(
-          blake2b($0), 
-          constBranchInflationBonusBase
-       ), 
-       1
-    )
+    add(randomFromSeed($0, constBranchInflationBonusBase), 1)
 `
 
 // This is wrong as it introduces statistical bias towards small values

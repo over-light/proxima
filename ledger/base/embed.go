@@ -36,11 +36,11 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 }
 
 var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
-	"at":                 evalPath,
-	"atPath":             evalAtPath,
-	"ticksBefore":        evalTicksBefore64,
-	"vrfVerify":          evalVRFVerify,
-	"scaleBytesAsBigInt": evalScaleBytesAsBigInt,
+	"at":             evalPath,
+	"atPath":         evalAtPath,
+	"ticksBefore":    evalTicksBefore64,
+	"vrfVerify":      evalVRFVerify,
+	"randomFromSeed": evalRandomFromSeed,
 }
 
 func GetEmbeddedFunctionResolver(lib *easyfl.Library) func(sym string) easyfl.EmbeddedFunction {
@@ -85,8 +85,8 @@ functions:
       numArgs: 3
       embedded: true
    -
-      sym: scaleBytesAsBigInt
-      description: "treats $0 as big-endian big integer of arbitrary length, $1 is scale, returns big integer in [0,$1) as 8 big-endian uint64 bytes"
+      sym: randomFromSeed
+      description: "uses $0 as seed to deterministically calculate a pseudo-random value. Returns 8-byte big-endian integer bytes in the interval [0,$1)"
       numArgs: 2
       embedded: true
 `
@@ -121,24 +121,22 @@ func evalVRFVerify(par *easyfl.CallParams) []byte {
 	return nil
 }
 
-func evalScaleBytesAsBigInt(par *easyfl.CallParams) []byte {
+func evalRandomFromSeed(par *easyfl.CallParams) []byte {
 	data := par.Arg(0)
 	scale := easyfl_util.MustUint64FromBytes(par.Arg(1))
 
-	var ret uint64
+	var rnd uint64
 	err := util.CatchPanicOrError(func() error {
-		ret = util.ScaleBytesAsBigInt(data, scale)
+		rnd = util.RandomFromSeed(data, scale)
 		return nil
 	})
 	if err != nil {
 		par.Trace("'scaleBytesAsBigInt embedded' failed with: %v", err)
+		return nil
 	}
-	if err == nil {
-		var retBin [8]byte
-		binary.BigEndian.PutUint64(retBin[:], ret)
-		return par.AllocData(retBin[:]...)
-	}
-	return nil
+	ret := par.Alloc(8)
+	binary.BigEndian.PutUint64(ret, rnd)
+	return ret
 }
 
 // arg 0 and arg 1 are timestamps (5 bytes each)
