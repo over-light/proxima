@@ -605,7 +605,7 @@ func (br *BranchData) LinesShort(prefix ...string) *lines.Lines {
 	if msData := ledger.ParseMilestoneData(br.SequencerOutput.Output); msData != nil {
 		name = msData.Name
 	}
-	return lines.New(prefix...).Add("%s (%s) %s supply: %s, infl: %s, on chain: %s, cov.delta: %s/%s",
+	return lines.New(prefix...).Add("%s (%s) %s supply: %s, infl: %s, on chain: %s, cov.delta: %s",
 		br.Stem.ID.StringShort(),
 		name,
 		br.Stem.ID.StringHex(),
