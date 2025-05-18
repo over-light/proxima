@@ -26,6 +26,9 @@ func runScanDBCmd(_ *cobra.Command, _ []string) {
 
 	multistate.IterateSlotsBack(glb.StateStore(), func(slot base.Slot, roots []multistate.RootRecord) bool {
 		branches := multistate.FetchBranchDataMulti(glb.StateStore(), roots...)
+		if len(branches) == 0 {
+			return true
+		}
 		glb.Infof("----------- slot %d: %d branches", slot, len(branches))
 
 		for i, br := range branches {
