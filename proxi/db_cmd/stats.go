@@ -70,21 +70,23 @@ func runBranchInflationBousStats() {
 				_, _ = fout.WriteString(hex.EncodeToString(stemConstraint.VRFProof) + "\n")
 			}
 
-			bibCalc := ledger.L().BranchInflationBonusFromRandomnessProof(stemConstraint.VRFProof)
-			glb.Assertf(bib == bibCalc, "provided vs calculated inflation mismatch %s != %s in %s",
-				util.Th(bib), util.Th(bibCalc), br.Lines("        ").String())
-			bibDirect := ledger.L().BranchInflationBonusDirect(stemConstraint.VRFProof)
-			glb.Assertf(bib == bibDirect, "provided vs directly calculated inflation mismatch: %s != %s in %s",
-				util.Th(bib), util.Th(bibDirect), br.Lines("        ").String())
-
-			bucketNo := bib * numBuckets / maxInflation
-			buckets[bucketNo]++
-			maxBib = max(maxBib, bib)
-			if minBib == 0 {
-				minBib = bib
-			} else {
-				minBib = min(minBib, bib)
+			if bib != 0 {
+				bibCalc := ledger.L().BranchInflationBonusFromRandomnessProof(stemConstraint.VRFProof)
+				glb.Assertf(bib == bibCalc, "provided vs calculated inflation mismatch %s != %s in %s",
+					util.Th(bib), util.Th(bibCalc), br.Lines("        ").String())
+				bibDirect := ledger.L().BranchInflationBonusDirect(stemConstraint.VRFProof)
+				glb.Assertf(bib == bibDirect, "provided vs directly calculated inflation mismatch: %s != %s in %s",
+					util.Th(bib), util.Th(bibDirect), br.Lines("        ").String())
+				bucketNo := bib * numBuckets / maxInflation
+				buckets[bucketNo]++
+				maxBib = max(maxBib, bib)
+				if minBib == 0 {
+					minBib = bib
+				} else {
+					minBib = min(minBib, bib)
+				}
 			}
+
 			numBranches++
 			if numBranches >= maxRoots {
 				return false
