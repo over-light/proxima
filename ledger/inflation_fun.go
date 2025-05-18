@@ -53,7 +53,7 @@ func (lib *Library) BranchInflationBonusBase() uint64 {
 //}
 
 func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
-	return util.RandomFromSeed(proof, lib.BranchInflationBonusBase()) + 1
+	return base.RandomFromSeed(proof, lib.BranchInflationBonusBase()) + 1
 }
 
 // BranchInflationBonusFromRandomnessProof makes uint64 in the range from 0 to BranchInflationBonusBase (incl)

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
@@ -14,6 +15,24 @@ import (
 )
 
 // Validating and making sense of inflation-related constants
+
+func TestScaleBytesAsBigInt(t *testing.T) {
+	r := base.RandomFromSeed([]byte("abc"), 3)
+	require.True(t, r < 3)
+	h := blake2b.Sum256([]byte("abc"))
+	r = base.RandomFromSeed(h[:], 1337)
+	require.True(t, r < 1337)
+
+	for i := 0; i < 1000; i++ {
+		h = blake2b.Sum256([]byte(fmt.Sprintf("%d%d", i, i)))
+		scale := rand.Int31n(500)
+		if scale <= 0 {
+			scale = 1 - scale
+		}
+		r = base.RandomFromSeed(h[:], uint64(scale))
+		require.True(t, r < uint64(scale))
+	}
+}
 
 func TestInflation(t *testing.T) {
 	t.Logf("slotInflationBase: %s", util.Th(ledger.L().ID.SlotInflationBase))

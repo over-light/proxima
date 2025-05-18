@@ -2,6 +2,7 @@ package base
 
 import (
 	"encoding/binary"
+	"math/big"
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/easyfl_util"
@@ -9,6 +10,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/yoseplee/vrf"
+	"golang.org/x/crypto/blake2b"
 )
 
 // DataContext is the data structure passed to the eval call. It contains:
@@ -127,11 +129,11 @@ func evalRandomFromSeed(par *easyfl.CallParams) []byte {
 
 	var rnd uint64
 	err := util.CatchPanicOrError(func() error {
-		rnd = util.RandomFromSeed(data, scale)
+		rnd = RandomFromSeed(data, scale)
 		return nil
 	})
 	if err != nil {
-		par.Trace("'scaleBytesAsBigInt embedded' failed with: %v", err)
+		par.Trace("'randomFromSeed embedded' failed with: %v", err)
 		return nil
 	}
 	ret := par.Alloc(8)
@@ -161,4 +163,15 @@ func evalTicksBefore64(par *easyfl.CallParams) []byte {
 	ret := par.Alloc(8)
 	binary.BigEndian.PutUint64(ret, uint64(diff))
 	return ret
+}
+
+// RandomFromSeed returns a random uin64 number in [0, scale) by scaling the data
+// value as BigInt to the interval [0, scale). The 'scale' value itself is not included
+// NOTE 1: this function is critical for determinism of the ledger
+// NOTE 2: several other attempts to generate uniformly distributed value in the interval lead to big bias towards small values
+func RandomFromSeed(data []byte, scale uint64) uint64 {
+	h := blake2b.Sum256(data)
+	ret := new(big.Int).SetBytes(h[:])
+	ret.Mod(ret, new(big.Int).SetUint64(scale))
+	return ret.Uint64()
 }

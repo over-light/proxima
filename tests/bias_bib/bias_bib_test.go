@@ -145,11 +145,11 @@ func TestBias2(t *testing.T) {
 }
 
 func TestScaling(t *testing.T) {
-	file, err := os.Open("strings.txt")
+	file, err := os.Open("vrf.txt")
 	util.AssertNoError(err)
 	defer file.Close()
 
-	bucketsVrf := make([]int, 100)
+	bucketsVrf := make([]int, 10)
 
 	// Create a scanner to read the file line by line
 	scanner := bufio.NewScanner(file)
@@ -162,7 +162,7 @@ func TestScaling(t *testing.T) {
 		util.AssertNoError(err)
 		v := util.RandomFromSeed(lineBin, 5_000_000)
 		count++
-		bucketNo := (100 * int(v)) / 5_000_000
+		bucketNo := (10 * int(v)) / 5_000_000
 		bucketsVrf[bucketNo]++
 	}
 	fmt.Printf("count: %d\n", count)
