@@ -600,6 +600,22 @@ func (br *BranchData) Lines(prefix ...string) *lines.Lines {
 		Add("Sequencer output id: %s", br.SequencerOutput.ID.String())
 }
 
+func (br *BranchData) LinesShort(prefix ...string) *lines.Lines {
+	name := "(no name)"
+	if msData := ledger.ParseMilestoneData(br.SequencerOutput.Output); msData != nil {
+		name = msData.Name
+	}
+	return lines.New(prefix...).Add("%s (%s) %s supply: %s, infl: %s, on chain: %s, cov.delta: %s/%s",
+		br.Stem.ID.StringShort(),
+		name,
+		br.Stem.ID.StringHex(),
+		util.Th(br.Supply),
+		util.Th(br.SlotInflation),
+		util.Th(br.SequencerOutput.Output.Amount()),
+		util.Th(br.CoverageDelta),
+	)
+}
+
 // TxID transaction id of the branch, as taken from the stem output id
 func (br *BranchData) TxID() base.TransactionID {
 	return br.Stem.ID.TransactionID()

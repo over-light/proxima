@@ -200,6 +200,7 @@ func (r *Readable) AccountsByLocks() map[string]LockedAccountInfo {
 }
 
 type ScannedState struct {
+	NumUTXOs        int
 	Supply          uint64
 	TotalOnChains   uint64
 	Stem            *ledger.OutputWithID
@@ -207,49 +208,62 @@ type ScannedState struct {
 	Inconsistencies []string
 }
 
-func (s *ScannedState) addInconsistency(format string, args ...any) {
+func (s *ScannedState) AddInconsistency(format string, args ...any) {
 	s.Inconsistencies = append(s.Inconsistencies, fmt.Sprintf(format, args...))
 }
 
+func (s *ScannedState) Lines(prefix ...string) *lines.Lines {
+	ln := lines.New(prefix...)
+	ln.Add("Number of UTXOs: %d", s.NumUTXOs)
+	ln.Add("Total supply: %s", util.Th(s.Supply))
+	ln.Add("Total on chains: %s", util.Th(s.TotalOnChains))
+	ln.Add("Stem output: %s", s.Stem.ID.StringShort())
+	ln.Add("Number of chains: %d", len(s.Chains))
+	ln.Add("Inconsistencies: %d", len(s.Inconsistencies))
+	for _, inconsistency := range s.Inconsistencies {
+		ln.Add("   %s", inconsistency)
+	}
+	return ln
+}
+
+// ScanState scans state, collects info and checks its consistency
 func (r *Readable) ScanState() *ScannedState {
 	ret := &ScannedState{
 		Chains:          make(map[base.ChainID]*ledger.OutputWithID),
 		Inconsistencies: make([]string, 0),
 	}
 
-	r.IterateUTXOs(func(oid base.OutputID, o *ledger.Output) bool {
-		oo := ledger.OutputWithID{
-			ID:     oid,
-			Output: o,
-		}
-		ret.Supply += o.Amount()
-		if _, isStemOutput := o.StemLock(); isStemOutput {
+	r.IterateUTXOs(func(o ledger.OutputWithID) bool {
+		ret.NumUTXOs++
+		ret.Supply += o.Output.Amount()
+		if _, isStemOutput := o.Output.StemLock(); isStemOutput {
 			if ret.Stem != nil {
-				ret.addInconsistency("duplicate stem:\n--- 1\n%s--- 2\n%s",
+				ret.AddInconsistency("duplicate stem:\n--- 1\n%s--- 2\n%s",
 					ret.Stem.Lines("   ").String(),
-					oo.Lines("   ").String())
+					o.Lines("   ").String())
 			}
-			if _, stemBytes := r.GetStem(); !bytes.Equal(stemBytes, o.Bytes()) {
-				ret.addInconsistency("stem output %s inconsistent with the stem index", oid.String())
+			if _, stemBytes := r.GetStem(); !bytes.Equal(stemBytes, o.Output.Bytes()) {
+				ret.AddInconsistency("stem output %s inconsistent with the stem index", o.ID.String())
 			}
-			ret.Stem = &oo
+			ret.Stem = util.Ref(o)
 		}
-		for _, accountable := range o.Lock().Accounts() {
-			accountKey := makeAccountKey(accountable.AccountID(), oid)
+		for _, accountable := range o.Output.Lock().Accounts() {
+			accountKey := makeAccountKey(accountable.AccountID(), o.ID)
 			if oData := r.trie.Get(accountKey); len(oData) == 0 {
-				ret.addInconsistency("output %s is not in the accounts index", oid.String())
+				ret.AddInconsistency("output %s is not in the accounts index", o.ID.String())
 			}
 		}
-		if chainID, _, ok := oo.ExtractChainID(); ok {
+		if chainID, _, ok := o.ExtractChainID(); ok {
 			if _, already := ret.Chains[chainID]; already {
-				ret.addInconsistency("duplicated chain record:\n--- 1\n%s--- 2\n%s",
+				ret.AddInconsistency("duplicated chain record:\n--- 1\n%s--- 2\n%s",
 					ret.Chains[chainID].Lines("   ").String(),
-					oo.Lines("   ").String())
+					o.Lines("   ").String())
 			}
-			ret.Chains[chainID] = &oo
+			ret.Chains[chainID] = util.Ref(o)
 			if _, err := r.GetUTXOForChainID(chainID); err != nil {
-				ret.addInconsistency("chain record %s is not in the UTXO index: %v", chainID.String(), err)
+				ret.AddInconsistency("chain record %s is not in the UTXO index: %v", chainID.String(), err)
 			}
+			ret.TotalOnChains += o.Output.Amount()
 		}
 		return true
 	})

@@ -3,13 +3,11 @@ package db_cmd
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"sort"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
-	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
 )
 
@@ -58,27 +56,11 @@ func runDbInfoCmd(_ *cobra.Command, _ []string) {
 	glb.Infof("ledger library hash: %s", hex.EncodeToString(h[:]))
 	glb.Verbosef("\n----------------- Ledger state identity ----------------")
 	glb.Verbosef("%s", idParams.String())
-	glb.Infof("----------------- Global branch data ----------------------")
-	DisplayBranchData(branchData)
+	glb.Infof("----------------- branch data ----------------------")
+	for i, br := range branchData {
+		glb.Infof("%3d %s", i, br.LinesShort().Join(", "))
+	}
 	glb.Infof("\n------------- Supply and inflation summary -------------")
 	summary := multistate.FetchSummarySupply(glb.StateStore(), slotsBackDBInfo)
 	glb.Infof("%s", summary.Lines("   ").String())
-}
-
-func DisplayBranchData(branches []*multistate.BranchData) {
-	for i, br := range branches {
-		name := "(no name)"
-		if msData := ledger.ParseMilestoneData(br.SequencerOutput.Output); msData != nil {
-			name = msData.Name
-		}
-		name = fmt.Sprintf("%s (%s)", name, br.SequencerID.StringVeryShort())
-		glb.Infof(" %2d: %s supply: %s, infl: %s, on chain: %s, cov/delta: %s/%s, root: %s",
-			i, name,
-			util.Th(br.Supply),
-			util.Th(br.SlotInflation),
-			util.Th(br.SequencerOutput.Output.Amount()),
-			util.Th(br.LedgerCoverage),
-			util.Th(br.CoverageDelta),
-			br.Root.String())
-	}
 }

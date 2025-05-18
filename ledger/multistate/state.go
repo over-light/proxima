@@ -370,13 +370,16 @@ func (r *Readable) Root() common.VCommitment {
 	return r.trie.Root()
 }
 
-func (r *Readable) IterateUTXOs(fun func(oid base.OutputID, o *ledger.Output) bool) {
+func (r *Readable) IterateUTXOs(fun func(o ledger.OutputWithID) bool) {
 	r.Iterator([]byte{TriePartitionLedgerState}).Iterate(func(key, oData []byte) bool {
 		oid, err := base.OutputIDFromBytes(key[1:])
 		util.AssertNoError(err)
 		o, err := ledger.OutputFromBytesReadOnly(oData)
 		util.AssertNoError(err)
-		return fun(oid, o)
+		return fun(ledger.OutputWithID{
+			ID:     oid,
+			Output: o,
+		})
 	})
 }
 
