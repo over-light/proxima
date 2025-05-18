@@ -63,6 +63,6 @@ func runBranchInflationBousStats() {
 		numBranches, util.Th(minBib), util.Th(maxBib))
 
 	for i, n := range buckets {
-		glb.Infof("%d: %d (%2f%%)", i, n, float64(n)/float64(len(buckets))*100)
+		glb.Infof("%d: %d (%02f%%)", i, n, (float64(n)*100)/float64(numBranches))
 	}
 }
