@@ -421,8 +421,13 @@ type RootRecordParams struct {
 // Update updates trie with mutations
 // If par.GenesisStemOutputID != nil, also writes root partition record
 func (u *Updatable) Update(muts *Mutations, rootRecordParams *RootRecordParams) error {
+	var slotInflation []uint64
+	if rootRecordParams != nil {
+		slotInflation = []uint64{rootRecordParams.SlotInflation}
+	}
+
 	err := u.updateUTXOLedgerDB(func(trie *immutable.TrieUpdatable) error {
-		return UpdateTrie(u.trie, muts)
+		return updateTrie(u.trie, muts, slotInflation...)
 	}, rootRecordParams)
 	if err != nil {
 		err = fmt.Errorf("%w\n-------- mutations --------\n%s", err, muts.Lines("    ").String())

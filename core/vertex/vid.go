@@ -481,6 +481,21 @@ func (vid *WrappedTx) _unwrap(opt UnwrapOptions) {
 	}
 }
 
+func (vid *WrappedTx) TxLines(prefix ...string) (ret *lines.Lines) {
+	vid.RUnwrap(UnwrapOptions{
+		Vertex: func(v *Vertex) {
+			ret = v.Tx.Lines(v.InputLoaderByIndex, prefix...)
+		},
+		DetachedVertex: func(v *DetachedVertex) {
+			ret = v.Tx.LinesShort(prefix...)
+		},
+		VirtualTx: func(v *VirtualTransaction) {
+			ret = lines.New(prefix...).Add("== virtual tx %s", vid.IDShortString())
+		},
+	})
+	return
+}
+
 func (vid *WrappedTx) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	vid.RUnwrap(UnwrapOptions{

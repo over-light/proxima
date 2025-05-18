@@ -2,7 +2,6 @@ package attacher
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -48,10 +47,13 @@ func (a *milestoneAttacher) commitBranch() {
 		NumTransactions: uint32(a.finals.MutationStats.NumTransactions),
 	})
 	if err != nil {
-		err = fmt.Errorf("%w:\n-------- past cone of %s --------\n%s", err, a.Name(), a.pastCone.Lines("     ").Join("\n"))
-		a.pastCone.SaveGraph(util.Ref(a.vid.ID()).AsFileNameShort())
-		a.SaveFullDAG("full_dag_failed_upd")
-		time.Sleep(2 * time.Second)
+		err = fmt.Errorf("attacher wrapup (%s) -> %w:\n------ tx\n%s\n-------- past cone --------\n%s",
+			a.Name(), err, a.vid.TxLines("    ").String(), a.pastCone.Lines("     ").Join("\n"))
+
+		// FAILS
+		//a.pastCone.SaveGraph(util.Ref(a.vid.ID()).AsFileNameShort())
+		//a.SaveFullDAG("full_dag_failed_upd")
+		//time.Sleep(2 * time.Second)
 	}
 	a.AssertNoError(err)
 

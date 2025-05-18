@@ -27,7 +27,7 @@ var prn = message.NewPrinter(language.English)
 
 const defaultThousandsSeparator = "_"
 
-// Th makes string representation of the integer with thousands separator
+// Th makes string representation of the integer with the thousand separator
 func Th[T Integer](v T, separator ...string) string {
 	var sep string
 	if len(separator) > 0 {
@@ -36,6 +36,12 @@ func Th[T Integer](v T, separator ...string) string {
 		sep = defaultThousandsSeparator
 	}
 	return strings.Replace(prn.Sprintf("%d", v), ",", sep, -1)
+}
+
+func ThLazy[T Integer](v T, separator ...string) func() string {
+	return func() string {
+		return Th(v, separator...)
+	}
 }
 
 func ForEachUniquePair[T any](sl []T, fun func(a1, a2 T) bool) {

@@ -15,15 +15,20 @@ import (
 
 type (
 	mutationCmd interface {
-		mutate(trie *immutable.TrieUpdatable) error
+		mutate(trie *immutable.TrieUpdatable) (delta supplyDelta, err error)
 		text() string
 		sortOrder() byte
 		timestamp() base.LedgerTime
 	}
 
+	supplyDelta struct {
+		amount   uint64
+		decrease bool
+	}
+
 	mutationAddOutput struct {
 		ID     base.OutputID
-		Output *ledger.Output // nil means delete
+		Output *ledger.Output
 	}
 
 	mutationDelOutput struct {
@@ -45,7 +50,7 @@ type (
 	}
 )
 
-func (m *mutationDelOutput) mutate(trie *immutable.TrieUpdatable) error {
+func (m *mutationDelOutput) mutate(trie *immutable.TrieUpdatable) (delta supplyDelta, err error) {
 	return deleteOutputFromTrie(trie, m.ID)
 }
 
@@ -61,12 +66,12 @@ func (m *mutationDelOutput) timestamp() base.LedgerTime {
 	return m.ID.Timestamp()
 }
 
-func (m *mutationAddOutput) mutate(trie *immutable.TrieUpdatable) error {
+func (m *mutationAddOutput) mutate(trie *immutable.TrieUpdatable) (delta supplyDelta, err error) {
 	return addOutputToTrie(trie, m.ID, m.Output)
 }
 
 func (m *mutationAddOutput) text() string {
-	return fmt.Sprintf("ADD   %s", m.ID.StringShort())
+	return fmt.Sprintf("ADD   %s (%s, inflation %s)", m.ID.StringShort(), util.Th(m.Output.Amount()), util.Th(m.Output.Inflation()))
 }
 
 func (m *mutationAddOutput) sortOrder() byte {
@@ -77,7 +82,7 @@ func (m *mutationAddOutput) timestamp() base.LedgerTime {
 	return m.ID.Timestamp()
 }
 
-func (m *mutationAddTx) mutate(trie *immutable.TrieUpdatable) error {
+func (m *mutationAddTx) mutate(trie *immutable.TrieUpdatable) (delta supplyDelta, err error) {
 	return addTxToTrie(trie, &m.ID, m.TimeSlot, m.LastOutputIndex)
 }
 
@@ -93,7 +98,7 @@ func (m *mutationAddTx) timestamp() base.LedgerTime {
 	return m.ID.Timestamp()
 }
 
-func (m *mutationDelChain) mutate(trie *immutable.TrieUpdatable) error {
+func (m *mutationDelChain) mutate(trie *immutable.TrieUpdatable) (delta supplyDelta, err error) {
 	return deleteChainFromTrie(trie, m.ChainID)
 }
 
@@ -167,18 +172,22 @@ func (mut *Mutations) Lines(prefix ...string) *lines.Lines {
 	return ret
 }
 
-func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid base.OutputID) error {
+func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid base.OutputID) (delta supplyDelta, err error) {
 	var stateKey [1 + base.OutputIDLength]byte
 	stateKey[0] = TriePartitionLedgerState
 	copy(stateKey[1:], oid[:])
 
 	oData := trie.Get(stateKey[:])
 	if len(oData) == 0 {
-		return fmt.Errorf("deleteOutputFromTrie: output not found: %s", oid.StringShort())
+		err = fmt.Errorf("deleteOutputFromTrie: output not found: %s", oid.StringShort())
+		return
 	}
 
 	o, err := ledger.OutputFromBytesReadOnly(oData)
 	util.AssertNoError(err)
+
+	delta.decrease = true
+	delta.amount = o.Amount()
 
 	var existed bool
 	existed = trie.Delete(stateKey[:])
@@ -189,27 +198,31 @@ func deleteOutputFromTrie(trie *immutable.TrieUpdatable, oid base.OutputID) erro
 		// must exist
 		util.Assertf(existed, "deleteOutputFromTrie: account record for %s wasn't found as expected: output %s", accountable.String(), oid.StringShort())
 	}
-	return nil
+	return
 }
 
-func addOutputToTrie(trie *immutable.TrieUpdatable, oid base.OutputID, out *ledger.Output) error {
+func addOutputToTrie(trie *immutable.TrieUpdatable, oid base.OutputID, out *ledger.Output) (delta supplyDelta, err error) {
+	delta.amount = out.Amount()
+
 	var stateKey [1 + base.OutputIDLength]byte
 	stateKey[0] = TriePartitionLedgerState
 	copy(stateKey[1:], oid[:])
 	if trie.Update(stateKey[:], out.Bytes()) {
 		// key should not exist
-		return fmt.Errorf("addOutputToTrie: UTXO key should not exist: %s", oid.StringShort())
+		err = fmt.Errorf("addOutputToTrie: UTXO key should not exist: %s", oid.StringShort())
+		return
 	}
 	for _, accountable := range out.Lock().Accounts() {
 		if trie.Update(makeAccountKey(accountable.AccountID(), oid), []byte{0xff}) {
 			// key should not exist
-			return fmt.Errorf("addOutputToTrie: index key should not exist: %s", oid.StringShort())
+			err = fmt.Errorf("addOutputToTrie: index key should not exist: %s", oid.StringShort())
+			return
 		}
 	}
 	chainConstraint, _ := out.ChainConstraint()
 	if chainConstraint == nil {
 		// not a chain output
-		return nil
+		return
 	}
 	// update chain output records
 	var chainID base.ChainID
@@ -222,7 +235,8 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid base.OutputID, out *ledg
 
 	if chainConstraint.IsOrigin() {
 		if existed := trie.Update(chainKey, oid[:]); existed {
-			return fmt.Errorf("addOutputToTrie: unexpected chain origin in the state: %s", chainID.StringShort())
+			err = fmt.Errorf("addOutputToTrie: unexpected chain origin in the state: %s", chainID.StringShort())
+			return
 		}
 	} else {
 		const assertChainRecordsConsistency = false
@@ -230,11 +244,12 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid base.OutputID, out *ledg
 			// previous chain record may or may not exist
 			// enforcing timestamp consistency
 			if prevBin := trie.TrieReader.Get(chainKey); len(prevBin) > 0 {
-				prevOutputID, err := base.OutputIDFromBytes(prevBin)
-				util.AssertNoError(err)
+				prevOutputID, err1 := base.OutputIDFromBytes(prevBin)
+				util.AssertNoError(err1)
 				if !oid.Timestamp().After(prevOutputID.Timestamp()) {
-					return fmt.Errorf("addOutputToTrie: chain output id violates time constraint:\n   previous: %s\n   next: %s",
+					err = fmt.Errorf("addOutputToTrie: chain output id violates time constraint:\n   previous: %s\n   next: %s",
 						prevOutputID.StringShort(), oid.StringShort())
+					return
 				}
 			}
 		}
@@ -242,31 +257,31 @@ func addOutputToTrie(trie *immutable.TrieUpdatable, oid base.OutputID, out *ledg
 	}
 
 	// TODO terminating the chain
-	return nil
+	return
 }
 
-func addTxToTrie(trie *immutable.TrieUpdatable, txid *base.TransactionID, slot base.Slot, lastOutputIndex byte) error {
+func addTxToTrie(trie *immutable.TrieUpdatable, txid *base.TransactionID, slot base.Slot, lastOutputIndex byte) (delta supplyDelta, err error) {
 	var stateKey [1 + base.TransactionIDLength]byte
 	stateKey[0] = TriePartitionCommittedTransactionID
 	copy(stateKey[1:], txid[:])
 
 	if trie.Update(stateKey[:], slot.Bytes()) {
 		// key should not exist
-		return fmt.Errorf("addTxToTrie: transaction key should not exist: %s", txid.StringShort())
+		err = fmt.Errorf("addTxToTrie: transaction key should not exist: %s", txid.StringShort())
 	}
-	return nil
+	return
 }
 
-func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID base.ChainID) error {
+func deleteChainFromTrie(trie *immutable.TrieUpdatable, chainID base.ChainID) (delta supplyDelta, err error) {
 	var stateKey [1 + base.ChainIDLength]byte
 	stateKey[0] = TriePartitionChainID
 	copy(stateKey[1:], chainID[:])
 
 	if existed := trie.Delete(stateKey[:]); !existed {
 		// only deleting existing chainIDs
-		return fmt.Errorf("deleteChainFromTrie: chain id does not exist: %s", chainID.String())
+		err = fmt.Errorf("deleteChainFromTrie: chain id does not exist: %s", chainID.String())
 	}
-	return nil
+	return
 }
 
 func makeAccountKey(id ledger.AccountID, oid base.OutputID) []byte {
@@ -277,10 +292,33 @@ func makeChainIDKey(chainID *base.ChainID) []byte {
 	return common.Concat([]byte{TriePartitionChainID}, chainID[:])
 }
 
-func UpdateTrie(trie *immutable.TrieUpdatable, mut *Mutations) (err error) {
+func updateTrie(trie *immutable.TrieUpdatable, mut *Mutations, inflation ...uint64) (err error) {
+	var delAmount, addAmount uint64
+	var delta supplyDelta
+
 	for _, m := range mut.mut {
-		if err = m.mutate(trie); err != nil {
+		delta, err = m.mutate(trie)
+		if err != nil {
 			return
+		}
+		if delta.decrease {
+			delAmount += delta.amount
+		} else {
+			addAmount += delta.amount
+		}
+	}
+	// check the main ledger invariant: number of base tokens
+	if len(inflation) == 0 {
+		// len(inflation) == 0 is used only in UTXODB because there is no slot inflation there
+		// relax assertion
+		if delAmount > addAmount {
+			err = fmt.Errorf("updateTrie: major inconsistency. Deleted amount(%s) cannot be greater that the added amount(%s). Diff: %s",
+				util.Th(delAmount), util.Th(addAmount), util.Th(int(addAmount)-int(delAmount)))
+		}
+	} else {
+		if addAmount != delAmount+inflation[0] {
+			err = fmt.Errorf("updateTrie: major inconsistency. Mismatch input amount(%s) + inflation(%s) != output amount(%s). Diff: %s",
+				util.Th(delAmount), util.Th(inflation[0]), util.Th(addAmount), util.Th(int(addAmount)-int(delAmount+inflation[0])))
 		}
 	}
 	return
