@@ -28,6 +28,7 @@ func Init() *cobra.Command {
 		initDbGetLedgerIDCmd(),
 		initUlistCmd(),
 		initScanDBCmd(),
+		initDbStatsCmd(),
 	)
 	return dbCmd
 }
