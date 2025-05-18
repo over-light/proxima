@@ -146,7 +146,7 @@ func TestBias2(t *testing.T) {
 }
 
 func TestScaling(t *testing.T) {
-	file, err := os.Open("vrf2.txt")
+	file, err := os.Open("vrf3.txt")
 	util.AssertNoError(err)
 	defer file.Close()
 
