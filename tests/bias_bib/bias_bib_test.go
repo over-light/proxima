@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/set"
 	"golang.org/x/crypto/blake2b"
@@ -160,7 +161,7 @@ func TestScaling(t *testing.T) {
 
 		lineBin, err := hex.DecodeString(line)
 		util.AssertNoError(err)
-		v := util.RandomFromSeed(lineBin, 5_000_000)
+		v := base.RandomFromSeed(lineBin, 5_000_000)
 		count++
 		bucketNo := (10 * int(v)) / 5_000_000
 		bucketsVrf[bucketNo]++
