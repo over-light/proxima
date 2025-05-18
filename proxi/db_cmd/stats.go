@@ -44,6 +44,15 @@ func runBranchInflationBousStats() {
 	multistate.IterateSlotsBack(glb.StateStore(), func(slot base.Slot, roots []multistate.RootRecord) bool {
 		for _, br := range multistate.FetchBranchDataMulti(glb.StateStore(), roots...) {
 			bib := br.SequencerOutput.Output.Inflation()
+
+			// check consistency
+			stemConstraint, ok := br.Stem.Output.StemLock()
+			glb.Assertf(ok, "stem lock not found in %s hex=%s", br.Stem.ID.String(), br.Stem.ID.StringHex())
+			bibCalc := ledger.L().BranchInflationBonusFromRandomnessProof(stemConstraint.VRFProof)
+			glb.Assertf(bib == bibCalc, "provided vs calculated inflation mismatch: %s != %s", util.Th(bib), util.Th(bibCalc))
+			bibDirect := ledger.L().BranchInflationBonusDirect(stemConstraint.VRFProof)
+			glb.Assertf(bib == bibDirect, "provided vs durectly calculated inflation mismatch: %s != %s", util.Th(bib), util.Th(bibDirect))
+
 			bucketNo := bib * numBuckets / maxInflation
 			buckets[bucketNo]++
 			maxBib = max(maxBib, bib)
