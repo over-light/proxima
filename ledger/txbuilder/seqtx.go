@@ -10,6 +10,7 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"github.com/yoseplee/vrf"
+	"golang.org/x/crypto/blake2b"
 )
 
 // MakeSequencerTransactionParams contains parameters for the sequencer transaction builder
@@ -111,7 +112,8 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 			return nil, nil, errP(err, "inconsistency: cannot find previous stem")
 		}
 		pubKey := par.PrivateKey.Public().(ed25519.PublicKey)
-		vrfProof, _, err = vrf.Prove(pubKey, par.PrivateKey, common.Concat(prevStem.VRFProof, par.Timestamp.Slot.Bytes()))
+		msg := blake2b.Sum256(common.Concat(prevStem.VRFProof, par.Timestamp.Slot.Bytes()))
+		vrfProof, _, err = vrf.Prove(pubKey, par.PrivateKey, msg[:])
 		if err != nil {
 			return nil, nil, errP(err, "while generating VRF randomness proof")
 		}

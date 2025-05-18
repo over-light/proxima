@@ -169,8 +169,10 @@ func evalTicksBefore64(par *easyfl.CallParams) []byte {
 // value as BigInt to the interval [0, scale). The 'scale' value itself is not included
 // NOTE 1: this function is critical for determinism of the ledger
 // NOTE 2: several other attempts to generate uniformly distributed value in the interval lead to big bias towards small values
+// NOTE 3: taking hash(hash(data)) because taking 1 hash strong bias remains
 func RandomFromSeed(data []byte, scale uint64) uint64 {
 	h := blake2b.Sum256(data)
+	h = blake2b.Sum256(h[:])
 	ret := new(big.Int).SetBytes(h[:])
 	ret.Mod(ret, new(big.Int).SetUint64(scale))
 	return ret.Uint64()
