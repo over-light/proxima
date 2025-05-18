@@ -38,7 +38,7 @@ func runScanDBCmd(_ *cobra.Command, _ []string) {
 
 			scanned := rdr.ScanState()
 			inconsistencies := len(scanned.Inconsistencies) > 0 || scanned.Supply != br.Supply
-			glb.Infof("%3d  %s, total on chains: %s", i, br.LinesShort().Join(", "), util.Th(scanned.TotalOnChains))
+			glb.Infof("%3d  %s, total on %d chains: %s", i, br.LinesShort().Join(", "), len(scanned.Chains), util.Th(scanned.TotalOnChains))
 			if inconsistencies {
 				glb.Infof("   inconsistencies found:\n%s", scanned.Lines("        ").String())
 			}
