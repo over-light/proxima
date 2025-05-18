@@ -1,6 +1,10 @@
 package db_cmd
 
 import (
+	"encoding/hex"
+	"fmt"
+	"os"
+
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -10,9 +14,12 @@ import (
 )
 
 var (
-	numBuckets uint64
-	maxRoots   int
+	numBuckets   uint64
+	maxRoots     int
+	outVrfProofs bool
 )
+
+const fname = "vrf.txt"
 
 func initDbStatsCmd() *cobra.Command {
 	dbStatsCmd := &cobra.Command{
@@ -23,6 +30,7 @@ func initDbStatsCmd() *cobra.Command {
 	}
 	dbStatsCmd.PersistentFlags().Uint64VarP(&numBuckets, "buckets", "b", 10, "number of distribution buckets")
 	dbStatsCmd.PersistentFlags().IntVarP(&maxRoots, "roots", "r", 2000, "max number of roots to scan")
+	dbStatsCmd.PersistentFlags().BoolVarP(&outVrfProofs, "out_vrf_proof", "v", false, fmt.Sprintf("write VRF proofs to file %s (for debugging only)", fname))
 
 	dbStatsCmd.InitDefaultHelpCmd()
 	return dbStatsCmd
@@ -41,6 +49,15 @@ func runBranchInflationBousStats() {
 	numBranches := 0
 	var maxBib, minBib uint64
 
+	var fout *os.File
+	var err error
+
+	if outVrfProofs {
+		fout, err = os.OpenFile(fname, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		glb.AssertNoError(err)
+		defer fout.Close()
+	}
+
 	multistate.IterateSlotsBack(glb.StateStore(), func(slot base.Slot, roots []multistate.RootRecord) bool {
 		for _, br := range multistate.FetchBranchDataMulti(glb.StateStore(), roots...) {
 			bib := br.SequencerOutput.Output.Inflation()
@@ -48,6 +65,11 @@ func runBranchInflationBousStats() {
 			// check consistency
 			stemConstraint, ok := br.Stem.Output.StemLock()
 			glb.Assertf(ok, "stem lock not found in %s hex=%s", br.Stem.ID.String(), br.Stem.ID.StringHex())
+
+			if outVrfProofs {
+				_, _ = fout.WriteString(hex.EncodeToString(stemConstraint.VRFProof) + "\n")
+			}
+
 			bibCalc := ledger.L().BranchInflationBonusFromRandomnessProof(stemConstraint.VRFProof)
 			glb.Assertf(bib == bibCalc, "provided vs calculated inflation mismatch: %s != %s", util.Th(bib), util.Th(bibCalc))
 			bibDirect := ledger.L().BranchInflationBonusDirect(stemConstraint.VRFProof)
