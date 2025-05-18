@@ -39,11 +39,16 @@ func runScanDBCmd(_ *cobra.Command, _ []string) {
 	})
 
 	for i, br := range branchData {
-		rdr, err := multistate.NewReadable(glb.StateStore(), branchData[0].Root)
+		rdr, err := multistate.NewReadable(glb.StateStore(), br.Root)
 		glb.AssertNoError(err)
 
 		glb.Infof("%3d  %s", i, br.LinesShort().Join(", "))
+
 		scanned := rdr.ScanState()
-		glb.Infof("   scanned:\n%s", scanned.Lines("        ").String())
+		if len(scanned.Inconsistencies) > 0 || scanned.Supply != br.Supply {
+			glb.Infof("   inconsistencies found:\n%s", scanned.Lines("        ").String())
+
+		}
+
 	}
 }

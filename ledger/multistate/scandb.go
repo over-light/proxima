@@ -218,10 +218,13 @@ func (s *ScannedState) Lines(prefix ...string) *lines.Lines {
 	ln.Add("Total supply: %s", util.Th(s.Supply))
 	ln.Add("Total on chains: %s", util.Th(s.TotalOnChains))
 	ln.Add("Stem output: %s", s.Stem.ID.StringShort())
-	ln.Add("Number of chains: %d", len(s.Chains))
-	ln.Add("Inconsistencies: %d", len(s.Inconsistencies))
+	ln.Add("Inconsistencies (%d):", len(s.Inconsistencies))
 	for _, inconsistency := range s.Inconsistencies {
 		ln.Add("   %s", inconsistency)
+	}
+	ln.Add("Chains (%d):", len(s.Chains))
+	for chainID, o := range s.Chains {
+		ln.Add("             %s: %s", chainID.String(), o.String())
 	}
 	return ln
 }
