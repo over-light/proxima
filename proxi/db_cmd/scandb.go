@@ -44,6 +44,6 @@ func runScanDBCmd(_ *cobra.Command, _ []string) {
 
 		glb.Infof("%3d  %s", i, br.LinesShort().Join(", "))
 		scanned := rdr.ScanState()
-		glb.Infof("   scanned: %d", scanned.Lines("    ").String())
+		glb.Infof("   scanned:\n%s", scanned.Lines("        ").String())
 	}
 }
