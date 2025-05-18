@@ -4,6 +4,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
+	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
 )
 
@@ -35,10 +36,9 @@ func runScanDBCmd(_ *cobra.Command, _ []string) {
 			rdr, err := multistate.NewReadable(glb.StateStore(), br.Root)
 			glb.AssertNoError(err)
 
-			glb.Infof("%3d  %s", i, br.LinesShort().Join(", "))
-
 			scanned := rdr.ScanState()
 			inconsistencies := len(scanned.Inconsistencies) > 0 || scanned.Supply != br.Supply
+			glb.Infof("%3d  %s, total on chains: %s", i, br.LinesShort().Join(", "), util.Th(scanned.TotalOnChains))
 			if inconsistencies {
 				glb.Infof("   inconsistencies found:\n%s", scanned.Lines("        ").String())
 			}
