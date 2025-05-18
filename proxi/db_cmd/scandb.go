@@ -1,9 +1,7 @@
 package db_cmd
 
 import (
-	"bytes"
-	"sort"
-
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/spf13/cobra"
@@ -26,29 +24,22 @@ func runScanDBCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
-	branchData := multistate.FetchLatestBranches(glb.StateStore())
-	if len(branchData) == 0 {
-		glb.Infof("no branches found")
-		return
-	}
-	glb.Infof("Total %d branches in the latest slot %d", len(branchData), branchData[0].Stem.Timestamp().Slot)
+	multistate.IterateSlotsBack(glb.StateStore(), func(slot base.Slot, roots []multistate.RootRecord) bool {
+		branches := multistate.FetchBranchDataMulti(glb.StateStore(), roots...)
+		glb.Infof("----------- slot %d: %d branches", slot, len(branches))
 
-	// for determinism
-	sort.Slice(branchData, func(i, j int) bool {
-		return bytes.Compare(branchData[i].SequencerID[:], branchData[j].SequencerID[:]) < 0
+		for i, br := range branches {
+			rdr, err := multistate.NewReadable(glb.StateStore(), br.Root)
+			glb.AssertNoError(err)
+
+			glb.Infof("%3d  %s", i, br.LinesShort().Join(", "))
+
+			scanned := rdr.ScanState()
+			if len(scanned.Inconsistencies) > 0 || scanned.Supply != br.Supply {
+				glb.Infof("   inconsistencies found:\n%s", scanned.Lines("        ").String())
+			}
+		}
+		return true
 	})
 
-	for i, br := range branchData {
-		rdr, err := multistate.NewReadable(glb.StateStore(), br.Root)
-		glb.AssertNoError(err)
-
-		glb.Infof("%3d  %s", i, br.LinesShort().Join(", "))
-
-		scanned := rdr.ScanState()
-		if len(scanned.Inconsistencies) > 0 || scanned.Supply != br.Supply {
-			glb.Infof("   inconsistencies found:\n%s", scanned.Lines("        ").String())
-
-		}
-
-	}
 }
