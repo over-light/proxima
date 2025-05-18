@@ -30,7 +30,7 @@ func initDbStatsCmd() *cobra.Command {
 	}
 	dbStatsCmd.PersistentFlags().Uint64VarP(&numBuckets, "buckets", "b", 10, "number of distribution buckets")
 	dbStatsCmd.PersistentFlags().IntVarP(&maxRoots, "roots", "r", 2000, "max number of roots to scan")
-	dbStatsCmd.PersistentFlags().BoolVarP(&outVrfProofs, "out_vrf_proof", "v", false, fmt.Sprintf("write VRF proofs to file %s (for debugging only)", fname))
+	dbStatsCmd.PersistentFlags().BoolVarP(&outVrfProofs, "out_vrf_proof", "o", false, fmt.Sprintf("write VRF proofs to file %s (for debugging only)", fname))
 
 	dbStatsCmd.InitDefaultHelpCmd()
 	return dbStatsCmd
