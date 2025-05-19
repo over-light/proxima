@@ -1,6 +1,8 @@
 package db_cmd
 
 import (
+	"sort"
+
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -36,14 +38,21 @@ func runDBChainStatsCmd(_ *cobra.Command, _ []string) {
 	runChainStats()
 }
 
-type seqStats struct {
-	numBranches  int
-	sumInflation uint64
-	minBalance   uint64
-	maxBalance   uint64
-	minSlot      int
-	maxSlot      int
-}
+type (
+	seqStats struct {
+		numBranches  int
+		sumInflation uint64
+		minBalance   uint64
+		maxBalance   uint64
+		minSlot      int
+		maxSlot      int
+	}
+
+	winningBranch struct {
+		score int
+		outOf int
+	}
+)
 
 func runChainStats() {
 	maxInflation := ledger.L().BranchInflationBonusBase()
@@ -55,7 +64,11 @@ func runChainStats() {
 	lrb := multistate.FindLatestReliableBranch(glb.StateStore(), global.FractionHealthyBranch)
 	glb.Assertf(lrb != nil, "no latest reliable branch found")
 
+	chainBranches := make(map[base.TransactionID]winningBranch)
+
 	multistate.IterateBranchChainBack(glb.StateStore(), lrb, func(branchID *base.TransactionID, br *multistate.BranchData) bool {
+		chainBranches[br.TxID()] = winningBranch{}
+
 		bib := br.SequencerOutput.Output.Inflation()
 		numBranches++
 		if bib == 0 {
@@ -132,5 +145,46 @@ func runChainStats() {
 			util.Th(seqStatsRec.minBalance),
 			util.Th(seqStatsRec.maxBalance),
 		)
+	}
+
+	numBranches = 0
+	multistate.IterateSlotsBack(glb.StateStore(), func(slot base.Slot, roots []multistate.RootRecord) bool {
+		branches := multistate.FetchBranchDataMulti(glb.StateStore(), roots...)
+		// sort by inflation descending
+		if len(branches) == 0 {
+			return true
+		}
+		numBranches += 0
+		sort.Slice(branches, func(i, j int) bool {
+			return branches[i].SequencerOutput.Output.Inflation() > branches[j].SequencerOutput.Output.Inflation()
+		})
+
+		var winningTxID *base.TransactionID
+		var idx int
+		for i, br := range branches {
+			if _, ok := chainBranches[br.TxID()]; ok {
+				// it is a winning branch
+				winningTxID = util.Ref(br.TxID())
+				idx = i
+			}
+		}
+		if winningTxID != nil {
+			chainBranches[*winningTxID] = winningBranch{
+				score: idx,
+				outOf: len(branches),
+			}
+		}
+		if numBranches >= _maxRoots {
+			return false
+		}
+		return true
+	})
+
+	glb.Infof("\nwinning branch by BIB score in the slot:")
+	branchIDs := util.KeysSorted(chainBranches, func(id1, id2 base.TransactionID) bool {
+		return id1.Slot() < id2.Slot()
+	})
+	for _, branchID := range branchIDs {
+		glb.Infof("   %s  %d / %d", branchID.String(), chainBranches[branchID].score, chainBranches[branchID].outOf)
 	}
 }
