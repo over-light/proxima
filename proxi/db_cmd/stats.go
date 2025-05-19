@@ -40,10 +40,10 @@ func runDBStatsCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
-	runBranchInflationBousStats()
+	runBranchInflationBonusStats()
 }
 
-func runBranchInflationBousStats() {
+func runBranchInflationBonusStats() {
 	maxInflation := ledger.L().BranchInflationBonusBase()
 	buckets := make([]int, numBuckets)
 	numBranches := 0
