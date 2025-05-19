@@ -21,6 +21,7 @@ var (
 
 const fname = "vrf.txt"
 
+// Deprecated: use chainstats instead
 func initDbStatsCmd() *cobra.Command {
 	dbStatsCmd := &cobra.Command{
 		Use:   "stats",

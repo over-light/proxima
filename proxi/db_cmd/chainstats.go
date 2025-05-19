@@ -43,7 +43,7 @@ type seqStats struct {
 
 func runChainStats() {
 	maxInflation := ledger.L().BranchInflationBonusBase()
-	buckets := make([]int, numBuckets)
+	buckets := make([]int, _numBuckets)
 	sequencers := make(map[base.ChainID]*seqStats)
 	numBranches := 0
 	var maxBib, minBib uint64
@@ -88,12 +88,12 @@ func runChainStats() {
 		seqStatsRec.numBranches++
 		seqStatsRec.sumInflation += bib
 
-		if numBranches >= maxRoots {
+		if numBranches >= _maxRoots {
 			return false
 		}
 		return true
 	})
-	glb.Infof("distribution of branch inflation bonus among %d branch records:\n    minimum: %s\n    maximum: %s\nBuckets:",
+	glb.Infof("\ndistribution of branch inflation bonus among %d branch records in the main chain:\n    minimum: %s\n    maximum: %s\nBy buckets:",
 		numBranches, util.Th(minBib), util.Th(maxBib))
 
 	for i, n := range buckets {
