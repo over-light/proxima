@@ -147,7 +147,10 @@ func runChainStats() {
 		)
 	}
 
+	glb.Infof("\nwinning branch by BIB score in the slot:")
+
 	numBranches = 0
+	maxBranchesInSlot := 0
 	multistate.IterateSlotsBack(glb.StateStore(), func(slot base.Slot, roots []multistate.RootRecord) bool {
 		branches := multistate.FetchBranchDataMulti(glb.StateStore(), roots...)
 		// sort by inflation descending
@@ -174,17 +177,25 @@ func runChainStats() {
 				outOf: len(branches),
 			}
 		}
+		maxBranchesInSlot = max(maxBranchesInSlot, len(branches))
 		if numBranches >= _maxRoots {
 			return false
 		}
 		return true
 	})
 
-	glb.Infof("\nwinning branch by BIB score in the slot:")
 	branchIDs := util.KeysSorted(chainBranches, func(id1, id2 base.TransactionID) bool {
 		return id1.Slot() < id2.Slot()
 	})
+	buckets := make([]int, maxBranchesInSlot)
 	for _, branchID := range branchIDs {
-		glb.Infof("   %s  %d / %d", branchID.String(), chainBranches[branchID].score, chainBranches[branchID].outOf)
+		//glb.Infof("   %s  %d / %d", branchID.String(), chainBranches[branchID].score, chainBranches[branchID].outOf)
+		buckets[chainBranches[branchID].score]++
 	}
+
+	glb.Infof("by buckets:\n")
+	for i, no := range buckets {
+		glb.Infof("  bucket #%d: %d (%.1f%%)", i, no, (float64(no)*100)/float64(len(branchIDs)))
+	}
+
 }
