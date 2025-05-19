@@ -113,7 +113,7 @@ func _predVRFProof : evalArgumentBytecode(
 )
 
 // $0 - predecessor output id
-// $1 - VRF proof (signed data is concatenation of VRF proof from stem predecessor and slot of the transaction)
+// $1 - VRF proof (ED25519 signature of concatenation of VRF proof from the stem predecessor and slot of the transaction)
 // does not require unlock parameters
 func stemLock: and(
 	require(isBranchTransaction, !!!must_be_a_branch_transaction),
@@ -131,7 +131,7 @@ func stemLock: and(
           ),
              // enforce correct VRF proof on successor
 		  require(
-             vrfVerify(publicKeyED25519(txSignature), _vrfProofOnSuccessor, blake2b(concat($1, txTimeSlot))), 
+             validSignatureED25519(concat($1, txTimeSlot), _vrfProofOnSuccessor, publicKeyED25519(txSignature)), 
              !!!VRF_proof_check_failed
           )
        ),

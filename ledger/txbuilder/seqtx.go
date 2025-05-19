@@ -2,7 +2,6 @@ package txbuilder
 
 import (
 	"crypto/ed25519"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
@@ -10,8 +9,6 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
-	"github.com/yoseplee/vrf"
-	"golang.org/x/crypto/blake2b"
 )
 
 // MakeSequencerTransactionParams contains parameters for the sequencer transaction builder
@@ -112,15 +109,10 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		if !ok {
 			return nil, nil, errP(err, "inconsistency: cannot find previous stem")
 		}
-		pubKey := par.PrivateKey.Public().(ed25519.PublicKey)
-		msg := blake2b.Sum256(common.Concat(prevStem.VRFProof, par.Timestamp.Slot.Bytes()))
-		vrfProof, _, err = vrf.Prove(pubKey, par.PrivateKey, msg[:])
-		bib := ledger.L().BranchInflationBonusFromRandomnessProof(vrfProof)
-		fmt.Printf(">>>>> VRF msg: %s  proof: %s bib: %s\n", hex.EncodeToString(msg[:]), hex.EncodeToString(vrfProof), util.Th(bib))
 
-		if err != nil {
-			return nil, nil, errP(err, "while generating VRF randomness proof")
-		}
+		// sign concatenation of predecessor VRFProof with slot number and next VRF proof
+		msg := common.Concat(prevStem.VRFProof, par.Timestamp.Slot.Bytes())
+		vrfProof = ed25519.Sign(par.PrivateKey, msg[:])
 	}
 
 	var mainChainInflationAmount uint64

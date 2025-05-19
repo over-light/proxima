@@ -96,16 +96,7 @@ func calcChainInflationAmount :
 
 // $0 - VRF proof
 // returns 8 bytes of big-endian uint64 value in the range from 1 to constBranchInflationBonusBase (inclusive)
-// taken from the VRF proof
+// taken from the VRF proof (ED25519 signature). Output of this function is verifiable randomness
 func branchInflationBonusFromRandomnessProof :
     add(randomFromSeed($0, constBranchInflationBonusBase), 1)
 `
-
-// This is wrong as it introduces statistical bias towards small values
-// Instead of modulus operation, BigInt scaling of the blake2b-256 hash should be used
-
-//func branchInflationBonusFromRandomnessProof :
-//mod(
-//   slice(blake2b($0),0,7),
-//   add(constBranchInflationBonusBase, u64/1)
-//)

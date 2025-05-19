@@ -9,7 +9,6 @@ import (
 	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
-	"github.com/yoseplee/vrf"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -41,7 +40,6 @@ var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
 	"at":             evalPath,
 	"atPath":         evalAtPath,
 	"ticksBefore":    evalTicksBefore64,
-	"vrfVerify":      evalVRFVerify,
 	"randomFromSeed": evalRandomFromSeed,
 }
 
@@ -82,11 +80,6 @@ functions:
       numArgs: 2
       embedded: true
    -
-      sym: vrfVerify
-      description: "Verifiable Random Function (VRF) verification, where $0 is public key, $1 is proof, $2 is message"
-      numArgs: 3
-      embedded: true
-   -
       sym: randomFromSeed
       description: "uses $0 as seed to deterministically calculate a pseudo-random value. Returns 8-byte big-endian integer bytes in the interval [0,$1)"
       numArgs: 2
@@ -101,26 +94,6 @@ func evalPath(par *easyfl.CallParams) []byte {
 
 func evalAtPath(par *easyfl.CallParams) []byte {
 	return par.AllocData(par.DataContext().(*DataContext).DataTree().BytesAtPath(par.Arg(0))...)
-}
-
-// evalVRFVerify: embedded VRF verifier. Dependency on unverified external crypto library
-// arg 0 - pubkey
-// arg 1 - proof
-// arg 2 - msg
-func evalVRFVerify(par *easyfl.CallParams) []byte {
-	var ok bool
-	err := util.CatchPanicOrError(func() error {
-		var err1 error
-		ok, err1 = vrf.Verify(par.Arg(0), par.Arg(1), par.Arg(2))
-		return err1
-	})
-	if err != nil {
-		par.Trace("'vrfVerify embedded' failed with: %v", err)
-	}
-	if err == nil && ok {
-		return par.AllocData(0xff)
-	}
-	return nil
 }
 
 func evalRandomFromSeed(par *easyfl.CallParams) []byte {
@@ -167,12 +140,9 @@ func evalTicksBefore64(par *easyfl.CallParams) []byte {
 
 // RandomFromSeed returns a random uin64 number in [0, scale) by scaling the data
 // value as BigInt to the interval [0, scale). The 'scale' value itself is not included
-// NOTE 1: this function is critical for determinism of the ledger
-// NOTE 2: several other attempts to generate uniformly distributed value in the interval lead to big bias towards small values
-// NOTE 3: taking hash(hash(data)) because taking 1 hash strong bias remains
+// It is used to extract a verifiable random uint64 from a ED25519 signature.
 func RandomFromSeed(data []byte, scale uint64) uint64 {
 	h := blake2b.Sum256(data)
-	h = blake2b.Sum256(h[:])
 	ret := new(big.Int).SetBytes(h[:])
 	ret.Mod(ret, new(big.Int).SetUint64(scale))
 	return ret.Uint64()

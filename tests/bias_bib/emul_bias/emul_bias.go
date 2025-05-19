@@ -10,7 +10,6 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/lunfardo314/unitrie/common"
-	"github.com/yoseplee/vrf"
 )
 
 const (
@@ -29,7 +28,6 @@ func main() {
 	}
 
 	curProof := make([]byte, 96)
-	var err error
 	optionsProofs := make([][]byte, nSecrets)
 	buckets := make([]int, nBuckets)
 
@@ -41,8 +39,7 @@ func main() {
 
 		msg := common.Concat(slotBin[:], curProof[:])
 		for j := range optionsProofs {
-			optionsProofs[j], _, err = vrf.Prove(pubKeys[j], secrets[j], msg[:])
-			util.AssertNoError(err)
+			optionsProofs[j] = ed25519.Sign(secrets[j], msg[:])
 		}
 
 		curProof = util.Maximum(optionsProofs, func(proof1, proof2 []byte) bool {
