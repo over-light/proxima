@@ -151,7 +151,8 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 	go func() {
 		for p := range task.proposalChan {
 			if task.targetTs.IsSlotBoundary() {
-				task.Log().Infof(">>>>>>>>>> %s -> branch proposed: %s", task.Name, util.Th(p.coverageDelta))
+				task.Log().Infof(">>>>>>>>>> %s -> branch proposed: delta: %s, inflation: %s",
+					task.Name, util.Th(p.coverageDelta), util.Th(p.tx.InflationAmount()))
 			}
 			proposals[p.tx.ID()] = p
 			task.slotData.ProposalSubmitted(p.strategyShortName)
