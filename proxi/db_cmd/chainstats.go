@@ -41,6 +41,8 @@ type seqStats struct {
 	sumInflation uint64
 	minBalance   uint64
 	maxBalance   uint64
+	minSlot      int
+	maxSlot      int
 }
 
 func runChainStats() {
@@ -95,6 +97,12 @@ func runChainStats() {
 			seqStatsRec.minBalance = min(br.SequencerOutput.Output.Amount(), seqStatsRec.minBalance)
 		}
 		seqStatsRec.maxBalance = max(br.SequencerOutput.Output.Amount(), seqStatsRec.maxBalance)
+		if seqStatsRec.minSlot == 0 {
+			seqStatsRec.minSlot = int(br.SequencerOutput.ID.Slot())
+		} else {
+			seqStatsRec.minSlot = min(int(br.SequencerOutput.ID.Slot()), seqStatsRec.minSlot)
+		}
+		seqStatsRec.maxSlot = max(int(br.SequencerOutput.ID.Slot()), seqStatsRec.maxSlot)
 
 		if numBranches >= _maxRoots {
 			return false
@@ -114,10 +122,11 @@ func runChainStats() {
 
 	for _, seqID := range seqIDs {
 		seqStatsRec := sequencers[seqID]
-		glb.Infof("   %s  %6d (%.1f%%)  avg BIB: %s, balance: min = %s  max = %s",
+		glb.Infof("   %s  %6d branches (%.1f%%), %6d slots, avg BIB: %s, balance: min = %s  max = %s",
 			seqID.String(),
 			seqStatsRec.numBranches,
 			float64(seqStatsRec.numBranches)*100/float64(numBranches),
+			seqStatsRec.maxSlot-seqStatsRec.minSlot+1,
 			util.Th(seqStatsRec.sumInflation/uint64(seqStatsRec.numBranches)),
 			util.Th(seqStatsRec.minBalance),
 			util.Th(seqStatsRec.maxBalance),
