@@ -114,7 +114,7 @@ func runChainStats() {
 
 	for _, seqID := range seqIDs {
 		seqStatsRec := sequencers[seqID]
-		glb.Infof("   %s  %6d (%.1f%%)  avg BIB: %s, balance: %s - %s",
+		glb.Infof("   %s  %6d (%.1f%%)  avg BIB: %s, balance: min = %s  max = %s",
 			seqID.String(),
 			seqStatsRec.numBranches,
 			float64(seqStatsRec.numBranches)*100/float64(numBranches),
