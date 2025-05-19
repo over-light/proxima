@@ -96,6 +96,7 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 		hrString:          hrString,
 		coverageDelta:     coverageDelta,
 		ledgerCoverage:    ledgerCoverage,
+		inflation:         tx.InflationAmount(),
 		attacherName:      a.Name(),
 		strategyShortName: p.strategy.ShortName,
 	}
@@ -151,7 +152,7 @@ func (p *proposer) ChooseFirstExtendEndorsePair(shuffleEndorseCandidates bool, p
 		}
 
 		if !ledger.ValidTransactionPace(endorse.Timestamp(), p.targetTs) {
-			// cannot endorse candidate because of ledger time constraint
+			// cannot endorse the candidate because of ledger time constraint
 			p.Tracef(TraceTagChooseFirstExtendEndorsePair, ">>>>>>>>>>>>>>> !ledger.ValidTransactionPace target %s -> endorse %s",
 				endorse.Timestamp().String(), p.targetTs.String())
 			continue

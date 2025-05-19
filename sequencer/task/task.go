@@ -59,6 +59,7 @@ type (
 		hrString          string
 		coverageDelta     uint64
 		ledgerCoverage    uint64
+		inflation         uint64
 		attacherName      string
 		strategyShortName string
 	}
@@ -150,10 +151,10 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 
 	go func() {
 		for p := range task.proposalChan {
-			if task.targetTs.IsSlotBoundary() {
-				task.Log().Infof(">>>>>>>>>> %s -> branch proposed: delta: %s, inflation: %s",
-					task.Name, util.Th(p.coverageDelta), util.Th(p.tx.InflationAmount()))
-			}
+			//if task.targetTs.IsSlotBoundary() {
+			//	task.Log().Infof(">>>>>>>>>> %s -> branch proposed: delta: %s, inflation: %s",
+			//		task.Name, util.Th(p.coverageDelta), util.Th(p.tx.InflationAmount()))
+			//}
 			proposals[p.tx.ID()] = p
 			task.slotData.ProposalSubmitted(p.strategyShortName)
 			task.EvidenceProposal(p.strategyShortName)
@@ -173,10 +174,12 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 
 	proposalsSlice := maps.Values(proposals)
 	best := util.Maximum(proposalsSlice, func(p1, p2 *proposal) bool {
+		c1 := p1.coverageDelta + p1.inflation
+		c2 := p2.coverageDelta + p2.inflation
 		switch {
-		case p1.coverageDelta < p2.coverageDelta:
+		case c1 < c2:
 			return true
-		case p1.coverageDelta == p2.coverageDelta:
+		case c1 == c2:
 			// out of two with equal coverage, we select the one with less size
 			return p1.txSize > p2.txSize
 		}
