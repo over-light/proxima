@@ -6,14 +6,14 @@ import (
 	"github.com/lunfardo314/proxima/util"
 )
 
-// boot proposer generates non-branch transaction proposals with LRB as explicit baseline
-// when own latest milestone is more than 1 slot in the past from now
-// The purpose of it is to bootstrap the network. When network starts from scratch, all start UTXOs of sequencers
-// are in the past. It makes impossible to issue sequencer transaction with implicit baseline,
+// boot proposer generates non-branch transaction proposals with LRB as an explicit baseline
+// when the own latest milestone is more than 1 slot in the past from now
+// The purpose of it is to bootstrap the network. When the network starts from scratch, all start UTXOs of sequencers
+// are in the past. It makes it impossible to issue sequencer transaction with the implicit baseline,
 // because there's no what to endorse.
-// With boot proposer, sequencer issues non-branch transactions by bypassing endorsement and setting explicit
-// baseline branch. Thus, transaction can be solidified and when several sequencers are issuing bootstrap transactions,
-// the next ones can endorse it and ledger coverage start groving.
+// With boot proposer, sequencer issues non-branch transactions by bypassing endorsement and setting an explicit
+// baseline branch. Thus, transaction can be solidified, and when several sequencers are issuing bootstrap transactions,
+// the next ones can endorse it and ledger coverage starts growing.
 // After the bootstrap phase, the boot proposer becomes idle
 
 const (

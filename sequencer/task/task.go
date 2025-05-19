@@ -104,7 +104,7 @@ func allProposingStrategies() []*proposerStrategy {
 }
 
 // Run starts taskData with the aim to generate sequencer transaction for the target ledger time.
-// The proposer taskData consist of several proposers (goroutines)
+// The proposer taskData consists of several proposers (goroutines)
 // Each proposer generates proposals and writes it to the channel of the taskData.
 // The best proposal is selected and returned. Function only returns transaction which is better
 // than others in the tippool for the current slot. Otherwise, returns nil
@@ -143,13 +143,16 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 	// reads all proposals from proposers into the slice
 	// stops reading when all goroutines exit
 
-	// channel is needed to make sure reading loop has ended
+	// chanel is needed to make sure the reading loop has ended
 	readStop := make(chan struct{})
 
 	proposals := make(map[base.TransactionID]*proposal)
 
 	go func() {
 		for p := range task.proposalChan {
+			if task.targetTs.IsSlotBoundary() {
+				task.Log().Infof(">>>>>>>>>> %s -> branch proposed: %s", task.Name, util.Th(p.coverageDelta))
+			}
 			proposals[p.tx.ID()] = p
 			task.slotData.ProposalSubmitted(p.strategyShortName)
 			task.EvidenceProposal(p.strategyShortName)
@@ -170,16 +173,16 @@ func Run(env environment, targetTs base.LedgerTime, slotData *SlotData) (*transa
 	proposalsSlice := maps.Values(proposals)
 	best := util.Maximum(proposalsSlice, func(p1, p2 *proposal) bool {
 		switch {
-		case p1.ledgerCoverage < p2.ledgerCoverage:
+		case p1.coverageDelta < p2.coverageDelta:
 			return true
-		case p1.ledgerCoverage == p2.ledgerCoverage:
-			// out of two with equal coverage we select the one with less size
+		case p1.coverageDelta == p2.coverageDelta:
+			// out of two with equal coverage, we select the one with less size
 			return p1.txSize > p2.txSize
 		}
 		return false
 	})
 
-	// check if newly generated non-branch transaction has coverage strongly bigger than previously generated
+	// check if the newly generated non-branch transaction has coverage strongly bigger than the previously generated
 	// non-branch transaction on the same slot
 	ownLatest := env.OwnLatestMilestoneOutput().VID
 	if !ownLatest.IsBranchTransaction() && ownLatest.Slot() == targetTs.Slot && best.ledgerCoverage <= ownLatest.GetLedgerCoverage() {

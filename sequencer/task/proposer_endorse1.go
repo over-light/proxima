@@ -24,8 +24,8 @@ func endorse1ProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool)
 		// the proposer does not generate branch transactions
 		return nil, true
 	}
-	// choose extend-endorse pair with optimization. If that pair was chosen in the past and newOutputs didn't arrive
-	// since last check, use that pair to create new attacher (if not conflicting)
+	// choose an extend-endorse pair with optimization. If that pair was chosen in the past and newOutputs didn't arrive
+	// since last check, use that pair to create a new attacher (if not conflicting)
 	newOutputsArrived := p.Backlog().ArrivedOutputsSince(p.taskData.slotData.lastTimeBacklogCheckedE1)
 	p.taskData.slotData.lastTimeBacklogCheckedE1 = time.Now()
 	a := p.ChooseFirstExtendEndorsePair(false, func(extend vertex.WrappedOutput, endorse *vertex.WrappedTx) bool {
