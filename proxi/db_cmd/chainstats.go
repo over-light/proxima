@@ -187,14 +187,14 @@ func runChainStats() {
 	branchIDs := util.KeysSorted(chainBranches, func(id1, id2 base.TransactionID) bool {
 		return id1.Slot() < id2.Slot()
 	})
-	buckets := make([]int, maxBranchesInSlot)
+	buckets1 := make([]int, maxBranchesInSlot)
 	for _, branchID := range branchIDs {
 		//glb.Infof("   %s  %d / %d", branchID.String(), chainBranches[branchID].score, chainBranches[branchID].outOf)
-		buckets[chainBranches[branchID].score]++
+		buckets1[chainBranches[branchID].score]++
 	}
 
 	glb.Infof("by buckets:\n")
-	for i, no := range buckets {
+	for i, no := range buckets1 {
 		glb.Infof("  bucket #%d: %d (%.1f%%)", i, no, (float64(no)*100)/float64(len(branchIDs)))
 	}
 
