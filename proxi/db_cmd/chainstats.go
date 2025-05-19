@@ -39,6 +39,8 @@ func runDBChainStatsCmd(_ *cobra.Command, _ []string) {
 type seqStats struct {
 	numBranches  int
 	sumInflation uint64
+	minBalance   uint64
+	maxBalance   uint64
 }
 
 func runChainStats() {
@@ -87,6 +89,12 @@ func runChainStats() {
 		}
 		seqStatsRec.numBranches++
 		seqStatsRec.sumInflation += bib
+		if seqStatsRec.minBalance == 0 {
+			seqStatsRec.minBalance = br.SequencerOutput.Output.Amount()
+		} else {
+			seqStatsRec.minBalance = min(br.SequencerOutput.Output.Amount(), seqStatsRec.minBalance)
+		}
+		seqStatsRec.maxBalance = max(br.SequencerOutput.Output.Amount(), seqStatsRec.maxBalance)
 
 		if numBranches >= _maxRoots {
 			return false
@@ -105,11 +113,14 @@ func runChainStats() {
 	})
 
 	for _, seqID := range seqIDs {
-		glb.Infof("   %s  %6d (%.1f%%)  avg BIB = %s)",
+		seqStatsRec := sequencers[seqID]
+		glb.Infof("   %s  %6d (%.1f%%)  avg BIB: %s, balance: %s - %s",
 			seqID.String(),
-			sequencers[seqID].numBranches,
-			float64(sequencers[seqID].numBranches)*100/float64(numBranches),
-			util.Th(sequencers[seqID].sumInflation/uint64(sequencers[seqID].numBranches)),
+			seqStatsRec.numBranches,
+			float64(seqStatsRec.numBranches)*100/float64(numBranches),
+			util.Th(seqStatsRec.sumInflation/uint64(seqStatsRec.numBranches)),
+			util.Th(seqStatsRec.minBalance),
+			util.Th(seqStatsRec.maxBalance),
 		)
 	}
 }
