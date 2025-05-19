@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	nRepeat  = 1000
+	nRepeat  = 2000
 	nSecrets = 5
 	nBuckets
 	scale = 5_000_000

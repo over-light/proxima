@@ -137,7 +137,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		}
 	}
 
-	// total input amount on chain
+	// total input amount on the chain
 	chainInAmount := par.ChainInput.Output.Amount()
 
 	// check if withdrawals are possible
