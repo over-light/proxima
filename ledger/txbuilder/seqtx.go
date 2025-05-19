@@ -2,6 +2,7 @@ package txbuilder
 
 import (
 	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/lunfardo314/proxima/ledger"
@@ -114,6 +115,9 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		pubKey := par.PrivateKey.Public().(ed25519.PublicKey)
 		msg := blake2b.Sum256(common.Concat(prevStem.VRFProof, par.Timestamp.Slot.Bytes()))
 		vrfProof, _, err = vrf.Prove(pubKey, par.PrivateKey, msg[:])
+		bib := ledger.L().BranchInflationBonusFromRandomnessProof(vrfProof)
+		fmt.Printf(">>>>> VRF msg: %s  proof: %s bib: %s\n", hex.EncodeToString(msg[:]), hex.EncodeToString(vrfProof), util.Th(bib))
+
 		if err != nil {
 			return nil, nil, errP(err, "while generating VRF randomness proof")
 		}
