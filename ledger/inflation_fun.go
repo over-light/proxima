@@ -43,15 +43,6 @@ func (lib *Library) BranchInflationBonusBase() uint64 {
 
 }
 
-// wrong. Was replaced with hash scaling
-//func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
-//	h := blake2b.Sum256(proof)
-//	num := binary.BigEndian.Uint64(h[:8])
-//	denom := lib.BranchInflationBonusBase() + 1
-//	ret := num % denom
-//	return ret
-//}
-
 func (lib *Library) BranchInflationBonusDirect(proof []byte) uint64 {
 	return base.RandomFromSeed(proof, lib.BranchInflationBonusBase()) + 1
 }

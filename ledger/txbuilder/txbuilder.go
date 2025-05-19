@@ -109,7 +109,7 @@ func (txb *TransactionBuilder) PutUnlockParams(inputIndex, constraintIndex byte,
 	txb.TransactionData.UnlockBlocks[inputIndex].array.PutAtIdxWithPadding(constraintIndex, unlockParamData)
 }
 
-// PutSignatureUnlock marker 0xff references signature of the transaction.
+// PutSignatureUnlock marker 0xff references the signature of the transaction.
 // It can be distinguished from any reference because it cannot be strictly less than any other reference
 func (txb *TransactionBuilder) PutSignatureUnlock(inputIndex byte) {
 	txb.PutUnlockParams(inputIndex, ledger.ConstraintIndexLock, []byte{0xff})
