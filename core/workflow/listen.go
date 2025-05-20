@@ -9,7 +9,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/transaction"
 )
 
-// ListenToAccount listens to all outputs which belongs to the account (except stem-locked outputs)
+// ListenToAccount listens to all outputs that belong to the account (except stem-locked outputs)
 func (w *Workflow) ListenToAccount(account ledger.Accountable, fun func(wOut vertex.WrappedOutput)) {
 	w.events.OnEvent(EventNewTx, func(vid *vertex.WrappedTx) {
 		var _indices [256]byte
