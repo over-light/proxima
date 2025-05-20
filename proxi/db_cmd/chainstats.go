@@ -65,12 +65,14 @@ func runChainStats() {
 	glb.Assertf(lrb != nil, "no latest reliable branch found")
 
 	chainBranches := make(map[base.TransactionID]winningBranch)
-
+	bibSum := uint64(0)
 	multistate.IterateBranchChainBack(glb.StateStore(), lrb, func(branchID *base.TransactionID, br *multistate.BranchData) bool {
 		chainBranches[br.TxID()] = winningBranch{}
 
 		bib := br.SequencerOutput.Output.Inflation()
 		numBranches++
+		bibSum += bib
+
 		if bib == 0 {
 			return true
 		}
@@ -122,8 +124,8 @@ func runChainStats() {
 		}
 		return true
 	})
-	glb.Infof("\ndistribution of branch inflation bonus among %d branch records in the main chain:\n    minimum: %s\n    maximum: %s\nBy buckets:",
-		numBranches, util.Th(minBib), util.Th(maxBib))
+	glb.Infof("\ndistribution of branch inflation bonus among %d branch records in the main chain:\n    minimum: %s\n    maximum: %s    avg: %s\nBy buckets:",
+		numBranches, util.Th(minBib), util.Th(maxBib), util.Th(bibSum/uint64(numBranches)))
 
 	for i, n := range buckets {
 		glb.Infof("%d: %d (%.1f%%)", i, n, (float64(n)*100)/float64(numBranches))
