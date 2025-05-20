@@ -350,7 +350,8 @@ func (pc *PastCone) forAllVertices(fun func(vid *WrappedTx) bool, sortAsc ...boo
 func (pc *PastCone) Lines(prefix ...string) *lines.Lines {
 	ret := lines.New(prefix...)
 	ret.Add("------ past cone: '%s'", pc.name).
-		Add("------ baseline: %s", pc.baselineBranchID.StringShort())
+		Add("------ baseline: %s", pc.baselineBranchID.StringShort()).
+		Add("------ tip: %s", pc.tip.IDShortString())
 
 	counter := 0
 	pc.forAllVertices(func(vid *WrappedTx) bool {
@@ -694,11 +695,11 @@ func (pc *PastCone) checkFinalFlags(vid *WrappedTx) error {
 	case vid.IsBranchTransaction():
 		if pc.baselineBranchID == nil {
 			if vid.ID() != pc.tip.ID() {
-				return fmt.Errorf("checkFinalFlags: inconsistent baseline 1")
+				return fmt.Errorf("checkFinalFlags: inconsistent baseline 1 %s", vid.IDShortString())
 			}
 		} else {
 			if vid.ID() != pc.tip.ID() && vid.ID() != *pc.baselineBranchID {
-				return fmt.Errorf("checkFinalFlags: inconsistent baseline 2")
+				return fmt.Errorf("checkFinalFlags: inconsistent baseline 2 %s", vid.IDShortString())
 			}
 		}
 	default:
