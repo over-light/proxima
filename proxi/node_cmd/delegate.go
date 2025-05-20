@@ -19,7 +19,7 @@ var targetChainIDStr string
 
 func initDelegateCmd() *cobra.Command {
 	delegateCmd := &cobra.Command{
-		Use:     "delegate <amount> -q <target sequencer id hex encoded>",
+		Use:     "delegate <amount> [-q <target sequencer id hex encoded. Defaults to own sequencer>.]",
 		Aliases: util.List("send"),
 		Short:   `delegates amount to target sequencer by creating delegation chain output`,
 		Args:    cobra.ExactArgs(1),
@@ -42,10 +42,20 @@ func runDelegateCmd(_ *cobra.Command, args []string) {
 
 	glb.Infof("wallet account is: %s", walletData.Account.String())
 
-	glb.Assertf(targetChainIDStr != "", "target sequencer id not specified")
+	var err error
+	var targetSeqID base.ChainID
 
-	targetSeqID, err := base.ChainIDFromHexString(targetChainIDStr)
-	glb.Assertf(err == nil, "failed parsing target chainID: %v", err)
+	if targetChainIDStr == "" {
+		if id := glb.GetOwnSequencerID(); id == nil {
+			glb.Assertf(id != nil, "own sequencer not configured -> can't use as a default target sequencer")
+		} else {
+			targetSeqID = *id
+			glb.Infof("using own sequencer as a default target sequencer: %s", targetSeqID.String())
+		}
+	} else {
+		targetSeqID, err = base.ChainIDFromHexString(targetChainIDStr)
+		glb.Assertf(err == nil, "failed parsing target chainID: %v", err)
+	}
 
 	seqOut, _, _, err := glb.GetClient().GetChainOutput(targetSeqID)
 	glb.Assertf(err == nil, "can't find sequencer id %s: %v", targetSeqID.StringShort(), err)
