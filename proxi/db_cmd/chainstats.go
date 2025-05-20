@@ -58,6 +58,7 @@ func runChainStats() {
 	maxInflation := ledger.L().BranchInflationBonusBase()
 	buckets := make([]int, _numBuckets)
 	sequencers := make(map[base.ChainID]*seqStats)
+	allBibs := make([]uint64, 0, 100000)
 	numBranches := 0
 	var maxBib, minBib uint64
 
@@ -72,6 +73,7 @@ func runChainStats() {
 		bib := br.SequencerOutput.Output.Inflation()
 		numBranches++
 		bibSum += bib
+		allBibs = append(allBibs, bib)
 
 		if bib == 0 {
 			return true
@@ -124,8 +126,9 @@ func runChainStats() {
 		}
 		return true
 	})
-	glb.Infof("\ndistribution of branch inflation bonus among %d branch records in the main chain:\n    minimum: %s\n    maximum: %s\n    avg:     %s\nBy buckets:",
-		numBranches, util.Th(minBib), util.Th(maxBib), util.Th(bibSum/uint64(numBranches)))
+
+	glb.Infof("\ndistribution of branch inflation bonus among %d branch records in the main chain:\n    minimum: %s\n    maximum: %s\n    avg:     %s\n    median:  %s\nBy buckets:",
+		numBranches, util.Th(minBib), util.Th(maxBib), util.Th(bibSum/uint64(numBranches)), util.Th(util.Median(allBibs)))
 
 	for i, n := range buckets {
 		glb.Infof("%d: %d (%.1f%%)", i, n, (float64(n)*100)/float64(numBranches))
