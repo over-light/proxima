@@ -124,7 +124,7 @@ func runChainStats() {
 		}
 		return true
 	})
-	glb.Infof("\ndistribution of branch inflation bonus among %d branch records in the main chain:\n    minimum: %s\n    maximum: %s\n    avg: %s\nBy buckets:",
+	glb.Infof("\ndistribution of branch inflation bonus among %d branch records in the main chain:\n    minimum: %s\n    maximum: %s\n    avg:     %s\nBy buckets:",
 		numBranches, util.Th(minBib), util.Th(maxBib), util.Th(bibSum/uint64(numBranches)))
 
 	for i, n := range buckets {
