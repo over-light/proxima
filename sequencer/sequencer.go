@@ -55,7 +55,7 @@ type (
 		ownMilestonesMutex sync.RWMutex
 		ownMilestones      map[*vertex.WrappedTx]outputsWithTime // map ms -> consumed outputs in the past
 
-		// keeping counters for each referenced vid. When counter reaches 0, vid is deleted from the map
+		// keeping counters for each referenced vid. When the counter reaches 0, the vid is deleted from the map
 		mutexReferenceCounters sync.Mutex
 
 		milestoneCount  int
@@ -68,7 +68,8 @@ type (
 		onMilestoneSubmitted func(seq *Sequencer, vid *vertex.WrappedTx)
 		onExit               func()
 
-		slotData *task.SlotData
+		slotData           *task.SlotData
+		wontSubmitBranchID base.TransactionID
 
 		metrics *sequencerMetrics
 	}
@@ -482,7 +483,12 @@ const disconnectTolerance = 4 * time.Second
 // decideSubmitMilestone branch transactions are issued only if healthy, or bootstrap mode enabled
 func (seq *Sequencer) decideSubmitMilestone(tx *transaction.Transaction, meta *txmetadata.TransactionMetadata) bool {
 	if seq.DurationSinceLastMessageFromPeer() >= disconnectTolerance {
-		seq.Log().Infof("WON'T SUBMIT BRANCH %s: node is disconnected for %v", seq.DurationSinceLastMessageFromPeer())
+		if seq.wontSubmitBranchID != tx.ID() {
+			// prevent excess logging of the same message
+			seq.Log().Warnf("WON'T SUBMIT BRANCH %s: node is disconnected for %v", seq.DurationSinceLastMessageFromPeer())
+			seq.wontSubmitBranchID = tx.ID()
+			return false
+		}
 		return false
 	}
 	if tx.IsBranchTransaction() {
@@ -495,9 +501,13 @@ func (seq *Sequencer) decideSubmitMilestone(tx *transaction.Transaction, meta *t
 				util.Th(*meta.LedgerCoverage), util.Th(tx.InflationAmount()))
 			return true
 		}
-		seq.Log().Infof("WON'T SUBMIT BRANCH %s. Now: %s, p: %s, cov.delta: %s/%s, supply: %s, infl: %s, slot infl: %s",
-			tx.IDShortString(), ledger.TimeNow().String(), tx.SequencerTransactionData().SequencerOutputData.MilestoneData.Name,
-			util.Th(*meta.LedgerCoverage), util.Th(*meta.CoverageDelta), util.Th(*meta.Supply), util.Th(tx.InflationAmount()), util.Th(*meta.SlotInflation))
+		if seq.wontSubmitBranchID != tx.ID() {
+			// prevent excess logging of the same message
+			seq.Log().Warnf("WON'T SUBMIT BRANCH %s. Now: %s, p: %s, cov.delta: %s/%s, supply: %s, infl: %s, slot infl: %s",
+				tx.IDShortString(), ledger.TimeNow().String(), tx.SequencerTransactionData().SequencerOutputData.MilestoneData.Name,
+				util.Th(*meta.LedgerCoverage), util.Th(*meta.CoverageDelta), util.Th(*meta.Supply), util.Th(tx.InflationAmount()), util.Th(*meta.SlotInflation))
+			seq.wontSubmitBranchID = tx.ID()
+		}
 		return false
 	}
 
