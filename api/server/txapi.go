@@ -131,6 +131,7 @@ func (srv *server) parseOutput(w http.ResponseWriter, r *http.Request) {
 		Data:        hex.EncodeToString(o.Bytes()),
 		Constraints: o.LinesPlain().Slice(),
 		Amount:      o.Amount(),
+		LockName:    o.Lock().Name(),
 	}
 	if cc, pos := o.ChainConstraint(); pos != 0xff {
 		var chainID base.ChainID
@@ -176,6 +177,7 @@ func (srv *server) parseOutputData(w http.ResponseWriter, r *http.Request) {
 		Data:        hex.EncodeToString(outBin),
 		Constraints: o.LinesPlain().Slice(),
 		Amount:      o.Amount(),
+		LockName:    o.Lock().Name(),
 	}
 	if cc, pos := o.ChainConstraint(); pos != 0xff {
 		resp.ChainID = hex.EncodeToString(cc.ID[:])
