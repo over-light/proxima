@@ -546,8 +546,8 @@ func (seq *Sequencer) waitMilestoneInTippool(txid base.TransactionID, deadline t
 			return nil, fmt.Errorf("waitMilestoneInTippool: %s has been cancelled", txid.StringShort())
 		case <-time.After(10 * time.Millisecond):
 			if time.Now().After(deadline) {
-				return nil, fmt.Errorf("waitMilestoneInTippool: deadline has been missed while waiting for %s in the tippool. hex=%s",
-					txid.StringShort(), txid.StringHex())
+				return nil, fmt.Errorf("waitMilestoneInTippool: deadline %v has been missed while waiting for %s in the tippool. hex=%s",
+					deadline, txid.StringShort(), txid.StringHex())
 			}
 		default:
 			vid := seq.GetLatestMilestone(seq.sequencerID)
