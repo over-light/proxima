@@ -24,13 +24,13 @@ start from `~700.000.000` upwards.
 
 ### How to delegate?
 
-At the core of _delegation_ is chain mechanism: inflation tokens are created "out of thin air" by building chains.
-User must create a new chain output with all the tokens he wants to delegate. This can be achieved with following command:
+At the core of _delegation_ is the chain mechanism: inflation tokens are created "out of thin air" by building chains.
+User must create a new chain output with all the tokens he wants to delegate. This can be achieved with the following command:
 
 `proxi node delegate <amount of tokens> -q <target sequencer ID>`
 
 The `<target sequencer ID>` is hex-encoded chain ID of the chosen target sequencer. 
-Normally target sequencer for delegation is selected based on its market parameters such as uptime and effective inflation rate. 
+Normally, the target sequencer for delegation is selected based on its market parameters such as uptime and effective inflation rate. 
 In the testnet you can find all sequencer chains with the following command:
 
 `proxi node allchains -q -d`
