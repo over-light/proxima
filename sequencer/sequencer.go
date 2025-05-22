@@ -406,8 +406,8 @@ func (seq *Sequencer) doSequencerStep() bool {
 	saveLastSubmittedTs := seq.lastSubmittedTs
 
 	meta.TxBytesReceived = util.Ref(time.Now())
-	msVID := seq.submitMilestone(msTx, meta)
-	if msVID != nil {
+
+	if msVID := seq.submitMilestone(msTx, meta); msVID != nil {
 		if saveLastSubmittedTs.IsSlotBoundary() && msVID.Timestamp().IsSlotBoundary() {
 			seq.Log().Warnf("branch jumped over the slot: %s -> %s. Step started: %s, %d (%s), %v ago, nowis: %s",
 				saveLastSubmittedTs.String(), targetTs.String(),
@@ -426,12 +426,16 @@ func (seq *Sequencer) doSequencerStep() bool {
 		seq.updateInfo(msVID)
 		seq.runOnMilestoneSubmitted(msVID)
 		seq.onMilestoneSubmittedMetrics(msVID)
+
+		if targetTs.IsSlotBoundary() {
+			seq.Log().Infof("SLOT STATS: %s", seq.slotData.Lines().Join(", "))
+		}
 	}
 
 	if targetTs.IsSlotBoundary() {
-		seq.Log().Infof("SLOT STATS: %s", seq.slotData.Lines().Join(", "))
 		seq.slotData = nil
 	}
+
 	return true
 }
 
@@ -523,7 +527,9 @@ func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetad
 		return nil
 	}
 
+	// send transaction to the node's input queue
 	seq.OwnSequencerMilestoneIn(tx.Bytes(), meta)
+
 	vid, err := seq.waitMilestoneInTippool(tx.ID(), time.Now().Add(submitTimeout))
 	if err != nil {
 		seq.Log().Error(err)
