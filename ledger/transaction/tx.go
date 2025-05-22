@@ -997,7 +997,12 @@ func (tx *Transaction) BaselineDirection() (ret base.TransactionID) {
 		}
 	}
 	// the predecessor is cross-slot, or it is not a sequencer transaction.
-	// in the latter case, it enforces at least one endorsement
+	if tx.IsBranchTransaction() {
+		// for branch transactions, the baseline direction is the predecessor
+		ret = predOid.TransactionID()
+		return
+	}
+	// it enforces at least one endorsement
 	util.Assertf(tx.NumEndorsements() > 0, "tx.NumEndorsements()>0\n>>>>>>>>>>>>>>>>>>\n%s", tx.String())
 	ret = tx.EndorsementAt(0)
 	return
