@@ -102,7 +102,7 @@ func (b *Branches) getNoLock(branchID base.TransactionID) (*multistate.BranchDat
 	// fetch branch from the database and calculate ledger coverage
 	if rd, found := multistate.FetchRootRecord(b.StateStore(), branchID); found {
 		bdRec := multistate.FetchBranchDataByRoot(b.StateStore(), rd)
-		b.calcAndCacheLedgerCoverage(branchID.Slot(), &bdRec)
+		b.calcAndCacheLedgerCoverage(branchID.Slot(), &bdRec) // <<<<<<<<<<<< TODO bad because recursive getNoLock
 		bdRec.LastActive = time.Now()
 		b.m[branchID] = &bdRec
 		return &bdRec, true
