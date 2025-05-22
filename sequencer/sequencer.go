@@ -20,7 +20,6 @@ import (
 	"github.com/lunfardo314/proxima/sequencer/backlog"
 	"github.com/lunfardo314/proxima/sequencer/task"
 	"github.com/lunfardo314/proxima/util"
-	"github.com/lunfardo314/proxima/util/checkpoints"
 	"github.com/lunfardo314/proxima/util/set"
 	"go.uber.org/zap"
 )
@@ -517,34 +516,15 @@ func (seq *Sequencer) decideSubmitMilestone(tx *transaction.Transaction, meta *t
 	return true
 }
 
+const submitTimeout = 2 * time.Second
+
 func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetadata.TransactionMetadata) *vertex.WrappedTx {
 	if !seq.decideSubmitMilestone(tx, meta) {
 		return nil
 	}
 
-	//if tx.Timestamp() == base.NewLedgerTime(8, 12) {
-	//	seq.StartTracingTags(
-	//		attacher.TraceTagAttachMilestone,
-	//		attacher.TraceTagAttachVertex,
-	//		attacher.TraceTagValidateSequencer,
-	//	)
-	//}
-	const submitTimeout = 2 * time.Second
-	{
-		nm := "submit_" + tx.IDShortString()
-		check := checkpoints.New(func(name string) {
-			seq.Log().Fatalf("STUCK: submitMilestone @ %s", name)
-		})
-		check.Check(nm, submitTimeout)
-		defer check.CheckAndClose(nm)
-	}
-
 	seq.OwnSequencerMilestoneIn(tx.Bytes(), meta)
-
-	seq.Tracef(TraceTag, "new milestone %s submitted successfully", tx.IDShortString)
-
 	vid, err := seq.waitMilestoneInTippool(tx.ID(), time.Now().Add(submitTimeout))
-
 	if err != nil {
 		seq.Log().Error(err)
 		return nil
