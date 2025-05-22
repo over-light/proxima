@@ -3,6 +3,7 @@ package tests
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/ledger"
@@ -380,5 +381,66 @@ func TestChainSuccessorTransaction(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, util.Th(initAmount+inflation-fee), util.Th(u.Balance(addrs[0])))
 		require.EqualValues(t, initAmount, u.Balance(addrs[1]))
+	})
+	t.Run("benchmark tx validation", func(t *testing.T) {
+		u := utxodb.NewUTXODB(genesisPrivateKey, true)
+		const (
+			numAddr    = 100
+			initAmount = 100_000_000
+			fee        = 300
+		)
+		privKeys, _, addrs := u.GenerateAddressesWithFaucetAmount(1, numAddr, initAmount)
+
+		type txWithInputLoader struct {
+			txBytes     []byte
+			inputLoader func(i byte) (*ledger.Output, error)
+		}
+
+		txs := make([]txWithInputLoader, numAddr)
+
+		for i := range privKeys {
+			require.EqualValues(t, initAmount, u.Balance(addrs[i]))
+			ts := ledger.TimeNow()
+			if ts.IsSlotBoundary() {
+				ts = ts.AddTicks(10)
+			}
+			chainOrig, err := u.CreateChainOrigin(privKeys[i], ts)
+			require.NoError(t, err)
+
+			if chainOrig.Timestamp().IsSlotBoundary() {
+				ts = chainOrig.Timestamp().AddTicks(10).AddSlots(1)
+			} else {
+				ts = chainOrig.Timestamp().AddSlots(1)
+			}
+			par := txbuilder.MakeChainSuccTransactionParams{
+				ChainInput:        chainOrig,
+				Timestamp:         ts,
+				PrivateKey:        privKeys[i],
+				ReturnInputLoader: true,
+			}
+			txBytes, _, inputLoader, err := txbuilder.MakeChainSuccessorTransaction(&par)
+			require.NoError(t, err)
+
+			txs[i] = txWithInputLoader{
+				txBytes:     txBytes,
+				inputLoader: inputLoader,
+			}
+		}
+
+		start := time.Now()
+		for i := range txs {
+			tx, err := transaction.FromBytes(txs[i].txBytes, transaction.MainTxValidationOptions...)
+			require.NoError(t, err)
+
+			txCtx, err := transaction.TxContextFromTransaction(tx, txs[i].inputLoader)
+			require.NoError(t, err)
+
+			err = txCtx.Validate()
+			require.NoError(t, err)
+		}
+		elapsed := time.Since(start)
+		elapsedMillis := float64(elapsed) / float64(time.Millisecond)
+		t.Logf("time elapsed: %v", elapsed)
+		t.Logf("time per tx: %.2f ms", elapsedMillis/float64(numAddr))
 	})
 }

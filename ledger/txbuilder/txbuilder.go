@@ -291,7 +291,7 @@ type (
 		ChainInput *ledger.OutputWithChainID
 		// timestamp of the target transaction
 		Timestamp base.LedgerTime
-		// some amount sent to the target lock. It can be a tag-along output. Remainder goes to the chain
+		// some amount sent to the target lock. It can be a tag-along output. The remainder goes to the chain
 		WithdrawTarget ledger.Lock
 		WithdrawAmount uint64
 		// chain controller
@@ -601,7 +601,7 @@ func MakeSimpleTransferTransactionWithRemainder(par *TransferData, disableEndors
 
 // MakeChainSuccessorTransaction creates a transaction to continue a non-sequencer chain with inflation.
 // Optionally withdraws some amount to the target lock, which can be used as a tag-along output
-// Returns transaction adn inflation amount
+// Returns transaction and inflation amount
 func MakeChainSuccessorTransaction(par *MakeChainSuccTransactionParams) ([]byte, uint64, func(i byte) (*ledger.Output, error), error) {
 	var consumedOutputs []*ledger.Output
 	if par.ReturnInputLoader {
