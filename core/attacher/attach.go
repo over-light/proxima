@@ -8,7 +8,6 @@ import (
 	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
-	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/ledger/transaction"
 	"github.com/lunfardo314/proxima/util"
 )
@@ -49,8 +48,8 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 	util.Assertf(txid.IsBranchTransaction(), "txid.IsBranchTransaction()")
 
 	// new branch transaction. DB look-up is outside the global lock -> prevent congestion
-	//branchData, branchAvailable := env.Branches().Get(txid)
-	branchData, branchAvailable := multistate.FetchBranchData(env.StateStore(), txid)
+	branchData, branchAvailable := env.Branches().Get(txid)
+	//branchData, branchAvailable := multistate.FetchBranchData(env.StateStore(), txid)
 
 	env.WithGlobalWriteLock(func() {
 		if vid = env.GetVertexNoLock(txid); vid != nil {
