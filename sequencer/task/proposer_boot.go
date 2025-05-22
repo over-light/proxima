@@ -3,6 +3,7 @@ package task
 import (
 	"github.com/lunfardo314/proxima/core/attacher"
 	"github.com/lunfardo314/proxima/global"
+	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -29,10 +30,9 @@ func init() {
 }
 
 func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
-	//p.Tracef(TraceTagBootProposer, "IN base proposer %s", p.Name)
 	extend := p.OwnLatestMilestoneOutput()
 	if extend.VID == nil {
-		p.Log().Warnf("BootProposer-%s: can't find latest reliable branch", p.Name)
+		p.Log().Warnf("BootProposer-%s: can't find own latest milestone output", p.Name)
 		return nil, true
 	}
 
@@ -42,8 +42,9 @@ func bootProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bool) {
 		return nil, true
 	}
 
-	lrb := p.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)
-	if extend.VID == nil {
+	//lrb := p.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)
+	lrb := multistate.FindLatestReliableBranch(p.StateStore(), global.FractionHealthyBranch)
+	if lrb == nil {
 		p.Log().Warnf("BootProposer-%s: can't find latest reliable branch", p.Name)
 		return nil, true
 	}

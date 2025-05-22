@@ -519,7 +519,7 @@ func FindLatestReliableBranch(store StateStoreReader, fraction global.Fraction) 
 				return true
 			}
 		}
-		// branchID is known in all tip states. It is the reliable  one
+		// branchID is known in all tip states. It is the reliable one
 		branchFound = branch
 		return false
 	})

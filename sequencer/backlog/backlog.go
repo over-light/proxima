@@ -250,7 +250,8 @@ func (b *TagAlongBacklog) recreateMap() {
 
 // LoadSequencerStartTips loads tip transactions relevant to the sequencer startup from persistent state to the memDAG
 func (b *TagAlongBacklog) LoadSequencerStartTips(seqID base.ChainID) error {
-	branchData := b.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)
+	branchData := multistate.FindLatestReliableBranch(b.StateStore(), global.FractionHealthyBranch)
+	//branchData := b.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)
 	if branchData == nil {
 		return fmt.Errorf("LoadSequencerStartTips: can't find latest reliable branch (LRB) with franction %s", global.FractionHealthyBranch.String())
 	}
