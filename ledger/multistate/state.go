@@ -3,7 +3,6 @@ package multistate
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -51,8 +50,6 @@ type (
 		RootRecord
 		Stem            *ledger.OutputWithID
 		SequencerOutput *ledger.OutputWithID
-		LedgerCoverage  uint64    // calculated by 'branches' module
-		LastActive      time.Time // used for cleanup by 'branches' module
 	}
 )
 

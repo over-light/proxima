@@ -1050,8 +1050,8 @@ func TestAttachSeqChains(t *testing.T) {
 			}
 		}
 
-		distribBD, ok := testData.wrk.Branches().Get(testData.distributionBranchTxID)
-		require.True(t, ok)
+		distribBD := testData.wrk.Branches().Get(testData.distributionBranchTxID)
+		require.True(t, distribBD != nil)
 
 		chainIn := testData.seqChain[0][len(testData.seqChain[0])-1].SequencerOutput().MustAsChainOutput()
 		txBytesBranch, err := txbuilder.MakeSequencerTransaction(txbuilder.MakeSequencerTransactionParams{

@@ -18,11 +18,16 @@ type (
 		StateStore() multistate.StateStore
 	}
 
+	branchDataWithLedgerCoverage struct {
+		*multistate.BranchData
+		ledgerCoverage uint64
+		lastActive     time.Time
+	}
 	Branches struct {
 		environment
 		mutex            sync.Mutex
 		snapshotBranchID base.TransactionID
-		m                map[base.TransactionID]*multistate.BranchData
+		m                map[base.TransactionID]branchDataWithLedgerCoverage
 
 		// Cache of state readers. Single state (trie) reader for the branch/root. When accessed through the cache,
 		// reading is highly optimized because each state reader keeps its trie cache, so consequent calls to
@@ -47,7 +52,7 @@ func New(env environment) *Branches {
 	ret := &Branches{
 		environment:      env,
 		snapshotBranchID: multistate.FetchSnapshotBranchID(env.StateStore()),
-		m:                make(map[base.TransactionID]*multistate.BranchData),
+		m:                make(map[base.TransactionID]branchDataWithLedgerCoverage),
 		stateReaders:     make(map[base.TransactionID]*cachedStateReader),
 	}
 	env.RepeatInBackground("branches_cleanup", 5*time.Second, func() bool {
@@ -62,16 +67,16 @@ func New(env environment) *Branches {
 	return ret
 }
 
-func (b *Branches) Get(branchTxID base.TransactionID) (multistate.BranchData, bool) {
+func (b *Branches) Get(branchTxID base.TransactionID) *multistate.BranchData {
 	util.Assertf(branchTxID.IsBranchTransaction(), "branch transaction ID expected. Got %s", branchTxID.StringShort)
 
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if ret, ok := b.getNoLock(branchTxID); ok {
-		return *ret, ok
+	if ret, ok := b._getAndCacheNoLock(branchTxID); ok {
+		return ret.BranchData
 	}
-	return multistate.BranchData{}, false
+	return nil
 }
 
 func (b *Branches) SnapshotBranchID() base.TransactionID {
@@ -82,50 +87,60 @@ func (b *Branches) SnapshotSlot() base.Slot {
 	return b.snapshotBranchID.Slot()
 }
 
-func (b *Branches) getNoLock(branchID base.TransactionID) (*multistate.BranchData, bool) {
-	if bd, ok := b.m[branchID]; ok {
+func (b *Branches) _getAndCacheNoLock(branchID base.TransactionID) (branchDataWithLedgerCoverage, bool) {
+	bd, ok := b.m[branchID]
+	if ok {
 		if branchID.Slot() > 0 {
-			// branch record is in the cache. Ledger coverage (calculated) must always be greater or equal than coverage delta
-			b.Assertf(bd.LedgerCoverage >= bd.CoverageDelta, "bd.LedgerCoverage(%s) >= bd.CoverageDeltaRaw(%s) for %s",
-				util.Th(bd.LedgerCoverage), util.Th(bd.CoverageDelta), branchID.StringShort)
+			b.Assertf(bd.ledgerCoverage == 0 || bd.ledgerCoverage >= bd.CoverageDelta, "bd.ledgerCoverage == 0 || bd.LedgerCoverage(%s) >= bd.CoverageDeltaRaw(%s) for %s",
+				util.Th(bd.ledgerCoverage), util.Th(bd.CoverageDelta), branchID.StringShort)
 		}
-		bd.LastActive = time.Now()
+		bd.lastActive = time.Now()
+		b.m[branchID] = bd
 		return bd, true
 	}
 
 	if branchID.Slot() < b.snapshotBranchID.Slot() ||
 		(branchID.Slot() == b.snapshotBranchID.Slot() && branchID != b.snapshotBranchID) {
 		// the branch is impossible assuming the snapshot baseline
-		return nil, false
+		return branchDataWithLedgerCoverage{}, false
 	}
 
-	// fetch branch from the database and calculate ledger coverage
+	// fetch branch from the database
 	if rd, found := multistate.FetchRootRecord(b.StateStore(), branchID); found {
 		bdRec := multistate.FetchBranchDataByRoot(b.StateStore(), rd)
-		b.calcAndCacheLedgerCoverage(branchID.Slot(), &bdRec) // <<<<<<<<<<<< TODO bad because recursive getNoLock
-		bdRec.LastActive = time.Now()
-		b.m[branchID] = &bdRec
-		return &bdRec, true
+		bd = branchDataWithLedgerCoverage{
+			BranchData:     &bdRec,
+			ledgerCoverage: 0, // will be lazy-calculated when needed
+			lastActive:     time.Now(),
+		}
+		b.m[branchID] = bd
+		return bd, true
 	}
-	return nil, false
+	return branchDataWithLedgerCoverage{}, false
 }
 
-// calcAndCacheLedgerCoverage traverses branches back and calculate full coverage
-func (b *Branches) calcAndCacheLedgerCoverage(branchSlot base.Slot, bdRec *multistate.BranchData) {
-	bdRec.LedgerCoverage = bdRec.CoverageDelta
-	contrib := bdRec.CoverageDelta
-	for rec := b.predBranchRecord(bdRec); rec != nil && contrib > 0; rec = b.predBranchRecord(rec) {
-		b.Assertf(rec.Stem.ID.Slot() < branchSlot, "")
-		contrib = rec.CoverageDelta >> (branchSlot - rec.Stem.ID.Slot())
-		bdRec.LedgerCoverage += contrib
-	}
-}
+// calcAndCacheLedgerCoverage traverses branches back up to 64 slots and calculates full coverage
+func (b *Branches) _ledgerCoverage(brOrig branchDataWithLedgerCoverage) (ret uint64) {
+	var slotsBack uint32
+	var ok bool
 
-func (b *Branches) predBranchRecord(br *multistate.BranchData) *multistate.BranchData {
-	if ret, ok := b.getNoLock(br.StemPredecessorBranchID()); ok {
-		return ret
+	origSlot := brOrig.Slot()
+	ret = brOrig.CoverageDelta
+	br := brOrig
+
+	for slotsBack < 64 {
+		predID := br.StemPredecessorBranchID()
+		if br, ok = b._getAndCacheNoLock(predID); !ok {
+			break
+		}
+		slotsBack = uint32(origSlot - predID.Slot())
+		if br.ledgerCoverage > 0 {
+			ret += br.ledgerCoverage >> slotsBack
+			break
+		}
+		ret += br.CoverageDelta >> slotsBack
 	}
-	return nil
+	return
 }
 
 // LedgerCoverage strictly speaking, is non-deterministic if the snapshot is after genesis
@@ -139,10 +154,18 @@ func (b *Branches) LedgerCoverage(branchID base.TransactionID) uint64 {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if bd, ok := b.getNoLock(branchID); ok {
-		return bd.LedgerCoverage
+	bd, ok := b._getAndCacheNoLock(branchID)
+	if !ok {
+		return 0
 	}
-	return 0
+	if bd.ledgerCoverage > 0 {
+		return bd.ledgerCoverage
+	}
+	bd.ledgerCoverage = b._ledgerCoverage(bd)
+	b.Assertf(bd.ledgerCoverage > 0, "LedgerCoverage: bd.ledgerCoverage > 0 for %s", branchID.StringShort)
+
+	b.m[branchID] = bd
+	return bd.ledgerCoverage
 }
 
 func (b *Branches) Supply(branchID base.TransactionID) uint64 {
@@ -151,7 +174,7 @@ func (b *Branches) Supply(branchID base.TransactionID) uint64 {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if bd, ok := b.getNoLock(branchID); ok {
+	if bd, ok := b._getAndCacheNoLock(branchID); ok {
 		return bd.Supply
 	}
 	return 0
@@ -175,12 +198,24 @@ func (b *Branches) _cleanupBranches() (int, int) {
 	count := 0
 
 	for txid, br := range b.m {
-		if time.Since(br.LastActive) > ttl {
+		if time.Since(br.lastActive) > ttl {
 			delete(b.m, txid)
 			count++
 		}
 	}
 	return count, len(b.m)
+}
+
+func (b *Branches) SequencerOutputID(branchID base.TransactionID) (base.OutputID, bool) {
+	util.Assertf(branchID.IsBranchTransaction(), "branch transaction ID expected. Got %s", branchID.StringShort)
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	bd, ok := b._getAndCacheNoLock(branchID)
+	if !ok {
+		return base.OutputID{}, false
+	}
+	return bd.SequencerOutput.ID, true
 }
 
 // GetStateReaderForTheBranch returns a state reader for the branch or nil if the state does not exist.
@@ -209,7 +244,7 @@ func (b *Branches) GetStateReaderForTheBranch(branchID base.TransactionID) multi
 		ret.lastActivity = time.Now()
 		return ret.IndexedStateReader
 	}
-	bd, found := b.getNoLock(branchID)
+	bd, found := b._getAndCacheNoLock(branchID)
 	if !found {
 		return nil
 	}
@@ -239,16 +274,16 @@ func (b *Branches) TransactionIsInSnapshotState(txid base.TransactionID) bool {
 	return b.BranchKnowsTransaction(b.snapshotBranchID, txid)
 }
 
-func (b *Branches) IterateBranchesBack(tip base.TransactionID, fun func(branchID base.TransactionID, branchData *multistate.BranchData) bool) {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	bd, ok := b.getNoLock(tip)
-	for ok && fun(tip, bd) {
-		tip = bd.StemPredecessorBranchID()
-		bd, ok = b.getNoLock(tip)
-	}
-}
+//func (b *Branches) IterateBranchesBack(tip base.TransactionID, fun func(branchID base.TransactionID, branchData *multistate.BranchData) bool) {
+//	b.mutex.Lock()
+//	defer b.mutex.Unlock()
+//
+//	bd, ok := b._getAndCacheNoLock(tip)
+//	for ok && fun(tip, bd) {
+//		tip = bd.StemPredecessorBranchID()
+//		bd, ok = b.getNoLock(tip)
+//	}
+//}
 
 // works badly in startup, where enough to have lrb from DB, i.e., without recursively calculated coverage
 

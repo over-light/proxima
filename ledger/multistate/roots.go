@@ -621,6 +621,10 @@ func (br *BranchData) TxID() base.TransactionID {
 	return br.Stem.ID.TransactionID()
 }
 
+func (br *BranchData) Slot() base.Slot {
+	return br.Stem.ID.Slot()
+}
+
 func (br *BranchData) StemPredecessorBranchID() base.TransactionID {
 	stemLock, ok := br.Stem.Output.StemLock()
 	util.Assertf(ok, "stem lock not found")

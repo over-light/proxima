@@ -38,7 +38,7 @@ func runChainsCmd(_ *cobra.Command, _ []string) {
 	accountInfo := multistate.MustCollectAccountInfo(glb.StateStore(), branchData.Root)
 
 	glb.Infof("---------------- global LRB state ------------------")
-	glb.Infof("supply:   %s     coverage: %s     slot inflation: %s", util.Th(branchData.Supply), util.Th(branchData.LedgerCoverage),
+	glb.Infof("supply:   %s     coverage delta: %s     slot inflation: %s", util.Th(branchData.Supply), util.Th(branchData.CoverageDelta),
 		util.Th(branchData.SlotInflation))
 
 	glb.Infof("---------------- chain infos in the LRB state ------------------")

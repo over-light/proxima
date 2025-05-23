@@ -488,7 +488,7 @@ func (seq *Sequencer) decideSubmitMilestone(tx *transaction.Transaction, meta *t
 	if seq.DurationSinceLastMessageFromPeer() >= disconnectTolerance {
 		if seq.wontSubmitBranchID != tx.ID() {
 			// prevent excess logging of the same message
-			seq.Log().Warnf("WON'T SUBMIT BRANCH %s: node is disconnected for %v", seq.DurationSinceLastMessageFromPeer())
+			seq.Log().Warnf("WON'T SUBMIT BRANCH %s: node is disconnected for %v", tx.IDShortString(), seq.DurationSinceLastMessageFromPeer())
 			seq.wontSubmitBranchID = tx.ID()
 			return false
 		}

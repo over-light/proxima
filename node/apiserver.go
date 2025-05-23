@@ -74,7 +74,7 @@ func (p *ProximaNode) GetSyncInfo() *api.SyncInfo {
 	if lrb == nil {
 		p.Log().Warnf("[sync] can't find latest reliable branch")
 	} else {
-		cov = lrb.LedgerCoverage
+		cov = p.workflow.Branches().LedgerCoverage(lrb.TxID())
 		lrbSlot = uint32(lrb.Stem.ID.Slot())
 	}
 

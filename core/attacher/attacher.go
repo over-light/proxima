@@ -544,10 +544,10 @@ func (a *attacher) CoverageDelta() uint64 {
 func (a *attacher) coverageDeltaAdjustment() uint64 {
 	bl := a.pastCone.GetBaseline()
 	a.Assertf(bl != nil, "baseline != nil")
-	bd, ok := a.Branches().Get(*bl)
-	a.Assertf(ok, "a.Branches().Get(*a.baselineBranchID)")
+	seqOutID, ok := a.Branches().SequencerOutputID(*bl)
+	a.Assertf(ok, "can't find sequencer output for baseline %s", bl.StringShort)
 
-	if wOut := AttachOutputID(bd.SequencerOutput.ID, a); !a.pastCone.IsConsumed(wOut) {
+	if wOut := AttachOutputID(seqOutID, a); !a.pastCone.IsConsumed(wOut) {
 		return wOut.Output().Inflation()
 	}
 	return 0
