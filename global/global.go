@@ -37,8 +37,6 @@ type Global struct {
 	enabledTrace   atomic.Bool
 	traceTagsMutex sync.RWMutex
 	traceTags      set.Set[string]
-	// is it the first node in the network
-	bootstrapMode bool
 	// counters
 	countersMutex sync.RWMutex
 	counters      map[string]int
@@ -153,7 +151,6 @@ func _new(logLevel zapcore.Level, outputs []string, bootstrap bool) *Global {
 		stopOnce:           &sync.Once{},
 		logStopOnce:        &sync.Once{},
 		components:         set.New[string](),
-		bootstrapMode:      bootstrap,
 		counters:           make(map[string]int),
 		txPullRepeatPeriod: PullRepeatPeriodDefault,
 		txPullMaxAttempts:  PullMaxAttemptsDefault,
@@ -161,10 +158,6 @@ func _new(logLevel zapcore.Level, outputs []string, bootstrap bool) *Global {
 	}
 	ret.registerMetrics()
 	return ret
-}
-
-func (l *Global) IsBootstrapMode() bool {
-	return l.bootstrapMode
 }
 
 func (l *Global) MetricsRegistry() *prometheus.Registry {

@@ -496,8 +496,6 @@ func (seq *Sequencer) decideSubmitMilestone(tx *transaction.Transaction, meta *t
 	}
 	if tx.IsBranchTransaction() {
 		healthy := global.IsHealthyCoverageDelta(*meta.CoverageDelta, *meta.Supply, global.FractionHealthyBranch)
-		//bootstrapMode := seq.IsBootstrapMode()
-		//if healthy || bootstrapMode {
 		if healthy {
 			seq.Log().Infof("SUBMIT BRANCH %s. Now: %s, proposer: %s, coverage: %s, inflation: %s",
 				tx.IDShortString(), ledger.TimeNow().String(), tx.SequencerTransactionData().SequencerOutputData.MilestoneData.Name,

@@ -258,8 +258,8 @@ func (b *TagAlongBacklog) LoadSequencerStartTips(seqID base.ChainID) error {
 	loadedTxs := set.New[*vertex.WrappedTx]()
 	nowSlot := ledger.TimeNow().Slot
 	brid := branchData.TxID()
-	b.Log().Infof("loading sequencer tips for %s from branch %s, %d slots back from (current slot is %d), bootstrap mode: %v",
-		seqID.StringShort(), brid.StringShort(), nowSlot-brid.Slot(), nowSlot, b.IsBootstrapMode())
+	b.Log().Infof("loading sequencer tips for %s from branch %s, %d slots back from (current slot is %d)",
+		seqID.StringShort(), brid.StringShort(), nowSlot-brid.Slot(), nowSlot)
 
 	rdr := multistate.MustNewSugaredReadableState(b.StateStore(), branchData.Root, 0)
 	vidBranch := b.MustEnsureBranch(branchData.Stem.ID.TransactionID())

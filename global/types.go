@@ -78,7 +78,6 @@ type (
 		Logging
 		StartStop
 		Metrics
-		IsBootstrapMode() bool
 	}
 
 	Fraction struct {
