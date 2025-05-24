@@ -19,7 +19,7 @@ func amount:
 
 // utility function which extracts amount value 8 bytes from the output by evaluating its arg0
 // $0 - output bytes
-func amountValue : uint8Bytes(evalArgumentBytecode(atArray8($0, amountConstraintIndex), #amount,0))
+func amountValue : uint8Bytes(parseInlineDataArgument(atArray8($0, amountConstraintIndex), #amount,0))
 
 func selfAmountValue: amountValue(selfOutputBytes)
 

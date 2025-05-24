@@ -65,7 +65,7 @@ func isOpenDelegationSlot : not(isZero(
 ))
 
 // $0 predecessor chain constraint index
-func _selfSuccessorChainData : evalArgumentBytecode(producedConstraintByIndex(slice(selfSiblingUnlockParams($0),0,1)), #chain, 0)	
+func _selfSuccessorChainData : parseInlineDataArgument(producedConstraintByIndex(slice(selfSiblingUnlockParams($0),0,1)), #chain, 0)	
 
 // $0 chain constraint index
 func _validDelegationChainPace : or(

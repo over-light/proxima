@@ -39,7 +39,7 @@ func (c *DataContext) SetPath(path lazybytes.TreePath) {
 var _unboundedEmbedded = map[string]easyfl.EmbeddedFunction{
 	"at":             evalPath,
 	"atPath":         evalAtPath,
-	"ticksBefore":    evalTicksBefore64,
+	"ticksBefore":    evalTicksBefore64, // TODO make it extended in pure EasyFL
 	"randomFromSeed": evalRandomFromSeed,
 }
 

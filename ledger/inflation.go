@@ -86,7 +86,7 @@ func initTestInflationConstraint() {
 
 const inflationConstraintSource = `
 func _producedVRFProof : 
-     evalArgumentBytecode(
+     parseInlineDataArgument(
         producedConstraintByIndex(concat(txStemOutputIndex, lockConstraintIndex)), 
         #stemLock, 
         1

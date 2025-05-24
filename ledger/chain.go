@@ -192,7 +192,7 @@ func validPredecessorData : and(
 
 // $0 - predecessor constraint index
 func chainPredecessorData:
-	evalArgumentBytecode(
+	parseInlineDataArgument(
 		consumedConstraintByIndex($0),
 		selfBytecodePrefix,
 		0
@@ -215,7 +215,7 @@ func validSuccessorData : and(
 // chain successor data is computed in the context of the consumed output
 // from the selfUnlock data
 func chainSuccessorData : 
-	evalArgumentBytecode(
+	parseInlineDataArgument(
 		producedConstraintByIndex(slice(selfUnlockParameters,0,1)),
 		selfBytecodePrefix,
 		0
@@ -280,7 +280,7 @@ func chain: and(
 )
 
 // $0 - chain constraint index
-func selfChainData : evalArgumentBytecode(selfSiblingConstraint($0), #chain, 0)
+func selfChainData : parseInlineDataArgument(selfSiblingConstraint($0), #chain, 0)
 
 // $0 - chain constraint index in the produced output
 // Returns chain predecessor input by 1-byte index
