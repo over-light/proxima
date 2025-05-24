@@ -331,7 +331,7 @@ func (d *MemDAG) loadPastConeFromTxStore(txid base.TransactionID, txStore global
 		v.Inputs[i] = d.loadPastConeFromTxStore(oid.TransactionID(), txStore, oldestSlot)
 	}
 	for i := range v.Endorsements {
-		endID := tx.EndorsementAt(byte(i))
+		endID := tx.MustEndorsementAt(byte(i))
 		v.Endorsements[i] = d.loadPastConeFromTxStore(endID, txStore, oldestSlot)
 	}
 	if explicitBaselineID, ok := tx.ExplicitBaseline(); ok {

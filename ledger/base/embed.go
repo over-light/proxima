@@ -93,7 +93,12 @@ func evalPath(par *easyfl.CallParams) []byte {
 }
 
 func evalAtPath(par *easyfl.CallParams) []byte {
-	return par.AllocData(par.DataContext().(*DataContext).DataTree().BytesAtPath(par.Arg(0))...)
+	path := par.Arg(0)
+	res, err := par.DataContext().(*DataContext).DataTree().BytesAtPath(path)
+	if err != nil {
+		par.TracePanic("evalAtPath: path=%+v -> %v", path, err)
+	}
+	return par.AllocData(res...)
 }
 
 func evalRandomFromSeed(par *easyfl.CallParams) []byte {

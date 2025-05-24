@@ -197,7 +197,7 @@ func (u *UTXODB) makeTransactionTokensFromFaucetMulti(addrs []ledger.AddressED25
 		}
 	}
 	// remainder
-	out := ledger.NewOutput(func(o *ledger.Output) {
+	out := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 		o.WithAmount(remainderAmount).WithLock(u.faucetAddress)
 	})
 	if _, err = txb.ProduceOutput(out); err != nil {
@@ -205,7 +205,7 @@ func (u *UTXODB) makeTransactionTokensFromFaucetMulti(addrs []ledger.AddressED25
 	}
 	// target outputs
 	for _, a := range addrs {
-		o := ledger.NewOutput(func(o *ledger.Output) {
+		o := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(amount).WithLock(a)
 		})
 		if _, err := txb.ProduceOutput(o); err != nil {

@@ -56,7 +56,7 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 				inpOid.StringShort(), i, tx.IDShortString())
 			return nil, err
 		}
-		consumedOutputsArray.Push(o.Bytes())
+		consumedOutputsArray.MustPush(o.Bytes())
 	}
 	e := lazybytes.MakeArrayReadOnly(consumedOutputsArray) // one level deeper
 	ret.tree = lazybytes.TreeFromTreesReadOnly(tx.tree, e.AsTree())
@@ -89,11 +89,11 @@ func StringFromTxBytes(txBytes []byte, inputLoaderByIndex func(byte) (*ledger.Ou
 	return ctx.String()
 }
 
-// unlockScriptBinary finds script from unlock block
+// unlockScriptBinary finds the script from the data of unlock block
 func (ctx *TxContext) unlockScriptBinary(invocationFullPath lazybytes.TreePath) []byte {
 	unlockBlockPath := common.Concat(invocationFullPath)
 	unlockBlockPath[1] = ledger.TxUnlockData
-	return ctx.tree.BytesAtPath(unlockBlockPath)
+	return ctx.tree.MustBytesAtPath(unlockBlockPath)
 }
 
 func (ctx *TxContext) rootContext() easyfl.GlobalData {
@@ -101,7 +101,7 @@ func (ctx *TxContext) rootContext() easyfl.GlobalData {
 }
 
 func (ctx *TxContext) TransactionBytes() []byte {
-	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch))
+	return ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch))
 }
 
 func (ctx *TxContext) TransactionID() base.TransactionID {
@@ -109,11 +109,11 @@ func (ctx *TxContext) TransactionID() base.TransactionID {
 }
 
 func (ctx *TxContext) InputCommitment() []byte {
-	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxInputCommitment))
+	return ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxInputCommitment))
 }
 
 func (ctx *TxContext) ExplicitBaseline() (base.TransactionID, bool) {
-	data := ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxExplicitBaseline))
+	data := ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxExplicitBaseline))
 	if len(data) == 0 {
 		return base.TransactionID{}, false
 	}
@@ -123,11 +123,11 @@ func (ctx *TxContext) ExplicitBaseline() (base.TransactionID, bool) {
 }
 
 func (ctx *TxContext) Signature() []byte {
-	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxSignature))
+	return ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxSignature))
 }
 
 func (ctx *TxContext) ForEachInputID(fun func(idx byte, oid *base.OutputID) bool) {
-	ctx.tree.ForEach(func(i byte, data []byte) bool {
+	err := ctx.tree.ForEach(func(i byte, data []byte) bool {
 		oid, err := base.OutputIDFromBytes(data)
 		util.AssertNoError(err)
 		if !fun(i, &oid) {
@@ -135,10 +135,11 @@ func (ctx *TxContext) ForEachInputID(fun func(idx byte, oid *base.OutputID) bool
 		}
 		return true
 	}, Path(ledger.TransactionBranch, ledger.TxInputIDs))
+	util.AssertNoError(err)
 }
 
 func (ctx *TxContext) ForEachEndorsement(fun func(idx byte, txid *base.TransactionID) bool) {
-	ctx.tree.ForEach(func(i byte, data []byte) bool {
+	err := ctx.tree.ForEach(func(i byte, data []byte) bool {
 		txid, err := base.TransactionIDFromBytes(data)
 		util.AssertNoError(err)
 		if !fun(i, &txid) {
@@ -146,6 +147,7 @@ func (ctx *TxContext) ForEachEndorsement(fun func(idx byte, txid *base.Transacti
 		}
 		return true
 	}, Path(ledger.TransactionBranch, ledger.TxEndorsements))
+	util.AssertNoError(err)
 }
 
 func (ctx *TxContext) ForEachProducedOutputData(fun func(idx byte, oData []byte) bool) {
@@ -176,7 +178,7 @@ func (ctx *TxContext) ForEachConsumedOutput(fun func(idx byte, oid *base.OutputI
 }
 
 func (ctx *TxContext) ConsumedOutputData(idx byte) []byte {
-	return ctx.tree.BytesAtPath(Path(ledger.ConsumedBranch, ledger.ConsumedOutputsBranch, idx))
+	return ctx.tree.MustBytesAtPath(Path(ledger.ConsumedBranch, ledger.ConsumedOutputsBranch, idx))
 }
 
 func (ctx *TxContext) ConsumedOutput(idx byte) (*ledger.Output, error) {
@@ -184,11 +186,11 @@ func (ctx *TxContext) ConsumedOutput(idx byte) (*ledger.Output, error) {
 }
 
 func (ctx *TxContext) UnlockDataAt(idx byte) []byte {
-	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxUnlockData, idx))
+	return ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxUnlockData, idx))
 }
 
 func (ctx *TxContext) ProducedOutputData(idx byte) []byte {
-	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxOutputs, idx))
+	return ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxOutputs, idx))
 }
 
 func (ctx *TxContext) ProducedOutput(idx byte) (*ledger.OutputWithID, error) {
@@ -204,39 +206,39 @@ func (ctx *TxContext) ProducedOutput(idx byte) (*ledger.OutputWithID, error) {
 }
 
 func (ctx *TxContext) NumProducedOutputs() int {
-	return ctx.tree.NumElements([]byte{ledger.TransactionBranch, ledger.TxOutputs})
+	return ctx.tree.MustNumElementsAtPath([]byte{ledger.TransactionBranch, ledger.TxOutputs})
 }
 
 func (ctx *TxContext) NumInputs() int {
-	return ctx.tree.NumElements([]byte{ledger.TransactionBranch, ledger.TxInputIDs})
+	return ctx.tree.MustNumElementsAtPath([]byte{ledger.TransactionBranch, ledger.TxInputIDs})
 }
 
 func (ctx *TxContext) NumEndorsements() int {
-	return ctx.tree.NumElements([]byte{ledger.TransactionBranch, ledger.TxEndorsements})
+	return ctx.tree.MustNumElementsAtPath([]byte{ledger.TransactionBranch, ledger.TxEndorsements})
 }
 
 func (ctx *TxContext) InputID(idx byte) base.OutputID {
-	data := ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxInputIDs, idx))
+	data := ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxInputIDs, idx))
 	ret, err := base.OutputIDFromBytes(data)
 	util.AssertNoError(err)
 	return ret
 }
 
 func (ctx *TxContext) MustTimestampData() ([]byte, base.LedgerTime) {
-	ret := ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxTimestamp))
+	ret := ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxTimestamp))
 	retTs, err := base.TimeFromBytes(ret)
 	util.AssertNoError(err)
 	return ret, retTs
 }
 
 func (ctx *TxContext) SequencerAndStemOutputIndices() (byte, byte) {
-	ret := ctx.tree.BytesAtPath(ledger.PathToSequencerAndStemOutputIndices)
+	ret := ctx.tree.MustBytesAtPath(ledger.PathToSequencerAndStemOutputIndices)
 	util.Assertf(len(ret) == 2, "len(ret)==2")
 	return ret[0], ret[1]
 }
 
 func (ctx *TxContext) TotalAmountStoredBin() []byte {
-	return ctx.tree.BytesAtPath(ledger.PathToTotalProducedAmount)
+	return ctx.tree.MustBytesAtPath(ledger.PathToTotalProducedAmount)
 }
 
 func (ctx *TxContext) TotalAmountStored() uint64 {

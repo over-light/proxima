@@ -123,16 +123,16 @@ func TestDelegationSigLock(t *testing.T) {
 		require.NoError(t, err)
 
 		chainConstraint := ledger.NewChainConstraint(chainID, 0, idx, 0)
-		succOut := ledger.NewOutput(func(o *ledger.Output) {
+		succOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(nextDelegationAmount).
 				WithLock(delegatedOutput.Output.DelegationLock())
-			idx, _ = o.PushConstraint(chainConstraint.Bytes())
+			idx = o.MustPushConstraint(chainConstraint.Bytes())
 			ic := ledger.InflationConstraint{
 				InflationAmount:      inflation,
 				ChainConstraintIndex: idx,
 			}
 			if inflate {
-				_, _ = o.PushConstraint(ic.Bytes())
+				o.MustPushConstraint(ic.Bytes())
 			}
 		})
 
@@ -143,7 +143,7 @@ func TestDelegationSigLock(t *testing.T) {
 		txb.PutSignatureUnlock(0)
 
 		if remainder > 0 {
-			remOut := ledger.NewOutput(func(o *ledger.Output) {
+			remOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 				o.WithAmount(remainder)
 				if unlockByOwner {
 					o.WithLock(dl.OwnerLock.AsLock())
@@ -378,11 +378,11 @@ func TestDelegationChainLock(t *testing.T) {
 		// target chain output transition
 		_, err := txb.ConsumeOutput(targetChainOut.Output, targetChainOut.ID)
 		require.NoError(t, err)
-		targetChainOutSucc := ledger.NewOutput(func(o *ledger.Output) {
+		targetChainOutSucc := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(targetChainOut.Output.Amount()).
 				WithLock(targetChainOut.Output.Lock())
 			cc := ledger.NewChainConstraint(targetChainID, 0, 2, 0)
-			_, err = o.PushConstraint(cc.Bytes())
+			o.MustPushConstraint(cc.Bytes())
 		})
 		_, err = txb.ProduceOutput(targetChainOutSucc)
 		require.NoError(t, err)
@@ -413,16 +413,16 @@ func TestDelegationChainLock(t *testing.T) {
 		require.NoError(t, err)
 
 		chainConstraint := ledger.NewChainConstraint(delegationID, 1, ccIdx, 0)
-		succOut := ledger.NewOutput(func(o *ledger.Output) {
+		succOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(nextDelegationAmount).
 				WithLock(delegatedOutput.Output.DelegationLock())
-			ccIdx, _ = o.PushConstraint(chainConstraint.Bytes())
+			ccIdx = o.MustPushConstraint(chainConstraint.Bytes())
 			ic := ledger.InflationConstraint{
 				InflationAmount:      inflation,
 				ChainConstraintIndex: ccIdx,
 			}
 			if inflate {
-				_, _ = o.PushConstraint(ic.Bytes())
+				o.MustPushConstraint(ic.Bytes())
 			}
 		})
 		txb.PutUnlockParams(1, ledger.ConstraintIndexLock, ledger.NewChainLockUnlockParams(0, 2))
@@ -431,7 +431,7 @@ func TestDelegationChainLock(t *testing.T) {
 		require.NoError(t, err)
 
 		if remainder > 0 {
-			remOut := ledger.NewOutput(func(o *ledger.Output) {
+			remOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 				o.WithAmount(remainder)
 				o.WithLock(dl.TargetLock.AsLock())
 			})

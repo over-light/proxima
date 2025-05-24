@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -14,7 +15,11 @@ import (
 
 type (
 	Output struct {
-		arr *lazybytes.Array
+		*lazybytes.ArrayReadOnly
+	}
+
+	OutputBuilder struct {
+		*lazybytes.ArrayEditable
 	}
 
 	OutputWithID struct {
@@ -47,21 +52,25 @@ type (
 	}
 )
 
-func NewOutput(overrideReadOnly ...func(o *Output)) *Output {
-	ret := &Output{
-		arr: lazybytes.EmptyArray(256),
-	}
-	if len(overrideReadOnly) > 0 {
-		overrideReadOnly[0](ret)
-	}
-	ret.arr.SetReadOnly(true)
-	return ret
+func NewOutput(buildFun func(o *OutputBuilder)) *Output {
+	arr := lazybytes.EmptyArray(256)
+	builder := &OutputBuilder{arr}
+	buildFun(builder)
+	return &Output{arr.MakeReadOnly()}
 }
 
 func OutputBasic(amount uint64, lock Lock) *Output {
-	return NewOutput(func(o *Output) {
+	return NewOutput(func(o *OutputBuilder) {
 		o.WithLock(lock).WithAmount(amount)
 	})
+}
+
+func OutputBuilderFromBytes(data []byte) (*OutputBuilder, error) {
+	ret, err := lazybytes.ArrayFromBytesEditable(data, 256)
+	if err != nil {
+		return nil, fmt.Errorf("OutputBuilderFromBytes: %v", err)
+	}
+	return &OutputBuilder{ret}, nil
 }
 
 func OutputFromBytesReadOnly(data []byte, validateOpt ...func(*Output) error) (*Output, error) {
@@ -95,21 +104,29 @@ func OutputFromHexString(hexStr string, validateOpt ...func(*Output) error) (*Ou
 }
 
 func OutputFromBytesMain(data []byte) (*Output, Amount, Lock, error) {
-	d := make([]byte, len(data))
-	copy(d, data)
-	ret := &Output{
-		arr: lazybytes.ArrayFromBytesReadOnly(d, 256),
-	}
-	var amount Amount
-	var lock Lock
-	var err error
-	if ret.arr.NumElements() < 2 {
-		return nil, 0, nil, fmt.Errorf("at least 2 constraints expected")
-	}
-	if amount, err = AmountFromBytes(ret.arr.At(int(ConstraintIndexAmount))); err != nil {
+	arr, err := lazybytes.ArrayFromBytesReadOnly(bytes.Clone(data), 256)
+	if err != nil {
 		return nil, 0, nil, err
 	}
-	if lock, err = LockFromBytes(ret.arr.At(int(ConstraintIndexLock))); err != nil {
+	ret := &Output{arr}
+
+	var amount Amount
+	var lock Lock
+	if ret.NumElements() < 2 {
+		return nil, 0, nil, fmt.Errorf("at least 2 constraints expected")
+	}
+	amountBin, err := ret.At(int(ConstraintIndexAmount))
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	if amount, err = AmountFromBytes(amountBin); err != nil {
+		return nil, 0, nil, err
+	}
+	lockBin, err := ret.At(int(ConstraintIndexLock))
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	if lock, err = LockFromBytes(lockBin); err != nil {
 		return nil, 0, nil, err
 	}
 	return ret, amount, lock, nil
@@ -117,7 +134,7 @@ func OutputFromBytesMain(data []byte) (*Output, Amount, Lock, error) {
 
 func (o *Output) ConstraintsRawBytes() [][]byte {
 	ret := make([][]byte, o.NumConstraints())
-	o.arr.ForEach(func(i int, data []byte) bool {
+	o.ForEach(func(i int, data []byte) bool {
 		ret[i] = data
 		return true
 	})
@@ -136,87 +153,82 @@ func (o *Output) MustStemLock() *StemLock {
 }
 
 // WithAmount can only be used inside r/o override closure
-func (o *Output) WithAmount(amount uint64) *Output {
-	o.arr.PutAtIdxWithPadding(ConstraintIndexAmount, NewAmount(amount).Bytes())
+func (o *OutputBuilder) WithAmount(amount uint64) *OutputBuilder {
+	o.MustPutAtIdxWithPadding(ConstraintIndexAmount, NewAmount(amount).Bytes())
 	return o
 }
 
 func (o *Output) Amount() uint64 {
-	ret, err := AmountFromBytes(o.arr.At(int(ConstraintIndexAmount)))
+	bin, err := o.At(int(ConstraintIndexAmount))
+	util.AssertNoError(err)
+	ret, err := AmountFromBytes(bin)
 	util.AssertNoError(err)
 	return uint64(ret)
 }
 
 // WithLock can only be used inside r/o override closure
-func (o *Output) WithLock(lock Lock) *Output {
+func (o *OutputBuilder) WithLock(lock Lock) *OutputBuilder {
 	o.PutConstraint(lock.Bytes(), ConstraintIndexLock)
 	return o
-}
-
-func (o *Output) AsArray() *lazybytes.Array {
-	return o.arr
-}
-
-func (o *Output) Bytes() []byte {
-	return o.arr.Bytes()
 }
 
 func (o *Output) Hex() string {
 	return hex.EncodeToString(o.Bytes())
 }
 
-// Clone clones output and makes it read-only. Optional function overrideReadOnly gives a chance
-// to modify the output before it is locked for modification
-func (o *Output) Clone(overrideReadOnly ...func(o *Output)) *Output {
-	// clone underlying byte array
-	ret, err := OutputFromBytesReadOnly(o.Bytes())
+// Clone clones output and gives a chance to modify it
+func (o *Output) Clone(buildFun ...func(o *OutputBuilder)) *Output {
+	if len(buildFun) == 0 {
+		ret, err := OutputFromBytesReadOnly(o.Bytes())
+		util.AssertNoError(err)
+		return ret
+	}
+	builder, err := OutputBuilderFromBytes(o.Bytes())
 	util.AssertNoError(err)
-	if len(overrideReadOnly) > 0 {
-		ret.arr.SetReadOnly(false)
-		overrideReadOnly[0](ret)
-		ret.arr.SetReadOnly(true)
-	}
-	return ret
+	buildFun[0](builder)
+	return &Output{builder.MakeReadOnly()}
 }
 
-// PushConstraint can only be used inside r/o override closure
-func (o *Output) PushConstraint(c []byte) (byte, error) {
-	if o.NumConstraints() >= 256 {
-		return 0, fmt.Errorf("too many constraints")
-	}
-	o.arr.Push(c)
-	return byte(o.arr.NumElements() - 1), nil
+// MustPushConstraint can only be used inside the edit closure
+func (o *OutputBuilder) MustPushConstraint(c []byte) byte {
+	util.Assertf(o.NumConstraints() < 256, "too many constraints")
+	o.MustPush(c)
+	return byte(o.NumElements() - 1)
 }
 
-// PutConstraint can only be used inside r/o override closure
-func (o *Output) PutConstraint(c []byte, idx byte) {
-	o.arr.PutAtIdxWithPadding(idx, c)
+// PutConstraint places bytecode at the specific index
+func (o *OutputBuilder) PutConstraint(c []byte, idx byte) {
+	o.MustPutAtIdxWithPadding(idx, c)
 }
 
-func (o *Output) PutAmount(amount uint64) {
+func (o *OutputBuilder) PutAmount(amount uint64) {
 	o.PutConstraint(NewAmount(amount).Bytes(), ConstraintIndexAmount)
 }
 
-func (o *Output) PutLock(lock Lock) {
+func (o *OutputBuilder) PutLock(lock Lock) {
 	o.PutConstraint(lock.Bytes(), ConstraintIndexLock)
 }
 
-func (o *Output) ConstraintAt(idx byte) []byte {
-	return o.arr.At(int(idx))
+func (o *Output) MustConstraintAt(idx byte) []byte {
+	return o.MustAt(int(idx))
+}
+
+func (o *OutputBuilder) NumConstraints() int {
+	return o.NumElements()
 }
 
 func (o *Output) NumConstraints() int {
-	return o.arr.NumElements()
+	return o.NumElements()
 }
 
 func (o *Output) ForEachConstraint(fun func(idx byte, constr []byte) bool) {
-	o.arr.ForEach(func(i int, data []byte) bool {
+	o.ForEach(func(i int, data []byte) bool {
 		return fun(byte(i), data)
 	})
 }
 
 func (o *Output) Lock() Lock {
-	ret, err := LockFromBytes(o.arr.At(int(ConstraintIndexLock)))
+	ret, err := LockFromBytes(o.MustAt(int(ConstraintIndexLock)))
 	util.AssertNoError(err)
 	return ret
 }
@@ -415,7 +427,7 @@ func (o *Output) LinesVerbose(prefix ...string) *lines.Lines {
 
 func (o *Output) _lines(prefix string, verbose bool) *lines.Lines {
 	ret := lines.New()
-	o.arr.ForEach(func(i int, data []byte) bool {
+	o.ForEachConstraint(func(i byte, data []byte) bool {
 		bc := ""
 		if verbose {
 			bc = fmt.Sprintf(prefix+"   bytecode: %s", easyfl_util.Fmt(data))
@@ -433,7 +445,7 @@ func (o *Output) _lines(prefix string, verbose bool) *lines.Lines {
 
 func (o *Output) LinesPlain() *lines.Lines {
 	ret := lines.New()
-	o.arr.ForEach(func(i int, data []byte) bool {
+	o.ForEachConstraint(func(i byte, data []byte) bool {
 		c, err := ConstraintFromBytes(data)
 		if err != nil {
 			ret.Add(err.Error())
@@ -575,7 +587,7 @@ func OutputsWithIDToString(outs ...*OutputWithID) string {
 }
 
 func (o *Output) hasConstraintAt(pos byte, constraintName string) bool {
-	constr, err := ConstraintFromBytes(o.ConstraintAt(pos))
+	constr, err := ConstraintFromBytes(o.MustConstraintAt(pos))
 	util.AssertNoError(err)
 
 	return constr.Name() == constraintName
@@ -584,7 +596,7 @@ func (o *Output) hasConstraintAt(pos byte, constraintName string) bool {
 func (o *Output) MustHaveConstraintAnyOfAt(pos byte, names ...string) {
 	util.Assertf(o.NumConstraints() >= int(pos), "no constraint at position %d", pos)
 
-	constr, err := ConstraintFromBytes(o.ConstraintAt(pos))
+	constr, err := ConstraintFromBytes(o.MustConstraintAt(pos))
 	util.AssertNoError(err)
 
 	for _, n := range names {
@@ -598,7 +610,7 @@ func (o *Output) MustHaveConstraintAnyOfAt(pos byte, names ...string) {
 // MustValidOutput checks if amount and lock constraints are as expected
 func (o *Output) MustValidOutput() {
 	o.MustHaveConstraintAnyOfAt(0, AmountConstraintName)
-	_, err := LockFromBytes(o.ConstraintAt(1))
+	_, err := LockFromBytes(o.MustConstraintAt(1))
 	util.AssertNoError(err)
 }
 
@@ -617,7 +629,7 @@ func (o *Output) MinimumStorageDeposit(extraWeight uint32) uint64 {
 func HashOutputs(outs ...*Output) [32]byte {
 	arr := lazybytes.EmptyArray(256)
 	for _, o := range outs {
-		arr.Push(o.Bytes())
+		arr.MustPush(o.Bytes())
 	}
 	return blake2b.Sum256(arr.Bytes())
 }

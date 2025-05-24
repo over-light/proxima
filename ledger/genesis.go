@@ -16,16 +16,13 @@ func GenesisOutput(initialSupply uint64, controllerAddress AddressED25519) *Outp
 	return &OutputWithChainID{
 		OutputWithID: OutputWithID{
 			ID: oid,
-			Output: NewOutput(func(o *Output) {
+			Output: NewOutput(func(o *OutputBuilder) {
 				o.WithAmount(initialSupply).WithLock(controllerAddress)
-				chainIdx, err := o.PushConstraint(NewChainOrigin().Bytes())
-				util.AssertNoError(err)
-				_, err = o.PushConstraint(NewSequencerConstraint(chainIdx, initialSupply).Bytes())
-				util.AssertNoError(err)
+				chainIdx := o.MustPushConstraint(NewChainOrigin().Bytes())
+				o.MustPushConstraint(NewSequencerConstraint(chainIdx, initialSupply).Bytes())
 
 				msData := MilestoneData{Name: BootstrapSequencerName}
-				idxMsData, err := o.PushConstraint(msData.AsConstraint().Bytes())
-				util.AssertNoError(err)
+				idxMsData := o.MustPushConstraint(msData.AsConstraint().Bytes())
 				util.Assertf(idxMsData == MilestoneDataFixedIndex, "idxMsData == MilestoneDataFixedIndex")
 			}),
 		},
@@ -36,7 +33,7 @@ func GenesisOutput(initialSupply uint64, controllerAddress AddressED25519) *Outp
 func GenesisStemOutput() *OutputWithID {
 	return &OutputWithID{
 		ID: base.GenesisStemOutputID(),
-		Output: NewOutput(func(o *Output) {
+		Output: NewOutput(func(o *OutputBuilder) {
 			o.WithAmount(0).
 				WithLock(&StemLock{
 					PredecessorOutputID: base.OutputID{},

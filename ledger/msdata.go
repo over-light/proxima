@@ -26,7 +26,7 @@ func ParseMilestoneData(o *Output) *MilestoneData {
 	if o.NumConstraints() <= MilestoneDataFixedIndex {
 		return nil
 	}
-	ret, err := MilestoneDataFromConstraint(o.ConstraintAt(MilestoneDataFixedIndex))
+	ret, err := MilestoneDataFromConstraint(o.MustConstraintAt(MilestoneDataFixedIndex))
 	if err != nil {
 		return nil
 	}

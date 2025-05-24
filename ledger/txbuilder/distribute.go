@@ -42,11 +42,11 @@ func MakeDistributionTransaction(stateStore multistate.StateStore, originPrivate
 	}
 	genesisDistributionOutputs := make([]*ledger.Output, len(genesisDistribution))
 	for i := range genesisDistribution {
-		genesisDistributionOutputs[i] = ledger.NewOutput(func(o *ledger.Output) {
+		genesisDistributionOutputs[i] = ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(genesisDistribution[i].Balance).
 				WithLock(genesisDistribution[i].Lock)
 			if genesisDistribution[i].ChainOrigin {
-				_, _ = o.PushConstraint(ledger.NewChainOrigin().Bytes())
+				o.MustPushConstraint(ledger.NewChainOrigin().Bytes())
 			}
 		})
 	}

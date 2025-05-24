@@ -30,7 +30,7 @@ func MakeEndChainTransaction(par EndChainParams) (*transaction.Transaction, erro
 
 	feeAmount := par.TagAlongFee
 
-	outNonChain := ledger.NewOutput(func(o *ledger.Output) {
+	outNonChain := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 		o.WithAmount(par.ChainIn.Output.Amount() - feeAmount).
 			WithLock(ledger.AddressED25519FromPrivateKey(par.PrivateKey))
 	})
@@ -38,7 +38,7 @@ func MakeEndChainTransaction(par EndChainParams) (*transaction.Transaction, erro
 	util.AssertNoError(err)
 
 	if feeAmount > 0 {
-		tagAlongFeeOut := ledger.NewOutput(func(o *ledger.Output) {
+		tagAlongFeeOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(feeAmount).
 				WithLock(ledger.ChainLockFromChainID(par.TagAlongSeqID))
 		})

@@ -210,7 +210,7 @@ func (ctx *TxContext) _validateOutputs(consumedBranch bool, failFast bool, spool
 }
 
 func (ctx *TxContext) UnlockParams(consumedOutputIdx, constraintIdx byte) []byte {
-	return ctx.tree.BytesAtPath(Path(ledger.TransactionBranch, ledger.TxUnlockData, consumedOutputIdx, constraintIdx))
+	return ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxUnlockData, consumedOutputIdx, constraintIdx))
 }
 
 // runOutput checks constraints of the output one-by-one
@@ -274,7 +274,7 @@ func (ctx *TxContext) validateInputCommitmentSafe() error {
 
 // ConsumedOutputHash is ias blake2b hash of the lazyarray composed of output data
 func (ctx *TxContext) ConsumedOutputHash() [32]byte {
-	consumedOutputBytes := ctx.tree.BytesAtPath(Path(ledger.ConsumedBranch, ledger.ConsumedOutputsBranch))
+	consumedOutputBytes := ctx.tree.MustBytesAtPath(Path(ledger.ConsumedBranch, ledger.ConsumedOutputsBranch))
 	return blake2b.Sum256(consumedOutputBytes)
 }
 

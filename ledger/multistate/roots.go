@@ -72,45 +72,48 @@ const numberOfElementsInRootRecord = 6
 
 func (r *RootRecord) Bytes() []byte {
 	arr := lazybytes.EmptyArray(numberOfElementsInRootRecord)
-	arr.Push(r.SequencerID.Bytes())   // 0
-	arr.Push(r.Root.Bytes())          // 1
-	arr.PushUint64(r.CoverageDelta)   // 2
-	arr.PushUint64(r.SlotInflation)   // 3
-	arr.PushUint64(r.Supply)          // 4
-	arr.PushUint32(r.NumTransactions) // 5
+	arr.MustPush(r.SequencerID.Bytes())   // 0
+	arr.MustPush(r.Root.Bytes())          // 1
+	arr.MustPushUint64(r.CoverageDelta)   // 2
+	arr.MustPushUint64(r.SlotInflation)   // 3
+	arr.MustPushUint64(r.Supply)          // 4
+	arr.MustPushUint32(r.NumTransactions) // 5
 
 	util.Assertf(arr.NumElements() == numberOfElementsInRootRecord, "arr.NumElements() == %d", numberOfElementsInRootRecord)
 	return arr.Bytes()
 }
 
 func RootRecordFromBytes(data []byte) (RootRecord, error) {
-	arr, err := lazybytes.ParseArrayFromBytesReadOnly(data, numberOfElementsInRootRecord)
+	arr, err := lazybytes.ArrayFromBytesReadOnly(data, numberOfElementsInRootRecord)
 	if err != nil {
 		return RootRecord{}, err
 	}
-	chainID, err := base.ChainIDFromBytes(arr.At(0))
+	if arr.NumElements() != numberOfElementsInRootRecord {
+		return RootRecord{}, fmt.Errorf("%d elements expected, got %d", numberOfElementsInRootRecord, arr.NumElements())
+	}
+	chainID, err := base.ChainIDFromBytes(arr.MustAt(0))
 	if err != nil {
 		return RootRecord{}, err
 	}
-	root, err := common.VectorCommitmentFromBytes(ledger.CommitmentModel, arr.At(1))
+	root, err := common.VectorCommitmentFromBytes(ledger.CommitmentModel, arr.MustAt(1))
 	if err != nil {
 		return RootRecord{}, err
 	}
 	for _, i := range []int{2, 3, 4} {
-		if len(arr.At(i)) != 8 {
+		if len(arr.MustAt(i)) != 8 {
 			return RootRecord{}, fmt.Errorf("wrong data length")
 		}
 	}
-	if len(arr.At(5)) != 4 {
+	if len(arr.MustAt(5)) != 4 {
 		return RootRecord{}, fmt.Errorf("wrong data length")
 	}
 	return RootRecord{
 		Root:            root,
 		SequencerID:     chainID,
-		CoverageDelta:   binary.BigEndian.Uint64(arr.At(2)),
-		SlotInflation:   binary.BigEndian.Uint64(arr.At(3)),
-		Supply:          binary.BigEndian.Uint64(arr.At(4)),
-		NumTransactions: binary.BigEndian.Uint32(arr.At(5)),
+		CoverageDelta:   binary.BigEndian.Uint64(arr.MustAt(2)),
+		SlotInflation:   binary.BigEndian.Uint64(arr.MustAt(3)),
+		Supply:          binary.BigEndian.Uint64(arr.MustAt(4)),
+		NumTransactions: binary.BigEndian.Uint32(arr.MustAt(5)),
 	}, nil
 }
 

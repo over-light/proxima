@@ -132,7 +132,7 @@ func (v *Vertex) MissingInputTxIDSet() set.Set[base.TransactionID] {
 	})
 	v.ForEachEndorsement(func(i byte, vidEndorsed *WrappedTx) bool {
 		if vidEndorsed == nil {
-			ret.Insert(v.Tx.EndorsementAt(i))
+			ret.Insert(v.Tx.MustEndorsementAt(i))
 		}
 		return true
 	})

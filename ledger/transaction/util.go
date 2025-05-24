@@ -120,11 +120,11 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 }
 
 func UnlockDataToString(data []byte) string {
-	arr, err := lazybytes.ParseArrayFromBytesReadOnly(data)
+	arr, err := lazybytes.ArrayFromBytesReadOnly(data)
 	if err != nil {
 		return fmt.Sprintf("error while parsing lazy array: %v", err)
 	}
-	return arr.ParsedString()
+	return arr.String()
 }
 
 func ParseBytesToString(txBytes []byte, fetchOutput func(oid base.OutputID) ([]byte, bool)) string {

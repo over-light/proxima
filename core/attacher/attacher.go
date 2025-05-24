@@ -321,7 +321,7 @@ func (a *attacher) attachEndorsements(v *vertex.Vertex, vid *vertex.WrappedTx) (
 func (a *attacher) attachEndorsement(v *vertex.Vertex, vidUnwrapped *vertex.WrappedTx, index byte) bool {
 	vidEndorsed := v.Endorsements[index]
 	if vidEndorsed == nil {
-		vidEndorsed = AttachTxID(v.Tx.EndorsementAt(index), a,
+		vidEndorsed = AttachTxID(v.Tx.MustEndorsementAt(index), a,
 			WithInvokedBy(a.name),
 			WithAttachmentDepth(vidUnwrapped.GetAttachmentDepthNoLock()+1),
 		)

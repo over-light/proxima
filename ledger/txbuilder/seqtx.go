@@ -175,15 +175,15 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 
 	var chainOutConstraintIdx byte
 
-	chainOut := ledger.NewOutput(func(o *ledger.Output) {
+	chainOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 		o.PutAmount(chainOutAmount)
 		o.PutLock(par.ChainInput.Output.Lock())
 		// put chain constraint
 		chainOutConstraint := ledger.NewChainConstraint(seqID, chainPredIdx, chainInConstraintIdx, 0)
-		chainOutConstraintIdx, _ = o.PushConstraint(chainOutConstraint.Bytes())
+		chainOutConstraintIdx = o.MustPushConstraint(chainOutConstraint.Bytes())
 		// put sequencer constraint
 		sequencerConstraint := ledger.NewSequencerConstraint(chainOutConstraintIdx, rightSideAmount)
-		_, _ = o.PushConstraint(sequencerConstraint.Bytes())
+		o.MustPushConstraint(sequencerConstraint.Bytes())
 
 		outData := ledger.ParseMilestoneData(par.ChainInput.Output)
 		if outData == nil {
@@ -201,12 +201,12 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 			outData.Name = par.SeqName
 		}
 		// milestone data is on fixed index. For some reason TODO
-		idxMsData, _ := o.PushConstraint(outData.AsConstraint().Bytes())
+		idxMsData := o.MustPushConstraint(outData.AsConstraint().Bytes())
 		util.Assertf(idxMsData == ledger.MilestoneDataFixedIndex, "idxMsData == MilestoneDataFixedIndex")
 
 		if mainChainInflationConstraint != nil {
 			mainChainInflationConstraint.ChainConstraintIndex = chainOutConstraintIdx
-			_, _ = o.PushConstraint(mainChainInflationConstraint.Bytes())
+			o.MustPushConstraint(mainChainInflationConstraint.Bytes())
 		}
 	})
 
@@ -239,7 +239,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		}
 		util.Assertf(len(vrfProof) > 0, "len(vrfProof)>0")
 
-		stemOut := ledger.NewOutput(func(o *ledger.Output) {
+		stemOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(par.StemInput.Output.Amount())
 			o.WithLock(&ledger.StemLock{
 				PredecessorOutputID: par.StemInput.ID,
@@ -340,20 +340,18 @@ func makeDelegationTransitions(inputs []*ledger.OutputWithChainID, offs byte, ta
 		outChainAmount := inChainAmount + delegationInflation - delegationMargin
 		retTotalOut += outChainAmount
 
-		ret[i] = ledger.NewOutput(func(o *ledger.Output) {
+		ret[i] = ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(outChainAmount).
 				WithLock(in.Output.Lock())
 			ccSucc := ledger.NewChainConstraint(chainID, byte(i)+offs, ccIdx, 0)
-			_, _ = o.PushConstraint(ccSucc.Bytes())
+			o.MustPushConstraint(ccSucc.Bytes())
 
 			if delegationInflation > 0 {
 				ic := ledger.InflationConstraint{
 					InflationAmount:      delegationInflation,
 					ChainConstraintIndex: ccIdx,
 				}
-				if _, err = o.PushConstraint(ic.Bytes()); err != nil {
-					return
-				}
+				o.MustPushConstraint(ic.Bytes())
 			}
 		})
 		if err != nil {

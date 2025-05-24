@@ -79,9 +79,11 @@ func FromBytesMainChecksWithOpt(txBytes []byte, additional ...TxValidationOption
 }
 
 func transactionFromBytes(txBytes []byte, opts ...TxValidationOption) (*Transaction, error) {
-	ret := &Transaction{
-		tree: lazybytes.TreeFromBytesReadOnly(txBytes),
+	tree, err := lazybytes.TreeFromBytesReadOnly(txBytes)
+	if err != nil {
+		return nil, err
 	}
+	ret := &Transaction{tree: tree}
 	if err := ret.Validate(opts...); err != nil {
 		return nil, err
 	}
@@ -116,15 +118,19 @@ func (tx *Transaction) Validate(opt ...TxValidationOption) error {
 }
 
 func (tx *Transaction) SignatureBytes() []byte {
-	return tx.tree.BytesAtPath(Path(ledger.TxSignature))
+	return tx.tree.MustBytesAtPath(Path(ledger.TxSignature))
 }
 
 // BaseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
 func BaseValidation(tx *Transaction) error {
-	var tsBin []byte
-	tsBin = tx.tree.BytesAtPath(Path(ledger.TxTimestamp))
-	var err error
-	outputIndexData := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
+	tsBin, err := tx.tree.BytesAtPath(Path(ledger.TxTimestamp))
+	if err != nil {
+		return err
+	}
+	outputIndexData, err := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
+	if err != nil {
+		return err
+	}
 
 	// check sequencer output index data. Enforce exactly 2 bytes
 	if len(outputIndexData) != 2 {
@@ -141,12 +147,19 @@ func BaseValidation(tx *Transaction) error {
 		return fmt.Errorf("wrong stem output index")
 	}
 	// parse the total amount as trimmed-prefix uint68. Validity of the sum is not checked here
-	tx.totalAmount, err = easyfl_util.Uint64FromBytes(tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount)))
+	totalAmountBin, err := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
+	if err != nil {
+		return err
+	}
+	tx.totalAmount, err = easyfl_util.Uint64FromBytes(totalAmountBin)
 	if err != nil {
 		return fmt.Errorf("wrong total amount in transaction: %v", err)
 	}
 	// check if the number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
-	numProducedOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
+	numProducedOutputs, err := tx.tree.NumElementsAtPath(Path(ledger.TxOutputs))
+	if err != nil {
+		return err
+	}
 	if numProducedOutputs <= 0 || numProducedOutputs > 256 {
 		return fmt.Errorf("number of outputs must be positive and not exceed 256")
 	}
@@ -180,7 +193,7 @@ func ParseSequencerData(tx *Transaction) error {
 	if !tx.sequencerMilestoneFlag {
 		return nil
 	}
-	outputIndexData := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
+	outputIndexData := tx.tree.MustBytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
 	util.Assertf(len(outputIndexData) == 2, "len(outputIndexData) == 2")
 	sequencerOutputIndex, stemOutputIndex := outputIndexData[0], outputIndexData[1]
 
@@ -244,11 +257,13 @@ func CheckSender(tx *Transaction) error {
 	return nil
 }
 
-// ScanInputs validation option scans all inputs, enforces existence of mandatory constrains,
+// ScanInputs validation option scans all inputs, enforces the existence of mandatory constrains,
 // computes total of outputs and total inflation
 func ScanInputs(tx *Transaction) error {
-	numInputs := tx.tree.NumElements(Path(ledger.TxInputIDs))
-	var err error
+	numInputs, err := tx.tree.NumElementsAtPath(Path(ledger.TxInputIDs))
+	if err != nil {
+		return fmt.Errorf("scanning inputs: '%v'", err)
+	}
 	var oid base.OutputID
 
 	// enforce non-empty input set
@@ -256,7 +271,11 @@ func ScanInputs(tx *Transaction) error {
 		return fmt.Errorf("number of inputs can't be 0")
 	}
 	// enforce exactly one unlock data for one input
-	if numInputs != tx.tree.NumElements(Path(ledger.TxUnlockData)) {
+	numUnlock, err := tx.tree.NumElementsAtPath(Path(ledger.TxUnlockData))
+	if err != nil {
+		return fmt.Errorf("scanning inputs: '%v'", err)
+	}
+	if numInputs != numUnlock {
 		return fmt.Errorf("number of unlock datas must be equal to the number of inputs")
 	}
 
@@ -268,7 +287,7 @@ func ScanInputs(tx *Transaction) error {
 	for i := 0; i < numInputs; i++ {
 		path[1] = byte(i)
 		// parse output ID
-		oid, err = base.OutputIDFromBytes(tx.tree.BytesAtPath(path))
+		oid, err = base.OutputIDFromBytes(tx.tree.MustBytesAtPath(path))
 		if err != nil {
 			return fmt.Errorf("parsing input #%d: '%v'", i, err)
 		}
@@ -293,7 +312,10 @@ func ScanInputs(tx *Transaction) error {
 
 // ScanEndorsements parses and checks validity of each endorsement
 func ScanEndorsements(tx *Transaction) error {
-	numEndorsements := tx.tree.NumElements(Path(ledger.TxEndorsements))
+	numEndorsements, err := tx.tree.NumElementsAtPath(Path(ledger.TxEndorsements))
+	if err != nil {
+		return fmt.Errorf("scanning endorsements: '%v'", err)
+	}
 	if numEndorsements == 0 {
 		return nil
 	}
@@ -306,7 +328,6 @@ func ScanEndorsements(tx *Transaction) error {
 		return fmt.Errorf("non-sequencer transaction cannot contain endorsements")
 	}
 
-	var err error
 	var endorsementID base.TransactionID
 
 	unique := set.New[base.TransactionID]()
@@ -316,7 +337,7 @@ func ScanEndorsements(tx *Transaction) error {
 	for i := 0; i < numEndorsements; i++ {
 		path[1] = byte(i)
 		// parse transaction ID
-		endorsementID, err = base.TransactionIDFromBytes(tx.tree.BytesAtPath(path))
+		endorsementID, err = base.TransactionIDFromBytes(tx.tree.MustBytesAtPath(path))
 		if err != nil {
 			return fmt.Errorf("parsing endorsement #%d: '%v'", i, err)
 		}
@@ -337,12 +358,13 @@ func ScanEndorsements(tx *Transaction) error {
 	return nil
 }
 
-// ScanOutputs validation option scans all outputs, enforces existence of mandatory constrains,
+// ScanOutputs validation option, scans all outputs, enforces the existence of the mandatory constrains,
 // computes total of outputs and total inflation
 func ScanOutputs(tx *Transaction) error {
-	numOutputs := tx.tree.NumElements(Path(ledger.TxOutputs))
-
-	var err error
+	numOutputs, err := tx.tree.NumElementsAtPath(Path(ledger.TxOutputs))
+	if err != nil {
+		return fmt.Errorf("scanning outputs: '%v'", err)
+	}
 	var totalAmount uint64
 	var amount ledger.Amount
 
@@ -350,7 +372,7 @@ func ScanOutputs(tx *Transaction) error {
 	path := []byte{ledger.TxOutputs, 0}
 	for i := 0; i < numOutputs; i++ {
 		path[1] = byte(i)
-		o, amount, _, err = ledger.OutputFromBytesMain(tx.tree.BytesAtPath(path))
+		o, amount, _, err = ledger.OutputFromBytesMain(tx.tree.MustBytesAtPath(path))
 		if err != nil {
 			return fmt.Errorf("scanning output #%d: '%v'", i, err)
 		}
@@ -367,7 +389,10 @@ func ScanOutputs(tx *Transaction) error {
 }
 
 func CheckSizeOfInputCommitment(tx *Transaction) error {
-	data := tx.tree.BytesAtPath(Path(ledger.TxInputCommitment))
+	data, err := tx.tree.BytesAtPath(Path(ledger.TxInputCommitment))
+	if err != nil {
+		return fmt.Errorf("checking input commitment: '%v'", err)
+	}
 	if len(data) != 32 {
 		return fmt.Errorf("input commitment must be 32-bytes long")
 	}
@@ -375,7 +400,10 @@ func CheckSizeOfInputCommitment(tx *Transaction) error {
 }
 
 func CheckExplicitBaseline(tx *Transaction) error {
-	data := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
+	data, err := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
+	if err != nil {
+		return fmt.Errorf("checking explicit baseline: '%v'", err)
+	}
 	if len(data) == 0 {
 		return nil
 	}
@@ -446,7 +474,7 @@ func (tx *Transaction) SequencerTransactionData() *SequencerTransactionData {
 }
 
 func (tx *Transaction) ExplicitBaseline() (base.TransactionID, bool) {
-	data := tx.tree.BytesAtPath(Path(ledger.TxExplicitBaseline))
+	data := tx.tree.MustBytesAtPath(Path(ledger.TxExplicitBaseline))
 	if len(data) == 0 {
 		return base.TransactionID{}, false
 	}
@@ -502,12 +530,12 @@ func (tx *Transaction) TotalAmount() uint64 {
 
 func EssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) []byte {
 	return common.Concat(
-		txTree.BytesAtPath([]byte{ledger.TxInputIDs}),
-		txTree.BytesAtPath([]byte{ledger.TxOutputs}),
-		txTree.BytesAtPath([]byte{ledger.TxTimestamp}),
-		txTree.BytesAtPath([]byte{ledger.TxSequencerAndStemOutputIndices}),
-		txTree.BytesAtPath([]byte{ledger.TxInputCommitment}),
-		txTree.BytesAtPath([]byte{ledger.TxEndorsements}),
+		txTree.MustBytesAtPath([]byte{ledger.TxInputIDs}),
+		txTree.MustBytesAtPath([]byte{ledger.TxOutputs}),
+		txTree.MustBytesAtPath([]byte{ledger.TxTimestamp}),
+		txTree.MustBytesAtPath([]byte{ledger.TxSequencerAndStemOutputIndices}),
+		txTree.MustBytesAtPath([]byte{ledger.TxInputCommitment}),
+		txTree.MustBytesAtPath([]byte{ledger.TxEndorsements}),
 	)
 }
 
@@ -520,19 +548,19 @@ func (tx *Transaction) EssenceBytes() []byte {
 }
 
 func (tx *Transaction) NumProducedOutputs() int {
-	return tx.tree.NumElements(Path(ledger.TxOutputs))
+	return tx.tree.MustNumElementsAtPath(Path(ledger.TxOutputs))
 }
 
 func (tx *Transaction) NumInputs() int {
-	return tx.tree.NumElements(Path(ledger.TxInputIDs))
+	return tx.tree.MustNumElementsAtPath(Path(ledger.TxInputIDs))
 }
 
 func (tx *Transaction) NumEndorsements() int {
-	return tx.tree.NumElements(Path(ledger.TxEndorsements))
+	return tx.tree.MustNumElementsAtPath(Path(ledger.TxEndorsements))
 }
 
 func (tx *Transaction) MustOutputDataAt(idx byte) []byte {
-	return tx.tree.BytesAtPath(common.Concat(ledger.TxOutputs, idx))
+	return tx.tree.MustBytesAtPath(common.Concat(ledger.TxOutputs, idx))
 }
 
 func (tx *Transaction) MustProducedOutputAt(idx byte) *ledger.Output {
@@ -581,8 +609,7 @@ func (tx *Transaction) InputAt(idx byte) (ret base.OutputID, err error) {
 	if int(idx) >= tx.NumInputs() {
 		return [33]byte{}, fmt.Errorf("InputAt: wrong input index")
 	}
-	data := tx.tree.BytesAtPath(common.Concat(ledger.TxInputIDs, idx))
-	ret, err = base.OutputIDFromBytes(data)
+	ret, err = base.OutputIDFromBytes(tx.tree.MustBytesAtPath(common.Concat(ledger.TxInputIDs, idx)))
 	return
 }
 
@@ -593,7 +620,7 @@ func (tx *Transaction) MustInputAt(idx byte) base.OutputID {
 }
 
 func (tx *Transaction) MustOutputIndexOfTheInput(inputIdx byte) byte {
-	return base.MustOutputIndexFromIDBytes(tx.tree.BytesAtPath(common.Concat(ledger.TxInputIDs, inputIdx)))
+	return base.MustOutputIndexFromIDBytes(tx.tree.MustBytesAtPath(common.Concat(ledger.TxInputIDs, inputIdx)))
 }
 
 func (tx *Transaction) InputAtString(idx byte) string {
@@ -621,7 +648,7 @@ func (tx *Transaction) Inputs() []base.OutputID {
 }
 
 func (tx *Transaction) MustUnlockDataAt(idx byte) []byte {
-	return tx.tree.BytesAtPath(common.Concat(ledger.TxUnlockData, idx))
+	return tx.tree.MustBytesAtPath(common.Concat(ledger.TxUnlockData, idx))
 }
 
 func (tx *Transaction) ConsumedOutputAt(idx byte, fetchOutput func(id *base.OutputID) ([]byte, bool)) (*ledger.OutputDataWithID, error) {
@@ -639,38 +666,40 @@ func (tx *Transaction) ConsumedOutputAt(idx byte, fetchOutput func(id *base.Outp
 	}, nil
 }
 
-func (tx *Transaction) EndorsementAt(idx byte) base.TransactionID {
-	data := tx.tree.BytesAtPath(common.Concat(ledger.TxEndorsements, idx))
+func (tx *Transaction) MustEndorsementAt(idx byte) base.TransactionID {
+	data := tx.tree.MustBytesAtPath(common.Concat(ledger.TxEndorsements, idx))
 	ret, err := base.TransactionIDFromBytes(data)
 	util.AssertNoError(err)
 	return ret
 }
 
 // HashInputsAndEndorsements blake2b of concatenated input IDs and endorsements
-// independent on any other tz data but inputs
+// independent of any other tx data but inputs
 func (tx *Transaction) HashInputsAndEndorsements() [32]byte {
 	var buf bytes.Buffer
 
-	buf.Write(tx.tree.BytesAtPath(Path(ledger.TxInputIDs)))
-	buf.Write(tx.tree.BytesAtPath(Path(ledger.TxEndorsements)))
+	buf.Write(tx.tree.MustBytesAtPath(Path(ledger.TxInputIDs)))
+	buf.Write(tx.tree.MustBytesAtPath(Path(ledger.TxEndorsements)))
 
 	return blake2b.Sum256(buf.Bytes())
 }
 
 func (tx *Transaction) ForEachInput(fun func(i byte, oid base.OutputID) bool) {
-	tx.tree.ForEach(func(i byte, data []byte) bool {
+	err := tx.tree.ForEach(func(i byte, data []byte) bool {
 		oid, err := base.OutputIDFromBytes(data)
 		util.Assertf(err == nil, "ForEachInput @ %d: %v", i, err)
 		return fun(i, oid)
 	}, Path(ledger.TxInputIDs))
+	util.AssertNoError(err)
 }
 
 func (tx *Transaction) ForEachEndorsement(fun func(idx byte, txid base.TransactionID) bool) {
-	tx.tree.ForEach(func(i byte, data []byte) bool {
+	err := tx.tree.ForEach(func(i byte, data []byte) bool {
 		txid, err := base.TransactionIDFromBytes(data)
 		util.Assertf(err == nil, "ForEachEndorsement @ %d: %v", i, err)
 		return fun(i, txid)
 	}, Path(ledger.TxEndorsements))
+	util.AssertNoError(err)
 }
 
 func (tx *Transaction) ForEachOutputData(fun func(idx byte, oData []byte) bool) {
@@ -706,9 +735,9 @@ func (tx *Transaction) PredecessorTransactionIDs() set.Set[base.TransactionID] {
 	return ret
 }
 
-// SequencerAndStemOutputIndices return seq output index and stem output index
-func (tx *Transaction) SequencerAndStemOutputIndices() (byte, byte) {
-	ret := tx.tree.BytesAtPath([]byte{ledger.TxSequencerAndStemOutputIndices})
+// MustSequencerAndStemOutputIndices return seq output index and stem output index
+func (tx *Transaction) MustSequencerAndStemOutputIndices() (byte, byte) {
+	ret := tx.tree.MustBytesAtPath([]byte{ledger.TxSequencerAndStemOutputIndices})
 	util.Assertf(len(ret) == 2, "len(ret)==2")
 	return ret[0], ret[1]
 }
@@ -1004,6 +1033,6 @@ func (tx *Transaction) BaselineDirection() (ret base.TransactionID) {
 	}
 	// it enforces at least one endorsement
 	util.Assertf(tx.NumEndorsements() > 0, "tx.NumEndorsements()>0\n>>>>>>>>>>>>>>>>>>\n%s", tx.String())
-	ret = tx.EndorsementAt(0)
+	ret = tx.MustEndorsementAt(0)
 	return
 }
