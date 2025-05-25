@@ -1,7 +1,6 @@
 package attacher
 
 import (
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -93,31 +92,6 @@ func AttachTxID(txid base.TransactionID, env Environment, opts ...AttachTxOption
 // AttachTransaction attaches the new incoming transaction. For sequencer transaction it starts the milestoneAttacher routine
 // which manages solidification pulling until the transaction becomes solid or stopped by the context
 func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...AttachTxOption) (vid *vertex.WrappedTx) {
-	const (
-		traceBranches = false
-		bibFileName   = "branch_inflation.txt"
-	)
-	if traceBranches { // debug
-		if tx.IsBranchTransaction() {
-			//env.Log().Infof("-------------------- %s\n----------------------", tx.String())
-			seqOut := tx.SequencerOutput()
-			if inflSeq, idx := seqOut.Output.InflationConstraint(); idx != 0xff {
-				stemOut := tx.StemOutput()
-				stemLock, _ := stemOut.Output.StemLock()
-				inflStem := ledger.L().BranchInflationBonusFromRandomnessProof(stemLock.VRFProof)
-				inflDirect := ledger.L().BranchInflationBonusDirect(stemLock.VRFProof)
-				inflConstraint := tx.InflationAmount()
-				env.Assertf(inflStem == inflDirect, "inflStem == inflDirect")
-				env.Assertf(inflStem == inflSeq.InflationAmount, "inflStem == inflSeq.InflationAmount")
-				env.Assertf(inflConstraint == inflDirect, "inflConstraint == inflDirect")
-
-				util.AppendLineToFile(bibFileName, "%9d  %s  %s  %15d  %s", tx.Slot(), tx.IDStringHex(), hex.EncodeToString(stemLock.VRFProof), inflStem, tx.IDString())
-			} else {
-				util.AppendLineToFile(bibFileName, "%s  n/a", tx.IDStringHex())
-			}
-		}
-	}
-
 	options := &_attacherOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -161,7 +135,11 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 		if vid.IsSequencerMilestone() {
 			// for sequencer milestones start attacher
 			metadata := options.metadata
-
+			{ // debug
+				if metadata != nil {
+					env.Log().Infof(">>>>>>> AttachTransaction %s: %s", txid.StringShort(), metadata.String())
+				}
+			}
 			// start attacher routine
 			go func() {
 				env.IncCounter("att")
