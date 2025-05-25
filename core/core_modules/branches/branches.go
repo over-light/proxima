@@ -287,14 +287,14 @@ func (b *Branches) ChainLines(tipOrig base.TransactionID, prefix ...string) *lin
 	for i := 0; i < 80; i++ {
 		bd, ok := b._getAndCacheNoLock(tip)
 		if !ok {
-			ret.Add("%2d:  %s  <- chan ends here", i, tip.StringShort())
+			ret.Add("%2d:  %s  <- chain ends here", i, tip.StringShort())
 			break
 		}
 		slotsSinceTip := uint32(tipOrig.Slot() - tip.Slot())
 		b.Assertf(tip.Slot() == bd.Slot(), "tip.Slot() == bd.Slot()")
 		ret.Add("%2d:  %s (-%d), delta: %s, delta>>slots: %s, coverage: %s",
-			i, tip.StringShort(), slotsSinceTip, util.Th(bd.CoverageDelta>>slotsSinceTip),
-			util.Th(bd.CoverageDelta), util.Th(bd.ledgerCoverage))
+			i, tip.StringShort(), slotsSinceTip, util.Th(bd.CoverageDelta),
+			util.Th(bd.CoverageDelta>>slotsSinceTip), util.Th(bd.ledgerCoverage))
 
 		tip = bd.StemPredecessorBranchID()
 	}
