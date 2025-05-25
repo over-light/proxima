@@ -119,7 +119,7 @@ func (b *Branches) _getAndCacheNoLock(branchID base.TransactionID) (branchDataWi
 	return branchDataWithLedgerCoverage{}, false
 }
 
-// calcAndCacheLedgerCoverage traverses branches back up to 64 slots and calculates full coverage
+// _ledgerCoverage traverses branches back up to 64 slots and calculates full coverage
 func (b *Branches) _ledgerCoverage(brOrig branchDataWithLedgerCoverage) (ret uint64) {
 	var slotsBack uint32
 	var ok bool
@@ -143,7 +143,7 @@ func (b *Branches) _ledgerCoverage(brOrig branchDataWithLedgerCoverage) (ret uin
 	return
 }
 
-// LedgerCoverage strictly speaking, is non-deterministic if the snapshot is after genesis
+// LedgerCoverage strictly speaking, is non-deterministic if the snapshot is after the genesis
 // However:
 //   - if branchID is far enough (63 slots), it is guaranteed to be the real value and therefore deterministic
 //   - if the snapshot is N slots behind the branchID, it is guaranteed that the returned value differs from
