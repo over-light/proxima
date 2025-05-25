@@ -10,6 +10,7 @@ import (
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/proxima/util/lines"
 )
 
 type (
@@ -274,6 +275,29 @@ func (b *Branches) TransactionIsInSnapshotState(txid base.TransactionID) bool {
 		return false
 	}
 	return b.BranchKnowsTransaction(b.snapshotBranchID, txid)
+}
+
+// ChainLines for debugging
+func (b *Branches) ChainLines(tipOrig base.TransactionID, prefix ...string) *lines.Lines {
+	ret := lines.New(prefix...)
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	tip := tipOrig
+	for i := 0; i < 80; i++ {
+		bd, ok := b._getAndCacheNoLock(tip)
+		if !ok {
+			ret.Add("%2d:  %s  <- chan ends here", i, tip.StringShort())
+			break
+		} else {
+			slotsSinceTip := uint32(tip.Slot() - bd.Slot())
+			ret.Add("%2d:  %s (-%d), delta: %s, delta>>slots: %s, coverage: %s",
+				i, tip.StringShort(), slotsSinceTip, bd.CoverageDelta>>slotsSinceTip,
+				util.Th(bd.CoverageDelta), util.Th(bd.ledgerCoverage))
+		}
+		tip = bd.StemPredecessorBranchID()
+	}
+	return ret
 }
 
 //func (b *Branches) IterateBranchesBack(tip base.TransactionID, fun func(branchID base.TransactionID, branchData *multistate.BranchData) bool) {
