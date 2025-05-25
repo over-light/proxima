@@ -135,11 +135,11 @@ func AttachTransaction(tx *transaction.Transaction, env Environment, opts ...Att
 		if vid.IsSequencerMilestone() {
 			// for sequencer milestones start attacher
 			metadata := options.metadata
-			{ // debug
-				if metadata != nil {
-					env.Log().Infof(">>>>>>> AttachTransaction %s: %s", txid.StringShort(), metadata.String())
-				}
-			}
+			//{ // debug
+			//	if metadata != nil {
+			//		env.Log().Infof(">>>>>>> AttachTransaction %s: %s", txid.StringShort(), metadata.String())
+			//	}
+			//}
 			// start attacher routine
 			go func() {
 				env.IncCounter("att")
