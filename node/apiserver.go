@@ -120,10 +120,6 @@ func (p *ProximaNode) SubmitTxBytesFromAPI(txBytes []byte) {
 	p.workflow.TxBytesInFromAPIQueued(txBytes)
 }
 
-func (p *ProximaNode) SubmitTxBytesFromInflator(txBytes []byte) {
-	p.workflow.TxBytesInFromInflatorQueued(txBytes)
-}
-
 func (p *ProximaNode) GetLatestReliableBranch() (ret *multistate.BranchData) {
 	err := util.CatchPanicOrError(func() error {
 		//ret = p.workflow.Branches().FindLatestReliableBranch(global.FractionHealthyBranch)

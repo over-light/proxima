@@ -48,7 +48,6 @@ const (
 	SourceTypeAPI
 	SourceTypeTxStore
 	SourceTypePulled
-	SourceTypeInflator
 )
 
 var allSourceTypes = map[SourceType]string{
@@ -58,7 +57,6 @@ var allSourceTypes = map[SourceType]string{
 	SourceTypeAPI:       "API",
 	SourceTypeTxStore:   "txStore",
 	SourceTypePulled:    "pulled",
-	SourceTypeInflator:  "inflator",
 }
 
 // persistent flags for (de)serialization

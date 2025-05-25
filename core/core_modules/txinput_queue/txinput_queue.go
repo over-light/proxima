@@ -55,7 +55,7 @@ type (
 
 const (
 	CmdFromPeer = byte(iota)
-	CmdFromAPIOrInflator
+	CmdFromAPI
 )
 
 const (
@@ -102,8 +102,8 @@ func (q *TxInputQueue) consume(inp Input) {
 	switch inp.Cmd {
 	case CmdFromPeer:
 		q.fromPeer(&inp)
-	case CmdFromAPIOrInflator:
-		q.fromAPIOrInflator(&inp)
+	case CmdFromAPI:
+		q.fromAPI(&inp)
 	default:
 		q.Log().Fatalf("TxInputQueue: wrong cmd")
 	}
@@ -148,7 +148,7 @@ func (q *TxInputQueue) fromPeer(inp *Input) {
 	}
 }
 
-func (q *TxInputQueue) fromAPIOrInflator(inp *Input) {
+func (q *TxInputQueue) fromAPI(inp *Input) {
 	from := txmetadata.SourceTypeAPI
 	if inp.TxMetaData != nil {
 		from = inp.TxMetaData.SourceTypeNonPersistent

@@ -445,7 +445,6 @@ func initMultiSequencerTest(t *testing.T, nSequencers int, startPruner ...bool) 
 		sequencer.WithMaxInputs(50, 30),
 		sequencer.WithPace(5),
 		sequencer.WithDelayStart(3*time.Second),
-		sequencer.WithForceInflator(),
 	)
 	require.NoError(t, err)
 

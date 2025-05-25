@@ -27,7 +27,6 @@ type (
 		BacklogDelegationTTLSlots int
 		MilestonesTTLSlots        int
 		SingleSequencerEnforced   bool
-		ForceRunInflator          bool
 	}
 
 	ConfigOption func(options *ConfigOptions)
@@ -181,12 +180,6 @@ func WithEnsureSyncedAtStartup(o *ConfigOptions) {
 
 func WithSingleSequencerEnforced(o *ConfigOptions) {
 	o.SingleSequencerEnforced = true
-}
-
-func WithForceInflator() ConfigOption {
-	return func(o *ConfigOptions) {
-		o.ForceRunInflator = true
-	}
 }
 
 func (cfg *ConfigOptions) lines(seqID base.ChainID, controller ledger.AddressED25519, prefix ...string) *lines.Lines {

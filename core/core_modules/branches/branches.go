@@ -121,6 +121,8 @@ func (b *Branches) _getAndCacheNoLock(branchID base.TransactionID) (branchDataWi
 
 // _ledgerCoverage traverses branches back up to 64 slots and calculates full coverage
 func (b *Branches) _ledgerCoverage(brOrig branchDataWithLedgerCoverage) (ret uint64) {
+	b.Assertf(brOrig.ledgerCoverage == 0, "brOrig.ledgerCoverage == 0")
+
 	var slotsBack uint32
 	var ok bool
 
@@ -128,16 +130,12 @@ func (b *Branches) _ledgerCoverage(brOrig branchDataWithLedgerCoverage) (ret uin
 	ret = brOrig.CoverageDelta
 	br := brOrig
 
-	for slotsBack < 64 {
+	for slotsBack < 64 && br.ledgerCoverage == 0 {
 		predID := br.StemPredecessorBranchID()
 		if br, ok = b._getAndCacheNoLock(predID); !ok {
 			break
 		}
 		slotsBack = uint32(origSlot - predID.Slot())
-		if br.ledgerCoverage > 0 {
-			ret += br.ledgerCoverage >> slotsBack
-			break
-		}
 		ret += br.CoverageDelta >> slotsBack
 	}
 	return

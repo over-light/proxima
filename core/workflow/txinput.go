@@ -62,27 +62,12 @@ func (w *Workflow) TxInFromAPI(tx *transaction.Transaction) error {
 	return w.TxIn(tx, WithSourceType(txmetadata.SourceTypeAPI))
 }
 
-func (w *Workflow) TxInFromInflator(tx *transaction.Transaction) error {
-	return w.TxIn(tx, WithSourceType(txmetadata.SourceTypeInflator))
-}
-
 func (w *Workflow) TxBytesInFromAPIQueued(txBytes []byte) {
 	w.txInputQueue.Push(txinput_queue.Input{
-		Cmd:     txinput_queue.CmdFromAPIOrInflator,
+		Cmd:     txinput_queue.CmdFromAPI,
 		TxBytes: txBytes,
 		TxMetaData: &txmetadata.TransactionMetadata{
 			SourceTypeNonPersistent: txmetadata.SourceTypeAPI,
-			TxBytesReceived:         util.Ref(time.Now()),
-		},
-	})
-}
-
-func (w *Workflow) TxBytesInFromInflatorQueued(txBytes []byte) {
-	w.txInputQueue.Push(txinput_queue.Input{
-		Cmd:     txinput_queue.CmdFromAPIOrInflator,
-		TxBytes: txBytes,
-		TxMetaData: &txmetadata.TransactionMetadata{
-			SourceTypeNonPersistent: txmetadata.SourceTypeInflator,
 			TxBytesReceived:         util.Ref(time.Now()),
 		},
 	})

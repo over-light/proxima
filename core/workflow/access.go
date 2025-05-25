@@ -123,10 +123,6 @@ func (w *Workflow) GetKnownLatestSequencerDataJSONAble() map[string]tippool.Late
 	return w.tippool.GetKnownLatestSequencerDataJSONAble()
 }
 
-func (w *Workflow) SubmitTxBytesFromInflator(txBytes []byte) {
-	w.TxBytesInFromInflatorQueued(txBytes)
-}
-
 func (w *Workflow) DisableMemDAGGC() bool {
 	return w.cfg.disableMemDAGGC
 }

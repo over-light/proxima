@@ -38,7 +38,6 @@ type (
 		MustEnsureBranch(txid base.TransactionID) *vertex.WrappedTx
 		OwnSequencerMilestoneIn(txBytes []byte, meta *txmetadata.TransactionMetadata)
 		LatestReliableState() (multistate.SugaredStateReader, error)
-		SubmitTxBytesFromInflator(txBytes []byte)
 	}
 
 	Sequencer struct {
