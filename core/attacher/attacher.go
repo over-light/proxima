@@ -520,7 +520,7 @@ func (a *attacher) BaselineSupply() uint64 {
 	return a.Branches().Supply(*a.pastCone.GetBaseline())
 }
 
-func (a *attacher) FinalLedgerCoverage(currentTs base.LedgerTime) uint64 {
+func (a *attacher) FinalLedgerCoverage(currentTs base.LedgerTime, delta ...uint64) uint64 {
 	var baselineLC uint64
 
 	if bl := a.pastCone.GetBaseline(); bl != nil {
@@ -530,7 +530,13 @@ func (a *attacher) FinalLedgerCoverage(currentTs base.LedgerTime) uint64 {
 			baselineLC >>= 1
 		}
 	}
-	return a.CoverageDelta() + baselineLC
+	var d uint64
+	if len(delta) > 0 {
+		d = delta[0]
+	} else {
+		d = a.CoverageDelta()
+	}
+	return baselineLC + d
 }
 
 func (a *attacher) CoverageDelta() uint64 {

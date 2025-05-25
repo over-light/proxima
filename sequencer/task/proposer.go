@@ -72,8 +72,8 @@ func (p *proposer) run() {
 func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 	util.Assertf(a.TargetTs() == p.targetTs, "a.targetTs() == p.taskData.targetTs")
 
-	ledgerCoverage := a.FinalLedgerCoverage(p.targetTs)
 	coverageDelta := a.CoverageDelta()
+	ledgerCoverage := a.FinalLedgerCoverage(p.targetTs, coverageDelta)
 	slotInflation := a.SlotInflation() // tip inflation is not included
 	baselineSupply := a.BaselineSupply()
 
@@ -207,24 +207,13 @@ func (p *proposer) chooseEndorseExtendPairAttacher(endorse *vertex.WrappedTx, ex
 		// we dispose all attachers with their references, except the one with the biggest coverage
 		switch {
 		case !a.Completed():
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair, "%s can't extend %s and endorse %s: NOT COMPLETED", p.targetTs.String, extend.IDStringShort, endorse.IDShortString)
 			a.Close()
 		case ret == nil:
 			ret = a
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
-				"first proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.FinalLedgerCoverage(p.targetTs)))
-
 		case a.FinalLedgerCoverage(p.targetTs) > ret.FinalLedgerCoverage(p.targetTs):
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
-				"new proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.FinalLedgerCoverage(p.targetTs)))
 			ret.Close()
 			ret = a
 		default:
-			p.Tracef(TraceTagChooseFirstExtendEndorsePair,
-				"discard proposal: %s, extend %s, endorse %s, cov: %s",
-				p.targetTs.String, extend.IDStringShort, endorse.IDShortString, util.Th(a.FinalLedgerCoverage(p.targetTs)))
 			a.Close()
 		}
 		p.taskData.slotData.markCombinationChecked(true, extend, endorse)

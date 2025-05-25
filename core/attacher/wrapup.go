@@ -13,8 +13,8 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 
 	a.finals.baseline = *a.BaselineBranch()
 	a.finals.numVertices = a.pastCone.NumVertices()
-	a.finals.TransactionMetadata.LedgerCoverage = util.Ref(a.FinalLedgerCoverage(a.vid.Timestamp()))
 	a.finals.TransactionMetadata.CoverageDelta = util.Ref(a.CoverageDelta())
+	a.finals.TransactionMetadata.LedgerCoverage = util.Ref(a.FinalLedgerCoverage(a.vid.Timestamp(), *a.finals.TransactionMetadata.CoverageDelta))
 	a.finals.TransactionMetadata.SlotInflation = util.Ref(a.SlotInflation())
 	if a.providedMetadata != nil {
 		a.finals.TransactionMetadata.SourceTypeNonPersistent = a.providedMetadata.SourceTypeNonPersistent
