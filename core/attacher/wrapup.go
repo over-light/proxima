@@ -3,9 +3,12 @@ package attacher
 import (
 	"fmt"
 
+	"github.com/lunfardo314/proxima/core/txmetadata"
+	"github.com/lunfardo314/proxima/core/vertex"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/multistate"
 	"github.com/lunfardo314/proxima/util"
+	"github.com/lunfardo314/unitrie/common"
 )
 
 func (a *milestoneAttacher) wrapUpAttacher() {
@@ -13,51 +16,43 @@ func (a *milestoneAttacher) wrapUpAttacher() {
 
 	a.finals.baseline = *a.BaselineBranch()
 	a.finals.numVertices = a.pastCone.NumVertices()
-	a.finals.TransactionMetadata.CoverageDelta = util.Ref(a.CoverageDelta())
-	a.finals.TransactionMetadata.LedgerCoverage = util.Ref(a.FinalLedgerCoverage(a.vid.Timestamp(), *a.finals.TransactionMetadata.CoverageDelta))
-	a.finals.TransactionMetadata.SlotInflation = util.Ref(a.SlotInflation())
-	if a.providedMetadata != nil {
-		a.finals.TransactionMetadata.SourceTypeNonPersistent = a.providedMetadata.SourceTypeNonPersistent
+
+	delta := a.CoverageDelta()
+	slotInflation := a.SlotInflation()
+	a.finals.TransactionMetadata = txmetadata.TransactionMetadata{
+		CoverageDelta:  util.Ref(delta),
+		LedgerCoverage: util.Ref(a.FinalLedgerCoverage(a.vid.Timestamp(), delta)),
+		SlotInflation:  util.Ref(slotInflation),
+		Supply:         util.Ref(a.BaselineSupply() + slotInflation),
 	}
 	if a.vid.IsBranchTransaction() {
-		a.commitBranch()
+		root, stats := a.commitBranch()
+		a.finals.StateRoot = root
+		a.finals.MutationStats = stats
 	}
 	a.checkConsistencyWithMetadata()
 }
 
-func (a *milestoneAttacher) commitBranch() {
+func (a *milestoneAttacher) commitBranch() (common.VCommitment, vertex.MutationStats) {
 	a.Assertf(a.vid.IsBranchTransaction(), "a.vid.IsBranchTransaction()")
 
 	muts, stats := a.pastCone.Mutations(a.vid.Slot())
-
-	a.finals.MutationStats = stats
-
 	seqID, stemOID := a.vid.MustSequencerIDAndStemID()
 	upd := multistate.MustNewUpdatable(a.StateStore(), a.BaselineSugaredStateReader().Root())
-	supply := a.BaselineSupply() + *a.finals.SlotInflation
-	a.finals.TransactionMetadata.Supply = util.Ref(supply)
-	coverageDelta := a.CoverageDelta()
 
 	err := upd.Update(muts, &multistate.RootRecordParams{
 		StemOutputID:    stemOID,
 		SeqID:           seqID,
-		CoverageDelta:   coverageDelta,
+		CoverageDelta:   *a.finals.CoverageDelta,
 		SlotInflation:   *a.finals.SlotInflation,
-		Supply:          supply,
+		Supply:          *a.finals.Supply,
 		NumTransactions: uint32(a.finals.MutationStats.NumTransactions),
 	})
 	if err != nil {
 		err = fmt.Errorf("attacher wrapup (%s) -> %w:\n------ tx\n%s\n-------- past cone --------\n%s",
 			a.Name(), err, a.vid.TxLines("    ").String(), a.pastCone.Lines("     ").Join("\n"))
-
-		// FAILS
-		//a.pastCone.SaveGraph(util.Ref(a.vid.ID()).AsFileNameShort())
-		//a.SaveFullDAG("full_dag_failed_upd")
-		//time.Sleep(2 * time.Second)
 	}
 	a.AssertNoError(err)
-
-	a.finals.TransactionMetadata.StateRoot = upd.Root()
-
-	a.EvidenceBranchSlot(a.vid.Slot(), global.IsHealthyCoverageDelta(coverageDelta, supply, global.FractionHealthyBranch))
+	a.EvidenceBranchSlot(a.vid.Slot(), global.IsHealthyCoverageDelta(*a.finals.CoverageDelta, *a.finals.Supply, global.FractionHealthyBranch))
+	return upd.Root(), stats
 }
