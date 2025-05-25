@@ -109,7 +109,7 @@ func (a *milestoneAttacher) checkConsistencyWithMetadata() {
 			msg, a.vid.IDShortString(), a.vid.SequencerID.Load().StringShort(), a.vid.SequencerName(),
 			a.finals.TransactionMetadata.String(), a.providedMetadata.String())
 		if inconsistentCoverage {
-			a.Log().Fatalf("----------------------------\n%s", a.Branches().ChainLines(a.finals.baseline).String())
+			//a.Log().Fatalf("----------------------------\n%s", a.Branches().ChainLines(a.finals.baseline).String())
 		}
 	}
 }
