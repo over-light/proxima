@@ -130,12 +130,16 @@ func (b *Branches) _ledgerCoverage(brOrig branchDataWithLedgerCoverage) (ret uin
 	ret = brOrig.CoverageDelta
 	br := brOrig
 
-	for slotsBack < 64 && br.ledgerCoverage == 0 {
+	for slotsBack < 64 {
 		predID := br.StemPredecessorBranchID()
 		if br, ok = b._getAndCacheNoLock(predID); !ok {
 			break
 		}
 		slotsBack = uint32(origSlot - predID.Slot())
+		if br.ledgerCoverage > 0 {
+			ret += br.ledgerCoverage >> slotsBack
+			break
+		}
 		ret += br.CoverageDelta >> slotsBack
 	}
 	return

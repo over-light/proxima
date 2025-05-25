@@ -103,7 +103,7 @@ func (p *proposer) propose(a *attacher.IncrementalAttacher) error {
 	//trackProposals.RegisterPointer(_proposal)
 
 	if tx.IsBranchTransaction() {
-		_proposal.txMetadata.LedgerCoverage = util.Ref(ledgerCoverage)
+		_proposal.txMetadata.LedgerCoverage = util.Ref(ledgerCoverage) // not persistent
 		_proposal.txMetadata.Supply = util.Ref(supply)
 		_proposal.txMetadata.SlotInflation = util.Ref(slotInflation)
 	}
