@@ -39,11 +39,14 @@ func parseWithdrawCommandData(data []byte) (uint64, ledger.Lock, bool) {
 	if len(data) == 0 || data[0] != CommandCodeWithdrawAmount {
 		return 0, nil, false
 	}
-	arr := lazybytes.ArrayFromBytesReadOnly(data[1:])
+	arr, err := lazybytes.ArrayFromBytesReadOnly(data[1:])
+	if err != nil {
+		return 0, nil, false
+	}
 	if arr.NumElements() != 2 {
 		return 0, nil, false
 	}
-	amount, err := easyfl_util.Uint64FromBytes(arr.At(0))
+	amount, err := easyfl_util.Uint64FromBytes(arr.MustAt(0))
 	if err != nil {
 		return 0, nil, false
 	}
@@ -51,7 +54,7 @@ func parseWithdrawCommandData(data []byte) (uint64, ledger.Lock, bool) {
 		// silently ignore
 		return 0, nil, false
 	}
-	targetLock, err := ledger.LockFromBytes(arr.At(1))
+	targetLock, err := ledger.LockFromBytes(arr.MustAt(1))
 	if err != nil {
 		return 0, nil, false
 	}
@@ -74,7 +77,7 @@ func (p CommandParser) ParseSequencerCommandToOutputs(input *ledger.OutputWithID
 		return nil, nil
 	}
 	// make withdrawal output
-	o := ledger.NewOutput(func(o *ledger.Output) {
+	o := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 		o.WithAmount(amount).WithLock(targetLock)
 	})
 	return []*ledger.Output{o}, nil
@@ -95,11 +98,10 @@ func MakeSequencerWithdrawCmdOutput(par MakeSequencerWithdrawCmdOutputParams) (*
 	}
 	msg := ledger.NewMessageWithED25519SenderFromAddress(par.ControllerAddr, cmdData)
 
-	ret := ledger.NewOutput(func(o *ledger.Output) {
+	ret := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 		o.WithAmount(par.TagAlongFee)
 		o.WithLock(ledger.ChainLockFromChainID(par.SeqID))
-		_, err = o.PushConstraint(msg.Bytes())
-		util.AssertNoError(err)
+		o.MustPushConstraint(msg.Bytes())
 	})
 	// reverse checking
 	cmdParserDummy := NewCommandParser(par.ControllerAddr)

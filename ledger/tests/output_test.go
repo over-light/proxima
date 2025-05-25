@@ -9,7 +9,7 @@ import (
 )
 
 func TestRawOutputBytes(t *testing.T) {
-	o := ledger.NewOutput(func(o *ledger.Output) {
+	o := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 		o.WithAmount(1337).WithLock(ledger.AddressED25519FromPrivateKey(genesisPrivateKey))
 	})
 

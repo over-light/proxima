@@ -427,7 +427,7 @@ func TestChain1(t *testing.T) {
 
 		// produce new output with same amount but without chain constraint
 		// it will be the only produced output of the transaction
-		outNonChain := ledger.NewOutput(func(o *ledger.Output) {
+		outNonChain := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(chainIN.Output.Amount()).
 				WithLock(chainIN.Output.Lock())
 		})
@@ -543,7 +543,7 @@ func TestChain2(t *testing.T) {
 			panic("wrong test option 1")
 		}
 
-		chainOut := chainIN.Output.Clone(func(out *ledger.Output) {
+		chainOut := chainIN.Output.Clone(func(out *ledger.OutputBuilder) {
 			out.PutConstraint(nextChainConstraint.Bytes(), constraintIdx)
 		})
 
@@ -683,7 +683,7 @@ func TestChain3(t *testing.T) {
 	var nextChainConstraint *ledger.ChainConstraint
 	nextChainConstraint = ledger.NewChainConstraint(theChainData.ChainID, predIdx, constraintIdx, 0)
 
-	chainOut := chainIN.Output.Clone(func(out *ledger.Output) {
+	chainOut := chainIN.Output.Clone(func(out *ledger.OutputBuilder) {
 		out.PutConstraint(nextChainConstraint.Bytes(), constraintIdx)
 	})
 	succIdx, err := txb.ProduceOutput(chainOut)
@@ -962,17 +962,15 @@ func TestImmutable(t *testing.T) {
 	nextChainConstraint = ledger.NewChainConstraint(theChainData.ChainID, predIdx, chainConstraintIdx, 0)
 
 	var dataConstraintIdx, immutableConstraintIdx byte
-	chainOut := chainIN.Output.Clone(func(o *ledger.Output) {
+	chainOut := chainIN.Output.Clone(func(o *ledger.OutputBuilder) {
 		o.PutConstraint(nextChainConstraint.Bytes(), chainConstraintIdx)
 
 		immutableData, err := ledger.NewGeneralScriptFromSource("concat(0x01020304030201)")
 		require.NoError(t, err)
 		// push data constraint
-		dataConstraintIdx, err = o.PushConstraint(immutableData)
-		require.NoError(t, err)
+		dataConstraintIdx = o.MustPushConstraint(immutableData)
 		// push immutable constraint
-		immutableConstraintIdx, err = o.PushConstraint(ledger.NewImmutable(chainConstraintIdx, dataConstraintIdx).Bytes())
-		require.NoError(t, err)
+		immutableConstraintIdx = o.MustPushConstraint(ledger.NewImmutable(chainConstraintIdx, dataConstraintIdx).Bytes())
 	})
 
 	succIdx, err := txb.ProduceOutput(chainOut)
@@ -1046,7 +1044,7 @@ func TestImmutable(t *testing.T) {
 
 	nextChainConstraint = ledger.NewChainConstraint(theChainData.ChainID, predIdx, chainConstraintIdx, 0)
 
-	chainOut = chainIN.Output.Clone(func(out *ledger.Output) {
+	chainOut = chainIN.Output.Clone(func(out *ledger.OutputBuilder) {
 		// put wrong data
 		wrongImmutableData, err := ledger.NewGeneralScriptFromSource("concat(0x010203040302010000)")
 		require.NoError(t, err)
@@ -1091,7 +1089,7 @@ func TestImmutable(t *testing.T) {
 
 	nextChainConstraint = ledger.NewChainConstraint(theChainData.ChainID, predIdx, chainConstraintIdx, 0)
 
-	chainOut = chainIN.Output.Clone(func(out *ledger.Output) {
+	chainOut = chainIN.Output.Clone(func(out *ledger.OutputBuilder) {
 		// put wrong data
 		sameImmutableData, err := ledger.NewGeneralScriptFromSource("concat(0x01020304030201)")
 		require.NoError(t, err)

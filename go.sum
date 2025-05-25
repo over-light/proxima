@@ -249,6 +249,8 @@ github.com/lunfardo314/easyfl v0.0.0-20250524182219-5411dbddd98f h1:nO8xDt/S9CXU
 github.com/lunfardo314/easyfl v0.0.0-20250524182219-5411dbddd98f/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
 github.com/lunfardo314/easyfl v0.0.0-20250524182924-1d46cc06ffa7 h1:zXV2FVgsp9/AHDiK5/dMxA8bUil9EYYM8/yl1eyUUF4=
 github.com/lunfardo314/easyfl v0.0.0-20250524182924-1d46cc06ffa7/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
+github.com/lunfardo314/easyfl v0.0.0-20250525060234-85597a476b45 h1:iXegu+P2jgOFs9BMtIR+myoPE9LpQOrjPR0DJPtaiRI=
+github.com/lunfardo314/easyfl v0.0.0-20250525060234-85597a476b45/go.mod h1:sbC4lEPEdSVEi0VyMUQa6jz987/MDB+2EM2co4MfMbk=
 github.com/lunfardo314/unitrie v0.0.0-20250428060929-782e8c6f527d h1:AR6RGRkmq8zOlGJEaqD3Znm98b95UzpvnQAf5Q0Bblc=
 github.com/lunfardo314/unitrie v0.0.0-20250428060929-782e8c6f527d/go.mod h1:UF0sUDag70c6Jx6vkKbbLqrOirQjTiJfSnuKKOFNRpA=
 github.com/lunixbochs/vtclean v1.0.0/go.mod h1:pHhQNgMf3btfWnGBVipUOjRYhoOsdGqdm/+2c2E2WMI=

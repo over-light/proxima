@@ -254,14 +254,14 @@ func (td *workflowTestData) makeChainOrigins(n int) {
 
 	amount := (td.auxOutput.Output.Amount() - tagAlongFee) / uint64(n)
 	for i := 0; i < n; i++ {
-		o := ledger.NewOutput(func(o *ledger.Output) {
+		o := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(amount)
 			o.WithLock(td.addrAux)
-			_, _ = o.PushConstraint(ledger.NewChainOrigin().Bytes())
+			o.MustPushConstraint(ledger.NewChainOrigin().Bytes())
 		})
 		_, _ = txb.ProduceOutput(o)
 	}
-	tagAlongOut := ledger.NewOutput(func(o *ledger.Output) {
+	tagAlongOut := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 		o.WithAmount(tagAlongFee)
 		o.WithLock(ledger.ChainLockFromChainID(td.bootstrapChainID))
 	})
@@ -824,7 +824,7 @@ func (td *workflowTestData) spamWithdrawCommands(par spammerWithdrawCmdParams, c
 		txb := txbuilder.New()
 		_, err := txb.ConsumeOutput(par.remainder.Output, par.remainder.ID)
 		require.NoError(td.t, err)
-		reminder := ledger.NewOutput(func(o *ledger.Output) {
+		reminder := ledger.NewOutput(func(o *ledger.OutputBuilder) {
 			o.WithAmount(par.remainder.Output.Amount() - 500).WithLock(par.remainder.Output.Lock())
 		})
 		_, err = txb.ProduceOutput(reminder)
