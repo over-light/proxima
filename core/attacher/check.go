@@ -96,11 +96,9 @@ func (a *milestoneAttacher) checkConsistencyWithMetadata() {
 		return
 	}
 	msg := ""
-	inconsistentCoverage := false
 	slotsFromSnapshot := uint32(a.vid.Slot() - a.Branches().SnapshotSlot())
 	if !consistentCoveragesFromMetadata(a.finals.TransactionMetadata.LedgerCoverage, a.providedMetadata.LedgerCoverage, slotsFromSnapshot) {
 		msg = fmt.Sprintf("inconsistent ledger coverage in tx metadata (slots from snapshot %d)", slotsFromSnapshot)
-		inconsistentCoverage = true
 	} else if !a.providedMetadata.IsConsistentWithExceptCoverage(&a.finals.TransactionMetadata) {
 		msg = fmt.Sprintf("inconsistency in tx metadata")
 	}
@@ -108,8 +106,5 @@ func (a *milestoneAttacher) checkConsistencyWithMetadata() {
 		a.Log().Warnf("%s of tx %s (source seq: %s, '%s'):\n   calculated metadata: %s\n   provided metadata: %s",
 			msg, a.vid.IDShortString(), a.vid.SequencerID.Load().StringShort(), a.vid.SequencerName(),
 			a.finals.TransactionMetadata.String(), a.providedMetadata.String())
-		if inconsistentCoverage {
-			//a.Log().Fatalf("----------------------------\n%s", a.Branches().ChainLines(a.finals.baseline).String())
-		}
 	}
 }
