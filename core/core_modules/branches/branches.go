@@ -255,7 +255,6 @@ func (b *Branches) GetStateReaderForTheBranch(branchID base.TransactionID) multi
 
 func (b *Branches) BranchKnowsTransaction(branchID, txid base.TransactionID) bool {
 	util.Assertf(branchID.IsBranchTransaction(), "branch tx expected. Got: %s", branchID.StringShort)
-
 	if branchID == txid {
 		return true
 	}
@@ -263,6 +262,18 @@ func (b *Branches) BranchKnowsTransaction(branchID, txid base.TransactionID) boo
 		return false
 	}
 	return b.GetStateReaderForTheBranch(branchID).KnowsCommittedTransaction(txid)
+}
+
+// IsDescendantBranch returns:
+//
+//	compatible = true -> then isDescendentOf=true if branch1 known branch2 and false otherwise
+//	compatible = false -> branches not in the same chain and isDescendentOf is undefined
+func (b *Branches) IsDescendantBranch(descendant, ancestor base.TransactionID) (sameLineage bool, isDescendant bool) {
+	b.Assertf(descendant.IsBranchTransaction() && ancestor.IsBranchTransaction(), "branchID1.IsBranchTransaction() && ancestor.IsBranchTransaction()")
+	if b.BranchKnowsTransaction(descendant, ancestor) {
+		return true, true
+	}
+	return b.BranchKnowsTransaction(ancestor, descendant), false
 }
 
 func (b *Branches) TransactionIsInSnapshotState(txid base.TransactionID) bool {

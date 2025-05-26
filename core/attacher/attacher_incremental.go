@@ -134,6 +134,10 @@ func (a *IncrementalAttacher) IsClosed() bool {
 	return a.closed
 }
 
+func (a *IncrementalAttacher) BaselineBranch() *base.TransactionID {
+	return a.pastCone.GetBaseline()
+}
+
 func (a *IncrementalAttacher) initIncrementalAttacher(baselineBranchID base.TransactionID, targetTs base.LedgerTime, extend vertex.WrappedOutput, endorse ...*vertex.WrappedTx) error {
 	a.setBaseline(util.Ref(baselineBranchID))
 	a.Tracef(TraceTagIncrementalAttacher, "NewIncrementalAttacher(%s). baseline: %s", a.name, baselineBranchID.StringShort)

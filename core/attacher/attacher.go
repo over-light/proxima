@@ -100,7 +100,6 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 	if a.pastCone.IsKnownDefined(vid) {
 		return true
 	}
-	var deterministicPastCone *vertex.PastConeBase
 
 	defined := false
 	vid.Unwrap(vertex.UnwrapOptions{
@@ -118,16 +117,19 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 					a.pastCone.SetFlagsUp(vid, vertex.FlagPastConeVertexDefined)
 					defined = true
 				}
+
 			case vertex.Good:
 				a.Assertf(vid.IsSequencerMilestone(), "vid.IsSequencerTransaction()")
-				if !a.branchesCompatible(a.pastCone.GetBaseline(), v.BaselineBranchID) {
-					a.setError(fmt.Errorf("conflicting baseline %s of %s", a.pastCone.GetBaseline().StringShort(), vid.IDShortString()))
+				// dependency is GOOD, so merge its (deterministic) past cone into the current attacher.
+				// Note that MergePastCone checks the compatibility of baselines and swaps them if necessary,
+				// however, does not check for double-spends here
+				if !a.pastCone.MergePastCone(vid.GetPastConeNoLock(), a.Branches()) {
+					a.setError(fmt.Errorf("conflicting baselines %s and %s", a.pastCone.GetBaseline().StringShort(), vid.IDShortString()))
 					return
 				}
 				ok = true
-				// here cut the recursion and merge 'good' past cone
-				deterministicPastCone = vid.GetPastConeNoLock()
-				a.Assertf(deterministicPastCone != nil, "deterministicPastCone!=nil")
+				defined = true
+
 			case vertex.Bad:
 				a.setError(vid.GetErrorNoLock())
 
@@ -149,11 +151,6 @@ func (a *attacher) attachVertexNonBranch(vid *vertex.WrappedTx) (ok bool) {
 	if !ok {
 		a.Assertf(a.err != nil, "a.err != nil: %s", vid.IDShortString())
 		return
-	}
-	if deterministicPastCone != nil {
-		a.pastCone.AppendPastCone(deterministicPastCone, a.baselineStateReader())
-		ok = true
-		defined = true
 	}
 
 	if defined {
@@ -294,7 +291,7 @@ func (a *attacher) defineInTheStateStatus(vid *vertex.WrappedTx) {
 		return
 	}
 
-	if a.BaselineSugaredStateReader().KnowsCommittedTransaction(vid.ID()) {
+	if a.Branches().BranchKnowsTransaction(*a.pastCone.GetBaseline(), vid.ID()) {
 		a.pastCone.SetFlagsUp(vid, vertex.FlagPastConeVertexCheckedInTheState|vertex.FlagPastConeVertexInTheState|vertex.FlagPastConeVertexDefined)
 	} else {
 		// not on the state, so it is not defined
@@ -557,10 +554,6 @@ func (a *attacher) coverageDeltaAdjustment() uint64 {
 		return wOut.Output().Inflation()
 	}
 	return 0
-}
-
-func (a *attacher) BaselineBranch() *base.TransactionID {
-	return a.pastCone.GetBaseline()
 }
 
 func (a *attacher) CheckConflicts() *vertex.WrappedOutput {

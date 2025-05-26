@@ -5,6 +5,7 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/lunfardo314/proxima/core/core_modules/branches"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -177,14 +178,12 @@ func (pc *PastCone) Assertf(cond bool, format string, args ...any) {
 
 func (pc *PastCone) SetBaseline(baselineID *base.TransactionID) {
 	pc.Assertf(baselineID.IsBranchTransaction(), "branch tx expected in past cone %s, got %s", pc.name, baselineID.StringShort)
-	pc.Assertf(pc.baselineBranchID == nil, "SetBaseline: nil baseline expected in %s", pc.LinesShort("     ").String)
-
-	//pc.markVertexWithFlags(vid, FlagPastConeVertexKnown|FlagPastConeVertexDefined|FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState)
+	//pc.Assertf(pc.baselineBranchID == nil, "SetBaseline: nil baseline expected in %s", pc.LinesShort("     ").String)
 
 	if pc.delta == nil {
 		pc.baselineBranchID = baselineID
 	} else {
-		pc.Assertf(pc.delta.baselineBranchID == nil, "SetBaseline: pc.delta.baseline == nil")
+		//pc.Assertf(pc.delta.baselineBranchID == nil, "SetBaseline: pc.delta.baseline == nil")
 		pc.delta.baselineBranchID = baselineID
 	}
 }
@@ -206,7 +205,7 @@ func (pc *PastCone) BeginDelta() {
 
 func (pc *PastCone) CommitDelta() {
 	util.Assertf(pc.delta != nil, "CommitDelta: pc.delta != nil")
-	util.Assertf(pc.baselineBranchID == nil || pc.baselineBranchID == pc.delta.baselineBranchID, "pc.baseline == base.TransactionID{} || pc.baseline == pc.delta.baseline")
+	//util.Assertf(pc.baselineBranchID == nil || pc.baselineBranchID == pc.delta.baselineBranchID, "pc.baseline == base.TransactionID{} || pc.baseline == pc.delta.baseline")
 
 	pc.baselineBranchID = pc.delta.baselineBranchID
 	for vid, flags := range pc.delta.vertices {
@@ -601,29 +600,62 @@ func (pc *PastCone) IsComplete() bool {
 	return true
 }
 
-// AppendPastCone appends deterministic past cone to the current one. Does not check for conflicts
-func (pc *PastCone) AppendPastCone(pcb *PastConeBase, baselineStateReader multistate.IndexedStateReader) {
-	if len(pcb.vertices) == 0 {
-		return
-	}
-	pc.Assertf(pc.GetBaseline() != nil, "pc.getBaseline() != nil")
-	pc.Assertf(pcb.baselineBranchID != nil, "pcb.baseline != nil")
+// AppendPastConeOld appends deterministic past cone to the current one. Does not check for conflicts
+//func (pc *PastCone) AppendPastConeOld(pcb *PastConeBase, baselineStateReader multistate.IndexedStateReader) {
+//	if len(pcb.vertices) == 0 {
+//		return
+//	}
+//	pc.Assertf(pc.GetBaseline() != nil, "pc.getBaseline() != nil")
+//	pc.Assertf(pcb.baselineBranchID != nil, "pcb.baseline != nil")
+//
+//	for vid, flags := range pcb.vertices {
+//		if vid.ID() != *pcb.baselineBranchID {
+//			pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
+//				flags.String, vid.IDShortString, pcb.Lines("    ").String)
+//		}
+//		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
+//			// if vertex is in the state of the appended past cone, it will be in the state of the new baseline
+//			// When vertex not in appended baseline, check if it didn't become known in the new one
+//			if baselineStateReader.KnowsCommittedTransaction(vid.id) {
+//				flags |= FlagPastConeVertexCheckedInTheState | FlagPastConeVertexInTheState
+//			}
+//		}
+//		// it will also create a new entry in the target past cone if necessary
+//		pc.markVertexWithFlags(vid, flags & ^FlagPastConeVertexAskedForPoke)
+//	}
+//}
 
+// MergePastCone checks the compatibility of baselines and swaps them if necessary.
+// Does not check for double-spends
+func (pc *PastCone) MergePastCone(pcb *PastConeBase, br *branches.Branches) bool {
+	if len(pcb.vertices) == 0 {
+		return true
+	}
+	pc.Assertf(pc.GetBaseline() != nil && pcb.baselineBranchID != nil, "pc.GetBaseline() != nil && pcb.baselineBranchID != nil")
+
+	compatible, needsBaselineSwap := br.IsDescendantBranch(*pcb.baselineBranchID, *pc.GetBaseline())
+	if !compatible {
+		return false
+	}
+	if needsBaselineSwap {
+		pc.SetBaseline(pcb.baselineBranchID)
+	}
 	for vid, flags := range pcb.vertices {
 		if vid.ID() != *pcb.baselineBranchID {
-			pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in appended past cone: %s\n%s\n%s",
+			pc.Assertf(flags.FlagsUp(FlagPastConeVertexKnown|FlagPastConeVertexDefined), "inconsistent flag in merged past cone: %s\n%s\n%s",
 				flags.String, vid.IDShortString, pcb.Lines("    ").String)
 		}
 		if !flags.FlagsUp(FlagPastConeVertexInTheState) {
 			// if vertex is in the state of the appended past cone, it will be in the state of the new baseline
 			// When vertex not in appended baseline, check if it didn't become known in the new one
-			if baselineStateReader.KnowsCommittedTransaction(vid.id) {
+			if br.BranchKnowsTransaction(*pc.baselineBranchID, vid.id) {
 				flags |= FlagPastConeVertexCheckedInTheState | FlagPastConeVertexInTheState
 			}
 		}
 		// it will also create a new entry in the target past cone if necessary
 		pc.markVertexWithFlags(vid, flags & ^FlagPastConeVertexAskedForPoke)
 	}
+	return true
 }
 
 // CheckFinalPastCone check determinism consistency of the past cone

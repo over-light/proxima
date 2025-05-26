@@ -77,7 +77,7 @@ func endorse2RndProposeGenerator(p *proposer) (*attacher.IncrementalAttacher, bo
 		p.Tracef(TraceTagEndorse2RndProposer, "failed to include endorsement target %s", endorsementCandidate.IDShortString)
 	}
 	if !addedSecond {
-		// no need to repeat job of endorse1
+		// no need to repeat the job of endorse1
 		a.Close()
 		return nil, false
 	}

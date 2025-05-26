@@ -114,8 +114,8 @@ func (a *milestoneAttacher) run() error {
 		return a.err
 	}
 
-	a.Assertf(a.BaselineBranch() != nil, "a.baseline != nil")
-	a.Tracef(TraceTagAttachMilestone, "baseline is OK <- %s", a.BaselineBranch().StringShort)
+	a.Assertf(a.pastCone.GetBaseline() != nil, "a.pastCone.GetBaseline() != nil")
+	a.Tracef(TraceTagAttachMilestone, "baseline is OK <- %s", a.pastCone.GetBaseline().StringShort)
 
 	// then solidify past cone
 
@@ -178,8 +178,8 @@ func (a *milestoneAttacher) run() error {
 	return nil
 }
 
-// deadlock catcher, if enabled, calls the callback function whenever lazyRepeat loop is stuck for more than
-// set duration threshold. EnableDeadlockCatching(0) disables deadlock catching
+// deadlock catcher, if enabled, calls the callback function whenever the lazyRepeat loop is stuck for more than
+// the duration threshold. EnableDeadlockCatching(0) disables deadlock catching
 // Default is enabled for 10 seconds
 
 const deadlockThreshold = 10 * time.Second
@@ -245,7 +245,7 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 		a.vid.Unwrap(vertex.UnwrapOptions{
 			Vertex: func(v *vertex.Vertex) {
 				a.Assertf(a.vid.GetTxStatusNoLock() == vertex.Undefined, "a.vid.GetTxStatusNoLock() == vertex.Undefined:\n%s", a.vid.StringNoLock)
-				a.Assertf(a.BaselineBranch() == nil, "a.baseline == nil")
+				a.Assertf(a.pastCone.GetBaseline() == nil, "a.baseline == nil")
 
 				ok = a.solidifyBaselineUnwrapped(v, a.vid)
 				if ok && v.BaselineBranchID != nil {
@@ -256,7 +256,6 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 			DetachedVertex: func(v *vertex.DetachedVertex) {
 				// reattach
 				AttachTransaction(v.Tx, a, WithInvokedBy(a.name+"_reattach"))
-				//a.Log().Fatalf("solidifyBaseline: unexpected detached tx %s", a.vid.StringNoLock())
 			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyBaseline: unexpected virtual tx %s", a.vid.StringNoLock())
@@ -354,7 +353,6 @@ func (a *milestoneAttacher) validateSequencerTxUnwrapped(v *vertex.Vertex) (ok, 
 		v.UnReferenceDependencies()
 		return false, false
 	}
-	//a.Assertf(nil == a.pastCone.CheckConflicts(a.Branches().GetStateReaderForTheBranch), ">>>> inconsistency <<<<<<")
 	return true, true
 }
 
@@ -416,7 +414,7 @@ func (a *milestoneAttacher) logFinalStatusString(msData *ledger.MilestoneData) s
 
 func (a *milestoneAttacher) logErrorStatusString(err error) string {
 	blStr := "baseline: N/A"
-	if bl := a.BaselineBranch(); bl != nil {
+	if bl := a.pastCone.GetBaseline(); bl != nil {
 		blStr = fmt.Sprintf("baseline: %s (hex = %s)", bl.StringShort(), bl.StringHex())
 	}
 	return fmt.Sprintf("ATTACH %s (%s) -> BAD(%v)", a.vid.IDShortString(), blStr, err)
