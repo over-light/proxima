@@ -779,17 +779,13 @@ func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedS
 		if len(consumers) != 1 {
 			return &wOut, false
 		}
-
 		if pc.IsInTheState(consumers[0]) {
 			continue
 		}
 		// virtual consumer nil is never in the state
 		allConsumersAreInTheState = false
-		if inTheState {
-			oid := wOut.DecodeID()
-			if !stateReader.HasUTXO(oid) {
-				return &wOut, false
-			}
+		if inTheState && !stateReader.HasUTXO(wOut.DecodeID()) {
+			return &wOut, false
 		}
 	}
 	canBeRemoved = len(byIdx) > 0 && allConsumersAreInTheState

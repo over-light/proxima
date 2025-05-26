@@ -330,7 +330,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 		if nConflicts > 1 {
 			require.True(t, vertex.Bad == vid.GetTxStatus())
 			t.Logf("reason: %v", vid.GetError())
-			util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
+			util.RequireErrorWith(t, vid.GetError(), "conflict", "in the past cone", testData.forkOutput.IDShort())
 		} else {
 			require.True(t, vertex.Good == vid.GetTxStatus())
 		}
@@ -394,7 +394,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 
 		require.True(t, vertex.Bad == vid.GetTxStatus())
 		t.Logf("reason: %v", vid.GetError())
-		util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
+		util.RequireErrorWith(t, vid.GetError(), "conflict", "in the past cone", testData.forkOutput.IDShort())
 	})
 	t.Run("long", func(t *testing.T) {
 		//attacher.SetTraceOn()
@@ -480,7 +480,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 
 		require.True(t, vertex.Bad == vid.GetTxStatus())
 		t.Logf("expected reason: %v", vid.GetError())
-		util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
+		util.RequireErrorWith(t, vid.GetError(), "conflict", "in the past cone", testData.forkOutput.IDShort())
 	})
 	t.Run("long with sync", func(t *testing.T) {
 		const (
@@ -540,7 +540,7 @@ func TestAttachConflicts1Attacher(t *testing.T) {
 
 		require.True(t, vertex.Bad == vid.GetTxStatus())
 		t.Logf("expected reason: %v", vid.GetError())
-		util.RequireErrorWith(t, vid.GetError(), "double-spend", "in the past cone", testData.forkOutput.IDShort())
+		util.RequireErrorWith(t, vid.GetError(), "conflict", "in the past cone", testData.forkOutput.IDShort())
 	})
 }
 
@@ -712,7 +712,7 @@ func TestAttachConflictsNAttachersOneFork(t *testing.T) {
 	t.Logf("expected BAD transaction %s", vidSeq.IDShortString())
 	require.EqualValues(t, vertex.Bad.String(), vidSeq.GetTxStatus().String())
 	conflict := testData.forkOutput.ID.TransactionID()
-	util.RequireErrorWith(t, vidSeq.GetError(), conflict.StringShort(), "double-spend")
+	util.RequireErrorWith(t, vidSeq.GetError(), conflict.StringShort(), "conflict")
 	//testData.wrk.SaveGraph("utangle")
 }
 
