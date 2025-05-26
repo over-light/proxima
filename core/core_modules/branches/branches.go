@@ -44,9 +44,9 @@ type (
 )
 
 const (
-	stateReaderTTLSlots        = 2
-	branchDataCacheTTLSlots    = 12
-	sharedStateReaderCacheSize = 3000
+	stateReaderTTLSlots     = 2
+	branchDataCacheTTLSlots = 12
+	stateReaderCacheLimit   = 3000
 )
 
 func New(env environment) *Branches {
@@ -247,7 +247,7 @@ func (b *Branches) GetStateReaderForTheBranch(branchID base.TransactionID) multi
 		return nil
 	}
 	b.stateReaders[branchID] = &cachedStateReader{
-		IndexedStateReader: multistate.MustNewReadable(b.StateStore(), bd.Root, sharedStateReaderCacheSize),
+		IndexedStateReader: multistate.MustNewReadable(b.StateStore(), bd.Root, stateReaderCacheLimit),
 		lastActivity:       time.Now(),
 	}
 	return b.stateReaders[branchID]

@@ -350,7 +350,7 @@ func (a *milestoneAttacher) validateSequencerTxUnwrapped(v *vertex.Vertex) (ok, 
 	a.Tracef(TraceTagValidateSequencer, "constraints has been validated OK: %s", v.Tx.IDShortString)
 
 	if conflict := a.pastCone.CheckAndClean(a.Branches().GetStateReaderForTheBranch); conflict != nil {
-		a.setError(fmt.Errorf("double-spend %s in the past cone", conflict.IDStringShort()))
+		a.setError(fmt.Errorf("conflict %s in the past cone:\n%s", conflict.IDStringShort(), a.pastCone.Lines("    ").String()))
 		v.UnReferenceDependencies()
 		return false, false
 	}

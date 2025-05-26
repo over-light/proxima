@@ -779,16 +779,16 @@ func (pc *PastCone) _checkVertex(vid *WrappedTx, stateReader multistate.IndexedS
 		if len(consumers) != 1 {
 			return &wOut, false
 		}
-		pc.Assertf(len(consumers) == 1, "len(consumers) == 1")
 
+		if pc.IsInTheState(consumers[0]) {
+			continue
+		}
 		// virtual consumer nil is never in the state
-		if !pc.IsInTheState(consumers[0]) {
-			allConsumersAreInTheState = false
-			if inTheState {
-				oid := wOut.DecodeID()
-				if !stateReader.HasUTXO(oid) {
-					return &wOut, false
-				}
+		allConsumersAreInTheState = false
+		if inTheState {
+			oid := wOut.DecodeID()
+			if !stateReader.HasUTXO(oid) {
+				return &wOut, false
 			}
 		}
 	}
