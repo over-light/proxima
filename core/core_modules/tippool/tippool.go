@@ -37,9 +37,10 @@ type (
 
 	_activeMilestoneData struct {
 		*vertex.WrappedTx
-		lastActivity   time.Time
-		loggedActive   bool
-		loggedInactive bool
+		lastActivity         time.Time
+		loggedActive         bool
+		loggedInactive       bool
+		loggedCoverageNotSet *base.TransactionID
 	}
 
 	LatestSequencerTipData struct {
@@ -185,8 +186,13 @@ func (t *SequencerTips) filterLatestActiveMilestones(filter ...func(seqID base.C
 	ret := make([]*vertex.WrappedTx, 0, len(t.latestMilestones))
 	for seqID, ms := range t.latestMilestones {
 		if ms.WrappedTx.GetLedgerCoverageP() == nil {
-			t.Log().Warnf("[tippool] %s: ledger coverage is not set", ms.WrappedTx.IDShortString())
-			continue
+			// prevent excessive logging
+			if ms.loggedCoverageNotSet == nil || *ms.loggedCoverageNotSet != ms.WrappedTx.ID() {
+				t.Log().Warnf("[tippool] %s: ledger coverage is not set", ms.WrappedTx.IDShortString())
+				ms.loggedCoverageNotSet = util.Ref(ms.WrappedTx.ID())
+				t.latestMilestones[seqID] = ms
+				continue
+			}
 		}
 		if flt(seqID, ms.WrappedTx) {
 			ret = append(ret, ms.WrappedTx)
