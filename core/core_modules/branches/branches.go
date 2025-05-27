@@ -130,7 +130,8 @@ func (b *Branches) _ledgerCoverage(br branchDataWithLedgerCoverage) (ret uint64)
 	branchID := br.TxID()
 	origSlot := br.Slot()
 
-	for slotsBack < 64 {
+	// coverage delta cannot be greater than supply
+	for maxContribution := br.Supply; maxContribution > 0; maxContribution >>= 1 {
 		if br, ok = b._getAndCacheNoLock(branchID); !ok {
 			break
 		}
