@@ -184,6 +184,10 @@ func (t *SequencerTips) filterLatestActiveMilestones(filter ...func(seqID base.C
 
 	ret := make([]*vertex.WrappedTx, 0, len(t.latestMilestones))
 	for seqID, ms := range t.latestMilestones {
+		if ms.WrappedTx.GetLedgerCoverageP() == nil {
+			t.Log().Warnf("[tippool] %s: ledger coverage is not set", ms.WrappedTx.IDShortString())
+			continue
+		}
 		if flt(seqID, ms.WrappedTx) {
 			ret = append(ret, ms.WrappedTx)
 		}
