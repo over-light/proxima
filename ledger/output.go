@@ -614,8 +614,12 @@ func (o *Output) MustValidOutput() {
 	util.AssertNoError(err)
 }
 
-func (o *Output) EnoughAmountForStorageDeposit() bool {
-	return o.Amount() >= o.MinimumStorageDeposit(0)
+func (o *Output) EnoughAmountForStorageDeposit() error {
+	if o.Amount() >= o.MinimumStorageDeposit(0) {
+		return nil
+	}
+	return fmt.Errorf("not enough tokens (%s) for the minimum storage deposit (%s)",
+		util.Th(o.Amount()), util.Th(o.MinimumStorageDeposit(0)))
 }
 
 func (o *Output) MinimumStorageDeposit(extraWeight uint32) uint64 {

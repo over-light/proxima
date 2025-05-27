@@ -144,8 +144,8 @@ func (txb *TransactionBuilder) PutExplicitBaseline(txid *base.TransactionID) {
 }
 
 func (txb *TransactionBuilder) ProduceOutput(o *ledger.Output) (byte, error) {
-	if !o.EnoughAmountForStorageDeposit() {
-		return 0, fmt.Errorf("not enough tokens for storage deposit: %d", o.Amount())
+	if err := o.EnoughAmountForStorageDeposit(); err != nil {
+		return 0, err
 	}
 	o.MustValidOutput()
 	if txb.NumOutputs() >= 256 {
