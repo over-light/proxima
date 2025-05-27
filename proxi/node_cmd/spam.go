@@ -73,10 +73,22 @@ func readSpammerConfigIn(sub *viper.Viper) (ret spammerConfig) {
 	ret.maxTransactions = sub.GetInt("max_transactions")
 	ret.maxDuration = time.Duration(sub.GetInt("max_duration_minutes")) * time.Minute
 	ret.tagAlongFee = sub.GetUint64("tag_along.fee")
-	seqStr := sub.GetString("tag_along.sequencer_id")
+
 	var err error
-	ret.tagAlongSequencer, err = base.ChainIDFromHexString(seqStr)
-	glb.AssertNoError(err)
+
+	seqStr := sub.GetString("tag_along.sequencer_id")
+	if seqStr != "" {
+		ret.tagAlongSequencer, err = base.ChainIDFromHexString(seqStr)
+		glb.AssertNoError(err)
+	} else {
+		glb.Infof("tag-along for spamming is not specified. Using default")
+		defaultTgaSeq := glb.GetTagAlongSequencerID()
+		glb.Assertf(defaultTgaSeq != nil, "tag-along sequencer not specified")
+		if defaultTgaSeq != nil {
+			ret.tagAlongSequencer = *defaultTgaSeq
+		}
+	}
+
 	ret.target, err = ledger.AddressED25519FromSource(sub.GetString("target"))
 	glb.AssertNoError(err)
 	ret.finalitySlots = sub.GetInt("finality_slots")

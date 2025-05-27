@@ -152,7 +152,7 @@ It waits until each bundle of transactions reaches finality before sending the n
 The optional flag `-e` sets depth below LRB (_latest reliable branch_) transaction must be waited to reach. 
 Default is `2`
 
-Spammer is run with the command `proxi node spam` or `proxi node spam -e 1`.
+Spammer is run with the command `proxi node spam -e 1`.
 
 The bundle of transactions is a chain of transactions, which consumes output of the previous. 
 Only the last one (tip of the batch) contains tag-along output. 

@@ -67,10 +67,26 @@ func MustGetTarget() ledger.Accountable {
 	return ret
 }
 
+func GetDefaultSequencerID() *base.ChainID {
+	seqIDStr := viper.GetString("default_sequencer_id")
+	if seqIDStr == "" {
+		return nil
+	}
+	ret, err := base.ChainIDFromHexString(seqIDStr)
+	if err != nil {
+		Infof("invalid default sequencer ID: %v", err)
+		return nil
+	}
+	Infof("default sequencer ID is: %s", seqIDStr)
+	return &ret
+
+}
+
 func GetOwnSequencerID() *base.ChainID {
 	seqIDStr := viper.GetString("wallet.sequencer_id")
 	if seqIDStr == "" {
-		return nil
+		Infof("own sequencer ID not specified. Using default sequencer ID instead")
+		return GetDefaultSequencerID()
 	}
 	ret, err := base.ChainIDFromHexString(seqIDStr)
 	if err != nil {
@@ -162,7 +178,7 @@ func GetTagAlongSequencerID() *base.ChainID {
 			if own == nil {
 				return nil
 			}
-			Infof("using own sequencer for tag-along: %s", seqIDStr)
+			Infof("using sequencer for tag-along: %s", seqIDStr)
 			seqIDStr = own.StringHex()
 		}
 	}

@@ -54,6 +54,10 @@ func runInitWalletCommand(_ *cobra.Command, args []string) {
 }
 
 const walletProfileTemplate = `# Proxi wallet profile
+
+// the default sequencer id when not specified own sequencer, tag-along or tag-along for spamming
+default_sequencer_id: {{.BootstrapSeqID}}
+
 wallet:
     private_key: {{.PrivateKey}}
     account: {{.Account}}
@@ -66,9 +70,9 @@ api:
 
 tag_along:
     # id of the tag-along sequencer. Currently only one is supported
-    # In the bootstrap phase it often is the pre-defined bootstrap chain id: {{.BootstrapSeqID}}
-    # Later it is up to the wallet owner to set the preferred tag-along sequencer
-    sequencer_id: {{.BootstrapSeqID}}
+    # If not specified, the default sequencer id will be used
+    # uncomment the line and specify your preferred sequencer
+#    sequencer_id: <your sequencer ID>
     fee: 200
 
 # provides parameters for 'proxi node getfunds' command
@@ -86,8 +90,8 @@ spammer:
     tag_along:
         fee: 50
         # <sequencer id hex encoded> is tag-along sequencer id for the tip transaction in the bundle
-        # For example the bootstrap sequencer {{.BootstrapSeqID}}
-        sequencer_id: <sequencer id hex encoded>
+        # If not specified, the default sequencer id will be used
+        # sequencer_id: <sequencer id hex encoded>
     # target address
     target: <target lock in EasyFL format>
 `
