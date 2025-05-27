@@ -158,10 +158,10 @@ func (t *SequencerTips) replaceOldWithNew(old, new *vertex.WrappedTx) bool {
 		return false
 	}
 	t.Assertf(tsNew == tsOld, "tsNew==tsOld")
-	return vertex.IsPreferredMilestoneAgainstTheOther(new, old, false)
+	return vertex.IsPreferredMilestoneAgainstTheOther(new, old)
 }
 
-// GetLatestActiveMilestone will return nil if sequencer is not in the list
+// GetLatestActiveMilestone will return nil if the sequencer is not in the list
 func (t *SequencerTips) GetLatestActiveMilestone(seqID base.ChainID) *vertex.WrappedTx {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
@@ -206,7 +206,7 @@ func (t *SequencerTips) filterLatestActiveMilestones(filter ...func(seqID base.C
 func (t *SequencerTips) LatestActiveMilestonesDescending(filter ...func(seqID base.ChainID, vid *vertex.WrappedTx) bool) []*vertex.WrappedTx {
 	ret := t.filterLatestActiveMilestones(filter...)
 	sort.Slice(ret, func(i, j int) bool {
-		return vertex.IsPreferredMilestoneAgainstTheOther(ret[i], ret[j], false)
+		return vertex.IsPreferredMilestoneAgainstTheOther(ret[i], ret[j])
 	})
 	t.Tracef(TraceTag, "LatestActiveMilestonesDescending: len(ret) = %d", len(ret))
 	return ret
