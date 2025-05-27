@@ -8,9 +8,9 @@ import (
 // AlignedCoverages shifts one of the coverages, if necessary, so that to make them comparable
 func AlignedCoverages(vid1, vid2 *WrappedTx) (uint64, uint64) {
 	lc1 := vid1.GetLedgerCoverageP()
-	util.Assertf(lc1 != nil, "coverage not set in %s", vid1.IDShortString)
+	util.Assertf(lc1 != nil, "coverage not set (1) in %s", vid1.IDShortString)
 	lc2 := vid2.GetLedgerCoverageP()
-	util.Assertf(lc2 != nil, "coverage not set in %s", vid2.IDShortString)
+	util.Assertf(lc2 != nil, "coverage not set (2) in %s", vid2.IDShortString)
 
 	if vid1.Timestamp() == vid2.Timestamp() {
 		// same time -> coverages are comparable

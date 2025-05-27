@@ -255,8 +255,12 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
 				// reattach
+				msg := fmt.Sprintf("solidifyBaseline: abandon current attacher, re-attach detached tx %s", a.vid.StringNoLock())
+				a.Log().Warn(msg)
+				a.setError(fmt.Errorf(msg))
+				ok = false
+
 				AttachTransaction(v.Tx, a, WithInvokedBy(a.name+"_reattach_bl"))
-				a.Log().Warnf("solidifyBaseline: re-attached detached tx %s", a.vid.StringNoLock())
 			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyBaseline: unexpected virtual tx %s", a.vid.StringNoLock())
@@ -302,8 +306,12 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
+				msg := fmt.Sprintf("solidifyPastCone: abandon current attacher, re-attach detached tx %s", a.vid.StringNoLock())
+				a.Log().Warn(msg)
+				a.setError(fmt.Errorf(msg))
+				ok = false
+
 				AttachTransaction(v.Tx, a, WithInvokedBy(a.name+"_reattach_pc"))
-				a.Log().Warnf("solidifyPastCone: re-attached detached tx %s", a.vid.StringNoLock())
 			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyPastCone: unexpected virtual tx %s", a.vid.StringNoLock())
