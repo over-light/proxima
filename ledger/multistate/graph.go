@@ -52,11 +52,13 @@ func MakeTreeOptionWithFileName(fname string) MakeTreeOption {
 }
 
 func (opt *MakeTreeOptions) getSeqNr(seqID base.ChainID) int {
-	if nr, ok := opt.chainIDDictionary[seqID]; ok {
-		return nr
+	var nr int
+	var ok bool
+	if nr, ok = opt.chainIDDictionary[seqID]; !ok {
+		nr = len(opt.chainIDDictionary)
+		opt.chainIDDictionary[seqID] = nr
 	}
-	opt.chainIDDictionary[seqID] = len(opt.chainIDDictionary)
-	return len(opt.chainIDDictionary) - 1
+	return (nr % 8) + 1
 }
 
 func defaultMakeTreeOptions() *MakeTreeOptions {
@@ -65,13 +67,6 @@ func defaultMakeTreeOptions() *MakeTreeOptions {
 		branchNodeAttributes: branchNodeAttributesDefault,
 		fname:                "tree.gv",
 	}
-}
-
-func MakeTree(stateStore StateStore, slots ...int) graph.Graph[string, string] {
-	if len(slots) == 0 {
-		return MakeTreeOpt(stateStore)
-	}
-	return MakeTreeOpt(stateStore, MakeTreeOptionWithSlotsBack(slots[0]))
 }
 
 func MakeTreeOpt(stateStore StateStore, options ...MakeTreeOption) graph.Graph[string, string] {
