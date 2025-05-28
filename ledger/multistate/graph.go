@@ -22,23 +22,79 @@ var (
 	}
 )
 
+type (
+	MakeTreeOptions struct {
+		slotsBack            int
+		branchNodeAttributes func(br *BranchData, seqNr int) []func(*graph.VertexProperties)
+		chainIDDictionary    map[base.ChainID]int
+		fname                string
+	}
+
+	MakeTreeOption func(opts *MakeTreeOptions)
+)
+
+func MakeTreeOptionWithSlotsBack(slotsBack int) MakeTreeOption {
+	util.Assertf(slotsBack > 0, "slotsBack must be > 0")
+	return func(opts *MakeTreeOptions) {
+		opts.slotsBack = slotsBack
+	}
+}
+func MakeTreeOptionWithBranchAttributes(branchNodeAttributesFun func(br *BranchData, seqNr int) []func(*graph.VertexProperties)) MakeTreeOption {
+	return func(opts *MakeTreeOptions) {
+		opts.branchNodeAttributes = branchNodeAttributesFun
+	}
+}
+
+func MakeTreeOptionWithFileName(fname string) MakeTreeOption {
+	return func(opts *MakeTreeOptions) {
+		opts.fname = fname
+	}
+}
+
+func (opt *MakeTreeOptions) getSeqNr(seqID base.ChainID) int {
+	if nr, ok := opt.chainIDDictionary[seqID]; ok {
+		return nr
+	}
+	opt.chainIDDictionary[seqID] = len(opt.chainIDDictionary)
+	return len(opt.chainIDDictionary) - 1
+}
+
+func defaultMakeTreeOptions() *MakeTreeOptions {
+	return &MakeTreeOptions{
+		chainIDDictionary:    make(map[base.ChainID]int),
+		branchNodeAttributes: branchNodeAttributesDefault,
+		fname:                "tree.gv",
+	}
+}
+
 func MakeTree(stateStore StateStore, slots ...int) graph.Graph[string, string] {
+	if len(slots) == 0 {
+		return MakeTreeOpt(stateStore)
+	}
+	return MakeTreeOpt(stateStore, MakeTreeOptionWithSlotsBack(slots[0]))
+}
+
+func MakeTreeOpt(stateStore StateStore, options ...MakeTreeOption) graph.Graph[string, string] {
+	opts := defaultMakeTreeOptions()
+	for _, option := range options {
+		option(opts)
+	}
+
 	ret := graph.New(graph.StringHash, graph.Directed(), graph.Acyclic())
 
 	var branches []*BranchData
-	if len(slots) == 0 {
+	if opts.slotsBack == 0 {
 		branches = FetchBranchDataMulti(stateStore, FetchAllRootRecords(stateStore)...)
 	} else {
-		branches = FetchBranchDataMulti(stateStore, FetchRootRecordsNSlotsBack(stateStore, slots[0])...)
+		branches = FetchBranchDataMulti(stateStore, FetchRootRecordsNSlotsBack(stateStore, opts.slotsBack)...)
 	}
 
 	byOid := make(map[base.OutputID]*BranchData)
-	idDict := make(map[base.ChainID]int)
 	for _, b := range branches {
 		byOid[b.Stem.ID] = b
 		txid := b.Stem.ID.TransactionID()
 		id := txid.StringShort()
-		err := ret.AddVertex(id, branchNodeAttributes(&b.SequencerID, b.CoverageDelta, idDict)...)
+		err := ret.AddVertex(id, opts.branchNodeAttributes(b, opts.getSeqNr(b.SequencerID))...)
 		util.AssertNoError(err)
 	}
 
@@ -58,24 +114,35 @@ func MakeTree(stateStore StateStore, slots ...int) graph.Graph[string, string] {
 	return ret
 }
 
-func SaveBranchTree(stateStore StateStore, fname string, slotsBack ...int) {
-	gr := MakeTree(stateStore, slotsBack...)
+func SaveBranchTreeOpt(stateStore StateStore, options ...MakeTreeOption) {
+	opts := defaultMakeTreeOptions()
+	for _, option := range options {
+		option(opts)
+	}
+	fname := opts.fname
+
+	gr := MakeTreeOpt(stateStore, options...)
 	dotFile, _ := os.Create(fname + ".gv")
 	err := draw.DOT(gr, dotFile)
 	util.AssertNoError(err)
 	_ = dotFile.Close()
 }
 
-func branchNodeAttributes(seqID *base.ChainID, coverage uint64, dict map[base.ChainID]int) []func(*graph.VertexProperties) {
-	if _, found := dict[*seqID]; !found {
-		dict[*seqID] = (len(dict) % 9) + 1
+func SaveBranchTree(stateStore StateStore, fname string, slotsBack ...int) {
+	if len(slotsBack) == 0 {
+		SaveBranchTreeOpt(stateStore, MakeTreeOptionWithFileName(fname))
+	} else {
+		SaveBranchTreeOpt(stateStore, MakeTreeOptionWithFileName(fname), MakeTreeOptionWithSlotsBack(slotsBack[0]))
 	}
+}
+
+func branchNodeAttributesDefault(br *BranchData, seqNr int) []func(*graph.VertexProperties) {
 	ret := make([]func(*graph.VertexProperties), len(_branchNodeAttributes))
 	copy(ret, _branchNodeAttributes)
-	ret = append(ret, graph.VertexAttribute("fillcolor", strconv.Itoa(dict[*seqID])))
-	if coverage > 0 {
-		seqIDPref := seqID.StringHex()[:4]
-		ret = append(ret, graph.VertexAttribute("xlabel", util.Th(coverage)+"-"+seqIDPref))
+	ret = append(ret, graph.VertexAttribute("fillcolor", strconv.Itoa(seqNr)))
+	if br.CoverageDelta > 0 {
+		seqIDPref := br.SequencerID.StringHex()[:4]
+		ret = append(ret, graph.VertexAttribute("xlabel", util.Th(br.CoverageDelta)+"-"+seqIDPref))
 	}
 	return ret
 }
