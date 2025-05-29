@@ -32,6 +32,9 @@ func runAnalyzeBranchesCmd(_ *cobra.Command, _ []string) {
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
+	latest := multistate.FetchLatestCommittedSlot(glb.StateStore())
+	glb.Infof("latest committed slot: %d\n", latest)
+
 	latestBranches := multistate.FetchLatestBranches(glb.StateStore())
 	tip := util.Maximum(latestBranches, func(br1, br2 *multistate.BranchData) bool {
 		return br1.CoverageDelta < br2.CoverageDelta
