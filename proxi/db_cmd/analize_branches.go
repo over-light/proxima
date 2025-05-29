@@ -48,6 +48,7 @@ func runAnalyzeBranchesCmd(_ *cobra.Command, _ []string) {
 		return slotsBackAnalyzeBranches <= 0 || len(mainChain) <= slotsBackAnalyzeBranches
 	})
 
+	countWithMissing := 0
 	for _, br := range mainChain {
 		rootsInTheSlot := multistate.FetchRootRecords(glb.StateStore(), br.Slot())
 		glb.Assertf(len(rootsInTheSlot) > 0, "len(rootsInTheSlot)>0")
@@ -59,9 +60,12 @@ func runAnalyzeBranchesCmd(_ *cobra.Command, _ []string) {
 		if len(missingSeqIDs) == 0 && missingOnly {
 			continue
 		}
+		countWithMissing++
 		ln := missingSeqIDs.Lines(func(seqID base.ChainID) string {
 			return seqID.StringShort()
 		})
 		glb.Infof("%6d: main: %s, missing: [%s]", br.Slot(), br.SequencerID.StringShort(), ln.Join(", "))
 	}
+	glb.Infof("total slots analyzed: %d\n", len(mainChain))
+	glb.Infof("total slots with missing branches: %d\n", countWithMissing)
 }
