@@ -191,8 +191,8 @@ func (t *SequencerTips) filterLatestActiveMilestones(filter ...func(seqID base.C
 				t.Log().Warnf("[tippool] %s: ledger coverage is not set", ms.WrappedTx.IDShortString())
 				ms.loggedCoverageNotSet = util.Ref(ms.WrappedTx.ID())
 				t.latestMilestones[seqID] = ms
-				continue
 			}
+			continue
 		}
 		if flt(seqID, ms.WrappedTx) {
 			ret = append(ret, ms.WrappedTx)

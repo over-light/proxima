@@ -21,7 +21,11 @@ func TestEasyFL(t *testing.T) {
 
 		_, nargs, bytecode, err := ledger.L().CompileExpression(source)
 		require.NoError(t, err)
-		t.Logf("src: '%s', args: %d, bytecode: %s", source, nargs, hex.EncodeToString(bytecode))
+		res, err := ledger.L().EvalFromBytecode(nil, bytecode)
+		require.NoError(t, err)
+
+		t.Logf("src: '%s', args: %d, bytecode: %s, eval: %s",
+			source, nargs, hex.EncodeToString(bytecode), hex.EncodeToString(res))
 	})
 	t.Run("compile literal 3", func(t *testing.T) {
 		const source = "concat(u16/15, 255)"
@@ -29,6 +33,28 @@ func TestEasyFL(t *testing.T) {
 		_, nargs, bytecode, err := ledger.L().CompileExpression(source)
 		require.NoError(t, err)
 
+		res, err := ledger.L().EvalFromBytecode(nil, bytecode)
+		require.NoError(t, err)
+
+		t.Logf("src: '%s', args: %d, bytecode: %s, eval: %s",
+			source, nargs, hex.EncodeToString(bytecode), hex.EncodeToString(res))
+	})
+	t.Run("compile literal 4", func(t *testing.T) {
+		const source = "z64/1337"
+
+		_, nargs, bytecode, err := ledger.L().CompileExpression(source)
+		require.NoError(t, err)
+		res, err := ledger.L().EvalFromBytecode(nil, bytecode)
+		require.NoError(t, err)
+
+		t.Logf("src: '%s', args: %d, bytecode: %s, eval: %s",
+			source, nargs, hex.EncodeToString(bytecode), hex.EncodeToString(res))
+	})
+	t.Run("compile literal 5", func(t *testing.T) {
+		const source = "z64/0"
+
+		_, nargs, bytecode, err := ledger.L().CompileExpression(source)
+		require.NoError(t, err)
 		res, err := ledger.L().EvalFromBytecode(nil, bytecode)
 		require.NoError(t, err)
 

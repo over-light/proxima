@@ -24,7 +24,7 @@ func IsPreferredMilestoneAgainstTheOther(vid1, vid2 *WrappedTx) bool {
 		return true
 	}
 	if *lc1 == *lc2 {
-		return base.LessTxID(vid1.id, vid2.id)
+		return base.LessTxID(vid2.id, vid1.id) // prefer younger
 	}
 	return false
 }
