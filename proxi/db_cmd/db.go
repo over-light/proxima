@@ -30,6 +30,7 @@ func Init() *cobra.Command {
 		initScanDBCmd(),
 		//initDbStatsCmd(),
 		initDbChainStatsCmd(),
+		initAnalyzeBranchesCmd(),
 	)
 	return dbCmd
 }

@@ -10,33 +10,42 @@ import (
 	"github.com/lunfardo314/proxima/proxi/glb"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+)
+
+var (
+	outputFname string
+	slotsBack   uint16
 )
 
 func initMainChainCmd() *cobra.Command {
 	dbMainChainCmd := &cobra.Command{
 		Use:   "mainchain",
 		Short: "outputs main chain of branches from the DB",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.NoArgs,
 		Run:   runMainChainCmd,
 	}
-	dbMainChainCmd.PersistentFlags().StringP("output", "o", "", "output file")
+	dbMainChainCmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "", "output file")
+	dbMainChainCmd.PersistentFlags().Uint16VarP(&slotsBack, "slots_back", "s", 1000, "limit maximum how many slots back")
 
 	dbMainChainCmd.InitDefaultHelpCmd()
 	return dbMainChainCmd
 }
 
 func runMainChainCmd(_ *cobra.Command, _ []string) {
-	fname := viper.GetString("output")
-
-	makeFile := fname != ""
+	makeFile := outputFname != ""
 
 	glb.InitLedgerFromDB()
 	defer glb.CloseDatabases()
 
-	mainBranches := multistate.FetchHeaviestBranchChainNSlotsBack(glb.StateStore(), -1)
+	var mainBranches []*multistate.BranchData
+	if slotsBack == 0 {
+		mainBranches = multistate.FetchHeaviestBranchChainNSlotsBack(glb.StateStore(), -1)
+	} else {
+		mainBranches = multistate.FetchHeaviestBranchChainNSlotsBack(glb.StateStore(), int(slotsBack))
+	}
+
 	if makeFile {
-		outFile, err := os.Create(fname + ".branches")
+		outFile, err := os.Create(outputFname + ".branches")
 		glb.AssertNoError(err)
 
 		for _, bd := range mainBranches {
