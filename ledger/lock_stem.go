@@ -117,7 +117,7 @@ func _predVRFProof : parseInlineDataArgument(
 // does not require unlock parameters
 func stemLock: and(
 	require(isBranchTransaction, !!!must_be_a_branch_transaction),
-    require(equal(selfNumConstraints, 2), !!!stem_output_must_contain_exactly_2_constraints),
+    require(equalUint(selfNumConstraints, 2), !!!stem_output_must_contain_exactly_2_constraints),
 	require(equal(selfBlockIndex,1), !!!locks_must_be_at_block_1), 
 	require(isZero(selfAmountValue), !!!amount_must_be_zero),
 	mustSize($0, 33),

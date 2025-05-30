@@ -124,11 +124,12 @@ func TxIDFromTransactionDataTree(txTree *lazybytes.Tree) (ret base.TransactionID
 		err = fmt.Errorf("can't parse sequencer UTXO indices: %w", err)
 		return
 	}
-	if len(seqBin) != 2 && len(seqBin) != 0 {
+	if len(seqBin) != 2 {
 		err = fmt.Errorf("wrong sequencer UTXO indices")
 		return
 	}
-	if len(seqBin) == 2 && ts.Tick != 0 && seqBin[1] != 0xff {
+	isSeqTx := seqBin[0] != 0xff
+	if isSeqTx && ts.Tick == 0 && seqBin[1] == 0xff {
 		err = fmt.Errorf("wrong stem index value")
 		return
 	}
@@ -137,7 +138,7 @@ func TxIDFromTransactionDataTree(txTree *lazybytes.Tree) (ret base.TransactionID
 	}
 	// replace first 5 bytes with transaction ID prefix
 	copy(ret[:], tsBin)
-	if len(seqBin) == 2 {
+	if isSeqTx {
 		ret[base.TickByteIndex] |= base.SequencerBitMaskInTick
 	}
 	// set the number of produced outputs byte
@@ -150,6 +151,7 @@ func TxIDFromTransactionDataTree(txTree *lazybytes.Tree) (ret base.TransactionID
 		return
 	}
 	ret[base.LedgerTimeByteLength] = byte(nUTXO - 1)
+	util.Assertf(len(seqBin) > 0 || !ret.IsSequencerMilestone(), "len(seqBin)>0||!ret.IsSequencerMilestone()")
 	return
 }
 
@@ -258,7 +260,7 @@ func CheckTimestampUpperBound(upperBound time.Time) TxValidationOption {
 
 // ParseSequencerData validates and parses sequencer data if relevant. Data is cached for frequent extraction
 func ParseSequencerData(tx *Transaction) error {
-	if tx.txid.IsSequencerMilestone() {
+	if !tx.txid.IsSequencerMilestone() {
 		return nil
 	}
 	outputIndexData := tx.tree.MustBytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))

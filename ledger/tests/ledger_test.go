@@ -128,7 +128,7 @@ func TestMainConstraints(t *testing.T) {
 		in, err := u.MakeTransferInputData(privKey1, nil, base.NilLedgerTime)
 		require.NoError(t, err)
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1))
-		util.RequireErrorWith(t, err, "not enough tokens for storage deposit")
+		util.RequireErrorWith(t, err, "not enough tokens", "for the minimum storage deposit")
 	})
 }
 

@@ -121,15 +121,15 @@ functions:
    -
       sym: numEndorsements
       numArgs: 0
-      source: "arrayLength8(atPath(pathToEndorsements))"
+      source: "arrayLen(atPath(pathToEndorsements))"
    -
       sym: numInputs
       numArgs: 0
-      source: "arrayLength8(atPath(pathToInputIDs))"
+      source: "arrayLen(atPath(pathToInputIDs))"
    -
       sym: numProducedOutputs
       numArgs: 0
-      source: "arrayLength8(atPath(pathToProducedOutputs))"
+      source: "arrayLen(atPath(pathToProducedOutputs))"
    -
       sym: txEssenceBytes
       numArgs: 0
@@ -173,7 +173,7 @@ functions:
    -
       sym: selfNumConstraints
       numArgs: 0
-      source: arrayLength8(selfOutputBytes)
+      source: arrayLen(selfOutputBytes)
    -
       sym: self
       numArgs: 0
