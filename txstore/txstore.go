@@ -81,7 +81,7 @@ func (s *SimpleTxBytesStore) PersistTxBytesWithMetadata(txBytes []byte, metadata
 	if len(txidOpt) > 0 {
 		txid = txidOpt[0]
 	} else {
-		txid, err = transaction.IDFromTransactionBytes(txBytes)
+		txid, err = transaction.IDFromParsedTransactionBytes(txBytes)
 		if err != nil {
 			return base.TransactionID{}, err
 		}

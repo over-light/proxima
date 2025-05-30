@@ -125,11 +125,11 @@ func evalRandomFromSeed(par *easyfl.CallParams) []byte {
 // number of ticks between ts0 and ts1 otherwise, as big-endian uint64
 func evalTicksBefore64(par *easyfl.CallParams) []byte {
 	ts0bin, ts1bin := par.Arg(0), par.Arg(1)
-	ts0, err := TimeFromBytes(ts0bin)
+	ts0, err := LedgerTimeFromBytes(ts0bin)
 	if err != nil {
 		par.TracePanic("evalTicksBefore64: %v", err)
 	}
-	ts1, err := TimeFromBytes(ts1bin)
+	ts1, err := LedgerTimeFromBytes(ts1bin)
 	if err != nil {
 		par.TracePanic("evalTicksBefore64: %v", err)
 	}

@@ -55,7 +55,7 @@ func TestTime(t *testing.T) {
 		ts0 := base.NewLedgerTime(100, 33)
 		t.Logf("%s", ts0)
 		b := ts0.Bytes()
-		tsBack, err := base.TimeFromBytes(b)
+		tsBack, err := base.LedgerTimeFromBytes(b)
 		require.NoError(t, err)
 		require.EqualValues(t, ts0, tsBack)
 	})

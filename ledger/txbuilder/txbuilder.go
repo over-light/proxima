@@ -251,14 +251,12 @@ func (tx *transactionData) Bytes() []byte {
 	return tx.ToArray().Bytes()
 }
 
-func (tx *transactionData) EssenceBytes() []byte {
-	return transaction.EssenceBytesFromTransactionDataTree(tx.ToArray().AsTree())
-}
-
 var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func (txb *TransactionBuilder) SignED25519(privKey ed25519.PrivateKey) {
-	sig, err := privKey.Sign(rnd, txb.TransactionData.EssenceBytes(), crypto.Hash(0))
+	txid, err := transaction.TxIDFromTransactionDataTree(txb.TransactionData.ToArray().AsTree())
+	util.AssertNoError(err)
+	sig, err := privKey.Sign(rnd, txid[:], crypto.Hash(0))
 	util.AssertNoError(err)
 	pubKey := privKey.Public().(ed25519.PublicKey)
 	txb.TransactionData.Signature = common.Concat(sig, []byte(pubKey))

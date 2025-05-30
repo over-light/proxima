@@ -147,7 +147,7 @@ func DelegationLockFromBytes(data []byte) (*DelegationLock, error) {
 	}
 
 	arg3 := easyfl.StripDataPrefix(args[3])
-	ret.StartTime, err = base.TimeFromBytes(arg3)
+	ret.StartTime, err = base.LedgerTimeFromBytes(arg3)
 	if err != nil {
 		return nil, fmt.Errorf("DelegationLockFromBytes: %w", err)
 	}

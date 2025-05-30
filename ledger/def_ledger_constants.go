@@ -147,7 +147,7 @@ func (id *IdentityParameters) TimeToTicksSinceGenesis(nowis time.Time) int64 {
 }
 
 func (id *IdentityParameters) LedgerTimeFromClockTime(nowis time.Time) base.LedgerTime {
-	ret, err := base.TimeFromTicksSinceGenesis(id.TimeToTicksSinceGenesis(nowis))
+	ret, err := base.LedgerTimeFromTicksSinceGenesis(id.TimeToTicksSinceGenesis(nowis))
 	util.AssertNoError(err)
 	return ret
 }

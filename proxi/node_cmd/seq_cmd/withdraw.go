@@ -91,7 +91,7 @@ func runSeqWithdrawCmd(_ *cobra.Command, args []string) {
 	if glb.NoWait() {
 		return
 	}
-	txid, err := transaction.IDFromTransactionBytes(txBytes)
+	txid, err := transaction.IDFromParsedTransactionBytes(txBytes)
 	glb.AssertNoError(err)
 
 	glb.TrackTxInclusion(txid, time.Second)

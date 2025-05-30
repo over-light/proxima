@@ -28,7 +28,6 @@ type (
 	Transaction struct {
 		tree                     *lazybytes.Tree
 		txid                     base.TransactionID
-		sequencerMilestoneFlag   bool
 		sender                   ledger.AddressED25519
 		timestamp                base.LedgerTime
 		totalAmount              uint64                    // persisted in tx
@@ -57,6 +56,101 @@ var MainTxValidationOptions = []TxValidationOption{
 	ScanInputs,
 	ScanEndorsements,
 	ScanOutputs,
+}
+
+var essenceIndices = []byte{
+	ledger.TxInputIDs,
+	ledger.TxUnlockData,
+	ledger.TxOutputs,
+	// skip signature
+	ledger.TxSequencerAndStemOutputIndices,
+	ledger.TxTimestamp,
+	ledger.TxTotalProducedAmount,
+	ledger.TxInputCommitment,
+	ledger.TxEndorsements,
+	ledger.TxExplicitBaseline,
+	ledger.TxLocalLibraries,
+}
+
+func EssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) ([]byte, error) {
+	ret := make([]byte, 0, len(txTree.Bytes()))
+	var d []byte
+	var err error
+
+	// concat
+	for _, i := range essenceIndices {
+		d, err = txTree.BytesAtPath([]byte{i})
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, d...)
+	}
+	return ret, nil
+}
+
+func hashEssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) (ret [32]byte, err error) {
+	hasher, err := blake2b.New256(nil)
+	util.AssertNoError(err)
+
+	var d []byte
+	for _, i := range essenceIndices {
+		d, err = txTree.BytesAtPath([]byte{i})
+		if err != nil {
+			return [32]byte{}, err
+		}
+		hasher.Write(d)
+	}
+	copy(ret[:], hasher.Sum(nil))
+	return
+}
+
+// TxIDFromTransactionDataTree validates timestamp, sequencer and stem indices and makes transaction ID
+// This is minimal check to pass for the blob to be a raw transaction.
+// If it is impossible to extract txid from the blob, it is not a transaction
+func TxIDFromTransactionDataTree(txTree *lazybytes.Tree) (ret base.TransactionID, err error) {
+	var tsBin []byte
+	if tsBin, err = txTree.BytesAtPath([]byte{ledger.TxTimestamp}); err != nil {
+		err = fmt.Errorf("can't parse timestamp: %w", err)
+		return
+	}
+	var ts base.LedgerTime
+	if ts, err = base.LedgerTimeFromBytes(tsBin); err != nil {
+		err = fmt.Errorf("wrong timestamp: %w", err)
+		return
+	}
+	var seqBin []byte
+	seqBin, err = txTree.BytesAtPath([]byte{ledger.TxSequencerAndStemOutputIndices})
+	if err != nil {
+		err = fmt.Errorf("can't parse sequencer UTXO indices: %w", err)
+		return
+	}
+	if len(seqBin) != 2 && len(seqBin) != 0 {
+		err = fmt.Errorf("wrong sequencer UTXO indices")
+		return
+	}
+	if len(seqBin) == 2 && ts.Tick != 0 && seqBin[1] != 0xff {
+		err = fmt.Errorf("wrong stem index value")
+		return
+	}
+	if ret, err = hashEssenceBytesFromTransactionDataTree(txTree); err != nil {
+		return
+	}
+	// replace first 5 bytes with transaction ID prefix
+	copy(ret[:], tsBin)
+	if len(seqBin) == 2 {
+		ret[base.TickByteIndex] |= base.SequencerBitMaskInTick
+	}
+	// set the number of produced outputs byte
+	nUTXO, err := txTree.NumElementsAtPath([]byte{ledger.TxOutputs})
+	if err != nil {
+		return
+	}
+	if nUTXO == 0 || nUTXO > 256 {
+		err = fmt.Errorf("wrong number of produced outputs")
+		return
+	}
+	ret[base.LedgerTimeByteLength] = byte(nUTXO - 1)
+	return
 }
 
 func FromBytes(txBytes []byte, opt ...TxValidationOption) (*Transaction, error) {
@@ -93,7 +187,7 @@ func transactionFromBytes(txBytes []byte, opts ...TxValidationOption) (*Transact
 	return ret, nil
 }
 
-func IDAndTimestampFromTransactionBytes(txBytes []byte) (base.TransactionID, base.LedgerTime, error) {
+func IDAndTimestampFromParsedTransactionBytes(txBytes []byte) (base.TransactionID, base.LedgerTime, error) {
 	tx, err := FromBytes(txBytes)
 	if err != nil {
 		return base.TransactionID{}, base.LedgerTime{}, err
@@ -101,7 +195,7 @@ func IDAndTimestampFromTransactionBytes(txBytes []byte) (base.TransactionID, bas
 	return tx.ID(), tx.Timestamp(), nil
 }
 
-func IDFromTransactionBytes(txBytes []byte) (base.TransactionID, error) {
+func IDFromParsedTransactionBytes(txBytes []byte) (base.TransactionID, error) {
 	tx, err := FromBytes(txBytes)
 	if err != nil {
 		return base.TransactionID{}, err
@@ -125,30 +219,12 @@ func (tx *Transaction) SignatureBytes() []byte {
 }
 
 // BaseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
-func BaseValidation(tx *Transaction) error {
-	tsBin, err := tx.tree.BytesAtPath(Path(ledger.TxTimestamp))
+func BaseValidation(tx *Transaction) (err error) {
+	tx.txid, err = TxIDFromTransactionDataTree(tx.tree)
 	if err != nil {
 		return err
 	}
-	outputIndexData, err := tx.tree.BytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
-	if err != nil {
-		return err
-	}
-
-	// check sequencer output index data. Enforce exactly 2 bytes
-	if len(outputIndexData) != 2 {
-		return fmt.Errorf("wrong sequencer output index data, must be 2 bytes")
-	}
-	// determine the sequencer flag
-	tx.sequencerMilestoneFlag = outputIndexData[0] != 0xff
-	// parse and validate timestamp
-	if tx.timestamp, err = base.TimeFromBytes(tsBin); err != nil {
-		return err
-	}
-	// validate stem output index. Must be 0xff if it is not a branch transaction
-	if tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0 && outputIndexData[1] == 0xff {
-		return fmt.Errorf("wrong stem output index")
-	}
+	tx.timestamp = tx.txid.Timestamp()
 	// parse the total amount as trimmed-prefix uint68. Validity of the sum is not checked here
 	totalAmountBin, err := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
 	if err != nil {
@@ -158,17 +234,6 @@ func BaseValidation(tx *Transaction) error {
 	if err != nil {
 		return fmt.Errorf("wrong total amount in transaction: %v", err)
 	}
-	// check if the number of outputs is valid. Strictly speaking, not necessary, because max 256 outputs are enforced before
-	numProducedOutputs, err := tx.tree.NumElementsAtPath(Path(ledger.TxOutputs))
-	if err != nil {
-		return err
-	}
-	if numProducedOutputs <= 0 || numProducedOutputs > 256 {
-		return fmt.Errorf("number of outputs must be positive and not exceed 256")
-	}
-	// parsing short txid. For full tx ID it will be concatenated with the
-	txidShort := base.TransactionIDShortFromTxBytes(tx.tree.Bytes(), byte(numProducedOutputs-1))
-	tx.txid = base.NewTransactionID(tx.timestamp, txidShort, tx.sequencerMilestoneFlag)
 	return nil
 }
 
@@ -193,7 +258,7 @@ func CheckTimestampUpperBound(upperBound time.Time) TxValidationOption {
 
 // ParseSequencerData validates and parses sequencer data if relevant. Data is cached for frequent extraction
 func ParseSequencerData(tx *Transaction) error {
-	if !tx.sequencerMilestoneFlag {
+	if tx.txid.IsSequencerMilestone() {
 		return nil
 	}
 	outputIndexData := tx.tree.MustBytesAtPath(Path(ledger.TxSequencerAndStemOutputIndices))
@@ -254,7 +319,8 @@ func CheckSender(tx *Transaction) error {
 	sigData := tx.SignatureBytes()
 	senderPubKey := ed25519.PublicKey(sigData[64:])
 	tx.sender = ledger.AddressED25519FromPublicKey(senderPubKey)
-	if !ed25519.Verify(senderPubKey, tx.EssenceBytes(), sigData[0:64]) {
+	// verify if txid is signed
+	if !ed25519.Verify(senderPubKey, tx.txid[:], sigData[0:64]) {
 		return fmt.Errorf("invalid signature")
 	}
 	return nil
@@ -447,15 +513,15 @@ func (tx *Transaction) ID() base.TransactionID {
 }
 
 func (tx *Transaction) IDString() string {
-	return base.TransactionIDString(tx.timestamp, tx.txid.ShortID(), tx.sequencerMilestoneFlag)
+	return base.TransactionIDString(tx.timestamp, tx.txid.ShortID(), tx.txid.IsSequencerMilestone())
 }
 
 func (tx *Transaction) IDShortString() string {
-	return base.TransactionIDStringShort(tx.timestamp, tx.txid.ShortID(), tx.sequencerMilestoneFlag)
+	return base.TransactionIDStringShort(tx.timestamp, tx.txid.ShortID(), tx.txid.IsSequencerMilestone())
 }
 
 func (tx *Transaction) IDVeryShortString() string {
-	return base.TransactionIDStringVeryShort(tx.timestamp, tx.txid.ShortID(), tx.sequencerMilestoneFlag)
+	return base.TransactionIDStringVeryShort(tx.timestamp, tx.txid.ShortID(), tx.txid.IsSequencerMilestone())
 }
 
 func (tx *Transaction) IDStringHex() string {
@@ -487,11 +553,11 @@ func (tx *Transaction) ExplicitBaseline() (base.TransactionID, bool) {
 }
 
 func (tx *Transaction) IsSequencerTransaction() bool {
-	return tx.sequencerMilestoneFlag
+	return tx.txid.IsSequencerMilestone()
 }
 
 func (tx *Transaction) IsBranchTransaction() bool {
-	return tx.sequencerMilestoneFlag && tx.timestamp.Tick == 0
+	return tx.txid.IsSequencerMilestone() && tx.timestamp.Tick == 0
 }
 
 func (tx *Transaction) StemOutputData() *ledger.StemLock {
@@ -531,23 +597,8 @@ func (tx *Transaction) TotalAmount() uint64 {
 	return tx.totalAmount
 }
 
-func EssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) []byte {
-	return common.Concat(
-		txTree.MustBytesAtPath([]byte{ledger.TxInputIDs}),
-		txTree.MustBytesAtPath([]byte{ledger.TxOutputs}),
-		txTree.MustBytesAtPath([]byte{ledger.TxTimestamp}),
-		txTree.MustBytesAtPath([]byte{ledger.TxSequencerAndStemOutputIndices}),
-		txTree.MustBytesAtPath([]byte{ledger.TxInputCommitment}),
-		txTree.MustBytesAtPath([]byte{ledger.TxEndorsements}),
-	)
-}
-
 func (tx *Transaction) Bytes() []byte {
 	return tx.tree.Bytes()
-}
-
-func (tx *Transaction) EssenceBytes() []byte {
-	return EssenceBytesFromTransactionDataTree(tx.tree)
 }
 
 func (tx *Transaction) NumProducedOutputs() int {

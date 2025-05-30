@@ -80,7 +80,7 @@ func TestAttachBasic(t *testing.T) {
 		txBytes, err := txbuilder.DistributeInitialSupply(stateStore, genesisPrivateKey, distrib)
 		require.NoError(t, err)
 
-		distribTxID, err := transaction.IDFromTransactionBytes(txBytes)
+		distribTxID, err := transaction.IDFromParsedTransactionBytes(txBytes)
 		require.NoError(t, err)
 
 		vidDistrib, err := wrk.EnsureBranch(distribTxID)
@@ -141,7 +141,7 @@ func TestAttachBasic(t *testing.T) {
 		txBytes, err := txbuilder.MakeDistributionTransaction(stateStore, genesisPrivateKey, distrib)
 		require.NoError(t, err)
 
-		distribTxID, err := transaction.IDFromTransactionBytes(txBytes)
+		distribTxID, err := transaction.IDFromParsedTransactionBytes(txBytes)
 		require.NoError(t, err)
 
 		_, err = txBytesStore.PersistTxBytesWithMetadata(txBytes, nil)
@@ -236,7 +236,7 @@ func TestAttachBasic(t *testing.T) {
 		rdr := multistate.MakeSugared(wrk.Branches().GetStateReaderForTheBranch(distribVID.ID()))
 		stemOut := rdr.GetStemOutput()
 
-		distribTxID, _, err := transaction.IDAndTimestampFromTransactionBytes(txBytes)
+		distribTxID, _, err := transaction.IDAndTimestampFromParsedTransactionBytes(txBytes)
 		require.NoError(t, err)
 
 		require.EqualValues(t, int(stemOut.ID.Slot()), int(distribTxID.Slot()))
@@ -680,7 +680,7 @@ func TestAttachConflictsNAttachersOneFork(t *testing.T) {
 		PrivateKey:   testData.privKeyAux,
 	})
 	require.NoError(t, err)
-	txid, _, _ := transaction.IDAndTimestampFromTransactionBytes(txBytesSeq)
+	txid, _, _ := transaction.IDAndTimestampFromParsedTransactionBytes(txBytesSeq)
 	t.Logf("seq tx expected to fail: %s", txid.StringShort())
 	t.Logf("   chain input: %s", chainIn[0].ID.StringShort())
 	t.Logf("   endrosement: %s", chainIn[1].ID.StringShort())

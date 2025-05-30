@@ -226,7 +226,7 @@ func (ctx *TxContext) InputID(idx byte) base.OutputID {
 
 func (ctx *TxContext) MustTimestampData() ([]byte, base.LedgerTime) {
 	ret := ctx.tree.MustBytesAtPath(Path(ledger.TransactionBranch, ledger.TxTimestamp))
-	retTs, err := base.TimeFromBytes(ret)
+	retTs, err := base.LedgerTimeFromBytes(ret)
 	util.AssertNoError(err)
 	return ret, retTs
 }

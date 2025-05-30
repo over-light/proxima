@@ -90,7 +90,7 @@ func inflateChain(chainTransitionPeriodSlots base.Slot, chainId base.ChainID) {
 		glb.AssertNoError(err)
 		ignoreProfitability = false
 
-		txid, err := transaction.IDFromTransactionBytes(txBytes)
+		txid, err := transaction.IDFromParsedTransactionBytes(txBytes)
 		glb.AssertNoError(err)
 		sleepFor := time.Until(ledger.ClockTime(tsOut))
 		glb.Infof("--------------\nwill be submitting next chain transaction %s in %v", txid.String(), sleepFor)

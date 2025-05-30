@@ -107,18 +107,6 @@ functions:
       numArgs: 0
       source: "byte(atPath(pathToSeqAndStemOutputIndices), 1)"
    -
-      sym: txEssenceBytes
-      numArgs: 0
-      source: >
-         concat(
-            atPath(pathToInputIDs), 
-            atPath(pathToProducedOutputs), 
-            atPath(pathToTimestamp), 
-            atPath(pathToSeqAndStemOutputIndices), 
-            atPath(pathToInputCommitment), 
-            atPath(pathToEndorsements)
-         )
-   -
       sym: sequencerFlagON
       numArgs: 1
       source: not(isZero(bitwiseAND(byte($0,4),0x01)))
@@ -138,6 +126,38 @@ functions:
       sym: numInputs
       numArgs: 0
       source: "arrayLength8(atPath(pathToInputIDs))"
+   -
+      sym: numProducedOutputs
+      numArgs: 0
+      source: "arrayLength8(atPath(pathToProducedOutputs))"
+   -
+      sym: txEssenceBytes
+      numArgs: 0
+      source: "
+         concat(
+            concat(
+               atPath(pathToInputIDs), 
+               atPath(pathToUnlockParams),
+               atPath(pathToProducedOutputs), 
+               atPath(pathToSeqAndStemOutputIndices),
+               atPath(pathToTimestamp)
+            ),
+            concat(
+              atPath(pathToTotalProducedAmount),
+              atPath(pathToInputCommitment), 
+              atPath(pathToEndorsements),
+			  atPath(pathToExplicitBaseline),
+              atPath(pathToLocalLibraries)
+           )
+         )"
+   -
+      sym: txIDPrefix
+      numArgs: 0
+      source: if(isSequencerTransaction, bitwiseOR(txTimestampBytes, 0x0000000001), txTimestampBytes)
+   -
+      sym: txID
+      numArgs: 0
+      source: concat(txIDPrefix, byte(sub(numProducedOutputs,1), 7), slice(blake2b(txEssenceBytes),6,31))
    -
       sym: selfOutputPath
       numArgs: 0

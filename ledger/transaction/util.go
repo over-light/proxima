@@ -21,7 +21,7 @@ func SaveTransactionAsFile(txBytes []byte, fname ...string) error {
 	if len(fname) > 0 {
 		fn = fname[0]
 	} else {
-		txID, _, err := IDAndTimestampFromTransactionBytes(txBytes)
+		txID, _, err := IDAndTimestampFromParsedTransactionBytes(txBytes)
 		if err != nil {
 			return err
 		}

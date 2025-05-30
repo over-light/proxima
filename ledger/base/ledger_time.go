@@ -15,7 +15,7 @@ const (
 	SlotByteLength = 4
 	TickByteIndex
 	SequencerBitMaskInTick = 0x01
-	TimeByteLength         = SlotByteLength + 1 // bytes
+	LedgerTimeByteLength   = SlotByteLength + 1 // bytes
 	MaxSlot                = 0xffffffff         // 1 most significant bit must be 0
 	MaxTickValue           = 0x7f               // 127
 	MaxTime                = MaxSlot*TicksPerSlot + MaxTickValue
@@ -66,8 +66,8 @@ func ValidTime(ts LedgerTime) bool {
 	return ts.Tick <= MaxTickValue
 }
 
-func TimeFromBytes(data []byte) (ret LedgerTime, err error) {
-	if len(data) != TimeByteLength {
+func LedgerTimeFromBytes(data []byte) (ret LedgerTime, err error) {
+	if len(data) != LedgerTimeByteLength {
 		err = errWrongDataLength
 		return
 	}
@@ -82,8 +82,8 @@ func TimeFromBytes(data []byte) (ret LedgerTime, err error) {
 	return
 }
 
-// TimeFromTicksSinceGenesis converts absolute value of ticks since genesis into the time value
-func TimeFromTicksSinceGenesis(ticks int64) (ret LedgerTime, err error) {
+// LedgerTimeFromTicksSinceGenesis converts absolute value of ticks since genesis into the time value
+func LedgerTimeFromTicksSinceGenesis(ticks int64) (ret LedgerTime, err error) {
 	if ticks < 0 || ticks > MaxTime {
 		err = fmt.Errorf("TimeFromTicksSinceGenesis: wrong int64")
 		return
@@ -126,7 +126,7 @@ func (t LedgerTime) TicksToNextSlotBoundary() int {
 }
 
 func (t LedgerTime) Bytes() []byte {
-	ret := make([]byte, TimeByteLength)
+	ret := make([]byte, LedgerTimeByteLength)
 	binary.BigEndian.PutUint32(ret[:SlotByteLength], uint32(t.Slot))
 	ret[TickByteIndex] = uint8(t.Tick) << 1
 	return ret[:]
@@ -183,7 +183,7 @@ func DiffTicks(t1, t2 LedgerTime) int64 {
 
 // AddTicks adds ticks to timestamp. Ticks can be negative
 func (t LedgerTime) AddTicks(ticks int) LedgerTime {
-	ret, err := TimeFromTicksSinceGenesis(t.TicksSinceGenesis() + int64(ticks))
+	ret, err := LedgerTimeFromTicksSinceGenesis(t.TicksSinceGenesis() + int64(ticks))
 	util.AssertNoError(err)
 	return ret
 }

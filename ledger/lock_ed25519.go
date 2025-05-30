@@ -142,7 +142,7 @@ const addressED25519ConstraintSource = `
 // return true if transaction essence signature is valid for the address
 func unlockedWithSigED25519: and(
 	equal($0, blake2b($2)), 		       // address in the address data must be equal to the hash of the public key
-	validSignatureED25519(txEssenceBytes, $1, $2)
+	validSignatureED25519(txID, $1, $2)
 )
 
 // 'unlockedByReference'' specifies validation of the input unlock with the reference.

@@ -164,7 +164,7 @@ func doSpamming(cfg spammerConfig) {
 		for i, txBytes := range bundle {
 			err = glb.GetClient().SubmitTransaction(txBytes)
 			glb.AssertNoError(err)
-			txid, err := transaction.IDFromTransactionBytes(txBytes)
+			txid, err := transaction.IDFromParsedTransactionBytes(txBytes)
 			glb.AssertNoError(err)
 			if i == len(bundle)-1 {
 				glb.Verbosef("%2d: submitted %s -> tag-along", i, txid.StringShort())

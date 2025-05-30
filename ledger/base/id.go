@@ -14,7 +14,7 @@ import (
 
 const (
 	TransactionIDShortLength     = 27
-	TransactionIDLength          = TimeByteLength + TransactionIDShortLength
+	TransactionIDLength          = LedgerTimeByteLength + TransactionIDShortLength
 	OutputIDLength               = TransactionIDLength + 1
 	ChainIDLength                = 32
 	MaxOutputIndexPositionInTxID = 5
@@ -46,18 +46,11 @@ type (
 var NilTransactionID TransactionID
 
 func NewTransactionID(ts LedgerTime, h TransactionIDShort, sequencerTxFlag bool) (ret TransactionID) {
-	copy(ret[:TimeByteLength], ts.Bytes())
-	copy(ret[TimeByteLength:], h[:])
+	copy(ret[:LedgerTimeByteLength], ts.Bytes())
+	copy(ret[LedgerTimeByteLength:], h[:])
 	if sequencerTxFlag {
 		ret[TickByteIndex] |= SequencerBitMaskInTick
 	}
-	return
-}
-
-func TransactionIDShortFromTxBytes(txBytes []byte, maxOutputIndex byte) (ret TransactionIDShort) {
-	h := blake2b.Sum256(txBytes)
-	ret[0] = maxOutputIndex
-	copy(ret[1:], h[:TransactionIDShortLength-1])
 	return
 }
 
@@ -97,7 +90,7 @@ func (txid *TransactionID) NumProducedOutputs() int {
 
 // ShortID return hash part of id
 func (txid *TransactionID) ShortID() (ret TransactionIDShort) {
-	copy(ret[:], txid[TimeByteLength:])
+	copy(ret[:], txid[LedgerTimeByteLength:])
 	return
 }
 
@@ -333,7 +326,7 @@ func (oid *OutputID) Slot() Slot {
 }
 
 func (oid *OutputID) TransactionHash() (ret TransactionIDShort) {
-	copy(ret[:], oid[TimeByteLength:TransactionIDLength])
+	copy(ret[:], oid[LedgerTimeByteLength:TransactionIDLength])
 	return
 }
 
