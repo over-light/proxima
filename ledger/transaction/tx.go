@@ -72,22 +72,6 @@ var essenceIndices = []byte{
 	ledger.TxLocalLibraries,
 }
 
-func EssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) ([]byte, error) {
-	ret := make([]byte, 0, len(txTree.Bytes()))
-	var d []byte
-	var err error
-
-	// concat
-	for _, i := range essenceIndices {
-		d, err = txTree.BytesAtPath([]byte{i})
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, d...)
-	}
-	return ret, nil
-}
-
 func hashEssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) (ret [32]byte, err error) {
 	hasher, err := blake2b.New256(nil)
 	util.AssertNoError(err)

@@ -4,7 +4,6 @@ import (
 	"crypto/ed25519"
 	"fmt"
 
-	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/transaction"
@@ -291,20 +290,6 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 	txb.SignED25519(par.PrivateKey)
 
 	txBytes := txb.TransactionData.Bytes()
-
-	{ // debug
-		tree, err := lazybytes.TreeFromBytesReadOnly(txBytes)
-		util.AssertNoError(err)
-		id, err := transaction.TxIDFromTransactionDataTree(tree)
-		fmt.Printf(">>>>>>>>>>>>>> txid = %s\n", id.String())
-		util.AssertNoError(err)
-		util.Assertf(id.Timestamp() == par.Timestamp, "wrong id.Timestamp()=%s", id.Timestamp().String())
-
-		sigBytes := tree.MustBytesAtPath([]byte{ledger.TxSignature})
-		pubKey := sigBytes[64:]
-		sig := sigBytes[:64]
-		util.Assertf(ed25519.Verify(pubKey, id.Bytes(), sig), "wrong signature")
-	}
 
 	if err = transaction.ValidateTxBytes(txBytes, txb.LoadInput); err != nil {
 		err = fmt.Errorf("%v\n-----------------------\n%s", err, transaction.LinesFromTransactionBytes(txBytes, txb.LoadInput).String())
