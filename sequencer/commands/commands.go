@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
@@ -31,7 +31,7 @@ func NewWithdrawCommandData(amount uint64, targetLock ledger.Lock) ([]byte, erro
 	if amount < MinimumAmountToRequestFromSequencer {
 		return nil, fmt.Errorf("withdraw amount must be at least %s, got: %s", util.Th(MinimumAmountToRequestFromSequencer), util.Th(amount))
 	}
-	arr := lazybytes.MakeArrayFromDataReadOnly(easyfl_util.TrimmedLeadingZeroUint64(amount), targetLock.Bytes())
+	arr := tuples.MakeTupleFromDataElements(easyfl_util.TrimmedLeadingZeroUint64(amount), targetLock.Bytes())
 	return common.Concat(CommandCodeWithdrawAmount, arr.Bytes()), nil
 }
 
@@ -39,7 +39,7 @@ func parseWithdrawCommandData(data []byte) (uint64, ledger.Lock, bool) {
 	if len(data) == 0 || data[0] != CommandCodeWithdrawAmount {
 		return 0, nil, false
 	}
-	arr, err := lazybytes.ArrayFromBytesReadOnly(data[1:])
+	arr, err := tuples.TupleFromBytes(data[1:])
 	if err != nil {
 		return 0, nil, false
 	}

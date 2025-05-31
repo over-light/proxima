@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -37,7 +37,7 @@ func (m *SmallPersistentMap) Len() int {
 }
 
 func (m *SmallPersistentMap) Bytes() []byte {
-	arr := lazybytes.EmptyArray(256)
+	arr := tuples.EmptyTupleEditable(256)
 	sorted := util.KeysSorted(m.m, func(k1, k2 byte) bool {
 		return k1 < k2
 	})
@@ -49,7 +49,7 @@ func (m *SmallPersistentMap) Bytes() []byte {
 }
 
 func SmallPersistentMapFromBytes(data []byte) (*SmallPersistentMap, error) {
-	arr, err := lazybytes.ArrayFromBytesReadOnly(data, 256)
+	arr, err := tuples.TupleFromBytes(data, 256)
 	if err != nil {
 		return nil, fmt.Errorf("SmallPersistentMapFromBytes: %w", err)
 	}

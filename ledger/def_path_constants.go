@@ -3,7 +3,7 @@ package ledger
 import (
 	"fmt"
 
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 )
 
 /*
@@ -14,7 +14,7 @@ All integers are treated big-endian. This way lexicographical order coincides wi
 
 The validation context is a tree-like data structure which is validated by evaluating all constraints in it
 consumed and produced outputs. The rest of the validation should be done by the logic outside the data itself.
-The tree-like data structure is a lazybytes.Array, treated as a tree.
+The tree-like data structure is a tuples.Array, treated as a tree.
 
 Constants which define validation context data tree branches. Structure of the data tree:
 
@@ -63,18 +63,18 @@ const (
 const ConsumedOutputsBranch = byte(0)
 
 var (
-	PathToConsumedOutputs               = lazybytes.Path(ConsumedBranch, ConsumedOutputsBranch)
-	PathToProducedOutputs               = lazybytes.Path(TransactionBranch, TxOutputs)
-	PathToUnlockParams                  = lazybytes.Path(TransactionBranch, TxUnlockData)
-	PathToInputIDs                      = lazybytes.Path(TransactionBranch, TxInputIDs)
-	PathToSignature                     = lazybytes.Path(TransactionBranch, TxSignature)
-	PathToSequencerAndStemOutputIndices = lazybytes.Path(TransactionBranch, TxSequencerAndStemOutputIndices)
-	PathToInputCommitment               = lazybytes.Path(TransactionBranch, TxInputCommitment)
-	PathToEndorsements                  = lazybytes.Path(TransactionBranch, TxEndorsements)
-	PathToExplicitBaseline              = lazybytes.Path(TransactionBranch, TxExplicitBaseline)
-	PathToLocalLibraries                = lazybytes.Path(TransactionBranch, TxLocalLibraries)
-	PathToTimestamp                     = lazybytes.Path(TransactionBranch, TxTimestamp)
-	PathToTotalProducedAmount           = lazybytes.Path(TransactionBranch, TxTotalProducedAmount)
+	PathToConsumedOutputs               = tuples.Path(ConsumedBranch, ConsumedOutputsBranch)
+	PathToProducedOutputs               = tuples.Path(TransactionBranch, TxOutputs)
+	PathToUnlockParams                  = tuples.Path(TransactionBranch, TxUnlockData)
+	PathToInputIDs                      = tuples.Path(TransactionBranch, TxInputIDs)
+	PathToSignature                     = tuples.Path(TransactionBranch, TxSignature)
+	PathToSequencerAndStemOutputIndices = tuples.Path(TransactionBranch, TxSequencerAndStemOutputIndices)
+	PathToInputCommitment               = tuples.Path(TransactionBranch, TxInputCommitment)
+	PathToEndorsements                  = tuples.Path(TransactionBranch, TxEndorsements)
+	PathToExplicitBaseline              = tuples.Path(TransactionBranch, TxExplicitBaseline)
+	PathToLocalLibraries                = tuples.Path(TransactionBranch, TxLocalLibraries)
+	PathToTimestamp                     = tuples.Path(TransactionBranch, TxTimestamp)
+	PathToTotalProducedAmount           = tuples.Path(TransactionBranch, TxTotalProducedAmount)
 )
 
 // Mandatory output block indices

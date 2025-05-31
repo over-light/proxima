@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/lines"
@@ -15,11 +15,11 @@ import (
 
 type (
 	Output struct {
-		*lazybytes.ArrayReadOnly
+		*tuples.Tuple
 	}
 
 	OutputBuilder struct {
-		*lazybytes.ArrayEditable
+		*tuples.TupleEditable
 	}
 
 	OutputWithID struct {
@@ -53,10 +53,10 @@ type (
 )
 
 func NewOutput(buildFun func(o *OutputBuilder)) *Output {
-	arr := lazybytes.EmptyArray(256)
+	arr := tuples.EmptyTupleEditable(256)
 	builder := &OutputBuilder{arr}
 	buildFun(builder)
-	return &Output{arr.MakeReadOnly()}
+	return &Output{arr.Tuple()}
 }
 
 func OutputBasic(amount uint64, lock Lock) *Output {
@@ -66,7 +66,7 @@ func OutputBasic(amount uint64, lock Lock) *Output {
 }
 
 func OutputBuilderFromBytes(data []byte) (*OutputBuilder, error) {
-	ret, err := lazybytes.ArrayFromBytesEditable(data, 256)
+	ret, err := tuples.TupleFromBytesEditable(data, 256)
 	if err != nil {
 		return nil, fmt.Errorf("OutputBuilderFromBytes: %v", err)
 	}
@@ -104,7 +104,7 @@ func OutputFromHexString(hexStr string, validateOpt ...func(*Output) error) (*Ou
 }
 
 func OutputFromBytesMain(data []byte) (*Output, Amount, Lock, error) {
-	arr, err := lazybytes.ArrayFromBytesReadOnly(bytes.Clone(data), 256)
+	arr, err := tuples.TupleFromBytes(bytes.Clone(data), 256)
 	if err != nil {
 		return nil, 0, nil, err
 	}
@@ -186,7 +186,7 @@ func (o *Output) Clone(buildFun ...func(o *OutputBuilder)) *Output {
 	builder, err := OutputBuilderFromBytes(o.Bytes())
 	util.AssertNoError(err)
 	buildFun[0](builder)
-	return &Output{builder.MakeReadOnly()}
+	return &Output{builder.Tuple()}
 }
 
 // MustPushConstraint can only be used inside the edit closure
@@ -631,7 +631,7 @@ func (o *Output) MinimumStorageDeposit(extraWeight uint32) uint64 {
 
 // HashOutputs calculates input commitment from outputs: the hash of lazyarray composed of output data
 func HashOutputs(outs ...*Output) [32]byte {
-	arr := lazybytes.EmptyArray(256)
+	arr := tuples.EmptyTupleEditable(256)
 	for _, o := range outs {
 		arr.MustPush(o.Bytes())
 	}

@@ -10,8 +10,8 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
 	"github.com/lunfardo314/easyfl/slicepool"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
@@ -35,7 +35,7 @@ func (ctx *TxContext) evalContext(path []byte) easyfl.GlobalData {
 
 // checkConstraint checks the constraint at path. In-line and unlock scripts are ignored
 // for 'produces output' context
-func (ctx *TxContext) checkConstraint(constraintData []byte, constraintPath lazybytes.TreePath, spool *slicepool.SlicePool) ([]byte, string, error) {
+func (ctx *TxContext) checkConstraint(constraintData []byte, constraintPath tuples.TreePath, spool *slicepool.SlicePool) ([]byte, string, error) {
 	var ret []byte
 	var name string
 	err := util.CatchPanicOrError(func() error {
@@ -151,7 +151,7 @@ func (ctx *TxContext) validateOutputsFailFast(consumedBranch bool, spool *slicep
 // If err != nil and failFast = false, returns list of failed consumed and produced output respectively
 // if failFast = true, returns (totalAmount, nil, nil, error)
 func (ctx *TxContext) _validateOutputs(consumedBranch bool, failFast bool, spool *slicepool.SlicePool) (uint64, []byte, error) {
-	var branch lazybytes.TreePath
+	var branch tuples.TreePath
 	if consumedBranch {
 		branch = Path(ledger.ConsumedBranch, ledger.ConsumedOutputsBranch)
 	} else {
@@ -214,7 +214,7 @@ func (ctx *TxContext) UnlockParams(consumedOutputIdx, constraintIdx byte) []byte
 }
 
 // runOutput checks constraints of the output one-by-one
-func (ctx *TxContext) runOutput(consumedBranch bool, output *ledger.Output, path lazybytes.TreePath, spool *slicepool.SlicePool) (uint32, error) {
+func (ctx *TxContext) runOutput(consumedBranch bool, output *ledger.Output, path tuples.TreePath, spool *slicepool.SlicePool) (uint32, error) {
 	blockPath := common.Concat(path, byte(0))
 	var err error
 	extraStorageDepositWeight := uint32(0)
@@ -354,7 +354,7 @@ func constraintName(binCode []byte) string {
 	return fmt.Sprintf("constraint_call_prefix(%s)", easyfl_util.Fmt(prefix))
 }
 
-func (ctx *TxContext) evalConstraint(constr []byte, path lazybytes.TreePath, spool *slicepool.SlicePool) ([]byte, string, error) {
+func (ctx *TxContext) evalConstraint(constr []byte, path tuples.TreePath, spool *slicepool.SlicePool) ([]byte, string, error) {
 	if len(constr) == 0 {
 		return nil, "", fmt.Errorf("constraint can't be empty")
 	}

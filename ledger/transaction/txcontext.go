@@ -5,7 +5,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
@@ -14,7 +14,7 @@ import (
 
 // TxContext is a data structure, which contains transferable transaction, consumed outputs and constraint library
 type TxContext struct {
-	tree        *lazybytes.Tree
+	tree        *tuples.Tree
 	traceOption int
 	// calculated and cached values
 	txid            base.TransactionID
@@ -24,7 +24,7 @@ type TxContext struct {
 	dataContext *base.DataContext
 }
 
-var Path = lazybytes.Path
+var Path = tuples.Path
 
 const (
 	TraceOptionNone = iota
@@ -44,7 +44,7 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	if len(traceOption) > 0 {
 		ret.traceOption = traceOption[0]
 	}
-	consumedOutputsArray := lazybytes.EmptyArray(256)
+	consumedOutputsArray := tuples.EmptyTupleEditable(256)
 	for i := 0; i < tx.NumInputs(); i++ {
 		o, err := inputLoaderByIndex(byte(i))
 		if err != nil {
@@ -58,8 +58,8 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 		}
 		consumedOutputsArray.MustPush(o.Bytes())
 	}
-	e := lazybytes.MakeArrayReadOnly(consumedOutputsArray) // one level deeper
-	ret.tree = lazybytes.TreeFromTreesReadOnly(tx.tree, e.AsTree())
+	e := tuples.MakeTupleFromSerializableElements(consumedOutputsArray) // one level deeper
+	ret.tree = tuples.TreeFromTreesReadOnly(tx.tree, e.AsTree())
 	// always check the consistency of the transaction with the input context
 	if err := ret.validateInputCommitmentSafe(); err != nil {
 		return nil, fmt.Errorf("TxContextFromTransaction: %w\n>>>>>>>>>>>>>>>>>>\n%s", err, ret.String())
@@ -68,7 +68,7 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 	return ret, nil
 }
 
-// TxContextFromTransferableBytes constructs lazybytes.Tree from transaction bytes and consumed outputs
+// TxContextFromTransferableBytes constructs tuples.Tree from transaction bytes and consumed outputs
 func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid base.OutputID) ([]byte, bool), traceOption ...int) (*TxContext, error) {
 	tx, err := FromBytes(txBytes, ParseSequencerData, ScanOutputs)
 	if err != nil {
@@ -90,7 +90,7 @@ func StringFromTxBytes(txBytes []byte, inputLoaderByIndex func(byte) (*ledger.Ou
 }
 
 // unlockScriptBinary finds the script from the data of unlock block
-func (ctx *TxContext) unlockScriptBinary(invocationFullPath lazybytes.TreePath) []byte {
+func (ctx *TxContext) unlockScriptBinary(invocationFullPath tuples.TreePath) []byte {
 	unlockBlockPath := common.Concat(invocationFullPath)
 	unlockBlockPath[1] = ledger.TxUnlockData
 	return ctx.tree.MustBytesAtPath(unlockBlockPath)

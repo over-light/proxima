@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -26,7 +26,7 @@ import (
 // Transaction provides access to the tree of transferable transaction
 type (
 	Transaction struct {
-		tree                     *lazybytes.Tree
+		tree                     *tuples.Tree
 		txid                     base.TransactionID
 		sender                   ledger.AddressED25519
 		timestamp                base.LedgerTime
@@ -72,7 +72,7 @@ var essenceIndices = []byte{
 	ledger.TxLocalLibraries,
 }
 
-func hashEssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) (ret [32]byte, err error) {
+func hashEssenceBytesFromTransactionDataTree(txTree *tuples.Tree) (ret [32]byte, err error) {
 	hasher, err := blake2b.New256(nil)
 	util.AssertNoError(err)
 
@@ -91,7 +91,7 @@ func hashEssenceBytesFromTransactionDataTree(txTree *lazybytes.Tree) (ret [32]by
 // TxIDFromTransactionDataTree validates timestamp, sequencer and stem indices and makes transaction ID
 // This is minimal check to pass for the blob to be a raw transaction.
 // If it is impossible to extract txid from the blob, it is not a transaction
-func TxIDFromTransactionDataTree(txTree *lazybytes.Tree) (ret base.TransactionID, err error) {
+func TxIDFromTransactionDataTree(txTree *tuples.Tree) (ret base.TransactionID, err error) {
 	var tsBin []byte
 	if tsBin, err = txTree.BytesAtPath([]byte{ledger.TxTimestamp}); err != nil {
 		err = fmt.Errorf("can't parse timestamp: %w", err)
@@ -162,7 +162,7 @@ func FromBytesMainChecksWithOpt(txBytes []byte, additional ...TxValidationOption
 }
 
 func transactionFromBytes(txBytes []byte, opts ...TxValidationOption) (*Transaction, error) {
-	tree, err := lazybytes.TreeFromBytesReadOnly(txBytes)
+	tree, err := tuples.TreeFromBytesReadOnly(txBytes)
 	if err != nil {
 		return nil, err
 	}

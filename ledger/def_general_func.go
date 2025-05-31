@@ -5,11 +5,11 @@ functions:
    -
       sym: amountConstraint
       numArgs: 1
-      source: "atArray8($0, amountConstraintIndex)"
+      source: "atTuple8($0, amountConstraintIndex)"
    -
       sym: lockConstraint
       numArgs: 1
-      source: "atArray8($0, lockConstraintIndex)"
+      source: "atTuple8($0, lockConstraintIndex)"
    -
       sym: isPathToConsumedOutput
       numArgs: 1
@@ -45,15 +45,15 @@ functions:
    -
       sym: producedConstraintByIndex
       numArgs: 1
-      source: "atArray8(producedOutputByIndex(byte($0,0)), byte($0,1))"
+      source: "atTuple8(producedOutputByIndex(byte($0,0)), byte($0,1))"
    -
       sym: consumedConstraintByIndex
       numArgs: 1
-      source: "atArray8(consumedOutputByIndex(byte($0,0)), byte($0,1))"
+      source: "atTuple8(consumedOutputByIndex(byte($0,0)), byte($0,1))"
    -
       sym: unlockParamsByConstraintIndex
       numArgs: 1
-      source: "atArray8(unlockParamsByIndex(byte($0,0)), byte($0,1))"
+      source: "atTuple8(unlockParamsByIndex(byte($0,0)), byte($0,1))"
    -
       sym: consumedLockByInputIndex
       numArgs: 1
@@ -121,15 +121,15 @@ functions:
    -
       sym: numEndorsements
       numArgs: 0
-      source: "arrayLen(atPath(pathToEndorsements))"
+      source: "tupleLen(atPath(pathToEndorsements))"
    -
       sym: numInputs
       numArgs: 0
-      source: "arrayLen(atPath(pathToInputIDs))"
+      source: "tupleLen(atPath(pathToInputIDs))"
    -
       sym: numProducedOutputs
       numArgs: 0
-      source: "arrayLen(atPath(pathToProducedOutputs))"
+      source: "tupleLen(atPath(pathToProducedOutputs))"
    -
       sym: txEssenceBytes
       numArgs: 0
@@ -165,7 +165,7 @@ functions:
    -
       sym: selfSiblingConstraint
       numArgs: 1
-      source: "atArray8(atPath(selfOutputPath), $0)"
+      source: "atTuple8(atPath(selfOutputPath), $0)"
    -
       sym: selfOutputBytes
       numArgs: 0
@@ -173,7 +173,7 @@ functions:
    -
       sym: selfNumConstraints
       numArgs: 0
-      source: arrayLen(selfOutputBytes)
+      source: tupleLen(selfOutputBytes)
    -
       sym: self
       numArgs: 0
@@ -225,7 +225,7 @@ functions:
    -
       sym: selfSiblingUnlockBlock
       numArgs: 1
-      source: "atArray8(atPath(concat(pathToUnlockParams, selfOutputIndex)), $0)"
+      source: "atTuple8(atPath(concat(pathToUnlockParams, selfOutputIndex)), $0)"
    -
       sym: selfHashUnlock
       numArgs: 1

@@ -819,7 +819,7 @@ func TestLocalLibrary(t *testing.T) {
  func fun2 : fun1(fun1($0,$1), fun1($0,$1))
  func fun3 : fun2($0, $0)
 `
-	libBin, err := ledger.L().Library.CompileLocalLibraryToLazyArray(source)
+	libBin, err := ledger.L().Library.CompileLocalLibraryToTuple(source)
 	require.NoError(t, err)
 	t.Run("1", func(t *testing.T) {
 		src := fmt.Sprintf("callLocalLibrary(0x%s, 2, 5)", hex.EncodeToString(libBin))
@@ -845,7 +845,7 @@ func TestLocalLibrary(t *testing.T) {
 
 func TestHashUnlock(t *testing.T) {
 	const secretUnlockScript = "func fun1: and" // fun1 always returns true
-	libBin, err := ledger.L().Library.CompileLocalLibraryToLazyArray(secretUnlockScript)
+	libBin, err := ledger.L().Library.CompileLocalLibraryToTuple(secretUnlockScript)
 	require.NoError(t, err)
 	t.Logf("library size: %d", len(libBin))
 	libHash := blake2b.Sum256(libBin)

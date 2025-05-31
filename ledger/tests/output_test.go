@@ -3,7 +3,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func TestRawOutputBytes(t *testing.T) {
 	}
 	require.EqualValues(t, len(rawBytes), size+2)
 
-	rawBytesBack := lazybytes.MakeArrayFromDataReadOnly(rawBytesConstr...).Bytes()
+	rawBytesBack := tuples.MakeTupleFromDataElements(rawBytesConstr...).Bytes()
 	require.EqualValues(t, rawBytes, rawBytesBack)
 	require.EqualValues(t, o.Bytes(), rawBytesBack)
 

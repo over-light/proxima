@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/ledger/multistate"
@@ -41,7 +41,7 @@ type (
 	}
 
 	UnlockParams struct {
-		array *lazybytes.ArrayEditable
+		array *tuples.TupleEditable
 	}
 )
 
@@ -205,11 +205,11 @@ func (txb *TransactionBuilder) ProducedAmount() (uint64, uint64) {
 	return retTotal, retInflation
 }
 
-func (tx *transactionData) ToArray() *lazybytes.ArrayReadOnly {
-	unlockParams := lazybytes.EmptyArray(256)
-	inputIDs := lazybytes.EmptyArray(256)
-	outputs := lazybytes.EmptyArray(256)
-	endorsements := lazybytes.EmptyArray(256)
+func (tx *transactionData) ToTuple() *tuples.Tuple {
+	unlockParams := tuples.EmptyTupleEditable(256)
+	inputIDs := tuples.EmptyTupleEditable(256)
+	outputs := tuples.EmptyTupleEditable(256)
+	endorsements := tuples.EmptyTupleEditable(256)
 	var explicitBaseline []byte
 	if tx.ExplicitBaseline != nil {
 		explicitBaseline = tx.ExplicitBaseline[:]
@@ -243,18 +243,18 @@ func (tx *transactionData) ToArray() *lazybytes.ArrayReadOnly {
 	elems[ledger.TxInputCommitment] = tx.InputCommitment[:]
 	elems[ledger.TxEndorsements] = endorsements
 	elems[ledger.TxExplicitBaseline] = explicitBaseline
-	elems[ledger.TxLocalLibraries] = lazybytes.MakeArrayFromDataReadOnly(tx.LocalLibraries...)
-	return lazybytes.MakeArrayReadOnly(elems...)
+	elems[ledger.TxLocalLibraries] = tuples.MakeTupleFromDataElements(tx.LocalLibraries...)
+	return tuples.MakeTupleFromSerializableElements(elems...)
 }
 
 func (tx *transactionData) Bytes() []byte {
-	return tx.ToArray().Bytes()
+	return tx.ToTuple().Bytes()
 }
 
 var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func (txb *TransactionBuilder) SignED25519(privKey ed25519.PrivateKey) {
-	txid, err := transaction.TxIDFromTransactionDataTree(txb.TransactionData.ToArray().AsTree())
+	txid, err := transaction.TxIDFromTransactionDataTree(txb.TransactionData.ToTuple().AsTree())
 	util.AssertNoError(err)
 	sig, err := privKey.Sign(rnd, txid[:], crypto.Hash(0))
 	util.AssertNoError(err)
@@ -821,7 +821,7 @@ func (u *UnlockParams) Bytes() []byte {
 
 func NewUnlockBlock() *UnlockParams {
 	return &UnlockParams{
-		array: lazybytes.EmptyArray(256),
+		array: tuples.EmptyTupleEditable(256),
 	}
 }
 

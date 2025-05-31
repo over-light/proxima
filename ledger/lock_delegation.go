@@ -37,7 +37,7 @@ func minimumDelegatedAmount : u64/50000000
 func delegationPaceTicks : u64/256
 
 // $0 sibling index
-func selfSiblingUnlockParams : atArray8(unlockParamsByIndex(selfOutputIndex), $0)
+func selfSiblingUnlockParams : atTuple8(unlockParamsByIndex(selfOutputIndex), $0)
 
 // Enforces delegation target lock and additional constraints, such as immutable chain 
 // transition with non-decreasing amount
@@ -47,7 +47,7 @@ func selfSiblingUnlockParams : atArray8(unlockParamsByIndex(selfOutputIndex), $0
 func _enforceDelegationTargetConstraintsOnSuccessor : and(
     $1,  // target lock must be unlocked
     require(lessOrEqualThan(selfAmountValue, amountValue($2)), !!!amount_should_not_decrease),
-    require(equal(atArray8($2, lockConstraintIndex), selfSiblingConstraint(lockConstraintIndex)), !!!lock_must_be_immutable),
+    require(equal(atTuple8($2, lockConstraintIndex), selfSiblingConstraint(lockConstraintIndex)), !!!lock_must_be_immutable),
     require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 

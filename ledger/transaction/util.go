@@ -8,7 +8,7 @@ import (
 	"slices"
 
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
@@ -120,7 +120,7 @@ func (ctx *TxContext) Lines(prefix ...string) *lines.Lines {
 }
 
 func UnlockDataToString(data []byte) string {
-	arr, err := lazybytes.ArrayFromBytesReadOnly(data)
+	arr, err := tuples.TupleFromBytes(data)
 	if err != nil {
 		return fmt.Sprintf("error while parsing lazy array: %v", err)
 	}

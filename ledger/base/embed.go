@@ -6,7 +6,7 @@ import (
 
 	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/easyfl_util"
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/unitrie/common"
 	"golang.org/x/crypto/blake2b"
@@ -16,23 +16,23 @@ import (
 // - tree: all validation context of the transaction, all data which is to be validated
 // - path: a path in the validation context of the constraint being validated in the eval call
 type DataContext struct {
-	tree *lazybytes.Tree
-	path lazybytes.TreePath
+	tree *tuples.Tree
+	path tuples.TreePath
 }
 
-func NewDataContext(tree *lazybytes.Tree) *DataContext {
+func NewDataContext(tree *tuples.Tree) *DataContext {
 	return &DataContext{tree: tree}
 }
 
-func (c *DataContext) DataTree() *lazybytes.Tree {
+func (c *DataContext) DataTree() *tuples.Tree {
 	return c.tree
 }
 
-func (c *DataContext) Path() lazybytes.TreePath {
+func (c *DataContext) Path() tuples.TreePath {
 	return c.path
 }
 
-func (c *DataContext) SetPath(path lazybytes.TreePath) {
+func (c *DataContext) SetPath(path tuples.TreePath) {
 	c.path = common.Concat(path.Bytes())
 }
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/lunfardo314/easyfl/lazybytes"
+	"github.com/lunfardo314/easyfl/tuples"
 	"github.com/lunfardo314/proxima/global"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -71,7 +71,7 @@ func FetchSnapshotBranchID(store common.KVTraversableReader) base.TransactionID 
 const numberOfElementsInRootRecord = 6
 
 func (r *RootRecord) Bytes() []byte {
-	arr := lazybytes.EmptyArray(numberOfElementsInRootRecord)
+	arr := tuples.EmptyTupleEditable(numberOfElementsInRootRecord)
 	arr.MustPush(r.SequencerID.Bytes())   // 0
 	arr.MustPush(r.Root.Bytes())          // 1
 	arr.MustPushUint64(r.CoverageDelta)   // 2
@@ -84,7 +84,7 @@ func (r *RootRecord) Bytes() []byte {
 }
 
 func RootRecordFromBytes(data []byte) (RootRecord, error) {
-	arr, err := lazybytes.ArrayFromBytesReadOnly(data, numberOfElementsInRootRecord)
+	arr, err := tuples.TupleFromBytes(data, numberOfElementsInRootRecord)
 	if err != nil {
 		return RootRecord{}, err
 	}
