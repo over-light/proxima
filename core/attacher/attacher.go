@@ -50,7 +50,7 @@ func (a *attacher) setError(err error) {
 
 const TraceTagSolidifySequencerBaseline = "seqBase"
 
-// solidifySequencerBaseline directs the attachment process down the MemDAG to reach the deterministically known baseline state
+// solidifyBaselineUnwrapped directs the attachment process down the MemDAG to reach the deterministically known baseline state
 // for a sequencer milestone. Existence of it is guaranteed by the ledger constraints
 // Success of the baseline solidification is when the function returns true and v.BaselineBranchID != nil
 // Special edge case: when the baseline branch is before the snapshot state, it has to be taken into account if

@@ -24,6 +24,8 @@ const (
 	lazyRepeatEach = 50 * time.Millisecond
 )
 
+var errReattachDetached = errors.New("REATTACH detached transaction")
+
 func runMilestoneAttacher(
 	vid *vertex.WrappedTx,
 	metadata *txmetadata.TransactionMetadata,
@@ -255,12 +257,10 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
 				// reattach
-				msg := fmt.Sprintf("solidifyBaseline: abandon current attacher, re-attach detached tx %s", a.vid.StringNoLock())
-				a.Log().Warn(msg)
-				a.setError(fmt.Errorf(msg))
+				err := fmt.Errorf("solidifyBaseline: abandon current attacher %s: %w", a.vid.StringNoLock(), errReattachDetached)
+				a.Log().Warn(err.Error())
+				a.setError(err)
 				ok = false
-
-				AttachTransaction(v.Tx, a, WithInvokedBy(a.name+"_reattach_bl"))
 			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyBaseline: unexpected virtual tx %s", a.vid.StringNoLock())
@@ -306,12 +306,10 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
-				msg := fmt.Sprintf("solidifyPastCone: abandon current attacher, re-attach detached tx %s", a.vid.StringNoLock())
-				a.Log().Warn(msg)
-				a.setError(fmt.Errorf(msg))
+				err := fmt.Errorf("solidifyPastCone: abandon current attacher %s: %w", a.vid.StringNoLock(), errReattachDetached)
+				a.Log().Warn(err.Error())
+				a.setError(err)
 				ok = false
-
-				AttachTransaction(v.Tx, a, WithInvokedBy(a.name+"_reattach_pc"))
 			},
 			VirtualTx: func(_ *vertex.VirtualTransaction) {
 				a.Log().Fatalf("solidifyPastCone: unexpected virtual tx %s", a.vid.StringNoLock())

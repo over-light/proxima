@@ -101,9 +101,6 @@ func (d *MemDAG) WithGlobalWriteLock(fun func()) {
 
 func (d *MemDAG) GetVertexNoLock(txid base.TransactionID) *vertex.WrappedTx {
 	if rec, found := d.vertices[txid]; found {
-		//if txid.Slot() <= 1 {
-		//	d.Log().Infof(">>>>>>>>>>>>> GetVertexNoLock %s, caller = %s", txid.StringShort(), caller)
-		//}
 		return rec.Value()
 	}
 	return nil
