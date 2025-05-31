@@ -603,14 +603,24 @@ func (pc *PastCone) MergePastCone(pcb *PastConeBase, br *branches.Branches) bool
 	if len(pcb.vertices) == 0 {
 		return true
 	}
-	pc.Assertf(pc.GetBaseline() != nil && pcb.baselineBranchID != nil, "pc.GetBaseline() != nil && pcb.baselineBranchID != nil")
+	currentBaseline := pc.GetBaseline()
+	pc.Assertf(currentBaseline != nil && pcb.baselineBranchID != nil, "pc.GetBaseline() != nil && pcb.baselineBranchID != nil")
 
-	compatible, needsBaselineSwap := br.IsDescendantBranch(*pcb.baselineBranchID, *pc.GetBaseline())
+	compatible, needsBaselineSwap := br.IsDescendantBranch(*pcb.baselineBranchID, *currentBaseline)
 	if !compatible {
 		return false
 	}
 	if needsBaselineSwap {
 		pc.SetBaseline(pcb.baselineBranchID)
+		old := *currentBaseline
+		// must set the old baseline is in checked and in the state and defined
+		pc.forAllVertices(func(vid *WrappedTx) bool {
+			if vid.ID() == old {
+				pc.SetFlagsUp(vid, FlagPastConeVertexCheckedInTheState|FlagPastConeVertexInTheState|FlagPastConeVertexDefined)
+				return false
+			}
+			return true
+		})
 	}
 	for vid, flags := range pcb.vertices {
 		if vid.ID() != *pcb.baselineBranchID {

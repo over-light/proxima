@@ -71,7 +71,7 @@ func zeroTickOnBranchOnly : or(
 // Checks: txTimeTick <= constMaxTickValuePerSlot - constPreBranchConsolidationTicks
 func checkPreBranchConsolidationTicks :
 or(
-   equal(numInputs, 1),
+   equal(numInputs, u64/1),
    require(
 		lessOrEqualThan(
 			uint8Bytes(txTimeTick),
@@ -80,7 +80,7 @@ or(
 				constPreBranchConsolidationTicks
 			)
         ),
-        !!!sequencer_transaction_violates_pre_branch_consolidation_ticks_constraint
+        !!!sequencer_transaction_violates_pre-branch_consolidation_ticks_constraint
    )
 )
 

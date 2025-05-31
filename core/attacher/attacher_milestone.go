@@ -24,7 +24,7 @@ const (
 	lazyRepeatEach = 50 * time.Millisecond
 )
 
-var errReattachDetached = errors.New("REATTACH detached transaction")
+var errDetachedInAttacher = errors.New("detached transaction in the attacher")
 
 func runMilestoneAttacher(
 	vid *vertex.WrappedTx,
@@ -256,9 +256,8 @@ func (a *milestoneAttacher) solidifyBaseline() vertex.Status {
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
-				// reattach
-				err := fmt.Errorf("solidifyBaseline: abandon current attacher %s: %w", a.vid.StringNoLock(), errReattachDetached)
-				a.Log().Warn(err.Error())
+				err := fmt.Errorf("solidifyBaseline: abandon current attacher %s: %w", a.vid.StringNoLock(), errDetachedInAttacher)
+				a.Log().Error(err.Error())
 				a.setError(err)
 				ok = false
 			},
@@ -306,8 +305,8 @@ func (a *milestoneAttacher) solidifyPastCone() vertex.Status {
 				}
 			},
 			DetachedVertex: func(v *vertex.DetachedVertex) {
-				err := fmt.Errorf("solidifyPastCone: abandon current attacher %s: %w", a.vid.StringNoLock(), errReattachDetached)
-				a.Log().Warn(err.Error())
+				err := fmt.Errorf("solidifyPastCone: abandon current attacher %s: %w", a.vid.StringNoLock(), errDetachedInAttacher)
+				a.Log().Error(err.Error())
 				a.setError(err)
 				ok = false
 			},

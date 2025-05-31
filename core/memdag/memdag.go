@@ -84,7 +84,7 @@ func New(env environment) *MemDAG {
 }
 
 const (
-	vertexTTLSlots         = 10
+	vertexTTLSlots         = 24
 	_vertexTTLSlotsMinimum = 6
 )
 

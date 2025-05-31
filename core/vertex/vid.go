@@ -90,12 +90,16 @@ func (vid *WrappedTx) ConvertVirtualTxToVertexNoLock(v *Vertex) {
 func (vid *WrappedTx) ConvertToDetached() {
 	vid.Unwrap(UnwrapOptions{
 		Vertex: func(v *Vertex) {
+			//if vid.FlagsUpNoLock(FlagVertexTxAttachmentStarted) && !vid.FlagsUpNoLock(FlagVertexTxAttachmentFinished) {
+			//	// to prevent detached vertex appear in the attacher
+			//	return
+			//}
 			vid.convertToDetachedTxUnlocked(v)
 			vid.pastCone = nil
 		},
 		DetachedVertex: func(v *DetachedVertex) {
 			util.Assertf(vid.pastCone == nil || vid.IsBranchTransaction(), "vid.pastCone == nil ||vid.IsBranchTransaction()")
-			vid.pastCone = nil // Important: if not this, memdag leaks memory
+			vid.pastCone = nil // Important: if not this, memdag leaks memory. Later: why exactly?
 		},
 		VirtualTx: func(v *VirtualTransaction) {
 			util.Assertf(vid.pastCone == nil, "vid.pastCone == nil")
