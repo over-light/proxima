@@ -425,6 +425,10 @@ func (o *Output) LinesVerbose(prefix ...string) *lines.Lines {
 	return o._lines(pref, true)
 }
 
+func (o *Output) String() string {
+	return o.Lines().String()
+}
+
 func (o *Output) _lines(prefix string, verbose bool) *lines.Lines {
 	ret := lines.New()
 	o.ForEachConstraint(func(i byte, data []byte) bool {

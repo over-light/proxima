@@ -12,9 +12,9 @@ import (
 
 type (
 	Constraint interface {
-		Name() string
-		Bytes() []byte
-		Source() string
+		Name() string   // EasyFL function name in the ledger library
+		Bytes() []byte  // bytecode, compiled from EasyFL source
+		Source() string // EasyFL source
 		String() string // human-readable
 	}
 

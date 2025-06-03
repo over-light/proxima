@@ -139,7 +139,7 @@ func TrackTxInclusion(txid base.TransactionID, poll time.Duration) {
 			if foundAtDepth < 0 {
 				Infof("%2d sec. Transaction is NOT included in the latest reliable branch (LRB) %s", since, lrbidStr)
 			} else {
-				Infof("%2d sec. Transaction INCLUDED in the latest reliable branch (LRB) at depth %d: %s", since, foundAtDepth, lrbidStr)
+				Infof("%2d sec. Transaction is INCLUDED in the latest reliable branch (LRB) at depth %d: %s", since, foundAtDepth, lrbidStr)
 				if foundAtDepth == inclusionDepth {
 					Infof("target inclusion depth %d has been reached", inclusionDepth)
 					return
@@ -164,29 +164,21 @@ func GetTagAlongSequencerID() *base.ChainID {
 		return ret
 	}
 
-	var seqIDStr string
-
-	if UseAlternativeTagAlongSequencer {
-		seqIDStr = viper.GetString("tag_along.alt_sequencer_id")
-		Infof("using alternative tag-along sequencer: %s", seqIDStr)
+	seqIDStr := viper.GetString("tag_along.sequencer_id")
+	var seqID base.ChainID
+	var err error
+	if seqIDStr == "" {
+		Infof("tag-along sequencer is not configured. Trying default..")
+		pseqID := GetDefaultSequencerID()
+		Assertf(pseqID != nil, "default sequencer not specified")
+		seqID = *pseqID
 	} else {
-		seqIDStr = viper.GetString("tag_along.sequencer_id")
-		if seqIDStr != "" {
-			Infof("using tag-along sequencer: %s", seqIDStr)
-		} else {
-			own := GetOwnSequencerID()
-			if own == nil {
-				return nil
-			}
-			Infof("using sequencer for tag-along: %s", seqIDStr)
-			seqIDStr = own.StringHex()
-		}
+		seqID, err = base.ChainIDFromHexString(seqIDStr)
+		AssertNoError(err)
 	}
-	seqID, err := base.ChainIDFromHexString(seqIDStr)
-	AssertNoError(err)
 
 	o, _, err := GetClient().GetChainOutputData(seqID)
-	Assertf(err == nil, "can't find tag-along sequencer: %v", err)
+	Assertf(err == nil, "can't find chain %s: %v", seqID.String(), err)
 	Assertf(o.ID.IsSequencerTransaction(), "can't get tag-along sequencer %s: chain output %s is not a sequencer output",
 		seqID.StringShort(), o.ID.StringShort())
 

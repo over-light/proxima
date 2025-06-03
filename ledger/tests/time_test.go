@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"encoding/hex"
 	"math/rand"
 	"testing"
 	"time"
@@ -10,6 +11,20 @@ import (
 	"github.com/lunfardo314/proxima/util"
 	"github.com/stretchr/testify/require"
 )
+
+func TestTTT(t *testing.T) {
+	tl := ledger.NewTimelock(1000)
+	t.Logf("source: %s", tl.Source())
+	t.Logf("human-readable: %s", tl.String())
+	t.Logf("bytecode: %s", hex.EncodeToString(tl.Bytes()))
+
+	utxo := ledger.NewOutput(func(o *ledger.OutputBuilder) {
+		o.WithAmount(1337)
+		o.WithLock(ledger.AddressED25519Random())
+		o.MustPushConstraint(tl.Bytes())
+	})
+	println(utxo.String())
+}
 
 func TestPrintTimeConstants(t *testing.T) {
 	t.Log(ledger.L().ID.TimeConstantsToString())
