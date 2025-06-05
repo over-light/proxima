@@ -204,7 +204,7 @@ func (seq *Sequencer) ensureNotTooCloseToSnapshot() {
 		if slotDiff > 64 {
 			return false
 		}
-		seq.log.Warnf("ensureNotTooCloseToSnapshot: current slot %d must be >64 slots ahead from the snapshot slot %d. Waiting for another %d slots..",
+		seq.log.Warnf("current slot %d must be >64 slots ahead from the snapshot slot %d. Waiting for another %d slots before starting the sequencer..",
 			slotNow, snapshotSlot, 64-slotDiff+1)
 		return true
 	})
