@@ -72,7 +72,7 @@ curl -L -X GET 'http://localhost:8000/txapi/v1/parse_output_data?output_data=400
 ```
 
 ## parse_output
-By given output ID, finds raw output data on LRB state, parses the it as lazyarray
+By given output ID, finds raw output data on LRB state, parses it as lazyarray
 and decompiles each of constraint scripts. Returns list of decompiled constraint scripts
 
 `/txapi/v1/parse_output?output_id=<hex-encoded output ID>`
@@ -221,11 +221,6 @@ curl -L -X GET 'http://localhost:8000/txapi/v1/get_vertex_dep?txid=8000001400017
   ]
 }
 ```
-
-# WebSocket API
-* [dag_vertex_stream](#dag_vertex_stream)
-## dag_vertex_stream
-TODO
 
 # General API
 * [get_ledger_id](#get_ledger_id)
@@ -937,4 +932,35 @@ curl -L -X GET 'http://localhost:8000/api/v1/get_delegations_by_sequencer'
     }
   }
 }
+```
+
+# WebSocket API
+* [dag_vertex_stream](#dag_vertex_stream)
+## dag_vertex_stream
+Streaming api to retrieve all vertices when added to the MemDAG.
+Primary purpose is for DAG visualization.
+
+`/wsapi/v1/dag_vertex_stream`
+
+Example:
+
+``` bash
+websocat wss://proximadlt.mooo.com/api/proxy/wsapi/v1/dag_vertex_stream
+```
+
+```json
+{   
+  "id": "0000a0ba1900085da6a0653c838d8c8709d6efe1cd18e058e1c683741939f266",   
+  "a": 200301749491210,   
+	"i": 6600994,   
+	"seqid": "57cbe8ae88b2c5d608c885d0eca6d9951ddd205aa4f6435a248fc9d40cb68369",   
+	"seqidx": 0,   
+	"in": [     
+    "0000a0b93100ae6b56a501d6b7b1bf263ffcc9d3a07eef0afece65096bc8c0f4"   
+  ],   
+	"endorse": [     
+    "0000a0ba01018e2def4a07deba30d3bcb5fc1ed8d1b00b3a7d05db0ec7f49b0f"   
+  ] 
+}
+
 ```
