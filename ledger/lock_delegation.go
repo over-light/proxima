@@ -43,11 +43,11 @@ func selfSiblingUnlockParams : atTuple8(unlockParamsByIndex(selfOutputIndex), $0
 // transition with non-decreasing amount
 // $0 chain constraint index
 // $1 target lock
-// $2 successor output
+// $2 path to successor output
 func _enforceDelegationTargetConstraintsOnSuccessor : and(
     $1,  // target lock must be unlocked
-    require(lessOrEqualThan(selfAmountValue, amountValue($2)), !!!amount_should_not_decrease),
-    require(equal(atTuple8($2, lockConstraintIndex), selfSiblingConstraint(lockConstraintIndex)), !!!lock_must_be_immutable),
+    require(lessOrEqualThan(selfAmountValue, amountValueByOutputPath($2)), !!!amount_should_not_decrease),
+    require(equal(atPath(concat($2, lockConstraintIndex)), selfSiblingConstraint(lockConstraintIndex)), !!!lock_must_be_immutable),
     require(equal(byte(selfSiblingUnlockParams($0),2), 0), !!!chain_must_be_state_transition)
 )
 
@@ -99,11 +99,11 @@ func delegationLock: and(
             or(
                $2,   // unlocked owner's lock validates it all
                and(
-                   require(isOpenDelegationSlot(_selfSuccessorChainData($0), txTimeSlot), !!!must _be_on_liquidity_slot),
+                   require(isOpenDelegationSlot(_selfSuccessorChainData($0), txSlot), !!!must _be_on_liquidity_slot),
                    require(_enforceDelegationTargetConstraintsOnSuccessor(
                       $0,
                       $1, 
-                      producedOutputByIndex(byte(selfSiblingUnlockParams($0), 0))
+                      concat(pathToProducedOutputs, byte(selfSiblingUnlockParams($0), 0)),
                    ), !!!wrong_delegation_target_successor)
                )
             )

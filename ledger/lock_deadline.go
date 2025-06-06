@@ -107,8 +107,8 @@ const deadlineLockSource = `
 func deadlineLock: if(
 	selfIsConsumedOutput,
 	conditionalLock(
-		lessThan($0, txTimeSlot), $1,
-		not(lessThan($0, txTimeSlot)), $2,
+		lessThan($0, txSlot), $1,
+		not(lessThan($0, txSlot)), $2,
 		0x, 0x,
 		0x, 0x
 	),

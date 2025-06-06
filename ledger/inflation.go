@@ -97,7 +97,7 @@ func _calcChainInflationAmountForPredecessor :
      calcChainInflationAmount(
 	    timestampOfInputByIndex($0), 
         txTimestampBytes,
-	    amountValue(consumedOutputByIndex($0)),
+	    amountValueByOutputPath(concat(pathToConsumedOutputs,$0)),
 	 )
 
 // inflation(<inflation amount>, <chain constraint index>)

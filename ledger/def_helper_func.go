@@ -38,11 +38,11 @@ functions:
       description: nullifies sequencer bit in the prefix and thus makes a timestamp from a txid  
       source: bitwiseAND(first5Bytes($0), 0xfffffffff6)
    -
-      sym: timeTickFromTimestampBytes
+      sym: tickFromTimestampBytes
       description: returns ticks of the timestamp
       source: div8(byte($0, 4),2)
    -
       sym: isTimestampBytesOnSlotBoundary
       description: returns non-empty value if ticks of the $0 timestamp are 0
-      source: isZero(timeTickFromTimestampBytes($0))
+      source: isZero(tickFromTimestampBytes($0))
 `

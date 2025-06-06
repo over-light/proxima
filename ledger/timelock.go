@@ -17,7 +17,7 @@ func timelock: and(
 		selfIsProducedOutput, 
 		and( 
 			selfIsConsumedOutput,
-			lessOrEqualThan($0, txTimeSlot)
+			lessOrEqualThan($0, txSlot)
 		) 
 	)
 )

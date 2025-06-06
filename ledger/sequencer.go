@@ -20,7 +20,7 @@ func mustMinimumAmountOnSequencer :
 // $0 chain predecessor input index
 func _inputSameSlot :
 equal(
-	txTimeSlot,
+	txSlot,
 	timeSlotOfInputByIndex($0)
 )
 
@@ -63,18 +63,18 @@ or(
 )
 
 func zeroTickOnBranchOnly : or(
-	not(isZero(txTimeTick)),
+	not(isZero(txTick)),
 	isBranchTransaction
 )
 
 // enforces the sequencer transaction with more than 1 input not is in the pre branch consolidation ticks zone
-// Checks: txTimeTick <= constMaxTickValuePerSlot - constPreBranchConsolidationTicks
+// Checks: txTick <= constMaxTickValuePerSlot - constPreBranchConsolidationTicks
 func checkPreBranchConsolidationTicks :
 or(
    equal(numInputs, u64/1),
    require(
 		lessOrEqualThan(
-			uint8Bytes(txTimeTick),
+			uint8Bytes(txTick),
 			sub(
 				constMaxTickValuePerSlot,
 				constPreBranchConsolidationTicks
@@ -88,7 +88,7 @@ func checkPostBranchConsolidationTicks :
    require(
        or(
           isBranchTransaction,
-          lessOrEqualThan(constPostBranchConsolidationTicks, uint8Bytes(txTimeTick))
+          lessOrEqualThan(constPostBranchConsolidationTicks, uint8Bytes(txTick))
 	   ),
        !!!sequencer_transaction_violates_post_branch_consolidation_ticks_constraint
    )

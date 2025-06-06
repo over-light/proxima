@@ -131,7 +131,7 @@ func stemLock: and(
           ),
              // enforce correct VRF proof on successor
 		  require(
-             validSignatureED25519(concat($1, txTimeSlot), _vrfProofOnSuccessor, publicKeyED25519(txSignature)), 
+             validSignatureED25519(concat($1, txSlot), _vrfProofOnSuccessor, publicKeyED25519(txSignature)), 
              !!!VRF_proof_check_failed
           )
        ),

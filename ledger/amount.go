@@ -17,11 +17,11 @@ func amount:
        !!!amount_constraint_must_be_at_index_0_and_len_arg0<=8
    )
 
-// utility function which extracts amount value 8 bytes from the output by evaluating its arg0
-// $0 - output bytes
-func amountValue : uint8Bytes(parseInlineDataArgument(atTuple8($0, amountConstraintIndex), #amount,0))
+// $0 path to output
+// Returns amount value 8 bytes from the output at path given in $0
+func amountValueByOutputPath : uint8Bytes(parseInlineDataArgument(atPath(concat($0, amountConstraintIndex)), #amount,0))
 
-func selfAmountValue: amountValue(selfOutputBytes)
+func selfAmountValue: amountValueByOutputPath(selfOutputPath)
 
 // $0 number of output bytes
 func storageDeposit : mul(constVBCost16,$0)

@@ -91,13 +91,13 @@ functions:
       numArgs: 0
       source: "uint8Bytes(atPath(pathToTotalProducedAmount))"
    -
-      sym: txTimeSlot
+      sym: txSlot
       numArgs: 0
       source: first4Bytes(txTimestampBytes)
    -
-      sym: txTimeTick
+      sym: txTick
       numArgs: 0
-      source: timeTickFromTimestampBytes(txTimestampBytes)
+      source: tickFromTimestampBytes(txTimestampBytes)
    -
       sym: txSequencerOutputIndex
       numArgs: 0
