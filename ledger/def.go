@@ -11,6 +11,7 @@ import (
 )
 
 // TODO cleanup of the ledger definitions: remove unused function defs and optimize
+// TODO revisit function naming convention
 
 // This file contains all upgrade prescriptions to the base ledger provided by the EasyFL. It is "version 0" of the ledger.
 // Ledger definition can be upgraded by adding new embedded and extended function with new binary codes.
