@@ -109,7 +109,7 @@ func TestParseOutputData(t *testing.T) {
 	assert.Equal(t, amount, ret.Amount)
 	assert.Equal(t, chanID.StringHex(), ret.ChainID)
 	assert.Equal(t, 3, len(ret.Constraints))
-	assert.Equal(t, "amount(u64/31415926535)", ret.Constraints[0])
+	assert.Equal(t, "amount(z64/31415926535)", ret.Constraints[0])
 	assert.Equal(t, addr.Source(), ret.Constraints[1])
 	assert.Equal(t, cc.Source(), ret.Constraints[2])
 }
