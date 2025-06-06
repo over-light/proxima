@@ -65,8 +65,7 @@ func runSeqSetupCmd(_ *cobra.Command, args []string) {
 		// search for chain
 		chainId = getChainIdForAccount(walletData.Account)
 		if chainId == nil {
-			glb.Infof("chain id not found for account %s", walletData.Account.String())
-			return
+			glb.Fatalf("chain id not found for account %s", walletData.Account.String())
 		} else {
 			glb.Infof("found chain id: %s", chainId.StringHex())
 		}
