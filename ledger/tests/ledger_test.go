@@ -1176,3 +1176,82 @@ func TestDeadlineLock(t *testing.T) {
 	//require.EqualValues(t, 2000, int(u.Balance(addr1, ts.AddSlots(9))))
 	//require.EqualValues(t, 0, int(u.Balance(addr1, ts.AddSlots(11))))
 }
+
+func TestTotalAmount(t *testing.T) {
+	t.Run("total amount ok", func(t *testing.T) {
+		u := utxodb.NewUTXODB(genesisPrivateKey, true)
+		const (
+			numUTXOs   = 100
+			initAmount = 10_000
+		)
+		privKey0, _, addr0 := u.GenerateAddress(0)
+		require.EqualValues(t, 0, u.NumUTXOs(addr0))
+
+		utxos := u.GenerateUTXOsWithFaucetAmount(addr0, numUTXOs, initAmount)
+		require.EqualValues(t, len(utxos), u.NumUTXOs(addr0))
+
+		txb := txbuilder.New()
+		total, ts, err := txb.ConsumeOutputs(utxos...)
+		require.NoError(t, err)
+
+		txb.PutSignatureUnlock(0)
+		for i := 1; i < numUTXOs; i++ {
+			err = txb.PutUnlockReference(byte(i), 1, 0)
+			require.NoError(t, err)
+		}
+		out := ledger.NewOutput(func(o *ledger.OutputBuilder) {
+			o.WithAmount(total).WithLock(addr0)
+			o.MustPushConstraint(ledger.NewTotalAmount(total).Bytes())
+		})
+
+		_, err = txb.ProduceOutput(out)
+		require.NoError(t, err)
+
+		txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
+		txb.TransactionData.Timestamp = ts.AddSlots(1)
+		txb.SignED25519(privKey0)
+
+		txBytes := txb.TransactionData.Bytes()
+
+		err = transaction.ValidateTxBytes(txBytes, txb.LoadInput)
+		require.NoError(t, err)
+	})
+	t.Run("total amount fail", func(t *testing.T) {
+		u := utxodb.NewUTXODB(genesisPrivateKey, true)
+		const (
+			numUTXOs   = 100
+			initAmount = 10_000
+		)
+		privKey0, _, addr0 := u.GenerateAddress(0)
+		require.EqualValues(t, 0, u.NumUTXOs(addr0))
+
+		utxos := u.GenerateUTXOsWithFaucetAmount(addr0, numUTXOs, initAmount)
+		require.EqualValues(t, len(utxos), u.NumUTXOs(addr0))
+
+		txb := txbuilder.New()
+		total, ts, err := txb.ConsumeOutputs(utxos...)
+		require.NoError(t, err)
+
+		txb.PutSignatureUnlock(0)
+		for i := 1; i < numUTXOs; i++ {
+			err = txb.PutUnlockReference(byte(i), 1, 0)
+			require.NoError(t, err)
+		}
+		out := ledger.NewOutput(func(o *ledger.OutputBuilder) {
+			o.WithAmount(total).WithLock(addr0)
+			o.MustPushConstraint(ledger.NewTotalAmount(total / 3).Bytes())
+		})
+
+		_, err = txb.ProduceOutput(out)
+		require.NoError(t, err)
+
+		txb.TransactionData.InputCommitment = ledger.HashOutputs(txb.ConsumedOutputs...)
+		txb.TransactionData.Timestamp = ts.AddSlots(1)
+		txb.SignED25519(privKey0)
+
+		txBytes := txb.TransactionData.Bytes()
+
+		err = transaction.ValidateTxBytes(txBytes, txb.LoadInput)
+		util.RequireErrorWith(t, err, "total amount constraint failed")
+	})
+}

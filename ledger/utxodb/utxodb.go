@@ -282,6 +282,22 @@ func (u *UTXODB) GenerateAddressesWithFaucetAmount(startIndex int, n int, amount
 	return retPriv, retPub, retAddr
 }
 
+func (u *UTXODB) GenerateUTXOsWithFaucetAmount(addr ledger.AddressED25519, n int, amount uint64) []*ledger.OutputWithID {
+	util.Assertf(n > 0, "number of addresses must be positive")
+	for i := 0; i < n; i++ {
+		err := u.TokensFromFaucet(addr, amount)
+		util.AssertNoError(err)
+
+	}
+	util.Assertf(u.Balance(addr) == amount*uint64(n), "u.Balance(addr)==amount*uint64(n)")
+
+	rdr := multistate.MakeSugared(u.StateReader())
+	ret, err := rdr.GetOutputsForAccount(addr.AccountID())
+	util.AssertNoError(err)
+	util.Assertf(len(ret) == n, "len(ret)!=n")
+	return ret
+}
+
 func (u *UTXODB) MakeTransferInputData(privKey ed25519.PrivateKey, sourceAccount ledger.Accountable, ts base.LedgerTime, desc ...bool) (*txbuilder.TransferData, error) {
 	if ts == base.NilLedgerTime {
 		ts = ledger.TimeNow()
