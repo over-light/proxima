@@ -165,7 +165,7 @@ functions:
    -
       sym: selfSiblingConstraint
       numArgs: 1
-      source: "atTuple8(atPath(selfOutputPath), $0)"
+      source: "atPath(concat(selfOutputPath, $0))"
    -
       sym: selfOutputBytes
       numArgs: 0
