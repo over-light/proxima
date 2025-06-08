@@ -176,7 +176,7 @@ func addressED25519: and(
 			or(
 					// if it is unlocked with reference, the signature is not checked
 				unlockedByReference(selfUnlockParameters),
-					// checked if tx signature corresponds to the address
+					// checks if tx signature corresponds to the address
                 equal($0, blake2b(publicKeyED25519(txSignature)))
 				// deprecated: unlockedWithSigED25519($0, signatureED25519(txSignature), publicKeyED25519(txSignature)) 
 			)
