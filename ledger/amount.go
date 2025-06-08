@@ -27,7 +27,7 @@ func selfAmountValue: amountValueByOutputPath(selfOutputPath)
 func storageDeposit : mul(constVBCost16,$0)
 
 // enforces storage deposit
-func selfMustStandardAmount: 
+func enforceMinimumStorageDeposit: 
 	require(
 		not(lessThan(selfAmountValue, storageDeposit(len(selfOutputBytes)))),
 		!!!amount_on_output_is_smaller_than_allowed_minimum

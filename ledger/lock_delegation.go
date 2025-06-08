@@ -83,7 +83,7 @@ func delegationLock: and(
            // only sizes are enforced, otherwise $3 and $4 are auxiliary, for information
 	require(and(equal(len($3),u64/5), equal(len($4),u64/8)), !!!args_$3_and_$4_must_be_5_and_8_bytes_length), 
     require(not(isBranchTransaction), !!!delegation_should_not_be_branch),
-	selfMustStandardAmount, // enforce storage deposit
+	enforceMinimumStorageDeposit,
     or(
 		and(
              // check general consistency of the lock on the produced output
