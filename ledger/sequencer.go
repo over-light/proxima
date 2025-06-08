@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/lunfardo314/easyfl"
-	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/util"
 )
 
@@ -43,8 +42,6 @@ require(
 func _crossSlotPredecessorCase : 
 require(
 	or(
-		//  and(isBranchTransaction, sequencerFlagON(inputIDByIndex($0))),  
-        //  <<<<<<< modified Oct 4, 2023. Otherwise sequencer can't start from pure chain'
 		isBranchTransaction, 
 		not(isZero(numEndorsements)),
 		not(isZero(txExplicitBaseline))
@@ -91,8 +88,7 @@ func checkPostBranchConsolidationTicks :
        !!!sequencer_transaction_violates_post_branch_consolidation_ticks_constraint
    )
 
-// $0 is chain constraint sibling index. 0xff value means it is genesis output. 
-// $1 is total produced amount by transaction, big-endian with trimmed zero prefix 
+// $0 is chain constraint sibling index
 func sequencer: and(
 	mustSize($0,1),
     mustMinimumAmountOnSequencer, // enforcing minimum amount on sequencer
@@ -102,12 +98,11 @@ func sequencer: and(
 			// produced
 			require(not(equal(selfOutputIndex, 0xff)), !!!sequencer_output_can't_be_at_index_0xff),
 			require(equal(selfOutputIndex, txSequencerOutputIndex), !!!inconsistent_sequencer_output_index_on_transaction),
-			require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_alowed),
+			require(not(equal($0, 0xff)), !!!chain_constraint_index_0xff_is_not_allowed),
             require(zeroTickOnBranchOnly, !!!non-branch_sequencer_transaction_cant_be_on_slot_boundary), 
-            require(equal(uint8Bytes($1), txTotalProducedAmount), !!!wrong_total_amount_on_sequencer_output),
 			checkPreBranchConsolidationTicks,
 			checkPostBranchConsolidationTicks,
-                // check chain's past'
+            // check chain's past
 			_sequencer( selfChainPredecessorInputIndex($0) )
 		)
     )
@@ -116,20 +111,17 @@ func sequencer: and(
 
 const (
 	SequencerConstraintName     = "sequencer"
-	sequencerConstraintTemplate = SequencerConstraintName + "(%d, z64/%d)"
+	sequencerConstraintTemplate = SequencerConstraintName + "(%d)"
 )
 
 type SequencerConstraint struct {
-	// must be equal to the total produced amount of the transaction
-	TotalProducedAmount uint64
 	// must point to the sibling chain constraint
 	ChainConstraintIndex byte
 }
 
-func NewSequencerConstraint(chainConstraintIndex byte, totalProducedAmount uint64) *SequencerConstraint {
+func NewSequencerConstraint(chainConstraintIndex byte) *SequencerConstraint {
 	return &SequencerConstraint{
 		ChainConstraintIndex: chainConstraintIndex,
-		TotalProducedAmount:  totalProducedAmount,
 	}
 }
 
@@ -142,15 +134,15 @@ func (s *SequencerConstraint) Bytes() []byte {
 }
 
 func (s *SequencerConstraint) String() string {
-	return fmt.Sprintf("%s(%d, %d)", SequencerConstraintName, s.ChainConstraintIndex, s.TotalProducedAmount)
+	return fmt.Sprintf("%s(%d)", SequencerConstraintName, s.ChainConstraintIndex)
 }
 
 func (s *SequencerConstraint) Source() string {
-	return fmt.Sprintf(sequencerConstraintTemplate, s.ChainConstraintIndex, s.TotalProducedAmount)
+	return fmt.Sprintf(sequencerConstraintTemplate, s.ChainConstraintIndex)
 }
 
 func SequencerConstraintFromBytes(data []byte) (*SequencerConstraint, error) {
-	sym, _, args, err := L().ParseBytecodeOneLevel(data, 2)
+	sym, _, args, err := L().ParseBytecodeOneLevel(data, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -163,34 +155,24 @@ func SequencerConstraintFromBytes(data []byte) (*SequencerConstraint, error) {
 	}
 	cci := cciBin[0]
 
-	total, err := easyfl_util.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
-	if err != nil {
-		return nil, fmt.Errorf("SequencerConstraintFromBytes: %v", err)
-	}
-
 	return &SequencerConstraint{
 		ChainConstraintIndex: cci,
-		TotalProducedAmount:  total,
 	}, nil
 }
 
 func registerSequencerConstraint(lib *Library) {
-	lib.mustRegisterConstraint(SequencerConstraintName, 2, func(data []byte) (Constraint, error) {
+	lib.mustRegisterConstraint(SequencerConstraintName, 1, func(data []byte) (Constraint, error) {
 		return SequencerConstraintFromBytes(data)
 	}, initTestSequencerConstraint)
 }
 
 func initTestSequencerConstraint() {
-	example := NewSequencerConstraint(4, 1337)
-	sym, _, args, err := L().ParseBytecodeOneLevel(example.Bytes(), 2)
+	example := NewSequencerConstraint(4)
+	sym, _, args, err := L().ParseBytecodeOneLevel(example.Bytes(), 1)
 	util.AssertNoError(err)
 	util.Assertf(sym == SequencerConstraintName, "sym == SequencerConstraintName")
 
 	cciBin := easyfl.StripDataPrefix(args[0])
 	util.Assertf(len(cciBin) == 1, "len(cciBin) == 1")
 	util.Assertf(cciBin[0] == 4, "cciBin[0] == 4")
-
-	total, err := easyfl_util.Uint64FromBytes(easyfl.StripDataPrefix(args[1]))
-	util.AssertNoError(err)
-	util.Assertf(total == 1337, "binary.BigEndian.Uint64(totalBin) == 1337")
 }

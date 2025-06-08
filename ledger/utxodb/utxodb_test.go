@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/lunfardo314/proxima/ledger"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/proxima/util"
 	"github.com/lunfardo314/proxima/util/testutil"
 	"github.com/stretchr/testify/require"
@@ -27,8 +28,8 @@ func TestUTXODB(t *testing.T) {
 		controlledByChain, onChain, err := u.BalanceOnChain(*u.GenesisChainID())
 		require.NoError(t, err)
 
-		genesisOutputID := ledger.GenesisOutputID()
-		genesisStemOutputID := ledger.GenesisStemOutputID()
+		genesisOutputID := base.GenesisOutputID()
+		genesisStemOutputID := base.GenesisStemOutputID()
 		t.Logf("bootstrap chainID: %s, on-chain balance: %s, controlled by chain: %s", u.GenesisChainID().String(), util.Th(onChain), util.Th(controlledByChain))
 		t.Logf("origin output: %s\n%s", genesisOutputID.String(), u.genesisOutput.ToString("   "))
 		t.Logf("origin stem output: %s\n%s", genesisStemOutputID.String(), u.genesisStemOutput.ToString("   "))

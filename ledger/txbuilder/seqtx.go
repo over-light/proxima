@@ -182,7 +182,7 @@ func MakeSequencerTransactionWithInputLoader(par MakeSequencerTransactionParams)
 		chainOutConstraint := ledger.NewChainConstraint(seqID, chainPredIdx, chainInConstraintIdx, 0)
 		chainOutConstraintIdx = o.MustPushConstraint(chainOutConstraint.Bytes())
 		// put sequencer constraint
-		sequencerConstraint := ledger.NewSequencerConstraint(chainOutConstraintIdx, rightSideAmount)
+		sequencerConstraint := ledger.NewSequencerConstraint(chainOutConstraintIdx)
 		o.MustPushConstraint(sequencerConstraint.Bytes())
 
 		outData := ledger.ParseMilestoneData(par.ChainInput.Output)
