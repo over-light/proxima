@@ -101,8 +101,8 @@ func _calcChainInflationAmountForPredecessor :
 	 )
 
 // inflation(<inflation amount>, <chain constraint index>)
-// $0 - inflation amount (8 bytes or isZero).  
-// $1 - chain constraint index (sibling)
+// $0 - inflation amount (zero prefix trimmed up to 8 bytes).  
+// $1 - sibling chain constraint index
 //
 func inflation : or(
 	selfIsConsumedOutput, // not checked if consumed
