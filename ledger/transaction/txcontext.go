@@ -252,3 +252,7 @@ func (ctx *TxContext) TotalInflation() uint64 {
 func (ctx *TxContext) OutputID(idx byte) base.OutputID {
 	return base.MustNewOutputID(ctx.txid, idx)
 }
+
+func (ctx *TxContext) Tree() *tuples.Tree {
+	return ctx.tree
+}

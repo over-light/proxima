@@ -163,7 +163,7 @@ func (ctx *TxContext) _validateOutputs(consumedBranch bool, failFast bool, spool
 	var failedOutputs bytes.Buffer
 
 	path := common.Concat(branch, 0)
-	ctx.tree.ForEach(func(i byte, data []byte) bool {
+	_ = ctx.tree.ForEach(func(i byte, data []byte) bool {
 		var err error
 		path[len(path)-1] = i
 		o, err := ledger.OutputFromBytesReadOnly(data)

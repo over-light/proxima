@@ -135,20 +135,16 @@ functions:
       numArgs: 0
       source: "
          concat(
-            concat(
-               atPath(pathToInputIDs), 
-               atPath(pathToUnlockParams),
-               atPath(pathToProducedOutputs), 
-               atPath(pathToSeqAndStemOutputIndices),
-               atPath(pathToTimestamp)
-            ),
-            concat(
-              atPath(pathToTotalProducedAmount),
-              atPath(pathToInputCommitment), 
-              atPath(pathToEndorsements),
-			  atPath(pathToExplicitBaseline),
-              atPath(pathToLocalLibraries)
-           )
+            atPath(pathToInputIDs), 
+            atPath(pathToUnlockParams),
+            atPath(pathToProducedOutputs), 
+            atPath(pathToSeqAndStemOutputIndices),
+            atPath(pathToTimestamp),
+            atPath(pathToTotalProducedAmount),
+            atPath(pathToInputCommitment), 
+            atPath(pathToEndorsements),
+			atPath(pathToExplicitBaseline),
+            atPath(pathToLocalLibraries)
          )"
    -
       sym: txIDPrefix

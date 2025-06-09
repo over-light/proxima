@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lunfardo314/easyfl"
 	"github.com/lunfardo314/easyfl/easyfl_util"
 	"github.com/lunfardo314/proxima/ledger"
 	"github.com/lunfardo314/proxima/ledger/base"
@@ -130,6 +131,47 @@ func TestMainConstraints(t *testing.T) {
 		err = u.DoTransfer(in.WithTargetLock(addrNext).WithAmount(1))
 		util.RequireErrorWith(t, err, "not enough tokens", "for the minimum storage deposit")
 	})
+}
+
+func TestTxID(t *testing.T) {
+	u := utxodb.NewUTXODB(genesisPrivateKey, true)
+	privKey0, _, addr0 := u.GenerateAddress(0)
+	err := u.TokensFromFaucet(addr0, 10000)
+	require.NoError(t, err)
+
+	_, _, addr1 := u.GenerateAddress(1)
+
+	ts := ledger.TimeNow()
+	t.Logf("now ts: %s", ts)
+	par, err := u.MakeTransferInputData(privKey0, nil, ts)
+	require.NoError(t, err)
+
+	timelockSlot := ts.Slot + 1
+
+	par.WithAmount(200).
+		WithTargetLock(addr1).
+		WithConstraint(ledger.NewTimelock(timelockSlot))
+	txBytes, err := txbuilder.MakeTransferTransaction(par)
+	require.NoError(t, err)
+
+	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
+	require.NoError(t, err)
+
+	rdr := multistate.MakeSugared(u.StateReader())
+	ctx, err := transaction.TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
+		if ret := rdr.GetOutput(tx.MustInputAt(i)); ret != nil {
+			return ret, nil
+		}
+		return nil, fmt.Errorf("can't load input %d", i)
+	})
+	require.NoError(t, err)
+
+	txID := ctx.TransactionID()
+	dctx := easyfl.NewGlobalDataTracePrint(base.NewDataContext(ctx.Tree()))
+	res, err := ledger.L().EvalFromSource(dctx, "txID")
+
+	require.NoError(t, err)
+	require.EqualValues(t, txID[:], res)
 }
 
 func TestTimelock(t *testing.T) {
