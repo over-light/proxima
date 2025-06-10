@@ -488,12 +488,12 @@ func (u *UTXODB) MakeNewChain(amount uint64, privateKey ed25519.PrivateKey, chai
 	}, nil
 }
 
-func (u *UTXODB) ValidationContextFromTransaction(txBytes []byte) (*transaction.TxContext, error) {
+func (u *UTXODB) TxContextFromBytes(txBytes []byte) (*transaction.TxContext, error) {
 	return transaction.TxContextFromTransferableBytes(txBytes, u.state.Readable().GetUTXO)
 }
 
 func (u *UTXODB) TxToLines(txBytes []byte, prefix ...string) *lines.Lines {
-	ctx, err := u.ValidationContextFromTransaction(txBytes)
+	ctx, err := u.TxContextFromBytes(txBytes)
 	if err != nil {
 		return lines.New(prefix...).Add("error: %v", err)
 	}
@@ -545,4 +545,12 @@ func (u *UTXODB) OriginDistributionTransactionString() string {
 
 func (u *UTXODB) FaucetBalance() uint64 {
 	return u.Balance(u.FaucetAddress())
+}
+
+func (u *UTXODB) TxStringFromBytes(txBytes []byte) string {
+	ctx, err := u.TxContextFromBytes(txBytes)
+	if err != nil {
+		return err.Error()
+	}
+	return ctx.String()
 }

@@ -154,16 +154,7 @@ func TestTxID(t *testing.T) {
 	txBytes, err := txbuilder.MakeTransferTransaction(par)
 	require.NoError(t, err)
 
-	tx, err := transaction.FromBytes(txBytes, transaction.MainTxValidationOptions...)
-	require.NoError(t, err)
-
-	rdr := multistate.MakeSugared(u.StateReader())
-	ctx, err := transaction.TxContextFromTransaction(tx, func(i byte) (*ledger.Output, error) {
-		if ret := rdr.GetOutput(tx.MustInputAt(i)); ret != nil {
-			return ret, nil
-		}
-		return nil, fmt.Errorf("can't load input %d", i)
-	})
+	ctx, err := u.TxContextFromBytes(txBytes)
 	require.NoError(t, err)
 
 	txID := ctx.TransactionID()
@@ -739,8 +730,9 @@ func TestChain3(t *testing.T) {
 
 	txb.SignED25519(privKey0)
 
-	txbytes := txb.TransactionData.Bytes()
-	err = u.AddTransaction(txbytes)
+	txBytes := txb.TransactionData.Bytes()
+
+	err = u.AddTransaction(txBytes)
 	require.NoError(t, err)
 
 	_, err = u.StateReader().GetUTXOForChainID(chainID)
@@ -750,6 +742,7 @@ func TestChain3(t *testing.T) {
 	require.EqualValues(t, u.Supply()-u.FaucetBalance()-10000, u.Balance(u.GenesisControllerAddress()))
 	require.EqualValues(t, 10000, u.Balance(addr0))
 	require.EqualValues(t, 2, u.NumUTXOs(addr0))
+
 }
 
 func TestChainLock(t *testing.T) {
@@ -839,9 +832,9 @@ func TestChainLock(t *testing.T) {
 		txBytes, err := txbuilder.MakeTransferTransaction(par)
 		require.NoError(t, err)
 
-		v, err := u.ValidationContextFromTransaction(txBytes)
+		v, err := u.TxContextFromBytes(txBytes)
 		require.NoError(t, err)
-		t.Logf("%s", v.String())
+		t.Logf("\n%s", v.String())
 
 		require.EqualValues(t, 10_000, int(u.Balance(addr0)))
 		err = u.AddTransaction(txBytes)
