@@ -44,53 +44,43 @@ The repository contains a testnet version of the Proxima node. It is intended fo
 It also contains some tools, which includes basic wallet functionality.
 
 ## Highlights of the system's architecture
-* **Fully permissionless**, undetermined, unbounded, generally unknown set of pseudonymous consensus participants. 
-Participation in the ledger as a user is fully open, you only need to be present on the ledger as a token holder. There is no need for any kind of permissions, registration, committee selection or voting processes.
-* **Token holders are the only category of participants**. No miners, no validators, no committees nor any other paid third parties with their interest.
-* Sybil protection is token-based (like PoS). Influence of the participant is proportional to the amount of its holdings, i.e., to its _skin-in-the-game_.
-* **Liquidity of the token** (liquid market price) is the only condition for the system to be fully permissionless. Ownership of tokens is the only prerequisite for the participation in any role. 
+* **Fully permissionless**. The system supports an open, undetermined, and unbounded set of pseudonymous consensus participants. Anyone can participate in the ledger as a user simply by holding tokens—no permissions, registration, committee selection, or voting processes are required.
+* **Token holders are the only participants**. There are no miners, validators, committees, or other paid third parties with their own interests.
+* **Sybil resistance** is token-based: similar to PoS, influence is proportional to token holdings — i.e., one’s _skin in the game_.
+* **Token liquidity**: The existence of a liquid market price for the token is the sole requirement for the system to remain permissionless. Token ownership is the only prerequisite for participating in any role. 
 * *No ASICs, no GPUs, no mining pools**
-* **Multi-leader**. The system operates without selecting a consensus leader or block proposers, providing a more decentralized approach. It can also be called _leaderless_.
-* **Nash equilibrium**. It is achieved with the optimal strategy of **biggest ledger coverage rule**, which is analogous to the Bitcoin's _longest chain rule_ in PoW blockchains.
-* The behavior of consensus participants does not use any "consensus rounds", does not rely on the knowledge about the existing peers, their state or voting/opinions, is "oblivious" to the communication history.
-* Unlike in blockchains, the optimal strategy is **cooperative**, rather than **competitive**. Consensus is achieved by cooperation between actors rather than
-choosing one wining proposal (leader) among many. This facilitates social consensus among participants
-* Goal of the consensus id conflict resolution. There's no need for sequencing. Canonic order among UTXO transactions naturally comes after conflict (double-spend) resolution. 
-This is the opposite to blockchains, which require total oder (_sequencing_) for determinism and to prevent double-spending. 
-* **High throughput**, as a result of **massive parallelism** and **absence of global bottlenecks**
-* **High level of decentralization**, among the highest achievable in distributed ledgers (together with PoW principle)
-* **Low energy requirements**, unlike PoW. 
-* **Low cost per transaction**, like PoS
-* The only type of message between participants is raw transaction.
-* **Asynchrony**. Big delays may result in network partitioning and forks, which will be perceived by users as inoperational network. 
-After communications restored, forks will be merged by the *biggest ledger coverage* rule and network will auto-restore it operation: will "self-heal". 
-* Peers seek cooperation. They are incentivized to be as close to other big token hodlers, as possible. 
-Otherwise, their transactions may get orphaned, or they will lose opportunity to win periodical inflation bonus lottery. 
-* Participants are incentivized to maintain their clock approximately synchronized with the global clock. 
-* **Probabilistic finality**. Depends on subjective assumptions by the users, similar to 6-block rule in Bitcoin. Normally 1 to 3 slots (10 to 30 sec) is enough. Theoretical bounds depend on network latency. 
-Due to the UTXO transaction determinism, there's no need to wait for the confirmation of the previous transaction. Therefore, transactions can be issued in batches or streams.
-* **Consensus rule is local and "oblivious"**. It does not require any global knowledge of the dynamic system state, such as composition of the committee, assumptions about node weights/stakes, or other registries.
-* **1-tier trust assumptions**. Only token holders are involved in the process. It is different from the multiple layers of trust required in other 
-blockchain systems such as PoW (which includes users and miners) and PoS (which includes at least users, block proposers, committee/leader selection procedure, and the committee). 
-* One category of participants also removes misalignment of interests between different categories of participants (e.g. "hodlers vs miners").
-* **Parallelism at the distributed consensus level**. Assets converge to their finality states in parallel, yet cooperating with each other.
-* **Parallelism** at the node level. All transactions are processed in parallel on each node.
-* **Spamming prevention** is based on the transaction rate limits per user (token holder): at the ledger level and at the pre-ledger buffer (_memDAG_) level
-* **Simpler than most**, except Bitcoin. The above facilitates clear and relatively simple overall concept and node architecture, 
-much simpler than most PoS and DAG-based systems, which are usually complex in their consensus layer. 
+* **Multi-leader (leaderless)**: The system does not rely on selecting a consensus leader or block proposer, resulting in a more decentralized approach.
+* **Nash equilibrium**: Achieved through the optimal strategy known as the biggest ledger coverage rule, analogous to Bitcoin's longest chain rule in PoW.
+* **Oblivious consensus behavior**: Consensus participants operate without "rounds" and without knowledge of all participants, peer states, voting, or communication history.
+* **Cooperative strategy**: Unlike traditional blockchains, consensus emerges through **cooperation rather than competition**, eliminating the need for leader election and promoting social consensus.
+* **Conflict resolution is the primary goal of consensus**: There is no requirement for sequencing. Canonical transaction ordering (e.g., among conflicting UTXOs) naturally results from conflict resolution. This contrasts with blockchains, where strict sequencing is needed to ensure determinism and prevent double spending. 
+* **High throughput**: Enabled by **massive parallelism** and the **absence of global bottlenecks**.
+* **High decentralization**: Among the highest achievable in distributed ledger systems, on par with PoW.
+* **Low energy consumption**: Unlike PoW-based systems.
+* **Low cost per transaction**: Comparable to PoS systems.
+* **Single message type**: Participants exchange only raw transactions.
+* **Asynchronous operation**: The network may temporarily partition or fork due to communication delays or even complete disconnection. Upon reconnection, forks are resolved using the **biggest ledger coverage rule**, enabling the network to **self-heal**. 
+* **Peer cooperation incentives**: Participants benefit by staying closely connected to large token holders. Isolation may result in orphaned transactions or missed opportunities, such as periodic inflation rewards. 
+* **Approximate clock synchronization**: Participants are incentivized to maintain local clocks roughly aligned with the global time. 
+* **Probabilistic finality**: Similar to Bitcoin’s six-block rule. In practice, finality is usually achieved within 1 to 3 slots (10–30 seconds), depending on network conditions. Thanks to the deterministic nature of UTXO transactions, confirmations can occur in batches or streams without waiting for prior confirmations.
+* **Single-tier trust model**: Only token holders participate. This differs from PoW (users + miners) and PoS (users + proposers + committees), reducing complexity of trust assumptions. 
+* **Aligned incentives**: Having a single participant class avoids conflicts of interest (e.g., between holders and miners).
+* **Consensus-level** parallelism: Assets reach finality independently yet in a cooperative manner.
+* **Node-level parallelism**: Each node processes all transactions concurrently.
+* **Spam prevention**: Enforced through transaction rate limits per token holder, both at the ledger level and in the pre-ledger buffer (memDAG).
+* **Simplicity**: Aside from Bitcoin, this system is simpler than most PoS and DAG-based architectures, which tend to involve complex consensus mechanisms. The overall concept and node design are relatively straightforward. 
 
 ## Further information
 * [Technical whitepaper (pdf)](https://arxiv.org/abs/2411.16456) contains a detailed description of the *cooperative ledger* concept
 * [Simplified presentation of Proxima concepts](https://hackmd.io/@Evaldas/Sy4Gka1DC) skips many technical details and adds more pictures
 * Tutorials and instructions (outdated somehow):
   * [CLI wallet program `proxi`](docs/proxi.md)
-  * [Running first node in the network](docs/run_boot.md)
   * [Running access node](docs/run_access.md)
   * [Running node with sequencer](docs/run_sequencer.md)
   * [Running small testnet in Docker](tests/docker/docker-network.md)
   * [Delegation in `proxi`](docs/delegate.md)
   * [How to join testnet?](docs/testnet.md)
+* 
 * Introductory videos:
-  * [1. Introduction. Principles of Nakamoto consensus](https://youtu.be/qDnjnrOJK_g)
-  * [2. UTXO tangle. Ledger coverage](https://youtu.be/CT0_FlW-ObM)
-  * [3. Cooperative consensus](https://youtu.be/7N_L6CMyRdo)
+  * [1. UTXO tangle. Ledger coverage](https://youtu.be/CT0_FlW-ObM)
+  * [2. Cooperative consensus](https://youtu.be/7N_L6CMyRdo)
