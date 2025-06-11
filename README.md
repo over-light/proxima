@@ -39,7 +39,7 @@ It also contains some tools, which includes basic wallet functionality.
 * *No ASICs, no GPUs, no mining pools**
 * **Multi-leader (leaderless)**: The system does not rely on selecting a consensus leader or block proposer, resulting in a more decentralized approach.
 * **Nash equilibrium**: Achieved through the optimal strategy known as the biggest ledger coverage rule, analogous to Bitcoin's longest chain rule in PoW.
-* **Oblivious consensus behavior**: Consensus participants operate without "rounds" and without knowledge of all participants, peer states, voting, or communication history.
+* **"Oblivious" consensus protocol**: Consensus participants operate without "rounds" and without knowledge of all participants, peer states, voting, or communication history.
 * **Cooperative strategy**: Unlike traditional blockchains, consensus emerges through **cooperation rather than competition**, eliminating the need for leader election and promoting social consensus.
 * **Conflict resolution is the primary goal of consensus**: There is no requirement for sequencing. Canonical transaction ordering (e.g., among conflicting UTXOs) naturally results from conflict resolution. This contrasts with blockchains, where strict sequencing is needed to ensure determinism and prevent double spending. 
 * **High throughput**: Enabled by **massive parallelism** and the **absence of global bottlenecks**.
