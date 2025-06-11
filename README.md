@@ -26,18 +26,6 @@ category of participants in the network. This behavior is viable only when they 
 similarly to the _longest chain rule_ in PoW blockchains. Consensus in Proxima is _probabilistic_, i.e., the finality is non-deterministic and subjective. 
 Hence, **cooperative consensus**
 
-The profit-and-consensus-seeking behavior is facilitated by enforcing purposefully designed UTXO transaction validity constraints.
-The only prerequisite is liquidity of the token (i.e. market price of it). Thus, the participation of token holders in the network is completely permissionless by nature. 
-
-Proxima distributed ledger does not require special categories of miners, validators, committees, or staking, with their functions, trust assumptions, and variety of interests.
-
-In the proposed architecture, participants do not need knowledge about the global state of the system or the total order of ledger updates. 
-The setup allows achieving high throughput and scalability alongside low transaction costs, while preserving key aspects of decentralization, 
-open participation, and asynchronicity found in Bitcoin and other proof-of-work blockchains, but without unsustainable energy consumption. 
-
-Sybil protection is achieved similarly to proof-of-stake blockchains, using tokens native to the ledger, yet the architecture operates in a multi-leader manner, 
-without block proposers, committee selection, and staking.
-
 Currently, the project is in an **ongoing development stage**. 
 
 The repository contains a testnet version of the Proxima node. It is intended for experimental research and development. 
