@@ -36,7 +36,7 @@ It also contains some tools, which includes basic wallet functionality.
 * **Token holders are the only participants**. There are no miners, validators, committees, or other paid third parties with their own interests.
 * **Sybil resistance** is token-based: similar to PoS, influence is proportional to token holdings — i.e., one’s _skin in the game_.
 * **Token liquidity**: The existence of a liquid market price for the token is the sole requirement for the system to remain permissionless. Token ownership is the only prerequisite for participating in any role. 
-* *No ASICs, no GPUs, no mining pools**
+* **No ASICs, no GPUs, no mining pools**.
 * **Multi-leader (leaderless)**: The system does not rely on selecting a consensus leader or block proposer, resulting in a more decentralized approach.
 * **Nash equilibrium**: Achieved through the optimal strategy known as the biggest ledger coverage rule, analogous to Bitcoin's longest chain rule in PoW.
 * **"Oblivious" consensus protocol**: Consensus participants operate without "rounds" and without knowledge of all participants, peer states, voting, or communication history.
