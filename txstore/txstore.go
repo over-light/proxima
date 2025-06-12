@@ -152,7 +152,7 @@ func LoadAndParseTransaction(store global.TxBytesGet, txid base.TransactionID) (
 	if err != nil {
 		return nil, nil, err
 	}
-	tx, err := transaction.FromBytes(txBytes, transaction.BaseValidation)
+	tx, err := transaction.FromBytes(txBytes)
 	if err != nil {
 		return nil, nil, err
 	}

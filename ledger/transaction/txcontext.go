@@ -70,23 +70,11 @@ func TxContextFromTransaction(tx *Transaction, inputLoaderByIndex func(i byte) (
 
 // TxContextFromTransferableBytes constructs tuples.Tree from transaction bytes and consumed outputs
 func TxContextFromTransferableBytes(txBytes []byte, fetchInput func(oid base.OutputID) ([]byte, bool), traceOption ...int) (*TxContext, error) {
-	tx, err := FromBytes(txBytes, ParseSequencerData, ScanOutputs)
+	tx, err := FromBytes(txBytes, ParseTotalProducedAmount, ParseSequencerData, ScanOutputs)
 	if err != nil {
 		return nil, err
 	}
 	return TxContextFromTransaction(tx, tx.InputLoaderByIndex(fetchInput), traceOption...)
-}
-
-func StringFromTxBytes(txBytes []byte, inputLoaderByIndex func(byte) (*ledger.Output, error)) string {
-	tx, err := FromBytes(txBytes, ParseSequencerData)
-	if err != nil {
-		return err.Error()
-	}
-	ctx, err := TxContextFromTransaction(tx, inputLoaderByIndex)
-	if err != nil {
-		return err.Error()
-	}
-	return ctx.String()
 }
 
 // unlockScriptBinary finds the script from the data of unlock block

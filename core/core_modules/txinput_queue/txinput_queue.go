@@ -16,6 +16,8 @@ import (
 // transaction input queue to buffer incoming transactions from peers and from API
 // Maintains bloom filter and check repeating transactions (with small probability of false positives)
 
+// TODO always prefix sent transaction with txid: to optimize pre-ingate checking
+
 type (
 	environment interface {
 		global.NodeGlobal

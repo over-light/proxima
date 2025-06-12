@@ -49,6 +49,7 @@ type (
 
 // MainTxValidationOptions is all except Base, time bounds and input context validation. Fastest first
 var MainTxValidationOptions = []TxValidationOption{
+	ParseTotalProducedAmount,
 	ParseSequencerData,
 	CheckExplicitBaseline,
 	CheckSizeOfInputCommitment,
@@ -140,7 +141,7 @@ func TxIDFromTransactionDataTree(txTree *tuples.Tree) (ret base.TransactionID, e
 }
 
 func FromBytes(txBytes []byte, opt ...TxValidationOption) (*Transaction, error) {
-	ret, err := transactionFromBytes(txBytes, BaseValidation)
+	ret, err := transactionFromBytes(txBytes, _baseValidation)
 	if err != nil {
 		return nil, fmt.Errorf("transaction.FromBytes: basic parse failed: '%v'", err)
 	}
@@ -150,12 +151,9 @@ func FromBytes(txBytes []byte, opt ...TxValidationOption) (*Transaction, error) 
 	return ret, nil
 }
 
-func FromBytesMainChecksWithOpt(txBytes []byte, additional ...TxValidationOption) (*Transaction, error) {
+func FromBytesMainChecksWithOpt(txBytes []byte) (*Transaction, error) {
 	tx, err := FromBytes(txBytes, MainTxValidationOptions...)
 	if err != nil {
-		return nil, err
-	}
-	if err = tx.Validate(additional...); err != nil {
 		return nil, err
 	}
 	return tx, nil
@@ -204,22 +202,13 @@ func (tx *Transaction) SignatureBytes() []byte {
 	return tx.tree.MustBytesAtPath(Path(ledger.TxSignature))
 }
 
-// BaseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
-func BaseValidation(tx *Transaction) (err error) {
+// _baseValidation is a checking of being able to extract id. If not, bytes are not identifiable as a transaction
+func _baseValidation(tx *Transaction) (err error) {
 	tx.txid, err = TxIDFromTransactionDataTree(tx.tree)
 	if err != nil {
 		return err
 	}
 	tx.timestamp = tx.txid.Timestamp()
-	// parse the total amount as trimmed-prefix uint68. Validity of the sum is not checked here
-	totalAmountBin, err := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
-	if err != nil {
-		return err
-	}
-	tx.totalAmount, err = easyfl_util.Uint64FromBytes(totalAmountBin)
-	if err != nil {
-		return fmt.Errorf("wrong total amount in transaction: %v", err)
-	}
 	return nil
 }
 
@@ -240,6 +229,19 @@ func CheckTimestampUpperBound(upperBound time.Time) TxValidationOption {
 		}
 		return nil
 	}
+}
+
+func ParseTotalProducedAmount(tx *Transaction) error {
+	// parse the total amount as trimmed-prefix uint68. Validity of the sum is not checked here
+	totalAmountBin, err := tx.tree.BytesAtPath(Path(ledger.TxTotalProducedAmount))
+	if err != nil {
+		return err
+	}
+	tx.totalAmount, err = easyfl_util.Uint64FromBytes(totalAmountBin)
+	if err != nil {
+		return fmt.Errorf("wrong total amount in transaction: %v", err)
+	}
+	return nil
 }
 
 // ParseSequencerData validates and parses sequencer data if relevant. Data is cached for frequent extraction
