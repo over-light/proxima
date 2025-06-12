@@ -73,17 +73,17 @@ func (w *Workflow) TxBytesInFromAPIQueued(txBytes []byte) {
 	})
 }
 
-func (w *Workflow) TxBytesInFromPeerQueued(txBytes []byte, metaData *txmetadata.TransactionMetadata, from peer.ID, txData []byte) {
+func (w *Workflow) TxBytesInFromPeerQueued(txBytesReceived []byte, metaData *txmetadata.TransactionMetadata, from peer.ID, txidPrefix base.TransactionID) {
 	if metaData == nil {
 		metaData = &txmetadata.TransactionMetadata{}
 	}
 	metaData.TxBytesReceived = util.Ref(time.Now())
 	w.txInputQueue.Push(txinput_queue.Input{
 		Cmd:        txinput_queue.CmdFromPeer,
-		TxBytes:    txBytes,
+		TxIDPrefix: txidPrefix,
+		TxBytes:    txBytesReceived,
 		TxMetaData: metaData,
 		FromPeer:   from,
-		TxData:     txData,
 	})
 }
 
@@ -181,8 +181,8 @@ func (w *Workflow) _attach(tx *transaction.Transaction, opts ...attacher.AttachT
 	attacher.AttachTransaction(tx, w, opts...)
 }
 
-func (w *Workflow) OwnSequencerMilestoneIn(txBytes []byte, meta *txmetadata.TransactionMetadata) {
-	w.TxBytesInFromPeerQueued(txBytes, meta, w.SelfPeerID(), nil)
+func (w *Workflow) OwnSequencerMilestoneIn(txBytes []byte, meta *txmetadata.TransactionMetadata, txid base.TransactionID) {
+	w.TxBytesInFromPeerQueued(txBytes, meta, w.SelfPeerID(), txid)
 }
 
 func WithMetadata(metadata *txmetadata.TransactionMetadata) TxInOption {

@@ -88,8 +88,8 @@ func Start(env environment, peers *peering.Peers, opts ...ConfigOption) *Workflo
 	snapshot.Start(ret)
 	ret.startListeningTransactions()
 
-	ret.peers.OnReceiveTxBytes(func(from peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata, txData []byte) {
-		ret.TxBytesInFromPeerQueued(txBytes, metadata, from, txData)
+	ret.peers.OnReceiveTxBytes(func(from peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata, txIDPrefix base.TransactionID) {
+		ret.TxBytesInFromPeerQueued(txBytes, metadata, from, txIDPrefix)
 	})
 
 	ret.peers.OnReceivePullTxRequest(func(from peer.ID, txid base.TransactionID) {

@@ -18,8 +18,6 @@ import (
 	"github.com/lunfardo314/proxima/util"
 )
 
-// TODO revisit MaxDurationInTheFuture
-
 func (w *Workflow) MaxDurationInTheFuture() time.Duration {
 	return 10 * ledger.SlotDuration()
 }
@@ -32,8 +30,8 @@ func (w *Workflow) PokeAllWith(wanted *vertex.WrappedTx) {
 	w.poker.PokeAllWith(wanted)
 }
 
-func (w *Workflow) SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata) bool {
-	return w.peers.SendTxBytesWithMetadataToPeer(id, txBytes, metadata)
+func (w *Workflow) SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata, txid base.TransactionID) bool {
+	return w.peers.SendTxBytesWithMetadataToPeer(id, txBytes, metadata, txid)
 }
 
 func (w *Workflow) GossipAttachedTransaction(tx *transaction.Transaction, metadata *txmetadata.TransactionMetadata) {
@@ -42,11 +40,11 @@ func (w *Workflow) GossipAttachedTransaction(tx *transaction.Transaction, metada
 			return
 		}
 	}
-	w.GossipTxBytesToPeers(tx.Bytes(), metadata)
+	w.GossipTxBytesToPeers(tx.Bytes(), metadata, tx.ID())
 }
 
-func (w *Workflow) GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.TransactionMetadata, except ...peer.ID) {
-	w.peers.GossipTxBytesToPeers(txBytes, metadata, except...)
+func (w *Workflow) GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid base.TransactionID, except ...peer.ID) {
+	w.peers.GossipTxBytesToPeers(txBytes, metadata, txid, except...)
 }
 
 func (w *Workflow) MustPersistTxBytesWithMetadata(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid ...base.TransactionID) {

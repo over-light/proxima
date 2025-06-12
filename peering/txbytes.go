@@ -6,13 +6,13 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/lunfardo314/proxima/core/txmetadata"
+	"github.com/lunfardo314/proxima/ledger/base"
 	"github.com/lunfardo314/unitrie/common"
 )
 
 func (ps *Peers) gossipStreamHandler(stream network.Stream) {
-
 	defer func() {
-		stream.Close()
+		_ = stream.Close()
 		ps.Log().Infof("[peering] gossip: streamHandler exit")
 	}()
 
@@ -42,6 +42,7 @@ func (ps *Peers) gossipStreamHandler(stream network.Stream) {
 
 	var txBytesWithMetadata, metadataBytes, txBytes []byte
 	var metadata *txmetadata.TransactionMetadata
+	var txIDPrefix base.TransactionID
 
 	for {
 		txBytesWithMetadata, err = readFrame(stream)
@@ -57,14 +58,28 @@ func (ps *Peers) gossipStreamHandler(stream network.Stream) {
 			ps.Log().Errorf("gossip: error while reading message from peer %s: %v", id.String(), err)
 			return
 		}
-
+		if len(txBytesWithMetadata) < base.TransactionIDLength {
+			// protocol violation
+			err = fmt.Errorf("gossip: wrong tx message from peer %s (txid prefix): at least 32 bytes expected", id.String())
+			ps.Log().Error(err)
+			ps.dropPeer(id, err.Error(), true)
+			return
+		}
+		txIDPrefix, err = base.TransactionIDFromBytes(txBytesWithMetadata[:base.TransactionIDLength])
+		if err != nil {
+			// protocol violation
+			err = fmt.Errorf("gossip: wrong tx message from peer (txid prefix) %s: %v", id.String(), err)
+			ps.Log().Error(err)
+			ps.dropPeer(id, err.Error(), true)
+			return
+		}
+		txBytesWithMetadata = txBytesWithMetadata[base.TransactionIDLength:]
 		metadataBytes, txBytes, err = txmetadata.SplitTxBytesWithMetadata(txBytesWithMetadata)
 		if err != nil {
 			// protocol violation
 			err = fmt.Errorf("gossip: error while parsing tx message from peer %s: %v", id.String(), err)
 			ps.Log().Error(err)
 			ps.dropPeer(id, err.Error(), true)
-			//bytepool.DisposeArray(txBytesWithMetadata)
 			return
 		}
 		metadata, err = txmetadata.TransactionMetadataFromBytes(metadataBytes)
@@ -73,7 +88,6 @@ func (ps *Peers) gossipStreamHandler(stream network.Stream) {
 			err = fmt.Errorf("gossip: error while parsing tx message metadata from peer %s: %v", id.String(), err)
 			ps.Log().Error(err)
 			ps.dropPeer(id, err.Error(), true)
-			//bytepool.DisposeArray(txBytesWithMetadata)
 			return
 		}
 
@@ -82,25 +96,27 @@ func (ps *Peers) gossipStreamHandler(stream network.Stream) {
 		ps.transactionsReceivedCounter.Inc()
 		ps.txBytesReceivedCounter.Add(float64(len(txBytesWithMetadata)))
 
-		go ps.onReceiveTx(id, txBytes, metadata, txBytesWithMetadata)
+		go ps.onReceiveTx(id, txBytes, metadata, txIDPrefix)
 	}
 }
 
-func (ps *Peers) GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.TransactionMetadata, except ...peer.ID) {
+func (ps *Peers) GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid base.TransactionID, except ...peer.ID) {
 	targets := ps.peerIDsAlive(except...)
-	ps.sendTxBytesWithMetadataToPeers(targets, txBytes, metadata)
+	ps.sendTxBytesWithMetadataToPeers(targets, txBytes, metadata, txid)
 }
 
-func (ps *Peers) sendTxBytesWithMetadataToPeers(ids []peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata) {
+func (ps *Peers) sendTxBytesWithMetadataToPeers(ids []peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata, txid base.TransactionID) {
 	msg := gossipMsgWrapper{
+		txid:     txid,
 		metadata: metadata,
 		txBytes:  txBytes,
 	}
 	ps.sendMsgBytesOutMulti(ids, ps.lppProtocolGossip, msg.Bytes())
 }
 
-func (ps *Peers) SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata) bool {
+func (ps *Peers) SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata, txid base.TransactionID) bool {
 	msg := gossipMsgWrapper{
+		txid:     txid,
 		metadata: metadata,
 		txBytes:  txBytes,
 	}
@@ -109,10 +125,11 @@ func (ps *Peers) SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metad
 
 // message wrapper
 type gossipMsgWrapper struct {
+	txid     base.TransactionID
 	metadata *txmetadata.TransactionMetadata
 	txBytes  []byte
 }
 
 func (gm gossipMsgWrapper) Bytes() []byte {
-	return common.Concat(gm.metadata.Bytes(), gm.txBytes)
+	return common.Concat(gm.txid[:], gm.metadata.Bytes(), gm.txBytes)
 }

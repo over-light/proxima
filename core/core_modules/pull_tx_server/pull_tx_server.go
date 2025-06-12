@@ -17,7 +17,7 @@ type (
 		global.NodeGlobal
 		TxBytesStore() global.TxBytesStore
 		StateStore() multistate.StateStore
-		SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata) bool
+		SendTxBytesWithMetadataToPeer(id peer.ID, txBytes []byte, metadata *txmetadata.TransactionMetadata, txid base.TransactionID) bool
 	}
 
 	Input struct {
@@ -58,7 +58,7 @@ func (d *PullTxServer) consume(inp *Input) {
 	metadata, err := txmetadata.TransactionMetadataFromBytes(metadataBytes)
 	util.AssertNoError(err)
 
-	go d.SendTxBytesWithMetadataToPeer(inp.PeerID, txBytes, metadata)
+	go d.SendTxBytesWithMetadataToPeer(inp.PeerID, txBytes, metadata, inp.TxID)
 	d.responseToPullCounter.Inc()
 
 	d.Tracef(TraceTag, "FOUND %s -> %s", inp.TxID.StringShort, peering.ShortPeerIDString(inp.PeerID))

@@ -36,7 +36,7 @@ type (
 		NumSequencerTips() int
 		ListenToAccount(account ledger.Accountable, fun func(wOut vertex.WrappedOutput))
 		MustEnsureBranch(txid base.TransactionID) *vertex.WrappedTx
-		OwnSequencerMilestoneIn(txBytes []byte, meta *txmetadata.TransactionMetadata)
+		OwnSequencerMilestoneIn(txBytes []byte, meta *txmetadata.TransactionMetadata, txid base.TransactionID)
 		LatestReliableState() (multistate.SugaredStateReader, error)
 	}
 
@@ -527,7 +527,7 @@ func (seq *Sequencer) submitMilestone(tx *transaction.Transaction, meta *txmetad
 	}
 
 	// send transaction to the node's input queue
-	seq.OwnSequencerMilestoneIn(tx.Bytes(), meta)
+	seq.OwnSequencerMilestoneIn(tx.Bytes(), meta, tx.ID())
 
 	vid, err := seq.waitMilestoneInTippool(tx.ID(), time.Now().Add(submitTimeout))
 	if err != nil {

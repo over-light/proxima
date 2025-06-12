@@ -16,22 +16,23 @@ import (
 // transaction input queue to buffer incoming transactions from peers and from API
 // Maintains bloom filter and check repeating transactions (with small probability of false positives)
 
-// TODO always prefix sent transaction with txid: to optimize pre-ingate checking
-
 type (
 	environment interface {
 		global.NodeGlobal
 		TxInFromPeer(tx *transaction.Transaction, metaData *txmetadata.TransactionMetadata, from peer.ID) error
 		TxInFromAPI(tx *transaction.Transaction) error
-		GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.TransactionMetadata, except ...peer.ID)
+		GossipTxBytesToPeers(txBytes []byte, metadata *txmetadata.TransactionMetadata, txid base.TransactionID, except ...peer.ID)
 	}
 
 	Input struct {
-		Cmd        byte
+		Cmd byte
+		// TxID a prefix of transaction bytes received with CmdFromPeer, otherwise uninterpreted.
+		// Should not be trusted. used only for gossip optimization and consistency checking
+		// Real txid is calculated during base validation
+		TxIDPrefix base.TransactionID
 		TxBytes    []byte
 		TxMetaData *txmetadata.TransactionMetadata
 		FromPeer   peer.ID
-		TxData     []byte // full data buffer of the transaction
 	}
 
 	TxInputQueue struct {
@@ -112,18 +113,25 @@ func (q *TxInputQueue) consume(inp Input) {
 }
 
 func (q *TxInputQueue) fromPeer(inp *Input) {
+	// check based on the message prefix, without parsing and computing txid
+	pass, wanted := q.inGate.checkPass(inp.TxIDPrefix)
+	if !pass {
+		// repeating transaction
+		// reject based on txid prefix, without tx base parsing
+		q.filterHitCounter.Inc()
+		return
+	}
+	// now preparse it, calculate txid
 	tx, err := transaction.FromBytes(inp.TxBytes)
 	if err != nil {
 		q.badTxCounter.Inc()
 		q.Log().Warn("TxInputQueue: %v", err)
 		return
 	}
-	pass, wanted := q.inGate.checkPass(tx.ID())
-	if !pass {
-		// repeating transaction
-		q.filterHitCounter.Inc()
-		// transaction will not be used, return data buffer for reuse
-		//bytepool.DisposeArray(inp.TxData)
+	// check if message prefix is equal to txid
+	if tx.ID() != inp.TxIDPrefix {
+		q.badTxCounter.Inc()
+		q.Log().Warn("TxInputQueue: tx message prefix != real txid", err)
 		return
 	}
 
@@ -139,13 +147,11 @@ func (q *TxInputQueue) fromPeer(inp *Input) {
 	if err = q.TxInFromPeer(tx, metaData, inp.FromPeer); err != nil {
 		q.badTxCounter.Inc()
 		q.Log().Warn("TxInputQueue from peer %s: %v", inp.FromPeer.String(), err)
-		// transaction will not be used, return data buffer for reuse
-		//bytepool.DisposeArray(inp.TxData)
 		return
 	}
 	if !wanted {
 		// gossiping all new pre-validated and not pulled transactions from peers
-		q.GossipTxBytesToPeers(inp.TxBytes, inp.TxMetaData, inp.FromPeer)
+		q.GossipTxBytesToPeers(inp.TxBytes, inp.TxMetaData, inp.TxIDPrefix)
 		q.gossipedCounter.Inc()
 	}
 }
@@ -173,7 +179,7 @@ func (q *TxInputQueue) fromAPI(inp *Input) {
 		return
 	}
 	// gossiping all pre-validated transactions from API
-	q.GossipTxBytesToPeers(inp.TxBytes, inp.TxMetaData)
+	q.GossipTxBytesToPeers(inp.TxBytes, inp.TxMetaData, tx.ID())
 	q.gossipedCounter.Inc()
 }
 
