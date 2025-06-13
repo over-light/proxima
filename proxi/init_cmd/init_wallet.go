@@ -69,8 +69,8 @@ api:
     endpoint: http://127.0.0.1:8000
 
 tag_along:
-    # id of the tag-along sequencer. Currently only one is supported
-    # If not specified, the default sequencer id will be used
+    # id of the tag-along sequencer. Currently only one tag-along sequencer is supported
+    # If not specified, the default sequencer ID will be used
     # uncomment the line and specify your preferred sequencer
 #    sequencer_id: <your sequencer ID>
     fee: 200
@@ -89,7 +89,7 @@ spammer:
     pace: 25
     tag_along:
         fee: 50
-        # <sequencer id hex encoded> is tag-along sequencer id for the tip transaction in the bundle
+        # <sequencer ID hex encoded> is tag-along sequencer id for the tip transaction in the bundle
         # If not specified, the default sequencer id will be used
         # sequencer_id: <sequencer id hex encoded>
     # target address

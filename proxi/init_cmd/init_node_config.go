@@ -131,9 +131,9 @@ snapshot:
     # where to put snapshot files. Directory must exist at startup
   directory: snapshot
     # 30 slots means snapshot is every ~5 min
-  period_in_slots: 30
+  period_in_slots: 64
     # keep latest up to 3 snapshots, older ones will be purged
-  keep_latest: 3
+  keep_latest: 2
 
 # logger config
 # logger.previous can be 'erase' or 'save'
@@ -175,17 +175,15 @@ sequencer:
   name: <mandatory name>
     # start sequencer yes/no
   enable: false
-    # chain id of the sequencer
-    # chain id 6393b6781206a652070e78d1391bc467e9d9704e9aa59ec7f7131f329d662dcc is
-    # predefined chain id of the genesis chain (the bootstrap sequencer)
+    # chain ID of the sequencer
     # Sequencer chain is created by 'proxi node mkchain' command
-    # All chains controlled by the wallet can be displayed by 'proxi node chains'
+    # All chains controlled by the wallet can be displayed by 'proxi node mychains'
   chain_id: <sequencer id hex encoded>
   # sequencer chain controller's private key (hex-encoded)
   controller_key: <ED25519 private key of the controller>
   # sequencer pace. Distance in ticks between two subsequent sequencer transactions
   # cannot be less than the sequencer pace value set by the ledger
   pace: 12
-  # maximum tag-along inputs allowed in the sequencer transaction (maximum value is 254)
+  # maximum tag-along inputs allowed in the sequencer transaction (absolute maximum value is 254)
   max_tag_along_inputs: 100
 `
