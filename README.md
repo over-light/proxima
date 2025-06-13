@@ -8,8 +8,8 @@ Proxima is as decentralized and permissionless as Bitcoin (*proof-of-work*, PoW)
 - [Proxima whitepaper](https://arxiv.org/abs/2411.16456) 
 - other [Proxima documents](https://lunfardo314.github.io/), which include:
    - [Overview of Proxima concepts](https://lunfardo314.github.io/#/overview/intro)
-   - [Proxima transaction model](https://lunfardo314.github.io/#/txdocs/intro)
-   - [Proxima ledger and programmability](https://lunfardo314.github.io/#/ledgerdocs/library)
+   - [Transaction model](https://lunfardo314.github.io/#/txdocs/intro)
+   - [UTXO scripting](https://lunfardo314.github.io/#/ledgerdocs/library)
 
 ## Testnet 
 
